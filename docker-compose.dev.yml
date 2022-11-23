@@ -10,4 +10,3 @@ services:
       - "3000:3000"
     volumes:
       - ./backend:/app
-    entrypoint: ["/bin/bash", "/app/script/docker-entrypoint.dev.sh"]

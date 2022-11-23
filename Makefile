@@ -39,3 +39,4 @@ clean: down
 fclean:
 	${DOCKERCOMPOSE} ${COMPOSEFILE} ${DOWN} ${REMOVEALL}
 	docker system prune -af --volumes
+	rm -rf */node_modules */dist
