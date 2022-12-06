@@ -11,47 +11,57 @@ datasource db {
 }
 
 model User {
-  id        Int     @id @unique @default(autoincrement())
-  name      String  @unique
-  email     String  @unique
-  avatar    Avatar  @relation(fields:[avatarid], references: [id])
-  avatarid  Int
-  skin      Skin    @relation(fields:[skinid], references: [id])
-  skinid    Int
-  rank      Int     @unique
-  twofactauth Boolean  @default(false)
-  // friends   User[]
-  // blockedusers  User[]
-  // gamesplayed   
-  // gameswon
+  id            Int       @id @unique @default(autoincrement())
+  name          String    @unique
+  email         String    @unique
+  avatar        Avatar    @relation(fields:[avatarid], references: [id])
+  avatarid      Int
+  skin          Skin      @relation(fields:[skinid], references: [id])
+  skinid        Int
+  rank          Int       @unique
+  twofactauth   Boolean   @default(false)
+  channels      Channel[] @relation("userchannels")
+  operatorof    Channel[] @relation("chanops")
+  gamesplayed   Game[]    @relation("gamesplayed")
+  gameswon      Game[]    @relation("gameswon")
+  friends       User[]    @relation("friendship")
+  friended      User[]    @relation("friendship")
+  blockedusers  User[]    @relation("blocked")
+  blockedby     User[]    @relation("blocked")
 }
 
 model Skin {
   id    Int     @id @unique
   name  String  @unique
-  // image
+  url   String  @unique
   users User[]
 }
 
 model Avatar {
   id    Int     @id @unique
   name  String  @unique
-  // image 
+  url   String  @unique
   users User[]
 }
 
 model Channel {
   id        Int     @id @unique @default(autoincrement())
-  name      String  @unique
-  private   Boolean  @default(false)
+  name      String? @unique
+  mode      Mode    @default(public)
   password  String
-  // members   User[]
-  // operators User[]
+  members   User[]  @relation("userchannels")
+  operators User[]  @relation("chanops")
 }
 
 model Game {
   id        Int     @id @unique @default(autoincrement())
-  // players   User[]
+  players   User[]  @relation("gamesplayed")
+  winner    User    @relation("gameswon", fields:[winnerid], references: [id])
+  winnerid  Int
   scores    Int[]
-  // winner    User
+}
+
+enum Mode {
+  public
+  private
 }
