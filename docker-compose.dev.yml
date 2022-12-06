@@ -14,7 +14,7 @@ services:
     volumes:
       - ./backend:/app
     environment:
-      - DATABASE_URL=postgresql://postgres:123@postgres:5432/transcendence?schema=public
+      - DATABASE_URL=${DATABASE_URL}
     networks:
       - trans
     depends_on:
@@ -24,9 +24,9 @@ services:
     image: postgres:15
     container_name: postgres
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=123
-      - POSTGRES_DB=transcendence
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     networks:
       - trans
 
