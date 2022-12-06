@@ -1,5 +1,7 @@
 version: '3'
+
 services:
+
   backend:
     image: node:transcendence
     build:
@@ -8,5 +10,25 @@ services:
     container_name: backend
     ports:
       - "3000:3000"
+      - "5555:5555"
     volumes:
       - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres:123@postgres:5432/transcendence?schema=public
+    networks:
+      - trans
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123
+      - POSTGRES_DB=transcendence
+    networks:
+      - trans
+
+networks:
+  trans:
