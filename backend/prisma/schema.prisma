@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int     @id @unique @default(autoincrement())
+  name      String  @unique
+  email     String  @unique
+  avatar    Avatar  @relation(fields:[avatarid], references: [id])
+  avatarid  Int
+  skin      Skin    @relation(fields:[skinid], references: [id])
+  skinid    Int
+  rank      Int     @unique
+  twofactauth Boolean  @default(false)
+  // friends   User[]
+  // blockedusers  User[]
+  // gamesplayed   
+  // gameswon
+}
+
+model Skin {
+  id    Int     @id @unique
+  name  String  @unique
+  // image
+  users User[]
+}
+
+model Avatar {
+  id    Int     @id @unique
+  name  String  @unique
+  // image 
+  users User[]
+}
+
+model Channel {
+  id        Int     @id @unique @default(autoincrement())
+  name      String  @unique
+  private   Boolean  @default(false)
+  password  String
+  // members   User[]
+  // operators User[]
+}
+
+model Game {
+  id        Int     @id @unique @default(autoincrement())
+  // players   User[]
+  scores    Int[]
+  // winner    User
+}

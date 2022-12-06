@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+
+  backend:
+    image: node:transcendence
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: backend
+    ports:
+      - "3000:3000"
+      - "5555:5555"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    networks:
+      - trans
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    networks:
+      - trans
+
+networks:
+  trans:
