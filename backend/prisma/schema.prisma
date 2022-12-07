@@ -12,6 +12,20 @@ datasource db {
 
 model User {
   id            Int       @id @unique @default(autoincrement())
+  channels      Channel[] @relation("userchannels")
+  chanRole      Channel[] @relation("chanRole")
+  gamesplayed   Game[]    @relation("gamesplayed")
+  gameswon      Game[]    @relation("gameswon")
+  friends       User[]    @relation("friendship")
+  friended      User[]    @relation("friendship")
+  blockedusers  User[]    @relation("blocked")
+  blockedby     User[]    @relation("blocked")
+  profile       Profile?
+  // messages      Message[] @relation("usermessage")
+}
+
+model Profile {
+  id            Int       @id @unique @default(autoincrement())
   name          String    @unique
   email         String    @unique
   avatar        Avatar    @relation(fields:[avatarid], references: [id])
@@ -21,15 +35,8 @@ model User {
   rank          Int       @unique
   twofactauth   Boolean   @default(false)
   twofactsecret String?
-  channels      Channel[] @relation("userchannels")
-  chanRole      Channel[] @relation("chanRole")
-  gamesplayed   Game[]    @relation("gamesplayed")
-  gameswon      Game[]    @relation("gameswon")
-  friends       User[]    @relation("friendship")
-  friended      User[]    @relation("friendship")
-  blockedusers  User[]    @relation("blocked")
-  blockedby     User[]    @relation("blocked")
-  // messages      Message[] @relation("usermessage")
+  user          User      @relation(fields:[userid], references: [id])
+  userid        Int       @unique
 }
 
 // model Message {
@@ -46,14 +53,14 @@ model Skin {
   id    Int     @id @unique
   name  String  @unique
   url   String  @unique
-  users User[]
+  users Profile[]
 }
 
 model Avatar {
   id    Int     @id @unique
   name  String  @unique
   url   String  @unique
-  users User[]
+  users Profile[]
 }
 
 model Channel {
