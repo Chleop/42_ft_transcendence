@@ -20,15 +20,27 @@ model User {
   skinid        Int
   rank          Int       @unique
   twofactauth   Boolean   @default(false)
+  twofactsecret String?
   channels      Channel[] @relation("userchannels")
-  operatorof    Channel[] @relation("chanops")
+  chanRole      Channel[] @relation("chanRole")
   gamesplayed   Game[]    @relation("gamesplayed")
   gameswon      Game[]    @relation("gameswon")
   friends       User[]    @relation("friendship")
   friended      User[]    @relation("friendship")
   blockedusers  User[]    @relation("blocked")
   blockedby     User[]    @relation("blocked")
+  // messages      Message[] @relation("usermessage")
 }
+
+// model Message {
+//   id        Int     @id @unique @default(autoincrement())
+//   sender    User    @relation("usermessage", fields:[senderid], references: [id])
+//   senderid  Int
+//   channel   Channel @relation("channelmessage", fields:[channelid], references: [id])
+//   channelid Int
+//   datetime  DateTime
+//   Content   String
+// }
 
 model Skin {
   id    Int     @id @unique
@@ -45,12 +57,13 @@ model Avatar {
 }
 
 model Channel {
-  id        Int     @id @unique @default(autoincrement())
-  name      String? @unique
-  mode      Mode    @default(public)
+  id        Int       @id @unique @default(autoincrement())
+  name      String?   @unique
+  chantype  ChanType  @default(public)
   password  String
-  members   User[]  @relation("userchannels")
-  operators User[]  @relation("chanops")
+  members   User[]    @relation("userchannels")
+  operators User[]    @relation("chanRole")
+  // messages  Message[] @relation("channelmessage")
 }
 
 model Game {
@@ -61,7 +74,8 @@ model Game {
   scores    Int[]
 }
 
-enum Mode {
+enum ChanType {
   public
   private
+  protected
 }
