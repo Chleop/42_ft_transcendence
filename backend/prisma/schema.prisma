@@ -12,31 +12,24 @@ datasource db {
 
 model User {
   id            Int       @id @unique @default(autoincrement())
-  channels      Channel[] @relation("userchannels")
-  chanRole      Channel[] @relation("chanRole")
-  gamesplayed   Game[]    @relation("gamesplayed")
-  gameswon      Game[]    @relation("gameswon")
-  friends       User[]    @relation("friendship")
-  friended      User[]    @relation("friendship")
-  blockedusers  User[]    @relation("blocked")
-  blockedby     User[]    @relation("blocked")
-  profile       Profile?
-  // messages      Message[] @relation("usermessage")
-}
-
-model Profile {
-  id            Int       @id @unique @default(autoincrement())
   name          String    @unique
   email         String    @unique
   avatar        Avatar    @relation(fields:[avatarid], references: [id])
   avatarid      Int
-  skin          Skin      @relation(fields:[skinid], references: [id])
-  skinid        Int
+  // skin          Skin      @relation(fields:[skinid], references: [id])
+  // skinid        Int
   rank          Int       @unique
   twofactauth   Boolean   @default(false)
   twofactsecret String?
-  user          User      @relation(fields:[userid], references: [id])
-  userid        Int       @unique
+  // channels      Channel[] @relation("userchannels")
+  // chanRole      Channel[] @relation("chanRole")
+  // gamesplayed   Game[]    @relation("gamesplayed")
+  // gameswon      Game[]    @relation("gameswon")
+  // friends       User[]    @relation("friendship")
+  // friended      User[]    @relation("friendship")
+  // blockedusers  User[]    @relation("blocked")
+  // blockedby     User[]    @relation("blocked")
+  // messages      Message[] @relation("usermessage")
 }
 
 // model Message {
@@ -49,40 +42,40 @@ model Profile {
 //   Content   String
 // }
 
-model Skin {
-  id    Int     @id @unique
-  name  String  @unique
-  url   String  @unique
-  users Profile[]
-}
-
 model Avatar {
-  id    Int     @id @unique
+  id    Int     @id @unique @default(autoincrement())
   name  String  @unique
   url   String  @unique
-  users Profile[]
+  users User[]
 }
 
-model Channel {
-  id        Int       @id @unique @default(autoincrement())
-  name      String?   @unique
-  chantype  ChanType  @default(public)
-  password  String
-  members   User[]    @relation("userchannels")
-  operators User[]    @relation("chanRole")
-  // messages  Message[] @relation("channelmessage")
-}
+// model Skin {
+//   id    Int     @id @unique @default(autoincrement())
+//   name  String  @unique
+//   url   String  @unique
+//   users User[]
+// }
 
-model Game {
-  id        Int     @id @unique @default(autoincrement())
-  players   User[]  @relation("gamesplayed")
-  winner    User    @relation("gameswon", fields:[winnerid], references: [id])
-  winnerid  Int
-  scores    Int[]
-}
+// model Channel {
+//   id        Int       @id @unique @default(autoincrement())
+//   name      String?   @unique
+//   chantype  ChanType  @default(public)
+//   password  String
+//   members   User[]    @relation("userchannels")
+//   operators User[]    @relation("chanRole")
+//   messages  Message[] @relation("channelmessage")
+// }
 
-enum ChanType {
-  public
-  private
-  protected
-}
+// model Game {
+//   id        Int     @id @unique @default(autoincrement())
+//   players   User[]  @relation("gamesplayed")
+//   winner    User    @relation("gameswon", fields:[winnerid], references: [id])
+//   winnerid  Int
+//   scores    Int[]
+// }
+
+// enum ChanType {
+//   public
+//   private
+//   protected
+// }
