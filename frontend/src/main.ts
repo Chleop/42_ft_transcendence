@@ -68,21 +68,16 @@ export function entry_point() {
 
     // Initialize the stuff that's related to the user.
 
-    let c: undefined|ChannelElement;
+    let first: boolean = true;
     for (const channel of me.channels) {
         console.log(`adding channel '${channel.name}'`);
-        c = page.add_channel(channel);
-    }
 
-    (window as any).add_message = (author: string, msg: string) => {
-        if (c) {
-            page.add_message(c, {
-                author_avatar: "",
-                author_id: author,
-                author_name: author,
-                id: "",
-                content: msg,
-            });
+        const element = page.add_channel(channel);
+
+        if (first)
+        {
+            first = false;
+            page.set_selected_channel(element);
         }
-    };
+    }
 }

@@ -98,7 +98,7 @@
         bottom: 0px;
         width: 25vw;
         min-width: 500px;
-        backdrop-filter: blur(25px);
+        backdrop-filter: blur(15px);
         background-color: rgba(255, 255, 255, 0.05);
 
         display: flex;
@@ -194,14 +194,16 @@
         font-weight: 400;
         font-size: 18px;
         color: white;
+        margin-top: 15px;
     }
 
     .message-container:hover {
         background-color: rgba(255, 255, 255, 0.05);
     }
 
-    .message-container:not(.message-continuing) {
-        margin-top: 15px;
+    .message-continuing {
+        margin-top: 0px;
+        margin-bottom: 2px;
     }
 
     .message-avatar {
