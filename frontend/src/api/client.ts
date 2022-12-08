@@ -138,10 +138,7 @@ export class Client {
      *
      * @returns The response of the server.
      */
-    public async create_channel(name: string, priv: boolean, password?: string): Promise<ChannelJoined> {
-        let password_ = "";
-        if (password) password_ = password;
-
+    public async create_channel(name: string, priv: boolean, password: string = ""): Promise<ChannelJoined> {
         return this.make_request({
             accept: "application/json",
             method: "POST",
@@ -150,7 +147,7 @@ export class Client {
             body: new JsonBody({
                 name,
                 private: priv,
-                password: password_,
+                password,
             }),
         });
     }
@@ -163,11 +160,14 @@ export class Client {
      *
      * @returns The response of the server.
      */
-    public async join_channel(id: ChannelId, password: string): Promise<ChannelJoined> {
+    public async join_channel(id: ChannelId, password: string = ""): Promise<ChannelJoined> {
         return this.make_request({
             accept: "application/json",
             method: "POST",
             url: `channel/${id}/join`,
+            body: new JsonBody({
+                password
+            }),
         });
     }
 
