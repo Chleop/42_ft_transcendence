@@ -7,7 +7,7 @@
 </head>
 
 <script type="module">
-    import { entry_point } from "./main.js" // TODO: replace with the actual script route.
+    import { entry_point } from "./src/main.js" // TODO: replace with the actual script route.
     entry_point();
 </script>
 
@@ -225,10 +225,18 @@
         transform: translateY(1px);
     }
 
+    .message-continuing .message-avatar {
+        display: none;
+    }
+
     .message-header {
         display: flex;
         flex-flow: row nowrap;
         align-items: baseline;
+    }
+
+    .message-continuing .message-header {
+        display: none;
     }
 
     .message-author {
@@ -297,6 +305,8 @@
         flex-grow: 1;
     }
 </style>
+
+<!-- TODO: remove placeholders -->
 
 <body>
     <div id="main-menu-container">

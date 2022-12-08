@@ -1,5 +1,5 @@
 import { PrivateUser } from "./api/user";
-import { Page } from "./page";
+import { ChannelElement, Page } from "./page";
 
 /**
  * Tries to get the value of a specific cookie.
@@ -53,6 +53,11 @@ export function entry_point() {
                 has_password: false,
                 id: "",
                 name: "Test"
+            },
+            {
+                has_password: false,
+                id: "",
+                name: "Test2"
             }
         ],
         id: "3ccb95c1-b1c6-4ee2-b84a-b048700ef59c",
@@ -63,10 +68,21 @@ export function entry_point() {
 
     // Initialize the stuff that's related to the user.
 
+    let c: undefined|ChannelElement;
     for (const channel of me.channels) {
         console.log(`adding channel '${channel.name}'`);
-        page.add_channel(channel.name, false);
+        c = page.add_channel(channel);
     }
 
-    page.focus_first_channel();
+    (window as any).add_message = (author: string, msg: string) => {
+        if (c) {
+            page.add_message(c, {
+                author_avatar: "",
+                author_id: author,
+                author_name: author,
+                id: "",
+                content: msg,
+            });
+        }
+    };
 }

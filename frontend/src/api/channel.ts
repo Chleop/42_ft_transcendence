@@ -31,6 +31,10 @@ export interface Message {
      * The name of the author.
      */
     author_name: string;
+    /**
+     * The content of the message.
+     */
+    content: string;
 }
 
 /**
