@@ -253,8 +253,8 @@ export class Client {
      * @param channel The channel from which the error
      * @param content The content of the message.
      */
-    public async send_message(channel: ChannelId, content: string) {
-        this.make_request({
+    public async send_message(channel: ChannelId, content: string): Promise<Message> {
+        return this.make_request({
             method: "POST",
             success_status: 201,
             accept: "application/json",
@@ -263,6 +263,6 @@ export class Client {
                 content_type: "text/plain",
                 data: content,
             }
-        })
+        });
     }
 }

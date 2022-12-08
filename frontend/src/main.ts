@@ -1,5 +1,6 @@
 import { PrivateUser } from "./api/user";
 import { ChannelElement, Page } from "./page";
+import { Client as ApiClient } from "./api/client"
 
 /**
  * Tries to get the value of a specific cookie.
@@ -27,10 +28,6 @@ import { ChannelElement, Page } from "./page";
  * The entry point of the application.
  */
 export function entry_point() {
-
-    // Create references to the content of the page.
-    const page = new Page();
-
     // Verify that the user is connected and if so, create a client to start interacting with the
     // backend.
     const token = get_cookie("token");
@@ -42,7 +39,7 @@ export function entry_point() {
         throw "User Not Connected!";
     }
 
-    // const client = new Client(token);
+    const client = new ApiClient(token);
 
     // Request information about the user. We'll need this data during the lifetime of the whole
     // application, so we have to block until we have it.
@@ -65,6 +62,9 @@ export function entry_point() {
     };
 
     console.log(`Connected as '${me.name}'!`);
+
+    // Create references to the content of the page.
+    const page = new Page(client);
 
     // Initialize the stuff that's related to the user.
 

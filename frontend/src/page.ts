@@ -1,5 +1,5 @@
-import { Channel, Message } from "./api/channel";
-import { AvatarId } from "./api/user";
+import { Channel, ChannelId, Message } from "./api/channel";
+import { Client as ApiClient } from "./api/client"
 
 /**
  * An element query failed.
@@ -27,8 +27,8 @@ export class MissingElement {
  *
  * @returns The queried element.
  */
-function query_element(selector: string): Element {
-    const maybe = document.querySelector(selector);
+function query_element<E extends Element>(selector: string): E {
+    const maybe = document.querySelector<E>(selector);
 
     if (maybe) {
         return maybe;
@@ -57,6 +57,11 @@ export class ChannelElement {
     last_message_author: null|string;
 
     /**
+     * The ID of the channel.
+     */
+    channel_id: ChannelId;
+
+    /**
      * This constructor should basically never be called outside of the module.
      */
     constructor(page: Page, channel: Channel) {
@@ -68,6 +73,7 @@ export class ChannelElement {
         this.messages = document.createElement("div");
 
         this.last_message_author = null;
+        this.channel_id = channel.id;
     }
 }
 
@@ -78,7 +84,7 @@ export class Page {
     /**
      * The `<div>` that contains the channel tabs.
      */
-    channel_tabs: Element;
+    channel_tabs: HTMLDivElement;
 
     /**
      * The channel tab that currently selected. `null` if no channel is selected.
@@ -88,15 +94,25 @@ export class Page {
     /**
      * The `<div id="#chat-messages">` that contains the messages.
      */
-    messages: Element;
+    messages: HTMLDivElement;
+
+    /**
+     * The `<input id="#chat-send-message">` field.
+     */
+    message_input: HTMLInputElement;
 
     /**
      * Queries the document.
      */
-    constructor() {
+    constructor(client: ApiClient) {
         this.channel_tabs = query_element("#chat-channels");
         this.selected_channel = null;
         this.messages = query_element("#chat-messages");
+        this.message_input = query_element("#chat-send-message");
+
+        this.message_input.onkeydown = ev => {
+            if (ev.key === "Enter") this.send_message_input(client);
+        };
 
         // Make sure that the HTML is clean.
         //
@@ -134,6 +150,8 @@ export class Page {
             //  we can fit some more.
 
             this.selected_channel = element;
+
+            this.message_input.focus();
         }
     }
 
@@ -173,6 +191,7 @@ export class Page {
         content.classList.add("message-content");
         content.innerText = message.content;
         const header_and_content = document.createElement("div");
+        header_and_content.classList.add("message-header-and-content");
         header_and_content.appendChild(header);
         header_and_content.appendChild(content);
         const container = document.createElement("div");
@@ -188,5 +207,34 @@ export class Page {
         }
 
         channel.messages.appendChild(container);
+    }
+
+    /**
+     * Sends the content of the `<input id="chat-send-message">` to the currently selected
+     * channel, and through the network.
+     *
+     * @returns The function resolves to `null` if no channel is selected.
+     */
+    public async send_message_input(_client: ApiClient): Promise<Message|null> {
+        if (!this.selected_channel) {
+            return null;
+        }
+
+        const content = this.message_input.value;
+        this.message_input.value = "";
+
+        // TODO:
+        //  Use the API for real here.
+        let message: Message = /* await client.send_message(this.selected_channel.channel_id, content); */ {
+            author_avatar: "",
+            author_id: "Nils",
+            author_name: "Nils",
+            content,
+            id: "",
+        };
+
+        this.add_message(this.selected_channel, message);
+
+        return message;
     }
 }

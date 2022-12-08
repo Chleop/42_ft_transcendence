@@ -205,8 +205,11 @@
     }
 
     .message-avatar {
-        width: 44px;
         height: 44px;
+        width: 44px;
+        min-width: 44px;
+        min-height: 44px;
+        flex-basis: 44px;
         border-radius: 1000px;
         background-size: cover;
         background-position: center;
@@ -227,6 +230,11 @@
 
     .message-continuing .message-avatar {
         display: none;
+    }
+
+    .message-header-and-content {
+        flex-grow: 1;
+        width: 0px; /* WTF */
     }
 
     .message-header {
@@ -259,6 +267,10 @@
         font-weight: 400;
         font-size: 12px;
         color: rgba(255, 255, 255, 0.5);
+    }
+
+    .message-content {
+        word-wrap: break-word;
     }
 
     .message-continuing .message-content {
@@ -328,40 +340,11 @@
             </div>
         </div>
         <div id="chat-messages">
-            <div class="message-container message-continuing">
-                <div class="message-content">Hey!</div>
-            </div>
-            <div class="message-container message-continuing">
-                <div class="message-content">Hey! I'm the content of another message sent by the same person.</div>
-            </div>
-            <div class="message-container">
-                <div class="message-avatar" style="background-image: url('https://imgs.search.brave.com/zl9CwvlCoZkRovvkjNeXTqFvV0syt9i12D37yAJRWBg/rs:fit:215:215:1/g:ce/aHR0cHM6Ly9waWNr/YWZhY2UubmV0L2dh/bGxlcnkvYXZhdGFy/L3Vucl9leGFtcGxl/XzE2MTEyMl8wNDE2/X3FzczAwNGcucG5n');"></div>
-                <div>
-                    <div class="message-header">
-                        <button class="message-author">Samantha</button>
-                        <div class="message-time">10:14</div>
-                    </div>
-                    <div class="message-content">Hey! I'm the content of a message.</div>
-                </div>
-            </div>
-            <div class="message-container message-continuing">
-                <div class="message-content">Hey! I'm the content of another message sent by the same person.</div>
-            </div>
-            <div class="message-container">
-                <div class="message-avatar" style="background-image: url('https://imgs.search.brave.com/zl9CwvlCoZkRovvkjNeXTqFvV0syt9i12D37yAJRWBg/rs:fit:215:215:1/g:ce/aHR0cHM6Ly9waWNr/YWZhY2UubmV0L2dh/bGxlcnkvYXZhdGFy/L3Vucl9leGFtcGxl/XzE2MTEyMl8wNDE2/X3FzczAwNGcucG5n');"></div>
-                <div>
-                    <div class="message-header">
-                        <button class="message-author">Samantha</button>
-                        <div class="message-time">10:10</div>
-                    </div>
-                    <div class="message-content">Hey! I'm the content of a message.</div>
-                </div>
-            </div>
         </div>
         <div id="chat-send-message-container">
             <button id="chat-settings-button"></button>
             <input type="text" id="chat-send-message"></input>
-        </div>
+        </div
     </div>
 </body>
 </html>
