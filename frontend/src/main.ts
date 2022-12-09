@@ -65,7 +65,7 @@ export function entry_point() {
 
     const chat = new ChatElement(client);
 
-    document.body.appendChild(chat.container);
+    document.body.appendChild(chat.html);
 
     // Initialize the stuff that's related to the user.
     let first: boolean = true;

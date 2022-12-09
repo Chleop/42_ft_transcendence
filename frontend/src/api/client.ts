@@ -21,7 +21,7 @@ export class UnexpectedStatusCode {
      * @param status The status code that the server returned.
      * @param text Some text associated with the status code.
      */
-    constructor(status: number, text: string) {
+    public constructor(status: number, text: string) {
         this.status = status;
         this.text = text;
     }
@@ -63,14 +63,14 @@ export class Client {
     /**
      * The connection token of the current user.
      */
-    token: string;
+    private token: string;
 
     /**
      * Creates a new `Client`.
      *
      * @paren
      */
-    constructor(token: string) {
+    public constructor(token: string) {
         this.token = token;
     }
 
@@ -82,7 +82,7 @@ export class Client {
      *
      * @returns The response of the server.
      */
-    async make_request(request: Request): Promise<any> {
+    private async make_request(request: Request): Promise<any> {
         let headers: Record<string, string> = {};
 
         headers["Authorization"] = this.token;
