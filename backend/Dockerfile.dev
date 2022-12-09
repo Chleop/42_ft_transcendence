@@ -7,4 +7,6 @@ RUN apt update \
 && npm i -g npm \
 && npm i -g @nestjs/cli
 
+USER node
+
 ENTRYPOINT ["/bin/bash", "/app/script/docker-entrypoint.dev.sh"]
