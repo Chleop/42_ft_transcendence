@@ -1,6 +1,7 @@
 import { PrivateUser } from "./api/user";
 import { Client as ApiClient } from "./api/client"
 import { ChatElement } from "./chat";
+import { GameElement } from "./game/game";
 
 /**
  * Tries to get the value of a specific cookie.
@@ -64,13 +65,15 @@ export function entry_point() {
     console.log(`Connected as '${me.name}'!`);
 
     const chat = new ChatElement(client);
+    const game = new GameElement();
 
     document.body.appendChild(chat.container);
+    document.body.appendChild(game.canvas);
 
     // Initialize the stuff that's related to the user.
     let first: boolean = true;
     for (const channel of me.channels) {
-        console.log(`adding channel '${channel.name}'`);
+        console.log(`Adding channel '${channel.name}'`);
 
         const element = chat.add_channel(channel);
 

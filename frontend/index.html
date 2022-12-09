@@ -103,6 +103,8 @@
 
         display: flex;
         flex-flow: column nowrap;
+
+        z-index: 5;
     }
 
     #chat-nav {
@@ -317,6 +319,13 @@
         padding-right: 10px;
         padding-bottom: 8px;
         flex-grow: 1;
+    }
+
+    #game-canvas {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
     }
 </style>
 
