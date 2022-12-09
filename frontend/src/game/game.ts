@@ -145,6 +145,11 @@ export class GameElement {
     private last_timestamp: number;
 
     /**
+     * Whether hitboxes should be displayed.
+     */
+    private show_hitboxes_: boolean;
+
+    /**
      * Creates a new `GameElement` instance.
      */
     public constructor(left: Player, right: Player) {
@@ -173,6 +178,8 @@ export class GameElement {
         this.should_stop = false;
         this.last_timestamp = 0;
 
+        this.show_hitboxes_ = false;
+
         // Start the update/render loop.
         this.animation_frame_callback(0);
     }
@@ -182,6 +189,13 @@ export class GameElement {
      */
     public get canvas(): HTMLCanvasElement {
         return this.canvas_;
+    }
+
+    /**
+     * Whether hitboxes should be shown.
+     */
+    public set show_hitboxes(yes: boolean) {
+        this.show_hitboxes = yes;
     }
 
     /**
@@ -217,12 +231,18 @@ export class GameElement {
         this.right_player.tick(delta_time, this.right_player_state);
 
         // Render the scene.
-        const pixel_scale: number = 1/50;
+        const pixel_scale: number = 1/200;
 
         this.renderer.clear(0, 0, 0);
-        this.renderer.draw_sprite(this.paddle_sprite, -7, this.left_player.position, this.paddle_sprite.width * pixel_scale, this.left_player_state.height * pixel_scale);
-        this.renderer.draw_sprite(this.paddle_sprite, 7, this.right_player.position, this.paddle_sprite.width * pixel_scale, this.left_player_state.height * pixel_scale);
         this.renderer.draw_sprite(this.ball_sprite, this.ball_state.x, this.ball_state.y, this.ball_sprite.width * pixel_scale, this.ball_sprite.height * pixel_scale);
+        this.renderer.draw_sprite(this.paddle_sprite, -7, this.left_player.position, this.paddle_sprite.width * pixel_scale, this.paddle_sprite.height * pixel_scale);
+        this.renderer.draw_sprite(this.paddle_sprite, 7, this.right_player.position, -this.paddle_sprite.width * pixel_scale, this.paddle_sprite.height * pixel_scale);
+
+        if (this.show_hitboxes_) {
+            this.renderer.draw_hitbox(-7, this.left_player.position, 0.25, this.right_player_state.height);
+            this.renderer.draw_hitbox(7, this.right_player.position, 0.25, this.right_player_state.height);
+            this.renderer.draw_hitbox(this.ball_state.x, this.ball_state.y, this.ball_state.radius, this.ball_state.radius);
+        }
 
         if (!this.should_stop) {
             requestAnimationFrame(ts => this.animation_frame_callback(ts));

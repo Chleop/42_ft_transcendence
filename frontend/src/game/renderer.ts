@@ -1,3 +1,4 @@
+import { hitbox_fragment_shader_source, hitbox_vertex_shader_source } from "./hitbox_shader";
 import { sprite_fragment_shader_source, sprite_vertex_shader_source } from "./sprite_shader";
 
 /**
@@ -98,6 +99,8 @@ class SpriteInternal {
             gl.generateMipmap(gl.TEXTURE_2D);
             this.width = image.width;
             this.height = image.height;
+
+            console.log(`loaded image '${image.src}' (${this.width}x${this.height})`);
         };
 
         this.texture = texture;
@@ -147,6 +150,25 @@ export class Renderer {
      */
     private sprite_uniform_view_transform: WebGLUniformLocation;
 
+
+    /**
+     * The shader program used to render hitboxes.
+     */
+    private hitbox_program: WebGLProgram;
+
+    /**
+     * The location of `uniform vec2 model_position` in the vertex shader.
+     */
+    private hitbox_uniform_model_position: WebGLUniformLocation;
+    /**
+     * The location of `uniform mat2 model_transform` in the vertex shader.
+     */
+    private hitbox_uniform_model_transform: WebGLUniformLocation;
+    /**
+     * The location of `uniform mat2 view_transform` in the vertex shader.
+     */
+    private hitbox_uniform_view_transform: WebGLUniformLocation;
+
     /**
      * The view matrix.
      */
@@ -164,6 +186,10 @@ export class Renderer {
         this.sprite_uniform_model_position = get_uniform_location(this.gl, this.sprite_program, "model_position");
         this.sprite_uniform_model_transform = get_uniform_location(this.gl, this.sprite_program, "model_transform");
         this.sprite_uniform_view_transform = get_uniform_location(this.gl, this.sprite_program, "view_transform");
+        this.hitbox_program = create_program(this.gl, hitbox_vertex_shader_source, hitbox_fragment_shader_source);
+        this.hitbox_uniform_model_position = get_uniform_location(this.gl, this.hitbox_program, "model_position");
+        this.hitbox_uniform_model_transform = get_uniform_location(this.gl, this.hitbox_program, "model_transform");
+        this.hitbox_uniform_view_transform = get_uniform_location(this.gl, this.hitbox_program, "view_transform");
 
         this.view_matrix = [1, 0, 0, 1];
     }
@@ -204,8 +230,16 @@ export class Renderer {
         this.gl.uniform2f(this.sprite_uniform_model_position, x, y);
         this.gl.uniformMatrix2fv(this.sprite_uniform_model_transform, false, [w, 0, 0, h]);
         this.gl.uniformMatrix2fv(this.sprite_uniform_view_transform, false, this.view_matrix);
-        this.gl.activeTexture(this.gl.TEXTURE0 + 0);
+        this.gl.activeTexture(this.gl.TEXTURE0);
         this.gl.bindTexture(this.gl.TEXTURE_2D, sprite_.texture);
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+    }
+
+    public draw_hitbox(x: number, y: number, w: number, h: number) {
+        this.gl.useProgram(this.hitbox_program);
+        this.gl.uniform2f(this.hitbox_uniform_model_position, x, y);
+        this.gl.uniformMatrix2fv(this.hitbox_uniform_model_transform, false, [w, 0, 0, h]);
+        this.gl.uniformMatrix2fv(this.hitbox_uniform_view_transform, false, this.view_matrix);
+        this.gl.drawArrays(this.gl.LINE_STRIP, 0, 5);
     }
 }
