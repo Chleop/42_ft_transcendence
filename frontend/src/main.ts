@@ -57,7 +57,7 @@ export function entry_point() {
         name: "nmathieu",
     };
 
-    console.log(`Connected as '${me.name}'!`);
+    console.info(`Connected as '${me.name}'!`);
 
     const chat = new ChatElement(client);
 

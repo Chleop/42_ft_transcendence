@@ -263,6 +263,11 @@ export class ChatElement {
             return null;
         }
 
+        // Do nothing if the input contains nothing.
+        if (!this.message_input.value) {
+            return null;
+        }
+
         const content = this.message_input.value;
         this.message_input.value = "";
 
