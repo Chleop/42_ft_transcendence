@@ -83,6 +83,12 @@ class ChannelElementInternal {
     public channel_id: ChannelId;
 
     /**
+     * The saved value of the input field (if the user left the channel without clearing the
+     * prompt).
+     */
+    public input: string;
+
+    /**
      * This constructor should basically never be called outside of the module.
      */
     public constructor(container: ChatElement, channel: Channel) {
@@ -95,6 +101,8 @@ class ChannelElementInternal {
 
         this.last_message_author = null;
         this.channel_id = channel.id;
+
+        this.input = "";
     }
 }
 
@@ -186,8 +194,6 @@ export class ChatElement {
 
     /**
      * Sets the currently selected channel.
-     *
-     * @param element
      */
     public set_selected_channel(element: ChannelElement|null) {
         const element_ = element as ChannelElementInternal|null;
@@ -195,8 +201,10 @@ export class ChatElement {
         if (this.selected_channel) {
             this.selected_channel.tab.classList.remove("active-channel-tab");
             this.selected_channel.messages.remove();
+            this.selected_channel.input = this.message_input.value;
 
             this.selected_channel = null;
+            this.message_input.value = "";
         }
 
         if (element_) {
@@ -209,14 +217,13 @@ export class ChatElement {
 
             this.selected_channel = element_;
 
+            this.message_input.value = element_.input;
             this.message_input.focus();
         }
     }
 
     /**
      * Adds a channel to the list of channels.
-     *
-     * @param channel The channel object that will be represented on the page.
      */
     public add_channel(channel: Channel): ChannelElement {
         let element = new ChannelElementInternal(this, channel);
@@ -227,9 +234,7 @@ export class ChatElement {
     }
 
     /**
-     * Adds a message.
-     *
-     * @param message The message object that will be represented on the page.
+     * Adds a message to a specific channel.
      */
     public add_message(channel: ChannelElement, message: Message): MessageElement {
         const channel_ = channel as ChannelElementInternal;
@@ -252,8 +257,6 @@ export class ChatElement {
     /**
      * Sends the content of the `<input id="chat-send-message">` to the currently selected
      * channel, and through the network.
-     *
-     * @returns The function resolves to `null` if no channel is selected.
      */
     public async send_message_input(_client: ApiClient): Promise<Message|null> {
         if (!this.selected_channel) {
