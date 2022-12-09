@@ -183,6 +183,21 @@
 
         display: flex;
         flex-flow: column-reverse nowrap;
+
+        overflow-x: hidden;
+        overflow-y: scroll;
+        scrollbar-width: thin;
+    }
+
+    #chat-messages::-webkit-scrollbar {
+        width: 10px;
+        margin-left: 4px;
+        margin-right: 4px;
+    }
+
+    #chat-messages::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 1000px;
     }
 
     .message-container {
