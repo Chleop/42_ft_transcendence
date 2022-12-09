@@ -1,6 +1,6 @@
 import { PrivateUser } from "./api/user";
-import { ChannelElement, Page } from "./page";
 import { Client as ApiClient } from "./api/client"
+import { ChatElement } from "./chat";
 
 /**
  * Tries to get the value of a specific cookie.
@@ -63,21 +63,21 @@ export function entry_point() {
 
     console.log(`Connected as '${me.name}'!`);
 
-    // Create references to the content of the page.
-    const page = new Page(client);
+    const chat = new ChatElement(client);
+
+    document.body.appendChild(chat.container);
 
     // Initialize the stuff that's related to the user.
-
     let first: boolean = true;
     for (const channel of me.channels) {
         console.log(`adding channel '${channel.name}'`);
 
-        const element = page.add_channel(channel);
+        const element = chat.add_channel(channel);
 
         if (first)
         {
             first = false;
-            page.set_selected_channel(element);
+            chat.set_selected_channel(element);
         }
     }
 }
