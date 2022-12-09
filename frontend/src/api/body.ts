@@ -28,7 +28,7 @@ export class JsonBody extends Body {
     /**
      * Creates a new `JsonBody` instance.
      *
-     * @param data The data that will be turned into JSON.
+     * The provided data will be turned into json.
      */
     public constructor(data: any) {
         super();

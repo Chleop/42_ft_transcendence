@@ -4,10 +4,6 @@ import { ChatElement } from "./chat";
 
 /**
  * Tries to get the value of a specific cookie.
- *
- * @param name The cookie's name.
- *
- * @returns The cookie's value.
  */
  function get_cookie(name: string): string|undefined {
     const maybe_pair =
