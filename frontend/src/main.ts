@@ -2,6 +2,8 @@ import { PrivateUser } from "./api/user";
 import { Client as ApiClient } from "./api/client"
 import { ChatElement } from "./chat";
 import { GameElement } from "./game/game";
+import { LocalPlayer } from "./game/local_player";
+import { DummyPlayer } from "./game/dummy_player";
 
 /**
  * Tries to get the value of a specific cookie.
@@ -10,7 +12,7 @@ import { GameElement } from "./game/game";
  *
  * @returns The cookie's value.
  */
- function get_cookie(name: string): string|undefined {
+function get_cookie(name: string): string|undefined {
     const maybe_pair =
         document
         .cookie
@@ -65,7 +67,7 @@ export function entry_point() {
     console.log(`Connected as '${me.name}'!`);
 
     const chat = new ChatElement(client);
-    const game = new GameElement();
+    const game = new GameElement(new LocalPlayer(), new DummyPlayer());
 
     document.body.appendChild(chat.container);
     document.body.appendChild(game.canvas);

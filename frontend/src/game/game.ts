@@ -7,18 +7,85 @@ import { Renderer } from "./renderer";
 export class WebGL2NotSupported {}
 
 /**
+ * Information about the state of a `Player`.
+ */
+export interface PlayerState {
+    /**
+     * The speed of the player.
+     */
+    readonly speed: number;
+
+    /**
+     * The height of the player.
+     */
+    readonly height: number;
+}
+
+/**
+ * The only implementator of the public `PlayerState` interface.
+ */
+class PlayerStateInternal {
+    public speed: number;
+    public height: number;
+
+    constructor() {
+        this.speed = 3;
+        this.height = 1.5;
+    }
+}
+
+/**
+ * The only implementator of the public `BallState` interface.
+ */
+class BallState {
+    /**
+     * The X position of the ball.
+     */
+    x: number;
+    /**
+     * The Y position of the ball.
+     */
+    y: number;
+    /**
+     * The X velocity of the ball.
+     */
+    vx: number;
+    /**
+     * The Y velocity of the ball.
+     */
+    vy: number;
+    /**
+     * The radius of the ball.
+     */
+    radius: number;
+
+    /**
+     * Creates a new `BallStateInternal` with default values.
+     */
+    constructor() {
+        const angle = Math.random() * 3.1415;
+
+        this.x = 0;
+        this.y = 0;
+        this.vx = Math.cos(angle) * 5;
+        this.vy = Math.sin(angle) * 5;
+        this.radius = 0.2;
+    }
+}
+
+/**
  * Information about a player.
  */
-interface Player {
+export abstract class Player {
     /**
      * The position of the player on the Y axis.
      */
-    position: number;
+    abstract get position(): number;
 
     /**
-     * The position of the player on the X axis.
+     * Indicates to the player that it should move.
      */
-    velocity: number;
+    abstract tick(delta_time: number, state: PlayerState);
 }
 
 /**
@@ -28,58 +95,121 @@ export class GameElement {
     /**
      * The `<canvas>` element.
      */
-    canvas: HTMLCanvasElement;
+    private canvas_: HTMLCanvasElement;
 
     /**
      * The graphics renderer.
      */
-    renderer: Renderer;
+    private renderer: Renderer;
 
     /**
      * Whether the game should stop itself.
      */
-    should_stop: boolean;
+    private should_stop: boolean;
 
 
     /**
      * Information about the player that plays on the left.
      */
-    left_player: Player;
+    private left_player: Player;
+    /**
+     * The state of the left player.
+     */
+    private left_player_state: PlayerStateInternal;
     /**
      * Information about the player that plays on the right.
      */
-    right_player: Player;
+    private right_player: Player;
+    /**
+     * The state of the right player.
+     */
+    private right_player_state: PlayerStateInternal;
+
+    /**
+     * The state of the ball.
+     */
+    private ball_state: BallState;
+
+    /**
+     * The last timestamp that was passed to the animation callback.
+     */
+    private last_timestamp: number;
 
     /**
      * Creates a new `GameElement` instance.
      */
-    constructor() {
-        this.canvas = document.createElement("canvas");
-        this.canvas.id = "game-canvas";
+    public constructor(left: Player, right: Player) {
+        this.canvas_ = document.createElement("canvas");
+        this.canvas_.id = "game-canvas";
 
         // FIXME:
         //  Properly calculate dimentions for the canvas.
-        this.canvas.width = 1280;
-        this.canvas.height = 720;
+        this.canvas_.width = 1280;
+        this.canvas_.height = 720;
 
-        const gl = this.canvas.getContext("webgl2");
+        const gl = this.canvas_.getContext("webgl2");
         if (!gl) throw new WebGL2NotSupported();
         this.renderer = new Renderer(gl);
 
-        this.renderer.notify_size_changed(this.canvas.width, this.canvas.height);
+        this.left_player = left;
+        this.left_player_state = new PlayerStateInternal();
+        this.right_player = right;
+        this.right_player_state = new PlayerStateInternal();
+        this.ball_state = new BallState();
+
+        this.renderer.notify_size_changed(this.canvas_.width, this.canvas_.height);
 
         this.should_stop = false;
+        this.last_timestamp = 0;
 
         // Start the update/render loop.
         this.animation_frame_callback(0);
     }
 
     /**
+     * Returns the canvas element.
+     */
+    public get canvas(): HTMLCanvasElement {
+        return this.canvas_;
+    }
+
+    /**
      * The function that will be called by the presentation engine when a new frame should be rendered.
      */
-    animation_frame_callback(timestamp: DOMHighResTimeStamp) {
+    private animation_frame_callback(timestamp: DOMHighResTimeStamp) {
+        let delta_time = (timestamp - this.last_timestamp) / 1000;
+        this.last_timestamp = timestamp;
+
+        // Move the ball.
+        this.ball_state.x += this.ball_state.vx * delta_time;
+        this.ball_state.y += this.ball_state.vy * delta_time;
+
+        if (this.ball_state.y - this.ball_state.radius / 2 < -4.5) {
+            this.ball_state.y = -4.5 + this.ball_state.radius / 2;
+            this.ball_state.vy = Math.abs(this.ball_state.vy);
+        }
+        if (this.ball_state.y + this.ball_state.radius / 2 > 4.5) {
+            this.ball_state.y = 4.5 - this.ball_state.radius / 2;
+            this.ball_state.vy = -Math.abs(this.ball_state.vy);
+        }
+        if (this.ball_state.x + this.ball_state.radius / 2 > 8) {
+            this.ball_state.x = 8 - this.ball_state.radius / 2;
+            this.ball_state.vx = -Math.abs(this.ball_state.vx);
+        }
+        if (this.ball_state.x - this.ball_state.radius / 2 < -8) {
+            this.ball_state.x = -8 + this.ball_state.radius / 2;
+            this.ball_state.vx = Math.abs(this.ball_state.vx);
+        }
+
+        // Move the players.
+        this.left_player.tick(delta_time, this.left_player_state);
+        this.right_player.tick(delta_time, this.right_player_state);
+
+        // Render the scene.
         this.renderer.clear(0, 0, 0);
-        this.renderer.draw_sprite(0, 0, 1, 1, timestamp / 300.0);
+        this.renderer.draw_sprite(-7, this.left_player.position, 0.25, this.left_player_state.height);
+        this.renderer.draw_sprite(7, this.right_player.position, 0.25, this.right_player_state.height);
+        this.renderer.draw_sprite(this.ball_state.x, this.ball_state.y, this.ball_state.radius, this.ball_state.radius);
 
         if (!this.should_stop) {
             requestAnimationFrame(ts => this.animation_frame_callback(ts));

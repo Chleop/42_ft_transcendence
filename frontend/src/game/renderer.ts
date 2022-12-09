@@ -70,35 +70,35 @@ export class Renderer {
     /**
      * The rendering context, probably tied to an existing canvas.
      */
-    gl: WebGL2RenderingContext;
+    private gl: WebGL2RenderingContext;
 
     /**
      * The shader program used to render sprites.
      */
-    sprite_program: WebGLProgram;
+    private sprite_program: WebGLProgram;
 
     /**
      * The location of `uniform vec2 model_position` in the vertex shader.
      */
-    sprite_uniform_model_position: WebGLUniformLocation;
+    private sprite_uniform_model_position: WebGLUniformLocation;
     /**
      * The location of `uniform mat2 model_transform` in the vertex shader.
      */
-    sprite_uniform_model_transform: WebGLUniformLocation;
+    private sprite_uniform_model_transform: WebGLUniformLocation;
     /**
      * The location of `uniform mat2 view_transform` in the vertex shader.
      */
-    sprite_uniform_view_transform: WebGLUniformLocation;
+    private sprite_uniform_view_transform: WebGLUniformLocation;
 
     /**
      * The view matrix.
      */
-    view_matrix: number[];
+    private view_matrix: number[];
 
     /**
      * Creates a new renderer.
      */
-    constructor(gl: WebGL2RenderingContext) {
+    public constructor(gl: WebGL2RenderingContext) {
         this.gl = gl;
         this.gl.clearColor(0, 0, 0, 0);
 
@@ -133,13 +133,10 @@ export class Renderer {
     /**
      * Draws a sprite.
      */
-    public draw_sprite(x: number, y: number, w: number, h: number, angle: number) {
-        const cos = Math.cos(angle);
-        const sin = Math.sin(angle);
-
+    public draw_sprite(x: number, y: number, w: number, h: number) {
         this.gl.useProgram(this.sprite_program);
         this.gl.uniform2f(this.sprite_uniform_model_position, x, y);
-        this.gl.uniformMatrix2fv(this.sprite_uniform_model_transform, false, [w * cos, -h * sin, w * sin, h * cos]);
+        this.gl.uniformMatrix2fv(this.sprite_uniform_model_transform, false, [w, 0, 0, h]);
         this.gl.uniformMatrix2fv(this.sprite_uniform_view_transform, false, this.view_matrix);
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
     }
