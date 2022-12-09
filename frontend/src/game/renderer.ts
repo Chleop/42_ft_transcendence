@@ -1,9 +1,9 @@
 import { sprite_fragment_shader_source, sprite_vertex_shader_source } from "./sprite_shader";
 
 /**
- * An exception which indicates that the WebGL2 renderer could not be initialized.
+ * An exception which indicates that the WebGL2 renderer produced an error.
  */
-export class RendererInitError {
+export class RendererError {
     /**
      * Some additional information about the error.
      */
@@ -22,13 +22,13 @@ export class RendererInitError {
  */
 function create_shader(gl: WebGL2RenderingContext, source: string, type: GLenum): WebGLShader {
     const shader = gl.createShader(type);
-    if (!shader) throw new RendererInitError("failed to create a shader");
+    if (!shader) throw new RendererError("failed to create a shader");
     gl.shaderSource(shader, source);
     gl.compileShader(shader);
 
     const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
     if (!success)
-        throw new RendererInitError(gl.getShaderInfoLog(shader) || "");
+        throw new RendererError(gl.getShaderInfoLog(shader) || "");
 
     return shader;
 }
@@ -41,14 +41,14 @@ function create_program(gl: WebGL2RenderingContext, vertex_source: string, fragm
     const fragment_shader = create_shader(gl, fragment_source, gl.FRAGMENT_SHADER);
 
     const program = gl.createProgram();
-    if (!program) throw new RendererInitError("failed to create a shader program");
+    if (!program) throw new RendererError("failed to create a shader program");
     gl.attachShader(program, vertex_shader);
     gl.attachShader(program, fragment_shader);
     gl.linkProgram(program);
 
     const success = gl.getProgramParameter(program, gl.LINK_STATUS);
     if (!success)
-        throw new RendererInitError(gl.getProgramInfoLog(program) || "");
+        throw new RendererError(gl.getProgramInfoLog(program) || "");
 
     return program;
 }
@@ -59,8 +59,65 @@ function create_program(gl: WebGL2RenderingContext, vertex_source: string, fragm
 function get_uniform_location(gl: WebGL2RenderingContext, program: WebGLProgram, name: string) {
     const location = gl.getUniformLocation(program, name);
     if (!location)
-        throw new RendererInitError(`could not find uniform '${name}' in shader program`);
+        throw new RendererError(`could not find uniform '${name}' in shader program`);
     return location;
+}
+
+/**
+ * Internal information about a sprite.
+ */
+class SpriteInternal {
+    /**
+     * The texture.
+     */
+    public texture: WebGLTexture;
+
+    /**
+     * The width of the sprite.
+     */
+    public width: number;
+    /**
+     * The height of the sprite.
+     */
+    public height: number;
+
+    constructor(gl: WebGL2RenderingContext, albedo: string) {
+        const texture = gl.createTexture();
+        if (!texture)
+            throw new RendererError(`failed to create texture for '${albedo}'`);
+
+        // Temporarily use a white pixel for the image and start loading the true image.
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+
+        const image = new Image();
+        image.src = albedo;
+        image.onload = () => {
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+            gl.generateMipmap(gl.TEXTURE_2D);
+            this.width = image.width;
+            this.height = image.height;
+        };
+
+        this.texture = texture;
+        this.width = 1;
+        this.height = 1;
+    }
+}
+
+/**
+ * A sprite which may be rendered.
+*/
+export interface Sprite {
+    /**
+     * The width of the sprite.
+     */
+    readonly width: number;
+    /**
+     * The height of the sprite.
+     */
+    readonly height: number;
 }
 
 /**
@@ -123,6 +180,13 @@ export class Renderer {
     }
 
     /**
+     * Creates a new `Sprite` for this renderer.
+     */
+    public create_sprite(albedo: string): Sprite {
+        return new SpriteInternal(this.gl, albedo);
+    }
+
+    /**
      * Clears the screen with a specific color.
      */
     public clear(red: number, green: number, blue: number) {
@@ -133,11 +197,15 @@ export class Renderer {
     /**
      * Draws a sprite.
      */
-    public draw_sprite(x: number, y: number, w: number, h: number) {
+    public draw_sprite(sprite: Sprite, x: number, y: number, w: number, h: number) {
+        const sprite_ = sprite as SpriteInternal;
+
         this.gl.useProgram(this.sprite_program);
         this.gl.uniform2f(this.sprite_uniform_model_position, x, y);
         this.gl.uniformMatrix2fv(this.sprite_uniform_model_transform, false, [w, 0, 0, h]);
         this.gl.uniformMatrix2fv(this.sprite_uniform_view_transform, false, this.view_matrix);
+        this.gl.activeTexture(this.gl.TEXTURE0 + 0);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, sprite_.texture);
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
     }
 }

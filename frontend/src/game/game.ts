@@ -1,4 +1,4 @@
-import { Renderer } from "./renderer";
+import { Renderer, Sprite } from "./renderer";
 
 /**
  * An exception which indicates that WebGL2 technology is not supported by the
@@ -131,6 +131,15 @@ export class GameElement {
     private ball_state: BallState;
 
     /**
+     * The sprite of the ball.
+     */
+    private ball_sprite: Sprite;
+    /**
+     * The sprite used for paddles.
+     */
+    private paddle_sprite: Sprite;
+
+    /**
      * The last timestamp that was passed to the animation callback.
      */
     private last_timestamp: number;
@@ -156,6 +165,8 @@ export class GameElement {
         this.right_player = right;
         this.right_player_state = new PlayerStateInternal();
         this.ball_state = new BallState();
+        this.ball_sprite = this.renderer.create_sprite("ball.png");
+        this.paddle_sprite = this.renderer.create_sprite("paddle.png");
 
         this.renderer.notify_size_changed(this.canvas_.width, this.canvas_.height);
 
@@ -206,10 +217,12 @@ export class GameElement {
         this.right_player.tick(delta_time, this.right_player_state);
 
         // Render the scene.
+        const pixel_scale: number = 1/50;
+
         this.renderer.clear(0, 0, 0);
-        this.renderer.draw_sprite(-7, this.left_player.position, 0.25, this.left_player_state.height);
-        this.renderer.draw_sprite(7, this.right_player.position, 0.25, this.right_player_state.height);
-        this.renderer.draw_sprite(this.ball_state.x, this.ball_state.y, this.ball_state.radius, this.ball_state.radius);
+        this.renderer.draw_sprite(this.paddle_sprite, -7, this.left_player.position, this.paddle_sprite.width * pixel_scale, this.left_player_state.height * pixel_scale);
+        this.renderer.draw_sprite(this.paddle_sprite, 7, this.right_player.position, this.paddle_sprite.width * pixel_scale, this.left_player_state.height * pixel_scale);
+        this.renderer.draw_sprite(this.ball_sprite, this.ball_state.x, this.ball_state.y, this.ball_sprite.width * pixel_scale, this.ball_sprite.height * pixel_scale);
 
         if (!this.should_stop) {
             requestAnimationFrame(ts => this.animation_frame_callback(ts));

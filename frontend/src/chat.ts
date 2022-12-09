@@ -49,7 +49,7 @@ export class MessageElement {
 /**
  * A channel that has been instanciated in the DOM.
  */
-export class ChannelElement {
+class ChannelElement {
     /**
      * The `<button>` element representing the tab.
      */
