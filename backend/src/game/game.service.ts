@@ -50,6 +50,7 @@ export class GameService {
 
 	/* == PRIVATE ================================================================================= */
 
+	/* -- UTILS --------------------------------- */
 	private findUser(user_id: string): GameRoom | undefined {
 		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
 			return (obj.user1 !== undefined && obj.user1.socket_id === user_id)
@@ -65,30 +66,4 @@ export class GameService {
 		return undefined;
 	}
 
-	/* -- GAMEPLAY ------------------------------ */
-	private startGame(room: GameRoom): void {
-		const ball: BallDto = this.initBall(room);
-	}
-
-	private refreshBall(dto: BallDto): BallDto {
-		// Check game data accuracy
-		// Add to DB
-		// Send back as refreshed version
-		console.info(dto);
-		return dto;
-	}
-
-	/* Generate random initial direction for ball */
-	private initBall(room: GameRoom): BallDto {
-		const x: number = Math.random();
-		const y: number = Math.random();
-		const v_norm: number = Math.sqrt(x * x + y * y);
-		return {
-			x: x,
-			y: y,
-			vx: x / v_norm,
-			vy: y / v_norm,
-			room: room.name
-		};
-	}
 }

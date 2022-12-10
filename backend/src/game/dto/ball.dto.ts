@@ -3,5 +3,4 @@ export class BallDto {
 	y: number;
 	vx: number;
 	vy: number;
-	room: string;
 }

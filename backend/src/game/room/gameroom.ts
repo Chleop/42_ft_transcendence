@@ -1,3 +1,7 @@
+import { BallDto } from '../dto';
+
+//export namespace GameRoom {}
+
 /* Defines client infos */
 export type Player = {
 	id: string,
@@ -14,6 +18,8 @@ export class GameRoom {
 		this.user1 = host;
 		console.log(`Room '${this.name}' created`);
 	}
+
+	/* == PUBLIC ================================================================================== */
 
 	public addGuest(player: Player): void {
 		if (this.user2 !== undefined)
@@ -33,8 +39,35 @@ export class GameRoom {
 		return (false);
 	}
 
+	/* == PRIVATE ================================================================================= */
+
+	/* -- GAMEPLAY ------------------------------ */
+
 	private startGame(): void {
 		console.info("Starting game");
-		//setInterval();
+		return ;
+		const ball: BallDto = this.initBall();
+		//setInterval(refreshBall, 20, ball);
+	}
+
+	private /* async */ refreshBall(old_ball: BallDto): BallDto {
+		// Check game data accuracy
+		// Add to DB
+		// Send back as refreshed version
+		console.info(old_ball);
+		return old_ball;
+	}
+
+	/* Generate random initial direction for ball */
+	private initBall(): BallDto {
+		const x: number = Math.random();
+		const y: number = Math.random();
+		const v_norm: number = Math.sqrt(x * x + y * y);
+		return {
+			x: x,
+			y: y,
+			vx: x / v_norm,
+			vy: y / v_norm,
+		};
 	}
 }

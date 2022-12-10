@@ -27,7 +27,7 @@ type Spectator = {
 
 /* Will only listen to events comming from `http://localhost:3000/game` */
 @WebSocketGateway({cors: {origin: ['http://localhost:3000']}, namespace: '/game'})
-export class GameServer {
+export class GameGateway {
 	@WebSocketServer()
 	private server: Server = new Server();
 
@@ -88,6 +88,7 @@ export class GameServer {
 			console.info(this.game_service.game_rooms);
 		} catch (e) {
 			console.info(e);
+			client.disconnect(true);
 		}
 	}
 
