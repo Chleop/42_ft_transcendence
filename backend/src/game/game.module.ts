@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { Game } from './game';
+import { GameServer } from './game';
 import { GameService } from './game.service';
 
 /* Will handle information exchanges between back and front */
 @Module({
-	providers: [Game, GameService]
+	providers: [GameServer, GameService]
 })
 export class GameModule {}

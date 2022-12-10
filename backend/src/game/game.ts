@@ -11,80 +11,92 @@ import {
 	MessageBody
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { GameDto } from './dto';
 import { GameService } from './game.service';
-
-import { Type } from 'class-transformer';
-import { ValidateNested } from 'class-validator';
+import { BallDto } from './dto';
+import { GameRoom } from './room';
 
 // PLACEHOLDER
-class UserInfoDto {}
-
-class GameRoomDto {
-	readonly room: string;
-
-	@Type(() => GameDto)
-	@ValidateNested()
-	readonly data!: GameDto;
+class UserInfoDto {
+	readonly id: string;
 }
 
+type Spectator = {
+	client: Socket,
+	room: string
+};
+
 /* Will only listen to events comming from `http://localhost:3000/game` */
-@WebSocketGateway({ cors: { origin: ['http://localhost:3000'] }, namespace: '/game' })
-export class Game {
-	/* The backend server websocket */
+@WebSocketGateway({cors: {origin: ['http://localhost:3000']}, namespace: '/game'})
+export class GameServer {
 	@WebSocketServer()
-	private server: Server;
+	private server: Server = new Server();
 
-	constructor(private gameService: GameService) {}
+	/* In the future: add to constructor
+		 private matchMaking: MatchMaking;
+	 */
+	constructor(private game_service: GameService) {}
 
-	/* == PUBLIC ========================= */
+	/* == PUBLIC ================================================================================== */
 
-	/* -- CLIENT SOCKET MANAGING ------------------------------------------------------------------ */
+	/* -- INITIALISATION ------------------------ */
 	/* Handle connection to server */
-	public handleConnection(client: Socket) {
+	private handleConnection(client: Socket) {
 		console.info(`Client '${client.id}' connected`);
 	}
 
 	/* Handle disconnection from server */
-	public handleDisconnect(client: Socket) {
+	private handleDisconnect(client: Socket) {
+		// Send event to all clients in their room to tell them to wait
 		console.info(`Client '${client.id}' disconnected`);
 	}
 
-	/* -- EVENTS MANAGING ------------------------------------------------------------------------- */
-	/* Refresh backen of Pong game in room `data.room` */
-	@SubscribeMessage('refresh')
-	public refreshGame(@MessageBody() dto: GameDto, @ConnectedSocket() client: Socket): void {
-		//TODO
-		const message: string = this.gameService.refreshGame(dto);
-		console.log(`Sent ${message} to '${dto.room}'`);
-		this.server.to(dto.room).emit('refreshed', message);
-	}
+	/* == PRIVATE ================================================================================= */
 
+	/* -- EVENT MANAGING ------------------------ */
 	/* Client joining a game */
 	@SubscribeMessage('joinGame')
-	public joinGame(client: Socket, data: {room: string, dto: UserInfoDto}): void {
-		// The server will transfer the client to room
-		console.info(`${client.id} joined the game and is moved to ${data.room}`);
-		client.join(data.room);
-		// Now, the server will tell the client that it was moved to `data.room`
-		client.emit('joinedGame', data.room);
-		// TODO: Process UserInfoDto to know the place of the user in the game: player / spectator
+	private joinGame(client: Socket, data: {room: string, dto: UserInfoDto}): void {
+		console.log("Game JoinGame: ", client.id);
+		try {
+			const room_name: string = this.game_service.joinRoom(data.room, {
+				id: data.dto.id,
+				socket_id: client.id
+			});
+			client.join(room_name);
+			this.server.to(room_name).emit('joinedGame', `Welcome, ${data.dto.id} :)`);
+			console.info(`${client.id} joined the room ${room_name}`);
+			console.info(this.game_service.game_rooms);
+		} catch (e) {
+			console.info(e);
+		}
 	}
 
 	/* Client leaving the game */
 	@SubscribeMessage('leaveGame')
-	public leaveGame(client: Socket, data: {room: string, dto: UserInfoDto}): void {
-		// The server will remove the client from the room
-		// TODO: Allow time span before definitely kicking the client (timeout)
-		console.info(`${client.id} left the game and is removed from ${data.room}`);
-		client.leave(data.room);
-		// Tell the client that it was removed from the room
-		client.emit('leftGame', data.room);
+	private leaveGame(client: Socket, dto: UserInfoDto): void {
+		console.log("Game LeaveGame: ", client.id);
+		try {
+			const room_infos: {
+				name: string,
+				empty: boolean
+			} = this.game_service.leaveRoom(client.id);
+			client.leave(room_infos.name);
+			this.server.to(room_infos.name).emit('leftGame', `Sad to see ${dto.id} leave :o`);
+			console.info(`${client.id} left the game and is removed from ${room_infos.name}`);
+			if (room_infos.empty)
+				this.checkRoom(room_infos.name);
+			console.info(this.game_service.game_rooms);
+		} catch (e) {
+			console.info(e);
+		}
 	}
 
-	/* == PRIVATE ======================== */
+	private checkRoom(room_name: string): void {
+		this.server.in(room_name).disconnectSockets();
+		this.server.to(room_name).emit('leftGame', `The room is closing`);
+	}
 
 	private display(item: any): void {
-		console.info(item, typeof item);
+		console.info(typeof item, item);
 	}
 }
