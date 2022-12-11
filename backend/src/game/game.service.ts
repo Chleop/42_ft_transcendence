@@ -1,9 +1,11 @@
-import {
-	Injectable
-} from '@nestjs/common';
-import { BallDto } from './dto';
-import { Player, GameRoom } from './room';
+import { Injectable } from '@nestjs/common';
+import { Ball, Client } from './aliases';
+import { GameRoom } from './room';
 
+/* For now, gamerooms are named after a name given in the dto
+	 Bound to be named after the host once we manage the jwt/auth token. */
+
+/* Manage rooms + save in database */
 @Injectable()
 export class GameService {
 	public game_rooms: GameRoom[] = [];
@@ -11,9 +13,9 @@ export class GameService {
 	/* == PUBLIC ================================================================================== */
 
 	/* -- ROOM MANIPULATION --------------------- */
-	public joinRoom(room_name: string, user: Player): string {
+	public joinRoom(room_name: string, user: Client): string {
 		console.info(`GameService JoinRoom`);
-		if (this.findUser(user.socket_id) !== undefined) {
+		if (this.findUserRoom(user.socket_id) !== undefined) {
 			throw 'User already in a room';
 		}
 		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
@@ -29,20 +31,20 @@ export class GameService {
 
 	public leaveRoom(socket_id: string): {name: string, empty: boolean} {
 		console.info(`GameService LeaveRoom`);
-		const room: GameRoom | undefined = this.findUser(socket_id);
+		const room: GameRoom | undefined = this.findUserRoom(socket_id);
 		if (room === undefined)
 			throw 'Not in a room';
 		const is_empty: boolean = room.removeUser(socket_id);
 		if (is_empty) {
 			console.info(`Room ${room.name} is empty`);
-			this.removeRoom(room);
+			this.removeRoom(room.name);
 		}
 		return {name: room.name, empty: is_empty};
 	}
 
-	private removeRoom(room: GameRoom): void {
+	public removeRoom(room: string): void {
 		const index: number = this.game_rooms.findIndex((obj) => {
-			return (room === obj);
+			return (room === obj.name);
 		});
 		if (index >= 0)
 			this.game_rooms.splice(index, 1);
@@ -51,15 +53,14 @@ export class GameService {
 	/* == PRIVATE ================================================================================= */
 
 	/* -- UTILS --------------------------------- */
-	private findUser(user_id: string): GameRoom | undefined {
+	private findUserRoom(socket_id: string): GameRoom | undefined {
 		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
-			return (obj.user1 !== undefined && obj.user1.socket_id === user_id)
-			|| (obj.user2 !== undefined && obj.user2.socket_id === user_id);
+			return obj.isClientInRoom(socket_id);
 		});
 		return room;
 	}
 
-	private createRoom(room_name: string, user: Player): undefined {
+	private createRoom(room_name: string, user: Client): undefined {
 		console.info("Create room");
 		const room: GameRoom = new GameRoom(room_name, user);
 		this.game_rooms.push(room);

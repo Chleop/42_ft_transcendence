@@ -1,1 +1,1 @@
-export * from './gameroom';
+export * from './gameroom.class';

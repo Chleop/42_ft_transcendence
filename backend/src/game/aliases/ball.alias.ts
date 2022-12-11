@@ -1,4 +1,4 @@
-export class BallDto {
+export type Ball = {
 	x: number;
 	y: number;
 	vx: number;
