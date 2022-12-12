@@ -1,31 +1,22 @@
-import { Controller, Post } from '@nestjs/common';
+import { 
+    Controller,
+    Post, 
+    Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { PrismaClient } from '@prisma/client';
+import { AuthDto } from './dto';
 
 @Controller('auth')
 export class AuthController {
     constructor(private authService: AuthService) {}
+    
+    @Post('signup')
+    signup(@Body() signupDto: AuthDto) {
+        return this.authService.signup(signupDto);
+    }
 
     @Post('signin')
     signin() {
-        const prisma = new PrismaClient({ log: ['query', 'info'] })
-
-        const user = prisma.user.create({
-            data: {
-                name: 'chleo',
-                email: 'chleop@hotmail.fr',
-                rank: 4,
-                twofactauth: true,
-                // avatar: {
-                //     create: [
-                //         { name: "avatar1" },
-                //         { name: "avatar2" },
-                //     ]
-                // }
-            }
-        })
-
-        return 'kuku';
+        return this.authService.signin();
     }
     
 }
