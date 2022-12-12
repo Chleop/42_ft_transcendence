@@ -11,4 +11,4 @@ export type UpdatedPlayer = {
 	// Updated position of enemy
 	enemy_position: number,
 	enemy_velocity: number
-}
+};

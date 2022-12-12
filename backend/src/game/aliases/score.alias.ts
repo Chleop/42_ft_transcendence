@@ -3,4 +3,4 @@ export type Score = {
 	player2_score: number,
 	// If the game is ongoing
 	ongoing: boolean
-}
+};

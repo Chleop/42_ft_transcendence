@@ -12,110 +12,156 @@ import { Ball } from './aliases';
 import { PaddleDto } from './dto';
 
 // PLACEHOLDERS ==============
-class UserInfoDto {
-	readonly id: string;
-}
-
-type Spectator = {
-	client: Socket,
-	room: string
-};
+import { Player, Match } from './alias';
 // END PLACEHOLDERS ==========
+
+const matchmaking_timeout: number = 10000;
+
+type TimeoutId = {
+	match: string,
+	id: number
+};
+
 
 /* Gateway to events comming from `http://localhost:3000/game` */
 @WebSocketGateway({cors: {origin: ['http://localhost:3000']}, namespace: '/game'})
 export class GameGateway {
 	@WebSocketServer()
-	private server: Server = new Server();
+	private readonly server: Server = new Server();
+	private game_service: GameService = new GameService();
+	private timeout_checker: TimeoutId[] = [];
 
-	/* In the future: add to constructor
-		 private matchMaking: MatchMaking;
-	 */
-	constructor(private game_service: GameService) {}
-
-	/* == PUBLIC ================================================================================== */
+	/* == PRIVATE ================================================================================= */
 
 	/* -- INITIALISATION ------------------------ */
 	/* Handle connection to server */
 	private handleConnection(client: Socket) {
-		console.info(`Client '${client.id}' connected`);
+		client.emit('connected', 'Welcome');
+		try {
+			//TODO: Check if they are not spectator
+			const user: Player = this.game_service.getUser(client, 'abc'); // authkey
+			const match: Match = this.game_service.queueUp(user);
+			if (match !== null)
+				this.matchmake(match);
+		} catch (e) {
+			client.disconnect(true);
+			console.info(e);
+		}
 	}
 
 	/* Handle disconnection from server */
 	private handleDisconnect(client: Socket) {
-		// Send event to all clients in their room to tell them to wait
-		console.info(`Client '${client.id}' disconnected`);
+		console.info(`[${client.id} disconnected]`);
 	}
 
-	/* == PRIVATE ================================================================================= */
-
-	/* -- EVENT MANAGING ------------------------ */
-
-	//TODO: Change dto
-	/* Client joining a game */
-	@SubscribeMessage('joinGame')
-	private joinGame(client: Socket, data: {room: string, dto: UserInfoDto}): void {
-		//console.log("Game JoinGame: ", client.id);
+	@SubscribeMessage('ok')
+	private matchAccepted(client: Socket) {
 		try {
-			const room_name: string = this.game_service.joinRoom(data.room, {
-				id: data.dto.id,
-				socket_id: client.id
-			});
-			client.join(room_name);
-
-			//TODO: send socketid + jwt? Front will identify it as player 1 or player 2
-			this.server.to(room_name).emit('joinedGame', `Welcome, ${data.dto.id} :)`);
-			//console.info(`${client.id} joined the room ${room_name}`);
-			//console.info(this.game_service.game_rooms);
+			const room: GameRoom = this.game_service.playerAcknowledged(client);
+			if (room !== null)
+				this.ignoreTimeout(room.match);
 		} catch (e) {
-			console.info(e);
-		}
-	}
-
-	// TODO: Change dto
-	/* Client leaving the game */
-	@SubscribeMessage('leaveGame')
-	private leaveGame(client: Socket, dto: UserInfoDto): void {
-		//console.log("Game LeaveGame: ", client.id);
-		try {
-			const room_infos: {
-				name: string,
-				empty: boolean
-			} = this.game_service.leaveRoom(client.id);
-			client.leave(room_infos.name);
-			this.server.to(room_infos.name).emit('leftGame', `Sad to see ${dto.id} leave :o`);
-			//console.info(`${client.id} left the game and is removed from ${room_infos.name}`);
-			//if (room_infos.empty) // remove room when empty
-			this.clearRoom(room_infos.name);
-			//console.info(this.game_service.game_rooms);
-		} catch (e) {
-			console.info(e);
+			console.info('Ok intercepted but not associated room:', e);
 			client.disconnect(true);
 		}
 	}
 
-	/* Received update from someone */
-	@SubscribeMessage('update')
-	private updateGame(client: Socket, dto: PaddleDto): void {
-		try {
-			//const room: string = /* await */ ;
-			//const update: GameUpdate = this.game_service.update();
-			//socket.to(room).emit('updated', update);
-		} catch (e) {
-			// check if it's a player
-			// else disconnect
-		}
-	}
-
 	/* -- UTILITARIES --------------------------- */
-	private clearRoom(room_name: string): void {
-		console.info(`[Clearing room '${room_name}']`);
-		this.game_service.removeRoom(room_name);
-		this.server.to(room_name).emit('leftGame', `The room is closing`);
-		this.server.socketsLeave(room_name);
+	private matchmake(match: Match): void {
+		match.player1.socket.emit('matchFound', match.player2.id);
+		match.player2.socket.emit('matchFound', match.player1.id);
+		this.timeout_checker.push({
+			match: match.name,
+			id: setTimeout(this.checkTimeout, matchmaking_timeout, match) as unknown as number
+		});
 	}
 
-	private display(item: any): void {
-		console.info(typeof item, item);
+	private checkTimeout(match: Match): void {
+		const index_timeout: number = this.timeout_checker.findIndex((obj) => {
+			return obj.match === match.name;
+		});
+		if (index_timeout < 0)
+			return;
+		this.game_service.ignore(match);
+		match.player1.socket.disconnect();
+		match.player2.socket.disconnect();
+		this.timeout_checker.splice(index_timeout, 1);
 	}
+
+	private ignoreTimeout(match: Match): void {
+		const index_timeout: number = this.timeout_checker.findIndex((obj) => {
+			return obj.match === match.name;
+		});
+		if (index_timeout < 0)
+			return ;
+		clearTimeout(this.timeout_checker[index_timeout].id);
+		this.game_service.ignore(match);
+		this.timeout_checker.splice(index_timeout, 1);
+	}
+
+
+//	/* == PUBLIC ================================================================================== */
+
+//	/* -- EVENT MANAGING ------------------------ */
+//	//TODO: Change dto
+//	/* Client joining a game */
+//	@SubscribeMessage('joinGame')
+//	private joinGame(client: Socket): void {
+//
+//		try {
+//			const room: GameRoom = this.game_service.joinRoom(client.id);
+//			client.join(room.name);
+//
+//			//TODO: send `room` instance (will contain ids)
+//			this.server.to(room.name).emit('joinedGame', `Welcome, ${client.id} :)`);
+//			if (room.isFull())
+//				this.initialize(room);
+//		} catch (e) {
+//			console.info(e);
+//		}
+//	}
+//
+//	// TODO: Change dto
+//	/* Client leaving the game */
+//	@SubscribeMessage('leaveGame')
+//	private leaveGame(client: Socket): void {
+//		try {
+//			const room: GameRoom = this.game_service.leaveRoom(client.id);
+//			client.leave(room.name);
+//			this.server.to(room.name).emit('leftGame', `Sad to see ${client.id} leave :o`);
+//			this.clearRoom(room.name);
+//		} catch (e) {
+//			console.info(e);
+//			client.disconnect(true);
+//		}
+//	}
+//
+//	/* Received update from someone */
+//	@SubscribeMessage('update')
+//	private updateGame(client: Socket, dto: PaddleDto): void {
+//		try {
+//			//const room: string = /* await */ ;
+//			//const update: GameUpdate = this.game_service.update();
+//			//socket.to(room).emit('updated', update);
+//		} catch (e) {
+//			// check if it's a player
+//			// else disconnect
+//		}
+//	}
+//
+//	private initialize(room: GameRoom): void {
+//		// Send room infos first,
+//		this.server.to(room.name).emit('inializing', room);
+//	}
+//
+//	private clearRoom(room_name: string): void {
+//		console.info(`[Clearing room '${room_name}']`);
+//		this.server.to(room_name).emit('leftGame', `The room is closing`);
+//		this.server.socketsLeave(room_name);
+//		this.game_service.removeRoom(room_name);
+//	}
+//
+//	private display(item: any): void {
+//		console.info(typeof item, item);
+//	}
 }

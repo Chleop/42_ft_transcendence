@@ -6,4 +6,4 @@ export type GameUpdate = {
 
 	player1: UpdatedPlayer,
 	player2: UpdatedPlayer
-}
+};
