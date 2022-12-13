@@ -11,47 +11,83 @@ datasource db {
 }
 
 model User {
-  id        Int     @id @unique @default(autoincrement())
-  name      String  @unique
-  email     String  @unique
-  avatar    Avatar  @relation(fields:[avatarid], references: [id])
-  avatarid  Int
-  skin      Skin    @relation(fields:[skinid], references: [id])
-  skinid    Int
-  rank      Int     @unique
-  twofactauth Boolean  @default(false)
-  // friends   User[]
-  // blockedusers  User[]
-  // gamesplayed   
-  // gameswon
-}
-
-model Skin {
-  id    Int     @id @unique
-  name  String  @unique
-  // image
-  users User[]
-}
-
-model Avatar {
-  id    Int     @id @unique
-  name  String  @unique
-  // image 
-  users User[]
+  id              String    @id @unique @default(cuid())
+  name            String    @unique
+  email           String    @unique
+  avatar          String    @default("default") // !le choix de l'avatar 
+  // par defaut se fait au niveau du signup
+  skin            Skin      @relation(fields:[skinid], references: [id])
+  elo             Int       @default(0)
+  twoFactAuth     Boolean   @default(false)
+  twoFactSecret   String?
+  channels        Channel[] @relation("userchannels")
+  gamesPlayed     Game[]    @relation("gamesplayed")
+  gamesWon        Game[]    @relation("gameswon")
+  friends         User[]    @relation("friendship")
+  blocked         User[]    @relation("blocked")
+// les champs ci-dessous sont neccessaires pour les relations
+// mais ne sont pas accessibles par le client Prisma gra ce a l'attribut 
+// @ignore.
+// Pour utiliser Prisma Studio, commenter les @ignore
+  mirrorOperators Channel[] @relation("chanops") @ignore
+  mirrorFriends   User[]    @relation("friendship")@ignore
+  mirrorBlocked   User[]    @relation("blocked")@ignore
+  mirrorDms       DM[]      @relation("userdms")@ignore
+  mirrorSender    ChannelMessage[] @relation("usermessage")@ignore
+// les champs ci-dessous sont neccessaires pour les relations
+// mais n'existent pas reellement dans la bdd (foreign keys)
+  skinid          String
 }
 
 model Channel {
-  id        Int     @id @unique @default(autoincrement())
-  name      String  @unique
-  private   Boolean  @default(false)
-  password  String
-  // members   User[]
-  // operators User[]
+  id        String    @id @unique @default(cuid())
+  name      String?   @unique
+  chantype  ChanType  @default(public)
+  hash      String?
+  members   User[]    @relation("userchannels")
+  operators User[]    @relation("chanops")
+  messages  ChannelMessage[] @relation("channelmessage")
+}
+
+model ChannelMessage {
+  id        String  @id @unique @default(cuid())
+  sender    User    @relation("usermessage", fields: [senderid], references: [id])
+  channel   Channel @relation("channelmessage", fields:[channelid], references: [id])
+  datetime  DateTime
+  Content   String
+// les champs ci-dessous sont neccessaires pour les relations
+// mais n'existent pas reellement dans la bdd (foreign keys)
+  senderid  String
+  channelid String
+}
+
+model DM {
+  id        String    @id @unique @default(cuid())
+  users     User[]    @relation("userdms")
+  datetime  DateTime
+  Content   String
 }
 
 model Game {
-  id        Int     @id @unique @default(autoincrement())
-  // players   User[]
+  id        String  @id @unique @default(cuid())
+  players   User[]  @relation("gamesplayed")
+  winner    User    @relation("gameswon", fields:[winnerid], references: [id])
   scores    Int[]
-  // winner    User
+  datetime  DateTime
+// les champs ci-dessous sont neccessaires pour les relations
+// mais n'existent pas reellement dans la bdd (foreign keys)
+  winnerid  String
+}
+
+model Skin {
+  id    String  @id @unique @default(cuid())
+  name  String  @unique
+  url   String  @unique
+  users User[]
+}
+
+enum ChanType {
+  public
+  private
+  protected
 }
