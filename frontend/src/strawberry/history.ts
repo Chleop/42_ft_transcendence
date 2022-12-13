@@ -44,6 +44,9 @@ export const History = (function () {
          */
         private current_state_: State;
 
+        /**
+         * Creates a new `HistoryClass` instance.
+         */
         constructor() {
             window.onpopstate = (ev: PopStateEvent) => {
                 const old_state = this.current_state_;

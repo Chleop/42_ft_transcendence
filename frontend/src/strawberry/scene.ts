@@ -41,6 +41,21 @@ export abstract class Scene extends State {
  */
 export abstract class Overlay extends State {
     /**
+     * Adds the root HTML element of the scene to the document.
+     */
+    public on_entered(_prev: State): void {
+        window.document.appendChild(this.root_html_element);
+    }
+
+    /**
+     * Removes the HTML elements of this scene.
+     */
+    public on_left(_next: State): void {
+        this.root_html_element.remove();
+    }
+
+
+    /**
      * Returns the root HTML element of the scene.
      */
     public abstract get root_html_element(): HTMLElement;
