@@ -1,4 +1,4 @@
-import { Player, PlayerState } from "./game"
+import { Player, PlayerState } from "./player";
 
 /**
  * A dummy player that do nothing.

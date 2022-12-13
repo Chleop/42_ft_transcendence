@@ -1,4 +1,6 @@
 import { Scene } from "../strawberry/scene";
+import { DummyPlayer } from "./dummy_player";
+import { Player } from "./player";
 import { Renderer, Sprite } from "./renderer";
 
 /**
@@ -6,21 +8,6 @@ import { Renderer, Sprite } from "./renderer";
  * browser.
  */
 export class WebGL2NotSupported { }
-
-/**
- * Information about the state of a `Player`.
- */
-export interface PlayerState {
-    /**
-     * The speed of the player.
-     */
-    readonly speed: number;
-
-    /**
-     * The height of the player.
-     */
-    readonly height: number;
-}
 
 /**
  * The only implementator of the public `PlayerState` interface.
@@ -72,21 +59,6 @@ class BallState {
         this.vy = Math.sin(angle) * 5;
         this.radius = 0.2;
     }
-}
-
-/**
- * Information about a player.
- */
-export abstract class Player {
-    /**
-     * The position of the player on the Y axis.
-     */
-    abstract get position(): number;
-
-    /**
-     * Indicates to the player that it should move.
-     */
-    abstract tick(delta_time: number, state: PlayerState);
 }
 
 /**
@@ -153,7 +125,7 @@ export class GameScene extends Scene {
     /**
      * Creates a new `GameElement` instance.
      */
-    public constructor(left: Player, right: Player) {
+    public constructor() {
         super();
 
         this.canvas = document.createElement("canvas");
@@ -168,9 +140,9 @@ export class GameScene extends Scene {
         if (!gl) throw new WebGL2NotSupported();
         this.renderer = new Renderer(gl);
 
-        this.left_player = left;
+        this.left_player = new DummyPlayer();
         this.left_player_state = new PlayerStateInternal();
-        this.right_player = right;
+        this.right_player = new DummyPlayer();
         this.right_player_state = new PlayerStateInternal();
         this.ball_state = new BallState();
         this.ball_sprite = this.renderer.create_sprite("ball.png");
@@ -178,13 +150,10 @@ export class GameScene extends Scene {
 
         this.renderer.notify_size_changed(this.canvas.width, this.canvas.height);
 
-        this.should_stop = false;
+        this.should_stop = true;
         this.last_timestamp = 0;
 
         this.show_hitboxes_ = false;
-
-        // Start the update/render loop.
-        this.animation_frame_callback(0);
     }
 
     /**
@@ -202,6 +171,18 @@ export class GameScene extends Scene {
     }
 
     /**
+     * Starts the game.
+     */
+    public start(left: Player, right: Player) {
+        this.left_player = left;
+        this.right_player = right;
+
+        this.should_stop = false;
+        this.last_timestamp = 0;
+        window.requestAnimationFrame(timestamp => this.animation_frame_callback(timestamp));
+    }
+
+    /**
      * Whether hitboxes should be shown.
      */
     public set show_hitboxes(yes: boolean) {
@@ -213,6 +194,8 @@ export class GameScene extends Scene {
      */
     private animation_frame_callback(timestamp: DOMHighResTimeStamp) {
         let delta_time = (timestamp - this.last_timestamp) / 1000;
+        if (delta_time >= 0.2)
+            delta_time = 0.2;
         this.last_timestamp = timestamp;
 
         // Move the ball.

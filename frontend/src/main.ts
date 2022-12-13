@@ -2,7 +2,8 @@ import { Client } from "./api/client"
 import { DummyPlayer } from "./game/dummy_player";
 import { GameScene } from "./game/game";
 import { LocalPlayer } from "./game/local_player";
-import { History } from "./strawberry/history";
+import { MainMenuScene } from "./main_menu/main_menu";
+import { History, State } from "./strawberry/history";
 import { Router } from "./strawberry/router";
 
 /**
@@ -39,7 +40,19 @@ export function entry_point() {
     }
 
     const client = new Client(token);
-    const router = new Router();
+    const router = new Router<State>();
 
-    History.replace_state(new GameScene(new LocalPlayer(), new DummyPlayer()));
+    const main_menu = new MainMenuScene(client);
+    const game = new GameScene();
+
+    router.register_route("/game", game);
+    router.register_route("/game/", game);
+    router.register_route("/", main_menu);
+
+    const route_result = router.get(window.location.pathname);
+    if (route_result) {
+        History.replace_state(route_result.meta);
+    } else {
+        // TODO: 404 error
+    }
 }
