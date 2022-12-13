@@ -1,1 +1,1 @@
-export * from './game.dto';
+export * from './paddle.dto';
