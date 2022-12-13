@@ -5,7 +5,7 @@ export abstract class State {
     /**
      * Indicates that the state has entered the history.
      */
-    public abstract on_entered(): void;
+    public abstract on_entered(prev: State): void;
 
     /**
      * The location associated with this state.
@@ -17,7 +17,7 @@ export abstract class State {
     /**
      * Indicates that the state has been replaced by another.
      */
-    public abstract on_left(): void;
+    public abstract on_left(next: State): void;
 }
 
 /**
@@ -48,13 +48,13 @@ export const History = (function() {
             window.onpopstate = (ev: PopStateEvent) => {
                 const old_state = this.current_state_;
 
-                old_state.on_left();
                 if (ev.state instanceof State) {
                     this.current_state_ = ev.state;
                 } else {
                     this.current_state_ = new EmptyState();
                 }
-                this.current_state_.on_entered();
+                old_state.on_left(this.current_state_);
+                this.current_state_.on_entered(old_state);
             };
 
             this.current_state_ = new EmptyState();
@@ -66,10 +66,10 @@ export const History = (function() {
         public push_state(new_state: State) {
             const old_state = this.current_state_;
 
-            old_state.on_left();
             window.history.pushState(new_state, "", new_state.location);
-            new_state.on_entered();
             this.current_state_ = new_state;
+            old_state.on_left(new_state);
+            new_state.on_entered(old_state);
         }
 
         /**
@@ -78,25 +78,17 @@ export const History = (function() {
         public replace_state(new_state: State) {
             const old_state = this.current_state_;
 
-            old_state.on_left();
             window.history.pushState(new_state, "", new_state.location);
-            new_state.on_entered();
             this.current_state_ = new_state;
+            old_state.on_left(new_state);
+            new_state.on_entered(old_state);
         }
 
         /**
          * Pops the current state.
          */
         public pop_state() {
-            const old_state = this.current_state_;
             window.history.back();
-            old_state.on_left();
-
-            if (window.history.state instanceof State) {
-                this.current_state_ = window.history.state;
-            } else {
-                this.current_state_ = new EmptyState();
-            }
         }
 
         /**
