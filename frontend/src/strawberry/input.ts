@@ -2,7 +2,7 @@
 /**
  * Contains the callbacks that should be called when a key is pressed.
  */
-const KEY_PRESSED_CALLBACKS: ((key: string) => void)[] = (function() {
+const KEY_PRESSED_CALLBACKS: ((key: string) => void)[] = (function () {
     const callbacks: ((key: string) => void)[] = [];
     window.onkeydown = (ev: KeyboardEvent) => callbacks.forEach(callback => callback(ev.key));
     return callbacks;
@@ -11,7 +11,7 @@ const KEY_PRESSED_CALLBACKS: ((key: string) => void)[] = (function() {
 /**
  * Contains the callbacks that should be called when a key is released.
  */
-const KEY_RELEASED_CALLBACKS: ((key: string) => void)[] = (function() {
+const KEY_RELEASED_CALLBACKS: ((key: string) => void)[] = (function () {
     const callbacks: ((key: string) => void)[] = [];
     window.onkeyup = (ev: KeyboardEvent) => callbacks.forEach(callback => callback(ev.key));
     return callbacks;

@@ -12,7 +12,7 @@ export abstract class State {
      *
      * When `null` is returned, the old location is preserved.
      */
-    public abstract get location(): string|null;
+    public abstract get location(): string | null;
 
     /**
      * Indicates that the state has been replaced by another.
@@ -24,17 +24,17 @@ export abstract class State {
  * Returns an empty, default, state.
  */
 export class EmptyState extends State {
-    public on_entered(): void {}
-    public get location(): string|null { return null; }
-    public on_left(): void {}
-    public on_buried(_beneath: State): void {}
-    public on_replaced(_by: State): void {}
+    public on_entered(): void { }
+    public get location(): string | null { return null; }
+    public on_left(): void { }
+    public on_buried(_beneath: State): void { }
+    public on_replaced(_by: State): void { }
 }
 
 /**
  * Wraps methods to manipulate the history.
  */
-export const History = (function() {
+export const History = (function () {
     class HistoryClass {
         /**
          * The current state.
