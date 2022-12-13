@@ -1,4 +1,4 @@
-export const sprite_vertex_shader_source =  `#version 300 es
+export const sprite_vertex_shader_source = `#version 300 es
 precision highp float;
 
 uniform vec2 model_position;

@@ -1,36 +1,38 @@
 /**
  * An interface for objects which can be sent through the network.
  */
-export interface Body {
+export abstract class Body {
     /**
      * The data that will be sent.
      */
-    data: BodyInit,
+    public abstract get data(): BodyInit;
     /**
      * The MIME type of the data.
      */
-    content_type: string,
+    public abstract get content_type(): string;
 }
 
 /**
  * Some JSON data.
  */
-export class JsonBody {
+export class JsonBody extends Body {
     /**
      * The JSON data.
      */
-    readonly data: string;
+    public readonly data: string;
     /**
      * The content type for `JsonBody`.
      */
-    readonly content_type: string;
+    public readonly content_type: string;
 
     /**
      * Creates a new `JsonBody` instance.
      *
-     * @param data The data that will be turned into JSON.
+     * The provided data will be turned into json.
      */
-    constructor(data: any) {
+    public constructor(data: any) {
+        super();
+
         this.data = JSON.stringify(data);
         this.content_type = "application/json";
     }

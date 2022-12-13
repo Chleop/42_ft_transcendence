@@ -202,7 +202,7 @@ export class Renderer {
      */
     public notify_size_changed(width: number, height: number) {
         this.gl.viewport(0, 0, width, height);
-        this.view_matrix = [ 1/8, 0, 0, (width/height)/8 ];
+        this.view_matrix = [1 / 8, 0, 0, (width / height) / 8];
     }
 
     /**

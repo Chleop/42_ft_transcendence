@@ -17,11 +17,8 @@ export class UnexpectedStatusCode {
 
     /**
      * Creates a new `UnexpectedStatusCode` exception.
-     *
-     * @param status The status code that the server returned.
-     * @param text Some text associated with the status code.
      */
-    constructor(status: number, text: string) {
+    public constructor(status: number, text: string) {
         this.status = status;
         this.text = text;
     }
@@ -63,31 +60,25 @@ export class Client {
     /**
      * The connection token of the current user.
      */
-    token: string;
+    private token: string;
 
     /**
      * Creates a new `Client`.
-     *
-     * @paren
      */
-    constructor(token: string) {
+    public constructor(token: string) {
         this.token = token;
     }
 
     /**
      * Executes a request using this client. The appropriate `Authorization` header authomatically
      * added, errors are properly dispatched using exceptions.
-     *
-     * @param request Information about the request.
-     *
-     * @returns The response of the server.
      */
-    async make_request(request: Request): Promise<any> {
+    private async make_request(request: Request): Promise<any> {
         let headers: Record<string, string> = {};
 
         headers["Authorization"] = this.token;
 
-        let body: BodyInit|undefined = undefined;
+        let body: BodyInit | undefined = undefined;
         if (request.body) {
             body = request.body.data;
             headers["Content-Type"] = request.body.content_type;
@@ -118,8 +109,6 @@ export class Client {
 
     /**
      * Requests information about the current user.
-     *
-     * @returns The response of the server.
      */
     public async me(): Promise<PrivateUser> {
         return this.make_request({
@@ -131,12 +120,6 @@ export class Client {
 
     /**
      * Requests the creation of a new channel.
-     *
-     * @param name The name of the channel.
-     * @param priv Whether the channel is private.
-     * @param password An optional password for the channel.
-     *
-     * @returns The response of the server.
      */
     public async create_channel(name: string, priv: boolean, password: string = ""): Promise<ChannelJoined> {
         return this.make_request({
@@ -154,11 +137,6 @@ export class Client {
 
     /**
      * Joins a new channel.
-     *
-     * @param id The ID of the channel to join.
-     * @param password The password of the channel.
-     *
-     * @returns The response of the server.
      */
     public async join_channel(id: ChannelId, password: string = ""): Promise<ChannelJoined> {
         return this.make_request({
@@ -173,8 +151,6 @@ export class Client {
 
     /**
      * Leaves a channel.
-     *
-     * @param id The id of the channel to leave.
      */
     public async leave_channel(id: ChannelId) {
         this.make_request({
@@ -185,11 +161,6 @@ export class Client {
 
     /**
      * Gets the last messages of the given channel.
-     *
-     * @param channel The channel from which the messages must be retrieved.
-     * @param limit The maximum number of messages that may be returned.
-     *
-     * @returns The response of the server.
      */
     public async get_last_messages(channel: ChannelId, limit?: number): Promise<Message[]> {
         let url = `channel/${channel}/message`;
@@ -205,13 +176,6 @@ export class Client {
 
     /**
      * Gets the messages that were sent *before* another message.
-     *
-     * @param channel The channel from which the messages must be retrieved.
-     * @param anchor The anchored message.
-     * @param channel The channel from which the messages must be retrieved.
-     * @param limit The maximum number of messages that may be returned.
-     *
-     * @returns The response of the server.
      */
     public async get_messages_before(channel: ChannelId, anchor: MessageId, limit?: number): Promise<Message[]> {
         let url = `channel/${channel}/message?before=${anchor}`;
@@ -227,13 +191,6 @@ export class Client {
 
     /**
      * Gets the messages that were sent *after* another message.
-     *
-     * @param channel The channel from which the messages must be retrieved.
-     * @param anchor The anchored message.
-     * @param channel The channel from which the messages must be retrieved.
-     * @param limit The maximum number of messages that may be returned.
-     *
-     * @returns The response of the server.
      */
     public async get_messages_after(channel: ChannelId, anchor: MessageId, limit?: number): Promise<Message[]> {
         let url = `channel/${channel}/message?after=${anchor}`;
@@ -248,10 +205,7 @@ export class Client {
     }
 
     /**
-     * Sends a message.
-     *
-     * @param channel The channel from which the error
-     * @param content The content of the message.
+     * Sends a message to the specified channel.
      */
     public async send_message(channel: ChannelId, content: string): Promise<Message> {
         return this.make_request({

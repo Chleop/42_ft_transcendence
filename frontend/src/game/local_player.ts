@@ -77,7 +77,7 @@ export class LocalPlayer extends Player {
         this.position_ += velocity * delta_time * state.speed;
 
         if (this.position - state.height / 2 < -4.5) {
-            this.position_ = -4.5 + state.height / 2 ;
+            this.position_ = -4.5 + state.height / 2;
         }
         if (this.position + state.height / 2 >= 4.5) {
             this.position_ = 4.5 - state.height / 2;

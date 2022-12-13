@@ -1,10 +1,11 @@
+import { Scene } from "../strawberry/scene";
 import { Renderer, Sprite } from "./renderer";
 
 /**
  * An exception which indicates that WebGL2 technology is not supported by the
  * browser.
  */
-export class WebGL2NotSupported {}
+export class WebGL2NotSupported { }
 
 /**
  * Information about the state of a `Player`.
@@ -91,11 +92,11 @@ export abstract class Player {
 /**
  * Contains the elements required to play the game.
  */
-export class GameElement {
+export class GameElement extends Scene {
     /**
      * The `<canvas>` element.
      */
-    private canvas_: HTMLCanvasElement;
+    private canvas: HTMLCanvasElement;
 
     /**
      * The graphics renderer.
@@ -153,15 +154,17 @@ export class GameElement {
      * Creates a new `GameElement` instance.
      */
     public constructor(left: Player, right: Player) {
-        this.canvas_ = document.createElement("canvas");
-        this.canvas_.id = "game-canvas";
+        super();
+
+        this.canvas = document.createElement("canvas");
+        this.canvas.id = "game-canvas";
 
         // FIXME:
         //  Properly calculate dimentions for the canvas.
-        this.canvas_.width = 1280;
-        this.canvas_.height = 720;
+        this.canvas.width = 1280;
+        this.canvas.height = 720;
 
-        const gl = this.canvas_.getContext("webgl2");
+        const gl = this.canvas.getContext("webgl2");
         if (!gl) throw new WebGL2NotSupported();
         this.renderer = new Renderer(gl);
 
@@ -173,7 +176,7 @@ export class GameElement {
         this.ball_sprite = this.renderer.create_sprite("ball.png");
         this.paddle_sprite = this.renderer.create_sprite("paddle.png");
 
-        this.renderer.notify_size_changed(this.canvas_.width, this.canvas_.height);
+        this.renderer.notify_size_changed(this.canvas.width, this.canvas.height);
 
         this.should_stop = false;
         this.last_timestamp = 0;
@@ -187,8 +190,15 @@ export class GameElement {
     /**
      * Returns the canvas element.
      */
-    public get canvas(): HTMLCanvasElement {
-        return this.canvas_;
+    public get root_html_element(): HTMLCanvasElement {
+        return this.canvas;
+    }
+
+    /**
+     * Returns "/game".
+     */
+    public get location(): string {
+        return "/game"
     }
 
     /**
@@ -231,7 +241,7 @@ export class GameElement {
         this.right_player.tick(delta_time, this.right_player_state);
 
         // Render the scene.
-        const pixel_scale: number = 1/200;
+        const pixel_scale: number = 1 / 200;
 
         this.renderer.clear(0, 0, 0);
         this.renderer.draw_sprite(this.ball_sprite, this.ball_state.x, this.ball_state.y, this.ball_sprite.width * pixel_scale, this.ball_sprite.height * pixel_scale);

@@ -1,2 +1,2 @@
-/// A unique identifier.
+/** A unique identifier. */
 export type Id = string;
