@@ -1,6 +1,7 @@
 import { PrivateUser } from "./api/user";
 import { Client as ApiClient } from "./api/client"
 import { ChatElement } from "./chat";
+import { on_key_pressed } from "./strawberry/input";
 
 /**
  * Tries to get the value of a specific cookie.
