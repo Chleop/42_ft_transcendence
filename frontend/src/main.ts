@@ -1,7 +1,6 @@
-import { PrivateUser } from "./api/user";
-import { Client as ApiClient } from "./api/client"
-import { ChatElement } from "./chat";
-import { on_key_pressed } from "./strawberry/input";
+import { Client } from "./api/client"
+import { MainMenuElement } from "./main_menu/main_menu";
+import { History } from "./strawberry/history";
 
 /**
  * Tries to get the value of a specific cookie.
@@ -36,44 +35,7 @@ export function entry_point() {
         throw "User Not Connected!";
     }
 
-    const client = new ApiClient(token);
+    const client = new Client(token);
 
-    // Request information about the user. We'll need this data during the lifetime of the whole
-    // application, so we have to block until we have it.
-    const me: PrivateUser = /* await client.me() */ {
-        avatar: "4a1041e5-1392-48cb-b89e-c5e3c1eadddc",
-        channels: [
-            {
-                has_password: false,
-                id: "",
-                name: "Test"
-            },
-            {
-                has_password: false,
-                id: "",
-                name: "Test2"
-            }
-        ],
-        id: "3ccb95c1-b1c6-4ee2-b84a-b048700ef59c",
-        name: "nmathieu",
-    };
-
-    console.info(`Connected as '${me.name}'!`);
-
-    const chat = new ChatElement(client);
-
-    document.body.appendChild(chat.html);
-
-    // Initialize the stuff that's related to the user.
-    let first: boolean = true;
-    for (const channel of me.channels) {
-        console.log(`adding channel '${channel.name}'`);
-
-        const element = chat.add_channel(channel);
-
-        if (first) {
-            first = false;
-            chat.set_selected_channel(element);
-        }
-    }
+    History.replace_state(new MainMenuElement(client));
 }

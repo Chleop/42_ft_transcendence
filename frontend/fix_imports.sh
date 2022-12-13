@@ -21,5 +21,5 @@
 for file in $(find . -name '*.js' -type f)
 do
     # I <3 sed ;)
-    sed -i 's/import\(.*\)from ".\/\(.*\)";$/import \1 from ".\/\2.js";/g' $file
+    sed -i 's/import\(.*\)from "\(.\/\|..\/\)\(.*\)";$/import\1from "\2\3.js";/g' $file
 done

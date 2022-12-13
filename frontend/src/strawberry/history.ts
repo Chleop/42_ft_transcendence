@@ -37,40 +37,44 @@ export class EmptyState extends State {
 export const History = (function () {
     class HistoryClass {
         /**
-         * The current state.
-         *
-         * Note that we cannot use `window.history.state` because it is updated too soon
-         * during the `onpopstate` event.
+         * The current state stack. It's not possible to use the window's state system because it
+         * wants to clone the states for some reason.
          */
-        private current_state_: State;
+        private state_stack: State[];
+
+        /**
+         * The current index within the state stack.
+         */
+        private state_stack_index: number;
 
         /**
          * Creates a new `HistoryClass` instance.
          */
         constructor() {
             window.onpopstate = (ev: PopStateEvent) => {
-                const old_state = this.current_state_;
+                const old_state = this.state_stack[this.state_stack_index];
 
-                if (ev.state instanceof State) {
-                    this.current_state_ = ev.state;
-                } else {
-                    this.current_state_ = new EmptyState();
-                }
-                old_state.on_left(this.current_state_);
-                this.current_state_.on_entered(old_state);
+                this.state_stack_index = 0;
+                if (typeof ev.state === "number")
+                    this.state_stack_index = ev.state;
+                old_state.on_left(this.current_state);
+                this.current_state.on_entered(old_state);
             };
 
-            this.current_state_ = new EmptyState();
+            this.state_stack = [new EmptyState()];
+            this.state_stack_index = 0;
         }
 
         /**
          * Go to a specific state, trying to burry the current one.
          */
         public push_state(new_state: State) {
-            const old_state = this.current_state_;
+            const old_state = this.current_state;
+            while (this.state_stack.length != this.state_stack_index)
+                this.state_stack.pop();
 
-            window.history.pushState(new_state, "", new_state.location);
-            this.current_state_ = new_state;
+            window.history.pushState(this.state_stack_index, "", new_state.location);
+            this.state_stack.push(new_state);
             old_state.on_left(new_state);
             new_state.on_entered(old_state);
         }
@@ -79,10 +83,10 @@ export const History = (function () {
          * Replaces the current state by another.
          */
         public replace_state(new_state: State) {
-            const old_state = this.current_state_;
+            const old_state = this.current_state;
 
-            window.history.pushState(new_state, "", new_state.location);
-            this.current_state_ = new_state;
+            window.history.replaceState(this.state_stack_index, "", new_state.location);
+            this.state_stack[this.state_stack_index] = new_state;
             old_state.on_left(new_state);
             new_state.on_entered(old_state);
         }
@@ -90,15 +94,16 @@ export const History = (function () {
         /**
          * Pops the current state.
          */
-        public pop_state() {
+        public go_back() {
             window.history.back();
+            this.state_stack_index -= 1;
         }
 
         /**
          * The current state.
          */
         public get current_state(): State {
-            return this.current_state_;
+            return this.state_stack[this.state_stack_index];
         }
     }
 

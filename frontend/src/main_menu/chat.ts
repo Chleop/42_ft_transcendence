@@ -1,6 +1,6 @@
-import { Channel, ChannelId, Message } from "./api/channel";
-import { UserId } from "./api/user";
-import { Client as ApiClient } from "./api/client";
+import { Channel, ChannelId, Message } from "../api/channel";
+import { UserId } from "../api/user";
+import { Client as ApiClient } from "../api/client";
 
 /**
  * A message that has been instanciated in the DOM.
