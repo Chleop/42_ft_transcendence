@@ -78,7 +78,7 @@ export class Client {
 
         headers["Authorization"] = this.token;
 
-        let body: BodyInit|undefined = undefined;
+        let body: BodyInit | undefined = undefined;
         if (request.body) {
             body = request.body.data;
             headers["Content-Type"] = request.body.content_type;

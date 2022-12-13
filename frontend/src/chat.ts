@@ -56,7 +56,7 @@ class MessageElementInternal {
 /**
  * A message that has been instanciated.
  */
-export interface MessageElement {}
+export interface MessageElement { }
 
 /**
  * A channel that has been instanciated in the DOM.
@@ -75,7 +75,7 @@ class ChannelElementInternal {
     /**
      * The ID of the author of the last message that was sent in the channel.
      */
-    public last_message_author: null|UserId;
+    public last_message_author: null | UserId;
 
     /**
      * The ID of the channel.
@@ -109,7 +109,7 @@ class ChannelElementInternal {
 /**
  * A channel that has been instanciated.
  */
-export interface ChannelElement {}
+export interface ChannelElement { }
 
 /**
  * Stores the state of the chat.
@@ -148,7 +148,7 @@ export class ChatElement {
     /**
      * Information about the channel that is currently selected.
      */
-    private selected_channel: null|ChannelElementInternal;
+    private selected_channel: null | ChannelElementInternal;
 
     /**
      * Creates a new `ChatContainer` element.
@@ -195,8 +195,8 @@ export class ChatElement {
     /**
      * Sets the currently selected channel.
      */
-    public set_selected_channel(element: ChannelElement|null) {
-        const element_ = element as ChannelElementInternal|null;
+    public set_selected_channel(element: ChannelElement | null) {
+        const element_ = element as ChannelElementInternal | null;
 
         if (this.selected_channel) {
             this.selected_channel.tab.classList.remove("active-channel-tab");
@@ -258,7 +258,7 @@ export class ChatElement {
      * Sends the content of the `<input id="chat-send-message">` to the currently selected
      * channel, and through the network.
      */
-    public async send_message_input(_client: ApiClient): Promise<Message|null> {
+    public async send_message_input(_client: ApiClient): Promise<Message | null> {
         if (!this.selected_channel) {
             return null;
         }

@@ -5,13 +5,13 @@ import { ChatElement } from "./chat";
 /**
  * Tries to get the value of a specific cookie.
  */
- function get_cookie(name: string): string|undefined {
+function get_cookie(name: string): string | undefined {
     const maybe_pair =
         document
-        .cookie
-        .split(';')
-        .map(pair => pair.split('='))
-        .find(([key, _]) => key == name);
+            .cookie
+            .split(';')
+            .map(pair => pair.split('='))
+            .find(([key, _]) => key == name);
 
     if (maybe_pair) {
         return maybe_pair[1];
@@ -70,8 +70,7 @@ export function entry_point() {
 
         const element = chat.add_channel(channel);
 
-        if (first)
-        {
+        if (first) {
             first = false;
             chat.set_selected_channel(element);
         }
