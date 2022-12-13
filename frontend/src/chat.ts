@@ -1,20 +1,20 @@
-import { Channel, ChannelId, Message } from "../api/channel";
-import { UserId } from "../api/user";
-import { RawHTTPClient } from "../api/raw_client";
+import { Channel, ChannelId, Message } from "./api/channel";
+import { UserId } from "./api/user";
+import { RawClient as ApiClient } from "./api/client";
 
 /**
  * A message that has been instanciated in the DOM.
  */
-class MessageElementInternal {
+export class MessageElement {
     /**
      * The `<div>` that contains the whole message.
      */
-    public container: HTMLDivElement;
+    container: HTMLDivElement;
 
     /**
      * This constructor should basically never be called outside of the module.
      */
-    public constructor(continuing: boolean, message: Message) {
+    constructor(continuing: boolean, message: Message) {
         const avatar = document.createElement("avatar");
         avatar.classList.add("message-avatar");
         avatar.style.backgroundImage = `/avatar/${message.author_avatar}`;
@@ -44,54 +44,36 @@ class MessageElementInternal {
             this.container.classList.add("message-continuing");
         }
     }
-
-    /**
-     * Returns the root HTML node of the chat.
-     */
-    public get html(): HTMLElement {
-        return this.container;
-    }
 }
-
-/**
- * A message that has been instanciated.
- */
-export interface MessageElement { }
 
 /**
  * A channel that has been instanciated in the DOM.
  */
-class ChannelElementInternal {
+class ChannelElement {
     /**
      * The `<button>` element representing the tab.
      */
-    public tab: HTMLButtonElement;
+    tab: HTMLButtonElement;
     /**
      * The `<div>` messages that were sent in the channel. This element is the only child of
      * the `<div id="#chat-messages">` container.
      */
-    public messages: HTMLDivElement;
+    messages: HTMLDivElement;
 
     /**
      * The ID of the author of the last message that was sent in the channel.
      */
-    public last_message_author: null | UserId;
+    last_message_author: null | UserId;
 
     /**
      * The ID of the channel.
      */
-    public channel_id: ChannelId;
-
-    /**
-     * The saved value of the input field (if the user left the channel without clearing the
-     * prompt).
-     */
-    public input: string;
+    channel_id: ChannelId;
 
     /**
      * This constructor should basically never be called outside of the module.
      */
-    public constructor(container: ChatElement, channel: Channel) {
+    constructor(container: ChatElement, channel: Channel) {
         this.tab = document.createElement("button");
         this.tab.classList.add("channel-tab");
         this.tab.innerText = channel.name;
@@ -101,15 +83,8 @@ class ChannelElementInternal {
 
         this.last_message_author = null;
         this.channel_id = channel.id;
-
-        this.input = "";
     }
 }
-
-/**
- * A channel that has been instanciated.
- */
-export interface ChannelElement { }
 
 /**
  * Stores the state of the chat.
@@ -118,12 +93,12 @@ export class ChatElement {
     /**
      * The actual HTML `<div>` element.
      */
-    private container: HTMLDivElement;
+    container: HTMLDivElement;
 
     /**
      * The `<div>` that contains all the channel tabs.
      */
-    private channel_tabs: HTMLDivElement;
+    channel_tabs: HTMLDivElement;
 
     /**
      * The `<div>` that contains the messages.
@@ -138,22 +113,22 @@ export class ChatElement {
      * </div>
      * ```
      */
-    private messages: HTMLDivElement;
+    messages: HTMLDivElement;
 
     /**
      * The `<input type="text">` that is used by the user to write messages.
      */
-    private message_input: HTMLInputElement;
+    message_input: HTMLInputElement;
 
     /**
      * Information about the channel that is currently selected.
      */
-    private selected_channel: null | ChannelElementInternal;
+    selected_channel: null | ChannelElement;
 
     /**
      * Creates a new `ChatContainer` element.
      */
-    public constructor(client: RawHTTPClient) {
+    constructor(client: ApiClient) {
         this.container = document.createElement("div");
         this.container.id = "chat-container";
 
@@ -194,39 +169,38 @@ export class ChatElement {
 
     /**
      * Sets the currently selected channel.
+     *
+     * @param element
      */
     public set_selected_channel(element: ChannelElement | null) {
-        const element_ = element as ChannelElementInternal | null;
-
         if (this.selected_channel) {
             this.selected_channel.tab.classList.remove("active-channel-tab");
             this.selected_channel.messages.remove();
-            this.selected_channel.input = this.message_input.value;
 
             this.selected_channel = null;
-            this.message_input.value = "";
         }
 
-        if (element_) {
-            element_.tab.classList.add("active-channel-tab");
-            this.messages.appendChild(element_.messages);
+        if (element) {
+            element.tab.classList.add("active-channel-tab");
+            this.messages.appendChild(element.messages);
 
             // FIXME:
             //  When we want to support upward scrolling, messages should be queried once here if
             //  we can fit some more.
 
-            this.selected_channel = element_;
+            this.selected_channel = element;
 
-            this.message_input.value = element_.input;
             this.message_input.focus();
         }
     }
 
     /**
      * Adds a channel to the list of channels.
+     *
+     * @param channel The channel object that will be represented on the page.
      */
     public add_channel(channel: Channel): ChannelElement {
-        let element = new ChannelElementInternal(this, channel);
+        let element = new ChannelElement(this, channel);
 
         this.channel_tabs.appendChild(element.tab);
 
@@ -234,37 +208,34 @@ export class ChatElement {
     }
 
     /**
-     * Adds a message to a specific channel.
+     * Adds a message.
+     *
+     * @param message The message object that will be represented on the page.
      */
     public add_message(channel: ChannelElement, message: Message): MessageElement {
-        const channel_ = channel as ChannelElementInternal;
-
         let continuing = false;
-        if (channel_.last_message_author && channel_.last_message_author === message.author_id) {
+        if (channel.last_message_author && channel.last_message_author === message.author_id) {
             continuing = true;
         }
 
         // If the last child is the same author, add the `message-continuing` class.
         if (!continuing) {
-            channel_.last_message_author = message.author_id;
+            channel.last_message_author = message.author_id;
         }
 
-        const element = new MessageElementInternal(continuing, message);
-        channel_.messages.appendChild(element.container);
+        const element = new MessageElement(continuing, message);
+        channel.messages.appendChild(element.container);
         return element;
     }
 
     /**
      * Sends the content of the `<input id="chat-send-message">` to the currently selected
      * channel, and through the network.
+     *
+     * @returns The function resolves to `null` if no channel is selected.
      */
-    public async send_message_input(_client: RawHTTPClient): Promise<Message | null> {
+    public async send_message_input(_client: ApiClient): Promise<Message | null> {
         if (!this.selected_channel) {
-            return null;
-        }
-
-        // Do nothing if the input contains nothing.
-        if (!this.message_input.value) {
             return null;
         }
 
@@ -284,12 +255,5 @@ export class ChatElement {
         this.add_message(this.selected_channel, message);
 
         return message;
-    }
-
-    /**
-     * Returns the root node of this element.
-     */
-    public get html(): HTMLElement {
-        return this.container;
     }
 }

@@ -1,4 +1,4 @@
-import { Client } from "../api/client";
+import { RawHTTPClient } from "../api/raw_client";
 import { ChatElement } from "./chat";
 import { Scene } from "../strawberry/scene";
 import { PrivateUser } from "../api/user";
@@ -20,7 +20,7 @@ export class MainMenuScene extends Scene {
     /**
      * Creatse a new `MainMenuElement` instance.
      */
-    public constructor(client: Client) {
+    public constructor(client: RawHTTPClient) {
         super();
 
         this.container = document.createElement("div");

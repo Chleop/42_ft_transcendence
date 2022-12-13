@@ -1,4 +1,4 @@
-import { Client } from "./api/client"
+import { RawHTTPClient } from "./api/raw_client"
 import { DummyPlayer } from "./game/dummy_player";
 import { GameScene } from "./game/game";
 import { LocalPlayer } from "./game/local_player";
@@ -39,7 +39,7 @@ export function entry_point() {
         throw "User Not Connected!";
     }
 
-    const client = new Client(token);
+    const client = new RawHTTPClient(token);
     const router = new Router<State>();
 
     const main_menu = new MainMenuScene(client);

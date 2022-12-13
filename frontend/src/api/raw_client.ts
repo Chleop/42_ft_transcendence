@@ -56,7 +56,7 @@ interface Request {
 /**
  * Stores the state required to perform requests to the server.
  */
-export class Client {
+export class RawHTTPClient {
     /**
      * The connection token of the current user.
      */

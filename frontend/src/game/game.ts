@@ -145,7 +145,7 @@ export class GameScene extends Scene {
         this.right_player = new DummyPlayer();
         this.right_player_state = new PlayerStateInternal();
         this.ball_state = new BallState();
-        this.ball_sprite = this.renderer.create_sprite("ball.png");
+        this.ball_sprite = this.renderer.create_sprite("ball.png");      // TODO: Those sprites will later depend on the player.
         this.paddle_sprite = this.renderer.create_sprite("paddle.png");
 
         this.renderer.notify_size_changed(this.canvas.width, this.canvas.height);

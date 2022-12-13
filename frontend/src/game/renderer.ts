@@ -181,7 +181,7 @@ export class Renderer {
         this.gl = gl;
         this.gl.clearColor(0, 0, 0, 0);
 
-        console.log("Loading shader programs...");
+        console.log("loading shader programs...");
         this.sprite_program = create_program(this.gl, sprite_vertex_shader_source, sprite_fragment_shader_source);
         this.sprite_uniform_model_position = get_uniform_location(this.gl, this.sprite_program, "model_position");
         this.sprite_uniform_model_transform = get_uniform_location(this.gl, this.sprite_program, "model_transform");
