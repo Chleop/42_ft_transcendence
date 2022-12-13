@@ -3,7 +3,10 @@ import { ChatElement } from "./chat";
 import { Scene } from "../strawberry/scene";
 import { PrivateUser } from "../api/user";
 
-export class MainMenuElement extends Scene {
+/**
+ * The scene that contains the main menu.
+ */
+export class MainMenuScene extends Scene {
     /**
      * The state of the chat.
      */

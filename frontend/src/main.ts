@@ -1,8 +1,9 @@
 import { Client } from "./api/client"
 import { DummyPlayer } from "./game/dummy_player";
-import { GameElement } from "./game/game";
+import { GameScene } from "./game/game";
 import { LocalPlayer } from "./game/local_player";
 import { History } from "./strawberry/history";
+import { Router } from "./strawberry/router";
 
 /**
  * Tries to get the value of a specific cookie.
@@ -38,6 +39,7 @@ export function entry_point() {
     }
 
     const client = new Client(token);
+    const router = new Router();
 
-    History.replace_state(new GameElement(new LocalPlayer(), new DummyPlayer()));
+    History.replace_state(new GameScene(new LocalPlayer(), new DummyPlayer()));
 }

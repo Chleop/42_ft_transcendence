@@ -92,7 +92,7 @@ export abstract class Player {
 /**
  * Contains the elements required to play the game.
  */
-export class GameElement extends Scene {
+export class GameScene extends Scene {
     /**
      * The `<canvas>` element.
      */
