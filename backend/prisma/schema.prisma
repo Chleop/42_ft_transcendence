@@ -30,10 +30,10 @@ model User {
 // @ignore.
 // Pour utiliser Prisma Studio, commenter les @ignore
   mirrorOperators Channel[] @relation("chanops") @ignore
-  mirrorFriends   User[]    @relation("friendship")@ignore
-  mirrorBlocked   User[]    @relation("blocked")@ignore
-  mirrorDms       DM[]      @relation("userdms")@ignore
-  mirrorSender    ChannelMessage[] @relation("usermessage")@ignore
+  mirrorFriends   User[]    @relation("friendship") @ignore
+  mirrorBlocked   User[]    @relation("blocked") @ignore
+  mirrorDms       DM[]      @relation("userdms") @ignore
+  mirrorSender    ChannelMessage[] @relation("usermessage") @ignore
 // les champs ci-dessous sont neccessaires pour les relations
 // mais n'existent pas reellement dans la bdd (foreign keys)
   skinid          String
@@ -53,7 +53,7 @@ model ChannelMessage {
   id        String  @id @unique @default(cuid())
   sender    User    @relation("usermessage", fields: [senderid], references: [id])
   channel   Channel @relation("channelmessage", fields:[channelid], references: [id])
-  datetime  DateTime
+  datetime  DateTime@default(now())
   Content   String
 // les champs ci-dessous sont neccessaires pour les relations
 // mais n'existent pas reellement dans la bdd (foreign keys)
@@ -64,7 +64,7 @@ model ChannelMessage {
 model DM {
   id        String    @id @unique @default(cuid())
   users     User[]    @relation("userdms")
-  datetime  DateTime
+  datetime  DateTime  @default(now())
   Content   String
 }
 
@@ -73,7 +73,7 @@ model Game {
   players   User[]  @relation("gamesplayed")
   winner    User    @relation("gameswon", fields:[winnerid], references: [id])
   scores    Int[]
-  datetime  DateTime
+  datetime  DateTime@default(now())
 // les champs ci-dessous sont neccessaires pour les relations
 // mais n'existent pas reellement dans la bdd (foreign keys)
   winnerid  String
