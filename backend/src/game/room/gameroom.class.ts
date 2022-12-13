@@ -1,5 +1,6 @@
 import { Gameplay } from '../gameplay/gameplay.class';
 
+import { Score } from '../aliases';
 import { Match, Player } from '../alias';
 import { Socket } from 'socket.io';
 
@@ -29,6 +30,11 @@ export class GameRoom {
 		this.game = new Gameplay();
 	}
 
+	public getScores(): Score {
+		if (!this.game)
+			throw 'Game didn\'t start yet';
+		return this.game.getScores();
+	}
 //	/* == PUBLIC ================================================================================== */
 //
 //	constructor(host: Client) {

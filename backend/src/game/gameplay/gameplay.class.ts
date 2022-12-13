@@ -25,7 +25,7 @@ export class Gameplay {
 	private results: Score = {
 		player1_score: 0,
 		player2_score: 0,
-		ongoing: true
+		winner: null
 	}
 	//private ball: Ball;
 	//private player1: Client;
@@ -34,6 +34,10 @@ export class Gameplay {
 	constructor() {}
 
 	/* == PUBLIC ================================================================================== */
+
+	public getScores(): Score {
+		return this.results;
+	}
 
 //	/* Generate random initial direction for ball */
 //	public startGame(): void {//GameUpdate {

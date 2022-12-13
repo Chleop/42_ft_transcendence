@@ -19,7 +19,7 @@ const matchmaking_timeout: number = 10000;
 
 type TimeoutId = {
 	match: string,
-	id: number
+	id: NodeJS.Timer
 };
 
 
@@ -29,13 +29,14 @@ export class GameGateway {
 	@WebSocketServer()
 	private readonly server: Server = new Server();
 	private game_service: GameService = new GameService();
-	private timeout_checker: TimeoutId[] = [];
+	//private timeout_checker: TimeoutId[] = [];
 
 	/* == PRIVATE ================================================================================= */
 
 	/* -- INITIALISATION ------------------------ */
 	/* Handle connection to server */
-	private handleConnection(client: Socket) {
+	private handleConnection(client: Socket): void {
+		console.info(`[${client.id} connected]`);
 		client.emit('connected', 'Welcome');
 		try {
 			//TODO: Check if they are not spectator
@@ -47,19 +48,30 @@ export class GameGateway {
 			client.disconnect(true);
 			console.info(e);
 		}
+		//console.info(this.timeout_checker);
+		this.game_service.display();
 	}
 
 	/* Handle disconnection from server */
-	private handleDisconnect(client: Socket) {
+	private handleDisconnect(client: Socket): void {
+		const match: Match = this.game_service.unQueue(client);
+		if (match !== null) {
+			match.player1.socket.emit('unQueued');
+			match.player1.socket.disconnect(true);
+			match.player2.socket.emit('unQueued');
+			match.player2.socket.disconnect(true);
+		}
 		console.info(`[${client.id} disconnected]`);
+		//console.info({ timeout_checker: this.timeout_checker });
+		this.game_service.display();
 	}
 
 	@SubscribeMessage('ok')
-	private matchAccepted(client: Socket) {
+	private matchAccepted(client: Socket): void {
 		try {
 			const room: GameRoom = this.game_service.playerAcknowledged(client);
-			if (room !== null)
-				this.ignoreTimeout(room.match);
+			//if (room !== null)
+				//this.ignoreTimeout(room.match);
 		} catch (e) {
 			console.info('Ok intercepted but not associated room:', e);
 			client.disconnect(true);
@@ -70,12 +82,20 @@ export class GameGateway {
 	private matchmake(match: Match): void {
 		match.player1.socket.emit('matchFound', match.player2.id);
 		match.player2.socket.emit('matchFound', match.player1.id);
-		this.timeout_checker.push({
-			match: match.name,
-			id: setTimeout(this.checkTimeout, matchmaking_timeout, match) as unknown as number
-		});
+		return ;
 	}
+//		const timeout: number = setTimeout(
+//			this.checkTimeout,
+//			matchmaking_timeout,
+//			match
+//		) as unknown as number;
+//		this.timeout_checker.push({
+//			match: match.name,
+//			id: timeout 
+//		});
+//	}
 
+	/*
 	private checkTimeout(match: Match): void {
 		const index_timeout: number = this.timeout_checker.findIndex((obj) => {
 			return obj.match === match.name;
@@ -83,8 +103,10 @@ export class GameGateway {
 		if (index_timeout < 0)
 			return;
 		this.game_service.ignore(match);
-		match.player1.socket.disconnect();
-		match.player2.socket.disconnect();
+		match.player1.socket.emit('timedOut');
+		match.player1.socket.disconnect(true);
+		match.player2.socket.emit('timedOut');
+		match.player2.socket.disconnect(true);
 		this.timeout_checker.splice(index_timeout, 1);
 	}
 
@@ -98,6 +120,7 @@ export class GameGateway {
 		this.game_service.ignore(match);
 		this.timeout_checker.splice(index_timeout, 1);
 	}
+ */
 
 
 //	/* == PUBLIC ================================================================================== */

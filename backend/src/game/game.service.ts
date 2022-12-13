@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { GameRoom } from './room';
 
+import { Score } from './aliases';
 import { Player, Match } from './alias';
 import { Socket } from 'socket.io';
 
@@ -10,7 +11,6 @@ import { Socket } from 'socket.io';
 type Handshake = {
 	match: Match,
 	one: boolean,
-	two: boolean
 };
 
 /* Manage rooms, save scores in database */
@@ -36,9 +36,30 @@ export class GameService {
 		this.handshakes.push({
 			match: match,
 			one: false,
-			two: false
 		});
 		return match;
+	}
+
+	public unQueue(client: Socket): Match | null {
+		if (this.queue && this.queue.socket.id === client.id) {
+			this.queue = null;
+		} else {
+			// The match wasn't accepted yet
+			const handshake: Handshake = this.findUserMatch(client);
+			if (handshake !== undefined) {
+				this.ignore(handshake.match);
+				return handshake.match;
+			}
+			// The game was ongoing
+			const game_room_index: number = this.findUserRoomIndex(client);
+			if (!(game_room_index < 0)) {
+				console.info('Kicked');
+				const match: Match = this.game_rooms[game_room_index].match;
+				this.saveScore(game_room_index);
+				return match;
+			}
+		}
+		return null;
 	}
 
 	public getUser(sock: Socket, authkey: string): Player {
@@ -54,7 +75,10 @@ export class GameService {
 		const handshake: Handshake = this.findUserMatch(client);
 		if (handshake === undefined) // Tried to send ok before room creation
 			throw 'Not awaiting, nice try';
-		if (this.isMatched(handshake))
+		console.info(`${client.id} accepted`);
+		if (!handshake.one)
+			handshake.one = true;
+		else
 			return this.createRoom(handshake.match);
 		return null;
 	}
@@ -68,6 +92,12 @@ export class GameService {
 		this.handshakes.splice(index, 1);
 	}
 
+	public display(): void {
+		console.info({
+			handshakes: this.handshakes,
+			rooms: this.game_rooms
+		});
+	}
 
 	/* == PRIVATE ================================================================================= */
 
@@ -78,8 +108,19 @@ export class GameService {
 		return room;
 	}
 
-	private isMatched(handshake: Handshake): boolean {
-		return (handshake.one && handshake.two);
+	private destroyRoom(index: number): void {
+		this.game_rooms.splice(index, 1);
+	}
+
+	private saveScore(index: number): void {
+		try {
+			const score: Score = this.game_rooms[index].getScores();
+			// Add to DB
+			console.info("Scores:", score);
+		} catch (e) {
+			console.info(e);
+		}
+		this.destroyRoom(index);
 	}
 
 	private findUserMatch(client: Socket): Handshake | undefined {
@@ -88,6 +129,13 @@ export class GameService {
 				|| obj.match.player2.socket.id === client.id);
 		});
 		return handshake;
+	}
+
+	private findUserRoomIndex(client: Socket): number {
+		const index: number = this.game_rooms.findIndex((obj) => {
+			return obj.isClientInRoom(client);
+		});
+		return index;
 	}
 
 
