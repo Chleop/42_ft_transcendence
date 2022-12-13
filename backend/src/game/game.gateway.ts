@@ -8,20 +8,27 @@ import { Server, Socket } from 'socket.io';
 
 import { GameService } from './game.service';
 import { GameRoom } from './room';
-import { Ball } from './aliases';
 import { PaddleDto } from './dto';
 
-// PLACEHOLDERS ==============
-import { Player, Match } from './alias';
-// END PLACEHOLDERS ==========
+import { Client, Match } from './aliases';
 
+// PLACEHOLDERS ==============
 const matchmaking_timeout: number = 10000;
 
+/* Track timeouts */
 type TimeoutId = {
+	// The match tracked
 	match: string,
+	
+	// The setTimeout ID
 	id: NodeJS.Timer
 };
+// END PLACEHOLDERS ==========
 
+/* TODO:
+	 - add timeout everywhere
+	 - handle spectators
+*/
 
 /* Gateway to events comming from `http://localhost:3000/game` */
 @WebSocketGateway({cors: {origin: ['http://localhost:3000']}, namespace: '/game'})
@@ -40,7 +47,7 @@ export class GameGateway {
 		client.emit('connected', 'Welcome');
 		try {
 			//TODO: Check if they are not spectator
-			const user: Player = this.game_service.getUser(client, 'abc'); // authkey
+			const user: Client = this.game_service.getUser(client, 'abc'); // authkey
 			const match: Match = this.game_service.queueUp(user);
 			if (match !== null)
 				this.matchmake(match);
@@ -77,6 +84,9 @@ export class GameGateway {
 			client.disconnect(true);
 		}
 	}
+
+	@SubscribeMessage('update')
+	private updateEnemy(client: Socket, dto: PaddleDto): void {}
 
 	/* -- UTILITARIES --------------------------- */
 	private matchmake(match: Match): void {
@@ -122,69 +132,4 @@ export class GameGateway {
 	}
  */
 
-
-//	/* == PUBLIC ================================================================================== */
-
-//	/* -- EVENT MANAGING ------------------------ */
-//	//TODO: Change dto
-//	/* Client joining a game */
-//	@SubscribeMessage('joinGame')
-//	private joinGame(client: Socket): void {
-//
-//		try {
-//			const room: GameRoom = this.game_service.joinRoom(client.id);
-//			client.join(room.name);
-//
-//			//TODO: send `room` instance (will contain ids)
-//			this.server.to(room.name).emit('joinedGame', `Welcome, ${client.id} :)`);
-//			if (room.isFull())
-//				this.initialize(room);
-//		} catch (e) {
-//			console.info(e);
-//		}
-//	}
-//
-//	// TODO: Change dto
-//	/* Client leaving the game */
-//	@SubscribeMessage('leaveGame')
-//	private leaveGame(client: Socket): void {
-//		try {
-//			const room: GameRoom = this.game_service.leaveRoom(client.id);
-//			client.leave(room.name);
-//			this.server.to(room.name).emit('leftGame', `Sad to see ${client.id} leave :o`);
-//			this.clearRoom(room.name);
-//		} catch (e) {
-//			console.info(e);
-//			client.disconnect(true);
-//		}
-//	}
-//
-//	/* Received update from someone */
-//	@SubscribeMessage('update')
-//	private updateGame(client: Socket, dto: PaddleDto): void {
-//		try {
-//			//const room: string = /* await */ ;
-//			//const update: GameUpdate = this.game_service.update();
-//			//socket.to(room).emit('updated', update);
-//		} catch (e) {
-//			// check if it's a player
-//			// else disconnect
-//		}
-//	}
-//
-//	private initialize(room: GameRoom): void {
-//		// Send room infos first,
-//		this.server.to(room.name).emit('inializing', room);
-//	}
-//
-//	private clearRoom(room_name: string): void {
-//		console.info(`[Clearing room '${room_name}']`);
-//		this.server.to(room_name).emit('leftGame', `The room is closing`);
-//		this.server.socketsLeave(room_name);
-//		this.game_service.removeRoom(room_name);
-//	}
-//
-//	private display(item: any): void {
-//		console.info(typeof item, item);
-//	}
 }

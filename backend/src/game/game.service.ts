@@ -1,28 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import { GameRoom } from './room';
 
-import { Score } from './aliases';
-import { Player, Match } from './alias';
+import { Score, Client, Match } from './aliases';
 import { Socket } from 'socket.io';
 
 /* For now, gamerooms are named after a name given in the dto
 	 Bound to be named after the host once we manage the jwt/auth token. */
 
+/* Track match made */
 type Handshake = {
+	// The two matched players
 	match: Match,
-	one: boolean,
+
+	// If one shook hands
+	one: boolean
 };
 
+/* Matchmaking class */
 /* Manage rooms, save scores in database */
 @Injectable()
 export class GameService {
 	private game_rooms: GameRoom[] = [];
 	private handshakes: Handshake[] = [];
-	private queue: Player = null;
+	private queue: Client = null;
 
 	/* == PUBLIC ================================================================================== */
 
-	public queueUp(user: Player): Match | null {
+	/* -- HANDSHAKES MANAGING ------------------- */
+	public queueUp(user: Client): Match | null {
 		if (this.queue === null) {
 			this.queue = user;
 			return null;
@@ -62,15 +67,6 @@ export class GameService {
 		return null;
 	}
 
-	public getUser(sock: Socket, authkey: string): Player {
-		if (authkey !== 'abc')
-			throw 'Wrong key';
-		return {
-			socket: sock,
-			id: 'xyz'
-		};
-	}
-
 	public playerAcknowledged(client: Socket): GameRoom | null {
 		const handshake: Handshake = this.findUserMatch(client);
 		if (handshake === undefined) // Tried to send ok before room creation
@@ -92,6 +88,16 @@ export class GameService {
 		this.handshakes.splice(index, 1);
 	}
 
+	/* -- UTILS --------------------------------- */
+	public getUser(sock: Socket, authkey: string): Client {
+		if (authkey !== 'abc')
+			throw 'Wrong key';
+		return {
+			socket: sock,
+			id: 'xyz'
+		};
+	}
+
 	public display(): void {
 		console.info({
 			handshakes: this.handshakes,
@@ -101,6 +107,7 @@ export class GameService {
 
 	/* == PRIVATE ================================================================================= */
 
+	/* -- ROOM MANIPULATION --------------------- */
 	private createRoom(match: Match): GameRoom {
 		const room: GameRoom = new GameRoom(match);
 		this.game_rooms.push(room);
@@ -112,6 +119,7 @@ export class GameService {
 		this.game_rooms.splice(index, 1);
 	}
 
+	/* -- DATABASE LINKING ---------------------- */
 	private saveScore(index: number): void {
 		try {
 			const score: Score = this.game_rooms[index].getScores();
@@ -123,6 +131,7 @@ export class GameService {
 		this.destroyRoom(index);
 	}
 
+	/* -- UTILS --------------------------------- */
 	private findUserMatch(client: Socket): Handshake | undefined {
 		const handshake: Handshake = this.handshakes.find((obj) => {
 			return (obj.match.player1.socket.id === client.id
@@ -137,65 +146,5 @@ export class GameService {
 		});
 		return index;
 	}
-
-
-//	/* -- ROOM MANIPULATION --------------------- */
-//	public joinRoom(user: Client): GameRoom {
-//		if (this.findUserRoom(user) !== undefined) {
-//			throw 'User already in a room';
-//		}
-//		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
-//			return (obj.name === user);
-//		});
-//		// If room doesn't already exists, create it
-//		if (room === undefined)
-//			return this.createRoom(user);
-//		// No spectator system yet
-//		room.addGuest(user);
-//		return room;
-//	}
-//
-//	public leaveRoom(client: Client): GameRoom {
-//		const room: GameRoom | undefined = this.findUserRoom(client);
-//		if (room === undefined)
-//			throw 'Not in a room';
-//		const is_empty: boolean = room.removeUser(client);
-//		if (is_empty) {
-//			console.info(`Room ${room.name} is empty`);
-//			this.removeRoom(room.name);
-//		}
-//		return room;
-//	}
-//
-//	public removeRoom(room_name: string): void {
-//		const index: number = this.game_rooms.findIndex((obj) => {
-//			return (room_name === obj.name);
-//		});
-//		if (index >= 0)
-//			this.game_rooms.splice(index, 1);
-//	}
-//
-//	public initialize(room: GameRoom): Ball {
-//		// TODO: Database save room info (players, start etc)
-//		// create first update
-//		const ball: Ball = room.startGame();
-//	}
-//
-//	/* == PRIVATE ================================================================================= */
-//
-//	/* -- UTILS --------------------------------- */
-//	private findUserRoom(client: Client): GameRoom | undefined {
-//		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
-//			return obj.isClientInRoom(client);
-//		});
-//		return room;
-//	}
-//
-//	private createRoom(user: Client): GameRoom {
-//		console.info("Create room:", user);
-//		const room: GameRoom = new GameRoom(user);
-//		this.game_rooms.push(room);
-//		return room;
-//	}
 
 }

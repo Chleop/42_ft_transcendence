@@ -27,9 +27,6 @@ export class Gameplay {
 		player2_score: 0,
 		winner: null
 	}
-	//private ball: Ball;
-	//private player1: Client;
-	//private player2: Client;
 
 	constructor() {}
 

@@ -1,15 +1,7 @@
-/* Defines client infos */
+import { Socket } from 'socket.io';
 
-/*
 export type Client = {
-
-	// Their user infos etc: bound to become an object (decoded jwt)
-	// id: UserDto,
-	
-	// The associated socket.id
-	socket_id: string
+	socket: Socket,
+	id: string
 };
 
-*/
-
-export type Client = string;

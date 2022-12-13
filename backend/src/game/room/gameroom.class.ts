@@ -1,13 +1,11 @@
 import { Gameplay } from '../gameplay/gameplay.class';
-
-import { Score } from '../aliases';
-import { Match, Player } from '../alias';
+import { Score, Match, Client } from '../aliases';
 import { Socket } from 'socket.io';
 
 
 /* Holds info on the gameroom
-	 For now, the room id is the host id.
 	 Once someone leaves the game, the room is completely removed.
+	 Link between gameplay & service
 */
 export class GameRoom {
 	public readonly match: Match;
@@ -19,15 +17,25 @@ export class GameRoom {
 	}
 
 	/* == PUBLIC ================================================================================== */
-	public isClientInRoom(client: Socket): boolean {
-		if (this.match.player1.socket === client
-				|| this.match.player2.socket === client)
-		 return true;
-	 return false;	 
-	}
 
+	/* Call this function once the game actually starts */
 	public create(): void {
 		this.game = new Gameplay();
+	}
+
+	public isClientInRoom(client: Socket): boolean {
+		if (this.match.player1.socket.id === client.id
+				|| this.match.player2.socket.id === client.id)
+		 return true;
+	 return false;
+	}
+
+	public whoIs(client: Socket): string | null {
+		if (this.match.player1.socket.id === client.id)
+			return 'player1';
+		else if (this.match.player1.socket.id === client.id)
+			return 'player2';
+		return null;
 	}
 
 	public getScores(): Score {
@@ -35,6 +43,7 @@ export class GameRoom {
 			throw 'Game didn\'t start yet';
 		return this.game.getScores();
 	}
+
 //	/* == PUBLIC ================================================================================== */
 //
 //	constructor(host: Client) {
