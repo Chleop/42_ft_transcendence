@@ -54,7 +54,7 @@ model ChannelMessage {
   sender    User    @relation("usermessage", fields: [senderid], references: [id])
   channel   Channel @relation("channelmessage", fields:[channelid], references: [id])
   datetime  DateTime@default(now())
-  Content   String
+  content   String
 // les champs ci-dessous sont neccessaires pour les relations
 // mais n'existent pas reellement dans la bdd (foreign keys)
   senderid  String
@@ -65,7 +65,7 @@ model DM {
   id        String    @id @unique @default(cuid())
   users     User[]    @relation("userdms")
   datetime  DateTime  @default(now())
-  Content   String
+  content   String
 }
 
 model Game {
