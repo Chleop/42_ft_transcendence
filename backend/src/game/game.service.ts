@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { GameRoom } from './room';
-
-import { Score, Client, Match } from './aliases';
 import { Socket } from 'socket.io';
+import { GameRoom } from './room';
+import {
+	GameUpdate,
+	Score,
+	Client,
+	Match
+} from './aliases';
+import { PaddleDto } from './dto';
 
 /* For now, gamerooms are named after a name given in the dto
 	 Bound to be named after the host once we manage the jwt/auth token. */
@@ -69,7 +74,7 @@ export class GameService {
 
 	public playerAcknowledged(client: Socket): GameRoom | null {
 		const handshake: Handshake = this.findUserMatch(client);
-		if (handshake === undefined) // Tried to send ok before room creation
+		if (handshake === undefined) // Tried to send ok before room creation/once game started
 			throw 'Not awaiting, nice try';
 		console.info(`${client.id} accepted`);
 		if (!handshake.one)
@@ -103,6 +108,14 @@ export class GameService {
 			handshakes: this.handshakes,
 			rooms: this.game_rooms
 		});
+	}
+
+	/* -- ROOM MANIPULATION --------------------- */
+	public updateOpponent(client: Socket, dto: PaddleDto): GameUpdate {
+		const index: number = this.findUserRoomIndex(client);
+		if (index < 0)
+			return null;
+		return this.game_rooms[index].getUpdate();
 	}
 
 	/* == PRIVATE ================================================================================= */

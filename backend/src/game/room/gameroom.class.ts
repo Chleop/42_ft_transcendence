@@ -1,6 +1,12 @@
-import { Gameplay } from '../gameplay/gameplay.class';
-import { Score, Match, Client } from '../aliases';
 import { Socket } from 'socket.io';
+import {
+	GameUpdate,
+	Ball,
+	Score,
+	Match,
+	Client
+} from '../aliases';
+import { Gameplay } from '../gameplay';
 
 
 /* Holds info on the gameroom
@@ -19,8 +25,13 @@ export class GameRoom {
 	/* == PUBLIC ================================================================================== */
 
 	/* Call this function once the game actually starts */
-	public create(): void {
+	public startGame(): GameUpdate {
 		this.game = new Gameplay();
+		return this.game.initializeGame();
+	}
+
+	public getUpdate(): GameUpdate {
+		return this.game.refresh();
 	}
 
 	public isClientInRoom(client: Socket): boolean {

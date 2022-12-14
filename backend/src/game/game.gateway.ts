@@ -2,15 +2,19 @@ import { OnModuleInit } from '@nestjs/common';
 import {
 	WebSocketGateway,
 	WebSocketServer,
-	SubscribeMessage,
+	SubscribeMessage
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 
 import { GameService } from './game.service';
 import { GameRoom } from './room';
 import { PaddleDto } from './dto';
-
-import { Client, Match } from './aliases';
+import {
+	Client,
+	Match,
+	Ball,
+	GameUpdate
+} from './aliases';
 
 // PLACEHOLDERS ==============
 const matchmaking_timeout: number = 10000;
@@ -28,6 +32,7 @@ type TimeoutId = {
 /* TODO:
 	 - add timeout everywhere
 	 - handle spectators
+	 - separate matchmaking with gaminggggg
 */
 
 /* Gateway to events comming from `http://localhost:3000/game` */
@@ -40,7 +45,7 @@ export class GameGateway {
 
 	/* == PRIVATE ================================================================================= */
 
-	/* -- INITIALISATION ------------------------ */
+	/* -- CONNECTION ---------------------------- */
 	/* Handle connection to server */
 	private handleConnection(client: Socket): void {
 		console.info(`[${client.id} connected]`);
@@ -55,7 +60,6 @@ export class GameGateway {
 			client.disconnect(true);
 			console.info(e);
 		}
-		//console.info(this.timeout_checker);
 		this.game_service.display();
 	}
 
@@ -69,43 +73,64 @@ export class GameGateway {
 			match.player2.socket.disconnect(true);
 		}
 		console.info(`[${client.id} disconnected]`);
-		//console.info({ timeout_checker: this.timeout_checker });
 		this.game_service.display();
 	}
 
+	/* -- EVENT HANDLERS ------------------------ */
+	/* Handle room creation (matchmaking accepted from both parties) */
 	@SubscribeMessage('ok')
 	private matchAccepted(client: Socket): void {
 		try {
 			const room: GameRoom = this.game_service.playerAcknowledged(client);
-			//if (room !== null)
+			if (room !== null) {
+				// Send adversary id
+				room.match.player1.socket.emit('gameReady', room.match.player2.id);
+				room.match.player2.socket.emit('gameReady', room.match.player1.id);
+				setTimeout(this.startGame, 3000, room);
 				//this.ignoreTimeout(room.match);
+			}
 		} catch (e) {
-			console.info('Ok intercepted but not associated room:', e);
+			console.info('"ok" intercepted but not associated room:', e);
 			client.disconnect(true);
 		}
 	}
 
 	@SubscribeMessage('update')
-	private updateEnemy(client: Socket, dto: PaddleDto): void {}
+	private updateEnemy(client: Socket, dto: PaddleDto): void {
+		try {
+			const game_update: GameUpdate = this.game_service.updateOpponent(client, dto);
+		} catch (e) {
+		}
+	}
 
 	/* -- UTILITARIES --------------------------- */
-	private matchmake(match: Match): void {
-		match.player1.socket.emit('matchFound', match.player2.id);
-		match.player2.socket.emit('matchFound', match.player1.id);
-		return ;
+	private startGame(room: GameRoom): void {
+		const initial_game_state: GameUpdate = room.startGame();
+		// Send the initial ball { pos, v0 }
+		room.match.player1.socket.emit('gameStart', initial_game_state);
+		room.match.player2.socket.emit('gameStart', initial_game_state);
+		//setInterval();
 	}
-//		const timeout: number = setTimeout(
-//			this.checkTimeout,
-//			matchmaking_timeout,
-//			match
-//		) as unknown as number;
-//		this.timeout_checker.push({
-//			match: match.name,
-//			id: timeout 
-//		});
-//	}
 
-	/*
+	private matchmake(match: Match): void {
+		// Alert players that a match was found
+		match.player1.socket.emit('matchFound');
+		match.player2.socket.emit('matchFound');
+		return ;
+		/*
+		const timeout: number = setTimeout(
+			this.checkTimeout,
+			matchmaking_timeout,
+			match
+		) as unknown as number;
+		this.timeout_checker.push({
+			match: match.name,
+			id: timeout 
+		});
+		*/
+	}
+	
+	/* TODO: TIMEOUT STUFF
 	private checkTimeout(match: Match): void {
 		const index_timeout: number = this.timeout_checker.findIndex((obj) => {
 			return obj.match === match.name;
