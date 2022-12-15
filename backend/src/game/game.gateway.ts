@@ -9,7 +9,9 @@ import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
 import { GameRoom } from './room';
 import { PaddleDto } from './dto';
+import { ResultsObject } from './results';
 import {
+	OpponentUpdate,
 	Client,
 	Match,
 	Ball,
@@ -21,13 +23,10 @@ const matchmaking_timeout: number = 10000;
 
 /* Track timeouts */
 type TimeoutId = {
-	// The match tracked
 	match: string,
-	
-	// The setTimeout ID
 	id: NodeJS.Timer
 };
-// END PLACEHOLDERS ==========
+
 
 /* TODO:
 	 - add timeout everywhere
@@ -35,17 +34,82 @@ type TimeoutId = {
 	 - separate matchmaking with gaminggggg
 */
 
+/* === EVENT LIST ==================================================================================
+
+From the client:
+	- `connection`
+ 			implicitly handled by 'handleConnection'.
+			the jwt token must be checked and the client is registed in the matchmaking queue.
+		 	if another client was in the queue, they are matched in 'matchmake'.
+
+	- `disconnect`
+ 			implicitly handled by 'handleDisconnect'.
+		 	if the client was not in the queue, they are simply disconnected.
+		 	if they were matched with another client (or in a game), they both are disconnected.
+
+	- `ok`
+ 			handled by 'matchAccepted'.
+		 	once the client is matched with another, they'll each have to accept by sending an 'ok' event.
+
+	- `update`
+ 			handled by 'updateOpponent'.
+		 	during the game, the client will regularly send their paddle position to the gateway.
+		 	the gateway will check those values (TODO: anticheat), and, if the data seems accurate,
+		 	it is sent to their opponent.
+
+From the server:
+	- `connected`
+ 			sent to the client as an acknowledgement of their initial connection.
+
+	- `matchFound`
+ 			once two clients are matched, they are sent this event.
+		 	the gateway will then await for both matched client to send the `ok` event.
+
+	- `timedOut` (TODO: check validity)
+ 			if the two clients that were awaited didn't both accept, they get timed out and removed from
+			the queue.
+
+	- `unQueue`
+ 			if the client was in the queue or in a game and suddenly disconnects, their opponent is
+		 	notified via the `unQueue` event and both are properly disconnected.
+
+	- `gameReady`
+ 			when the two clients matched have accepted the game, they are alerted with this event.
+		  each gets sent their opponent id for the front-end (eg. to display each other's profile).
+
+	- `gameStart`
+ 			3 seconds after the two players get matched, they get sent this event which contains the
+		 	initial ball position and velocity vector data object.
+
+	- `updateOpponent`
+ 			when the gateway receives an update from a client, it processes it then sends it to the
+			client's opponent, labeled with this event.
+
+	- `updateGame`
+ 			every 20 milliseconds, the two matched client receive the pong ball updated data along with
+			the current score.
+
+======================================================================== END OF LIST ============ */
+
+
 /* Gateway to events comming from `http://localhost:3000/game` */
-@WebSocketGateway({cors: {origin: ['http://localhost:3000']}, namespace: '/game'})
+@WebSocketGateway({
+	namespace: '/game',
+	cors: {
+		origin: ['http://localhost:3000']
+	}
+})
 export class GameGateway {
 	@WebSocketServer()
 	private readonly server: Server = new Server();
-	private game_service: GameService = new GameService();
-	//private timeout_checker: TimeoutId[] = [];
+	private readonly game_service: GameService = new GameService();
+
+	/* TODO: CHECK !! */
+	private timeout_checker: TimeoutId[] = [];
 
 	/* == PRIVATE ================================================================================= */
 
-	/* -- CONNECTION ---------------------------- */
+	/* -- CONNECTION ---------------------------------------------------------- */
 	/* Handle connection to server */
 	private handleConnection(client: Socket): void {
 		console.info(`[${client.id} connected]`);
@@ -76,21 +140,20 @@ export class GameGateway {
 		this.game_service.display();
 	}
 
-	/* -- EVENT HANDLERS ------------------------ */
+	/* -- EVENT HANDLERS ------------------------------------------------------ */
 	/* Handle room creation (matchmaking accepted from both parties) */
 	@SubscribeMessage('ok')
 	private matchAccepted(client: Socket): void {
 		try {
 			const room: GameRoom = this.game_service.playerAcknowledged(client);
 			if (room !== null) {
-				// Send adversary id
+				//this.ignoreTimeout(room.match);
 				room.match.player1.socket.emit('gameReady', room.match.player2.id);
 				room.match.player2.socket.emit('gameReady', room.match.player1.id);
 				setTimeout(this.startGame, 3000, room);
-				//this.ignoreTimeout(room.match);
 			}
 		} catch (e) {
-			console.info('"ok" intercepted but not associated room:', e);
+			console.info(e);
 			client.disconnect(true);
 		}
 	}
@@ -98,39 +161,26 @@ export class GameGateway {
 	@SubscribeMessage('update')
 	private updateEnemy(client: Socket, dto: PaddleDto): void {
 		try {
-			const game_update: GameUpdate = this.game_service.updateOpponent(client, dto);
+			const opponent_update: OpponentUpdate = this.game_service.updateOpponent(client, dto);
+			opponent_update.player.emit('updatedOpponent', opponent_update.updated_paddle);
 		} catch (e) {
+			console.info(e);
 		}
 	}
 
-	/* -- UTILITARIES --------------------------- */
-	private startGame(room: GameRoom): void {
-		const initial_game_state: GameUpdate = room.startGame();
-		// Send the initial ball { pos, v0 }
-		room.match.player1.socket.emit('gameStart', initial_game_state);
-		room.match.player2.socket.emit('gameStart', initial_game_state);
-		//setInterval();
-	}
-
+	/* -- MATCHMAKING --------------------------------------------------------- */
+	/* Waits for the 2 players to accept the match */
 	private matchmake(match: Match): void {
-		// Alert players that a match was found
 		match.player1.socket.emit('matchFound');
 		match.player2.socket.emit('matchFound');
-		return ;
-		/*
-		const timeout: number = setTimeout(
-			this.checkTimeout,
-			matchmaking_timeout,
-			match
-		) as unknown as number;
+		// return;
+		/* TODO: NEEDS TESTING !! */
 		this.timeout_checker.push({
 			match: match.name,
-			id: timeout 
+			id: setTimeout(this.checkTimeout, matchmaking_timeout, match)
 		});
-		*/
 	}
-	
-	/* TODO: TIMEOUT STUFF
+
 	private checkTimeout(match: Match): void {
 		const index_timeout: number = this.timeout_checker.findIndex((obj) => {
 			return obj.match === match.name;
@@ -155,6 +205,33 @@ export class GameGateway {
 		this.game_service.ignore(match);
 		this.timeout_checker.splice(index_timeout, 1);
 	}
- */
+
+	/* -- UPDATING TOOLS ------------------------------------------------------ */
+	/* The game will start */
+	private startGame(room: GameRoom): void {
+		const initial_game_state: GameUpdate = room.startGame();
+		// Send the initial ball { pos, v0 }
+		room.match.player1.socket.emit('gameStart', initial_game_state);
+		room.match.player2.socket.emit('gameStart', initial_game_state);
+		room.setPingId(setInterval(this.sendGameUpdates, 20));
+	}
+
+	/* This will send a GameUpdate every 20ms to both clients in a game */
+	private sendGameUpdates(room: GameRoom): void {
+		try {
+			const update: GameUpdate = room.updateGame();
+			console.log(update);
+			room.match.player1.socket.emit('updateGame', update);
+			room.match.player2.socket.emit('updateGame', update);
+		} catch (e) {
+			if (e instanceof ResultsObject) {
+				/* Save results and destroy game */
+				return this.game_service.saveScore(room, e);
+			}
+			// Error occured, make sure to destroy interval
+			this.game_service.destroyRoom(room);
+			throw e;
+		}
+	}
 
 }

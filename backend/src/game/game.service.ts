@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { GameRoom } from './room';
 import {
+	OpponentUpdate,
 	GameUpdate,
 	Score,
 	Client,
 	Match
 } from './aliases';
 import { PaddleDto } from './dto';
+import { ResultsObject } from './results';
 
 /* For now, gamerooms are named after a name given in the dto
 	 Bound to be named after the host once we manage the jwt/auth token. */
@@ -31,7 +33,23 @@ export class GameService {
 
 	/* == PUBLIC ================================================================================== */
 
-	/* -- HANDSHAKES MANAGING ------------------- */
+	/* -- DATABASE LINKING ---------------------------------------------------- */
+	// TODO get user in db
+	public retrieveUser(jwt: string): string {
+		return 'This will retrieve the user ids in the db thanks to the jwt';
+	}
+
+	// TODO save score to db
+	public saveScore(room: GameRoom, results: ResultsObject): void { //TODO: Bound to be nodejs.time
+		try {
+			console.info("Scores:", results);
+		} catch (e) {
+			console.info(e);
+		}
+		this.destroyRoom(room);
+	}
+
+/* -- MATCHMAKING --------------------------------------------------------- */
 	public queueUp(user: Client): Match | null {
 		if (this.queue === null) {
 			this.queue = user;
@@ -61,11 +79,11 @@ export class GameService {
 				return handshake.match;
 			}
 			// The game was ongoing
-			const game_room_index: number = this.findUserRoomIndex(client);
-			if (!(game_room_index < 0)) {
+			const index: number = this.findUserRoomIndex(client);
+			if (!(index < 0)) {
 				console.info('Kicked');
-				const match: Match = this.game_rooms[game_room_index].match;
-				this.saveScore(game_room_index);
+				const match: Match = this.game_rooms[index].match;
+				this.saveScore(this.game_rooms[index], this.game_rooms[index].cutGameShort());
 				return match;
 			}
 		}
@@ -75,7 +93,7 @@ export class GameService {
 	public playerAcknowledged(client: Socket): GameRoom | null {
 		const handshake: Handshake = this.findUserMatch(client);
 		if (handshake === undefined) // Tried to send ok before room creation/once game started
-			throw 'Not awaiting, nice try';
+			throw 'Received matchmaking acknowledgement but not awaiting';
 		console.info(`${client.id} accepted`);
 		if (!handshake.one)
 			handshake.one = true;
@@ -89,11 +107,30 @@ export class GameService {
 			return (obj.match === match);
 		});
 		if (index < 0)
-			throw 'Can\' find match';
+			throw 'Cannot ignore a match not made';
 		this.handshakes.splice(index, 1);
 	}
 
-	/* -- UTILS --------------------------------- */
+	/* -- ROOM MANIPULATION --------------------------------------------------- */
+	public destroyRoom(index: number | GameRoom): void { //TODO: Bound to be nodejs.time
+		if (typeof(index) !== 'number') {
+			index.destroyPing();
+			this.game_rooms.splice(this.game_rooms.indexOf(index));
+		} else {
+			this.game_rooms[index].destroyPing();
+			this.game_rooms.splice(index, 1);
+		}
+	}
+
+	/* -- GAME UPDATING ------------------------------------------------------- */
+	public updateOpponent(client: Socket, dto: PaddleDto): OpponentUpdate {
+		const index: number = this.findUserRoomIndex(client);
+		if (index < 0)
+			throw 'Paddle update received but not in game';
+		return this.game_rooms[index].updatePaddle(client, dto);
+	}
+
+	/* -- UTILS --------------------------------------------------------------- */
 	public getUser(sock: Socket, authkey: string): Client {
 		if (authkey !== 'abc')
 			throw 'Wrong key';
@@ -110,17 +147,9 @@ export class GameService {
 		});
 	}
 
-	/* -- ROOM MANIPULATION --------------------- */
-	public updateOpponent(client: Socket, dto: PaddleDto): GameUpdate {
-		const index: number = this.findUserRoomIndex(client);
-		if (index < 0)
-			return null;
-		return this.game_rooms[index].getUpdate();
-	}
+/* == PRIVATE ================================================================================= */
 
-	/* == PRIVATE ================================================================================= */
-
-	/* -- ROOM MANIPULATION --------------------- */
+	/* -- ROOM MANIPULATION --------------------------------------------------- */
 	private createRoom(match: Match): GameRoom {
 		const room: GameRoom = new GameRoom(match);
 		this.game_rooms.push(room);
@@ -128,23 +157,7 @@ export class GameService {
 		return room;
 	}
 
-	private destroyRoom(index: number): void {
-		this.game_rooms.splice(index, 1);
-	}
-
-	/* -- DATABASE LINKING ---------------------- */
-	private saveScore(index: number): void {
-		try {
-			const score: Score = this.game_rooms[index].getScores();
-			// Add to DB
-			console.info("Scores:", score);
-		} catch (e) {
-			console.info(e);
-		}
-		this.destroyRoom(index);
-	}
-
-	/* -- UTILS --------------------------------- */
+	/* -- UTILS --------------------------------------------------------------- */
 	private findUserMatch(client: Socket): Handshake | undefined {
 		const handshake: Handshake = this.handshakes.find((obj) => {
 			return (obj.match.player1.socket.id === client.id
