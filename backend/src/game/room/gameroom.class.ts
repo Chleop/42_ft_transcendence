@@ -1,6 +1,15 @@
-import { Gameplay } from '../gameplay/gameplay.class';
-import { Score, Match, Client } from '../aliases';
 import { Socket } from 'socket.io';
+import { Gameplay } from '../gameplay';
+import { PaddleDto } from '../dto';
+import {
+	OpponentUpdate,
+	GameUpdate,
+	Ball,
+	Score,
+	Match,
+	Client
+} from '../aliases';
+import { ResultsObject } from '../results';
 
 
 /* Holds info on the gameroom
@@ -10,6 +19,7 @@ import { Socket } from 'socket.io';
 export class GameRoom {
 	public readonly match: Match;
 	private game: Gameplay = null;
+	private ping_id : number = null;
 
 	constructor(match: Match) {
 		this.match = match;
@@ -18,85 +28,79 @@ export class GameRoom {
 
 	/* == PUBLIC ================================================================================== */
 
+	/* -- GAME MANAGEMENT ----------------------------------------------------- */
 	/* Call this function once the game actually starts */
-	public create(): void {
+	public startGame(): GameUpdate {
 		this.game = new Gameplay();
+		return this.game.initializeGame();
 	}
 
+	/* Called every 20ms to send ball updates */
+	public updateGame(): GameUpdate {
+		return this.game.refresh();
+	}
+
+	/* Called everytime the sender sent an update */
+	public updatePaddle(client: Socket, dto: PaddleDto): OpponentUpdate {
+		const updated_paddle: PaddleDto = this.game.checkUpdate(this.playerNumber(client), dto);
+		return {
+			player: this.whoIsOpponent(client),
+			updated_paddle: updated_paddle
+		};
+	}
+
+	public cutGameShort(): ResultsObject {
+		return this.game.getResults();
+	}
+
+	/* -- INTERVAL UTILS ------------------------------------------------------ */
+	/* Stores the ID of the setInterval function */
+	public setPingId(timer_id: number): void {
+		this.ping_id = timer_id;
+	}
+
+	/* Returns the associated setInteval id */
+	public getPingId(): number {
+		return this.ping_id;
+	}
+
+	/* Destroys associated setInteval instance */
+	public destroyPing(): void {
+		clearInterval(this.ping_id);
+	}
+
+	/* -- IDENTIFIERS --------------------------------------------------------- */
 	public isClientInRoom(client: Socket): boolean {
 		if (this.match.player1.socket.id === client.id
-				|| this.match.player2.socket.id === client.id)
+				|| this.match.player2.socket.id === client.id) {
 		 return true;
+		}
 	 return false;
 	}
 
-	public whoIs(client: Socket): string | null {
+	public playerNumber(client: Socket): number | null {
 		if (this.match.player1.socket.id === client.id)
-			return 'player1';
-		else if (this.match.player1.socket.id === client.id)
-			return 'player2';
+			return 1;
+		else if (this.match.player2.socket.id === client.id)
+			return 2;
 		return null;
 	}
 
+	/* -- UTILS --------------------------------------------------------------- */
 	public getScores(): Score {
 		if (!this.game)
 			throw 'Game didn\'t start yet';
 		return this.game.getScores();
 	}
 
-//	/* == PUBLIC ================================================================================== */
-//
-//	constructor(host: Client) {
-//		this.name = host;
-//		this.user1 = host;
-//		console.log(`Room '${this.name}' created`);
-//	}
-//
-//	/* -- USERS MANAGEMENT ---------------------- */
-//	public addGuest(player: Client): void {
-//		if (this.user2 !== undefined) // Ignore spec for now
-//			throw 'Room full';
-//		this.user2 = player;
-//		//console.info("Adding guest ", player.id);
-//	}
-//
-//	public removeUser(id: string): boolean {
-//		if (this.user1 === id)
-//			this.user1 = undefined;
-//		else if (this.user2 === id)
-//			this.user2 = undefined;
-//		return this.isEmpty();
-//	}
-//
-//	/* -- GAMEPLAY ------------------------------ */
-//	public startGame(): Ball {
-//		console.info("Starting game");
-//		return ;
-//		return this.game.startGame();
-//		//setInterval(refreshBall, 20, ball);
-//	}
-//
-//	/* -- UTILS --------------------------------- */
-//	public isClientInRoom(socket_id: string): boolean {
-//		if (this.user1 !== undefined && this.user1 === socket_id
-//				|| this.user2 !== undefined && this.user2 === socket_id)
-//		 return true;
-//	 return false;	 
-//	}
-//
-//	public isEmpty(): boolean {
-//		if (this.user1 === undefined && this.user2 === undefined)
-//			return true;
-//		return false;
-//	}
-//	
-//	public isFull(): boolean {
-//		if (this.user1 !== undefined && this.user2 !== undefined)
-//			return true;
-//		return false;
-//	}
-//
-//
-//	/* == PRIVATE ================================================================================= */
+	/* == PRIVATE ================================================================================= */
+	/* -- IDENTIFIERS --------------------------------------------------------- */
+	private whoIsOpponent(client: Socket): Socket | null {
+		if (this.match.player1.socket.id === client.id)
+			return this.match.player2.socket;
+		else if (this.match.player2.socket.id === client.id)
+			return this.match.player1.socket;
+		return null;
+	}
 
 }

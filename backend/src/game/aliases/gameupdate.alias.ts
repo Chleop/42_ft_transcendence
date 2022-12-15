@@ -1,12 +1,10 @@
-import { Ball, UpdatedPlayer } from './';
+import { Ball, Score } from './';
 
 // Update for spectators
 export type GameUpdate = {
 	// New ball infos
 	updated_ball: Ball,
 
-	// Paddle1 position
-	player1: UpdatedPlayer,
-	// Paddle2 position
-	player2: UpdatedPlayer
+	// Scores of the ongoing game
+	scores: Score
 };
