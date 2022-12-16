@@ -18,11 +18,14 @@ import { ResultsObject } from '../results';
 */
 export class GameRoom {
 	public readonly match: Match;
+	private ping_id : NodeJS.Timer;
 	private game: Gameplay = null;
-	private ping_id : number = null;
+
+	private nb_update: number;
 
 	constructor(match: Match) {
 		this.match = match;
+		this.nb_update = 0;
 		console.info('Room created:', this.match.name);
 	}
 
@@ -37,6 +40,8 @@ export class GameRoom {
 
 	/* Called every 20ms to send ball updates */
 	public updateGame(): GameUpdate {
+		if (this.nb_update++ > 5)
+			throw null;
 		return this.game.refresh();
 	}
 
@@ -55,14 +60,14 @@ export class GameRoom {
 
 	/* -- INTERVAL UTILS ------------------------------------------------------ */
 	/* Stores the ID of the setInterval function */
-	public setPingId(timer_id: number): void {
+	public setPingId(timer_id: NodeJS.Timer): void {
 		this.ping_id = timer_id;
 	}
 
 	/* Returns the associated setInteval id */
-	public getPingId(): number {
-		return this.ping_id;
-	}
+	//public getPingId(): number {
+	//	return this.ping_id;
+	//}
 
 	/* Destroys associated setInteval instance */
 	public destroyPing(): void {
@@ -94,6 +99,7 @@ export class GameRoom {
 	}
 
 	/* == PRIVATE ================================================================================= */
+
 	/* -- IDENTIFIERS --------------------------------------------------------- */
 	private whoIsOpponent(client: Socket): Socket | null {
 		if (this.match.player1.socket.id === client.id)

@@ -8,8 +8,10 @@ import { PaddleDto } from '../dto';
 import { PlayerData, ResultsObject } from '../results';
 
 // PLACEHOLDERS =================
-const ping: number = 20;
 const speed_factor: number = 1.005;
+
+/* Value in seconds */
+const ping: number = .0016;
 
 /* Height and width, divided by 2 */
 const w_2: number = 8;
@@ -28,6 +30,10 @@ const max_score: number = 3;
 
 const limit_x: number = max_paddle - radius; // 7 - 0.2 = 6.8
 
+/* Limit angle for ball launch (theta) */
+const cos: number = 8.66;
+const sin: number = 5;
+
 // END PLACEHOLDERS =============
 
 
@@ -45,8 +51,10 @@ export class Gameplay {
 	private last_update: number = null;
 
 	constructor() {
-		this.scores.player1_score = 0;
-		this.scores.player2_score = 0;
+		this.scores = {
+			player1_score: 0,
+			player2_score: 0
+		};
 		this.paddle1 = new PaddleDto();
 		this.paddle2 = new PaddleDto();
 	}
@@ -75,10 +83,10 @@ export class Gameplay {
 
 	public checkUpdate(who: number, dto: PaddleDto): PaddleDto {
 		if (who === 1) {
-			//this.verifyAccuracyPaddle(dto, this.paddle1);
+			this.verifyAccuracyPaddle(dto, this.paddle1);
 			this.paddle1 = dto;
 		} else {
-			//this.verifyAccuracyPaddle(dto, this.paddle1);
+			this.verifyAccuracyPaddle(dto, this.paddle1);
 			this.paddle2 = dto;
 		}
 		return (dto);
@@ -88,6 +96,7 @@ export class Gameplay {
 	public getScores(): Score {
 		return this.scores;
 	}
+
 
 	/* == PRIVATE ================================================================================= */
 
@@ -147,20 +156,20 @@ export class Gameplay {
 
 	/* -- BALL UPDATE --------------------------------------------------------- */
 	private initializeBall(): void {
-		const x: number = Math.random(); //TODO: get limit angle
-		const y: number = Math.random();
-		const v_norm: number = Math.sqrt(x * x + y * y);
+		const vx: number = Math.random(); //TODO: get limit angle
+		const vy: number = Math.random();
+		const v_norm: number = Math.sqrt((vx * vx) + (vy * vy));
 		this.ball = {
-			x: x,
-			y: y,
-			vx: x / v_norm,
-			vy: y / v_norm
+			x: 0,
+			y: 0,
+			vx: vx / v_norm,
+			vy: vy / v_norm
 		};
 	}
 
 	/* Send refreshed ball value */
 	private refreshBall(): void {
-		console.info(this.ball);
+		//console.info(this.ball);
 		this.refreshY();
 		this.refreshX();
 	}

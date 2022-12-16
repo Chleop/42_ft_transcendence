@@ -132,6 +132,7 @@ export class GameGateway {
 		if (match !== null) {
 			//TODO: Disconnect or just destroy room ?
 			//match.player1.socket.emit('unQueued');
+			this.ignoreTimeout(match);
 			match.player1.socket.disconnect(true);
 			//match.player2.socket.emit('unQueued');
 			match.player2.socket.disconnect(true);
@@ -150,7 +151,7 @@ export class GameGateway {
 				this.ignoreTimeout(room.match);
 				room.match.player1.socket.emit('gameReady', room.match.player2.id);
 				room.match.player2.socket.emit('gameReady', room.match.player1.id);
-				setTimeout(this.startGame, 3000, room);
+				setTimeout(this.startGame, 3000, this, room);
 			}
 		} catch (e) {
 			console.info(e);
@@ -173,7 +174,6 @@ export class GameGateway {
 	private matchmake(match: Match): void {
 		match.player1.socket.emit('matchFound');
 		match.player2.socket.emit('matchFound');
-		/* TODO: NEEDS TESTING !! */
 		const new_timeout: TimeoutId = {
 				match: match.name,
 				id: setTimeout(this.checkTimeout, matchmaking_timeout, this, match)
@@ -188,9 +188,9 @@ export class GameGateway {
 		if (index_timeout < 0)
 			return;
 		me.game_service.ignore(match);
-		match.player1.socket.emit('timedOut');
+		//match.player1.socket.emit('timedOut'); // Unecessary if both disconnected
 		match.player1.socket.disconnect(true);
-		match.player2.socket.emit('timedOut');
+		//match.player2.socket.emit('timedOut');
 		match.player2.socket.disconnect(true);
 		me.timeout_checker.splice(index_timeout, 1);
 	}
@@ -208,28 +208,57 @@ export class GameGateway {
 
 	/* -- UPDATING TOOLS ------------------------------------------------------ */
 	/* The game will start */
-	private startGame(room: GameRoom): void {
-		//const initial_game_state: GameUpdate = room.startGame();
+	private startGame(me: GameGateway, room: GameRoom): void {
+		console.info(room);
+		const initial_game_state: GameUpdate = room.startGame();
 		// Send the initial ball { pos, v0 }
-		room.match.player1.socket.emit('gameStart', 'Game starting!!');//initial_game_state);
-		room.match.player2.socket.emit('gameStart', 'Game starting!!');//initial_game_state);
-		//room.setPingId(setInterval(this.sendGameUpdates, 20));
+		room.match.player1.socket.emit('gameStart', initial_game_state);
+		room.match.player2.socket.emit('gameStart', initial_game_state);
+		room.setPingId(setInterval(
+			(me: GameGateway, room: GameRoom) => {
+				try {
+					const update: GameUpdate = room.updateGame();
+					console.log(update);
+					//room.match.player1.socket.emit('updateGame', update);
+					//room.match.player2.socket.emit('updateGame', update);
+				} catch (e) {
+					if (e instanceof ResultsObject) {
+						/* Save results and destroy game */
+						return me.game_service.saveScore(room, e);
+					} else if (e === null) {
+						console.log('finish');
+						me.game_service.destroyRoom(room);
+						return;
+					}
+					// Error occured, make sure to destroy interval
+					me.game_service.destroyRoom(room);
+					throw e;
+				}
+			},
+			16,
+			me,
+			room
+		));
 	}
 
 	/* This will send a GameUpdate every 20ms to both clients in a game */
-	private sendGameUpdates(room: GameRoom): void {
+	private sendGameUpdates(me: GameGateway, room: GameRoom): void {
 		try {
 			const update: GameUpdate = room.updateGame();
 			console.log(update);
-			room.match.player1.socket.emit('updateGame', update);
-			room.match.player2.socket.emit('updateGame', update);
+			//room.match.player1.socket.emit('updateGame', update);
+			//room.match.player2.socket.emit('updateGame', update);
 		} catch (e) {
 			if (e instanceof ResultsObject) {
 				/* Save results and destroy game */
-				return this.game_service.saveScore(room, e);
+				return me.game_service.saveScore(room, e);
+			} else if (e === null) {
+				console.log('finish');
+				me.game_service.destroyRoom(room);
+				return;
 			}
 			// Error occured, make sure to destroy interval
-			this.game_service.destroyRoom(room);
+			me.game_service.destroyRoom(room);
 			throw e;
 		}
 	}

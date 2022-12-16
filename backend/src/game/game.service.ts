@@ -40,7 +40,7 @@ export class GameService {
 	}
 
 	// TODO save score to db
-	public saveScore(room: GameRoom, results: ResultsObject): void { //TODO: Bound to be nodejs.time
+	public saveScore(room: GameRoom, results: ResultsObject): void {
 		try {
 			console.info("Scores:", results);
 		} catch (e) {
