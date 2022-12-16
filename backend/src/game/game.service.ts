@@ -83,28 +83,28 @@ export class GameService {
 			if (!(index < 0)) {
 				console.info('Kicked');
 				const match: Match = this.game_rooms[index].match;
-				this.saveScore(this.game_rooms[index], this.game_rooms[index].cutGameShort());
+				//this.saveScore(this.game_rooms[index], this.game_rooms[index].cutGameShort());
+				this.destroyRoom(index); //ignore
 				return match;
 			}
 		}
 		return null;
 	}
 
-	public playerAcknowledged(client: Socket): GameRoom | null {
+	public playerAcknowledged(client: Socket): GameRoom {
 		const handshake: Handshake = this.findUserMatch(client);
 		if (handshake === undefined) // Tried to send ok before room creation/once game started
 			throw 'Received matchmaking acknowledgement but not awaiting';
 		console.info(`${client.id} accepted`);
-		if (!handshake.one)
-			handshake.one = true;
-		else
-			return this.createRoom(handshake.match);
+		if (handshake.one)
+				return this.createRoom(handshake.match);
+		handshake.one = true;
 		return null;
 	}
 
 	public ignore(match: Match): void {
 		const index: number = this.handshakes.findIndex((obj) => {
-			return (obj.match === match);
+			return (obj.match.name === match.name);
 		});
 		if (index < 0)
 			throw 'Cannot ignore a match not made';
@@ -115,7 +115,7 @@ export class GameService {
 	public destroyRoom(index: number | GameRoom): void { //TODO: Bound to be nodejs.time
 		if (typeof(index) !== 'number') {
 			index.destroyPing();
-			this.game_rooms.splice(this.game_rooms.indexOf(index));
+			this.game_rooms.splice(this.game_rooms.indexOf(index), 1);
 		} else {
 			this.game_rooms[index].destroyPing();
 			this.game_rooms.splice(index, 1);
