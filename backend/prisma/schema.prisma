@@ -29,11 +29,11 @@ model User {
 // mais ne sont pas accessibles par le client Prisma gra ce a l'attribut 
 // @ignore.
 // Pour utiliser Prisma Studio, commenter les @ignore
-  mirrorOperators Channel[] @relation("chanops") @ignore
-  mirrorFriends   User[]    @relation("friendship") @ignore
-  mirrorBlocked   User[]    @relation("blocked") @ignore
-  mirrorDms       DM[]      @relation("userdms") @ignore
-  mirrorSender    ChannelMessage[] @relation("usermessage") @ignore
+  mirrorOperators Channel[] @relation("chanops") //@ignore
+  mirrorFriends   User[]    @relation("friendship") //@ignore
+  mirrorBlocked   User[]    @relation("blocked") //@ignore
+  mirrorDms       DM[]      @relation("userdms") //@ignore
+  mirrorSender    ChannelMessage[] @relation("usermessage") //@ignore
 // les champs ci-dessous sont neccessaires pour les relations
 // mais n'existent pas reellement dans la bdd (foreign keys)
   skinid          String
