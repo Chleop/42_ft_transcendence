@@ -10,4 +10,4 @@ RUN apt update \
 
 USER node
 
-ENTRYPOINT ["/bin/bash", "/app/script/docker-entrypoint.dev.sh"]
+ENTRYPOINT ["/app/script/docker-entrypoint.dev.sh"]

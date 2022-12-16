@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-npm i
+npm install
 
 exec npm run start:dev
 # && npx prisma migrate dev
