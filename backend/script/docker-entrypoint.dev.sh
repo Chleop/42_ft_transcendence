@@ -2,6 +2,5 @@
 
 npm i
 
-npx prisma migrate dev --name init
-
 exec npm run start:dev
+# && npx prisma migrate dev (enfin j'aimerais bien mais ca marche pas)
