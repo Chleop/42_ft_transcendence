@@ -89,7 +89,6 @@ From the server:
 
 ======================================================================== END OF LIST ============ */
 
-
 /* Gateway to events comming from `http://localhost:3000/game` */
 @WebSocketGateway({
 	namespace: '/game',

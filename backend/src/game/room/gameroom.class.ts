@@ -53,8 +53,8 @@ export class GameRoom {
 		};
 	}
 
-	public cutGameShort(): ResultsObject {
-		return this.game.getResults();
+	public cutGameShort(guilty: number): ResultsObject {
+		return this.game.getResults(guilty);
 	}
 
 	/* -- INTERVAL UTILS ------------------------------------------------------ */

@@ -82,8 +82,9 @@ export class GameService {
 			const index: number = this.findUserRoomIndex(client);
 			if (!(index < 0)) {
 				console.info('Kicked');
-				const match: Match = this.game_rooms[index].match;
-				//this.saveScore(this.game_rooms[index], this.game_rooms[index].cutGameShort());
+				const room: GameRoom = this.game_rooms[index];
+				const match: Match = room.match;
+				//this.saveScore(room, room.cutGameShort(room.playerNumber(client)));
 				this.destroyRoom(index); //ignore
 				return match;
 			}

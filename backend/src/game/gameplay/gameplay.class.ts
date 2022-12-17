@@ -5,7 +5,8 @@ import {
 } from '../aliases';
 import { PaddleDto } from '../dto';
 import { Ball, PlayerData, ResultsObject } from '../objects';
-import * as Constants from '../namespace';
+
+const Constants = require('../constants/constants');
 
 //// PLACEHOLDERS =================
 //
@@ -70,8 +71,8 @@ export class Gameplay {
 	/* == PUBLIC ================================================================================== */
 
 	/* -- RESULTS ------------------------------------------------------------- */
-	public getResults(last_player: number): ResultsObject {
-		if (last_player === 1) {
+	public getResults(guilty: number): ResultsObject {
+		if (guilty === 2) {
 			return new ResultsObject(
 				new PlayerData(this.scores.player1_score, true),
 				new PlayerData(this.scores.player2_score, false)

@@ -1,5 +1,5 @@
-//import { Constants } from '../namespace';
-import * as Constants from '../namespace/constants';
+//const Constants = require('../constants');
+const Constants = require('../constants/constants');
 
 export class Ball {
 	private x: number;
@@ -31,21 +31,12 @@ export class Ball {
 		return 0;
 	}
 
-	// TODO: shift ball.vy a little depending on position of ball on paddle
-	public shiftBouncing(paddle_y: number): void {
-		const oh: number = this.y - paddle_y; // OH vector
-		const vy: number = this.vy + (.5 * oh);
-		const norm: number = Math.sqrt((this.vx * thix.vx) + (vy * vy));
-		this.vy = vy / norm;
-		this.vx = - this.vx / norm;
-	}
-
 	public checkPaddleCollision(paddle_y: number): boolean {
 		if (this.y < paddle_y + Constants.paddle_radius
 				&& this.y > paddle_y - Constants.paddle_radius) {
 			// ball hit paddle: adjust x position
 			//this.ball.vx = -this.ball.vx; // Invert direction 
-			this.shiftBouncing();
+			this.shiftBouncing(paddle_y);
 			this.increaseSpeed();
 			return true;
 		}
@@ -75,6 +66,15 @@ export class Ball {
 
 	private increaseSpeed(): void {
 		this.velocity *= Constants.acceleration;
+	}
+
+	// TODO: shift ball.vy a little depending on position of ball on paddle
+	private shiftBouncing(paddle_y: number): void {
+		const oh: number = this.y - paddle_y; // OH vector
+		const vy: number = this.vy + (.5 * oh);
+		const norm: number = Math.sqrt((this.vx * this.vx) + (vy * vy));
+		this.vy = vy / norm;
+		this.vx = - this.vx / norm;
 	}
 
 };
