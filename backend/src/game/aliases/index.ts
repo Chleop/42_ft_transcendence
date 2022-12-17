@@ -1,4 +1,3 @@
-export * from './ball.alias';
 export * from './client.alias';
 export * from './match.alias';
 export * from './gameupdate.alias';

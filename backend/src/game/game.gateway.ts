@@ -9,12 +9,11 @@ import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
 import { GameRoom } from './room';
 import { PaddleDto } from './dto';
-import { ResultsObject } from './results';
+import { Ball, ResultsObject } from './objects';
 import {
 	OpponentUpdate,
 	Client,
 	Match,
-	Ball,
 	GameUpdate
 } from './aliases';
 
@@ -215,26 +214,27 @@ export class GameGateway {
 		room.match.player1.socket.emit('gameStart', initial_game_state);
 		room.match.player2.socket.emit('gameStart', initial_game_state);
 		room.setPingId(setInterval(
-			(me: GameGateway, room: GameRoom) => {
-				try {
-					const update: GameUpdate = room.updateGame();
-					console.log(update);
-					//room.match.player1.socket.emit('updateGame', update);
-					//room.match.player2.socket.emit('updateGame', update);
-				} catch (e) {
-					if (e instanceof ResultsObject) {
-						/* Save results and destroy game */
-						return me.game_service.saveScore(room, e);
-					} else if (e === null) {
-						console.log('finish');
-						me.game_service.destroyRoom(room);
-						return;
-					}
-					// Error occured, make sure to destroy interval
-					me.game_service.destroyRoom(room);
-					throw e;
-				}
-			},
+			me.sendGameUpdates,
+//			(me: GameGateway, room: GameRoom) => {
+//				try {
+//					const update: GameUpdate = room.updateGame();
+//					console.log(update);
+//					//room.match.player1.socket.emit('updateGame', update);
+//					//room.match.player2.socket.emit('updateGame', update);
+//				} catch (e) {
+//					if (e instanceof ResultsObject) {
+//						/* Save results and destroy game */
+//						return me.game_service.saveScore(room, e);
+//					} else if (e === null) {
+//						console.log('finish');
+//						me.game_service.destroyRoom(room);
+//						return;
+//					}
+//					// Error occured, make sure to destroy interval
+//					me.game_service.destroyRoom(room);
+//					throw e;
+//				}
+//			},
 			16,
 			me,
 			room

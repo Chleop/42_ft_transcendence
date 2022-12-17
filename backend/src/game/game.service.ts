@@ -9,7 +9,7 @@ import {
 	Match
 } from './aliases';
 import { PaddleDto } from './dto';
-import { ResultsObject } from './results';
+import { ResultsObject } from './objects';
 
 /* For now, gamerooms are named after a name given in the dto
 	 Bound to be named after the host once we manage the jwt/auth token. */

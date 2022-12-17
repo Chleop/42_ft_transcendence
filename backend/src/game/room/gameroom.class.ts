@@ -4,12 +4,11 @@ import { PaddleDto } from '../dto';
 import {
 	OpponentUpdate,
 	GameUpdate,
-	Ball,
 	Score,
 	Match,
 	Client
 } from '../aliases';
-import { ResultsObject } from '../results';
+import { Ball, ResultsObject } from '../objects';
 
 
 /* Holds info on the gameroom
