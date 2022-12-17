@@ -1,5 +1,7 @@
+import { State } from "../strawberry/history";
 import { Scene } from "../strawberry/scene";
 import { DummyPlayer } from "./dummy_player";
+import { LocalPlayer } from "./local_player";
 import { Player } from "./player";
 import { Renderer, Sprite } from "./renderer";
 
@@ -120,7 +122,7 @@ export class GameScene extends Scene {
     /**
      * Whether hitboxes should be displayed.
      */
-    private show_hitboxes_: boolean;
+    private show_debug_: boolean;
 
     /**
      * Creates a new `GameElement` instance.
@@ -133,8 +135,9 @@ export class GameScene extends Scene {
 
         // FIXME:
         //  Properly calculate dimentions for the canvas.
-        this.canvas.width = 1280;
-        this.canvas.height = 720;
+        this.canvas.width = 1280 * 1.3;
+        this.canvas.height = 720 * 1.3;
+        document.body.style.backgroundColor = "black";
 
         const gl = this.canvas.getContext("webgl2");
         if (!gl) throw new WebGL2NotSupported();
@@ -153,7 +156,9 @@ export class GameScene extends Scene {
         this.should_stop = true;
         this.last_timestamp = 0;
 
-        this.show_hitboxes_ = false;
+        this.show_debug_ = false;
+
+        this.start(new LocalPlayer(), new DummyPlayer());
     }
 
     /**
@@ -185,8 +190,8 @@ export class GameScene extends Scene {
     /**
      * Whether hitboxes should be shown.
      */
-    public set show_hitboxes(yes: boolean) {
-        this.show_hitboxes = yes;
+    public set show_debug(yes: boolean) {
+        this.show_debug_ = yes;
     }
 
     /**
@@ -231,7 +236,7 @@ export class GameScene extends Scene {
         this.renderer.draw_sprite(this.paddle_sprite, -7, this.left_player.position, this.paddle_sprite.width * pixel_scale, this.paddle_sprite.height * pixel_scale);
         this.renderer.draw_sprite(this.paddle_sprite, 7, this.right_player.position, -this.paddle_sprite.width * pixel_scale, this.paddle_sprite.height * pixel_scale);
 
-        if (this.show_hitboxes_) {
+        if (this.show_debug_) {
             this.renderer.draw_hitbox(-7, this.left_player.position, 0.25, this.right_player_state.height);
             this.renderer.draw_hitbox(7, this.right_player.position, 0.25, this.right_player_state.height);
             this.renderer.draw_hitbox(this.ball_state.x, this.ball_state.y, this.ball_state.radius, this.ball_state.radius);

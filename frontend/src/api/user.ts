@@ -30,5 +30,5 @@ export interface PrivateUser {
     /**
      * The channel that the user is a part of.
      */
-    channels: Array<Channel>;
+    channels: Channel[];
 }

@@ -1,10 +1,7 @@
 import { RawHTTPClient } from "./api/raw_client"
-import { DummyPlayer } from "./game/dummy_player";
-import { GameScene } from "./game/game";
-import { LocalPlayer } from "./game/local_player";
-import { MainMenuScene } from "./main_menu/main_menu";
-import { History, State } from "./strawberry/history";
-import { Router } from "./strawberry/router";
+import { Scenes } from "./scenes";
+import { History } from "./strawberry/history";
+import { RouteData, Router } from "./strawberry/router";
 
 /**
  * Tries to get the value of a specific cookie.
@@ -40,18 +37,17 @@ export function entry_point() {
     }
 
     const client = new RawHTTPClient(token);
-    const router = new Router<State>();
+    const router = new Router<(data: RouteData) => void>();
 
-    const main_menu = new MainMenuScene(client);
-    const game = new GameScene();
+    Scenes.initialize(client);
 
-    router.register_route("/game", game);
-    router.register_route("/game/", game);
-    router.register_route("/", main_menu);
+    router.register_route("/game", () => History.replace_state(Scenes.game));
+    router.register_route("/game/", () => History.replace_state(Scenes.game));
+    router.register_route("/", () => History.replace_state(Scenes.main_menu));
 
     const route_result = router.get(window.location.pathname);
     if (route_result) {
-        History.replace_state(route_result.meta);
+        route_result.meta(route_result.data);
     } else {
         // TODO: 404 error
     }

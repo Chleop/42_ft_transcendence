@@ -54,7 +54,6 @@ export const History = (function () {
             window.onpopstate = (ev: PopStateEvent) => {
                 const old_state = this.state_stack[this.state_stack_index];
 
-                this.state_stack_index = 0;
                 if (typeof ev.state === "number")
                     this.state_stack_index = ev.state;
                 old_state.on_left(this.current_state);
@@ -69,12 +68,15 @@ export const History = (function () {
          * Go to a specific state, trying to burry the current one.
          */
         public push_state(new_state: State) {
+            const new_state_index = this.state_stack_index + 1;
+
             const old_state = this.current_state;
-            while (this.state_stack.length != this.state_stack_index)
+            while (this.state_stack.length != new_state_index)
                 this.state_stack.pop();
 
-            window.history.pushState(this.state_stack_index, "", new_state.location);
+            window.history.pushState(new_state_index, "", new_state.location);
             this.state_stack.push(new_state);
+            this.state_stack_index = new_state_index;
             old_state.on_left(new_state);
             new_state.on_entered(old_state);
         }

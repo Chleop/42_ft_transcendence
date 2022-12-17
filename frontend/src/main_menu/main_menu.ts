@@ -2,6 +2,8 @@ import { RawHTTPClient } from "../api/raw_client";
 import { ChatElement } from "./chat";
 import { Scene } from "../strawberry/scene";
 import { PrivateUser } from "../api/user";
+import { History } from "../strawberry/history";
+import { Scenes } from "../scenes"
 
 /**
  * The scene that contains the main menu.
@@ -38,6 +40,7 @@ export class MainMenuScene extends Scene {
         const find_game = document.createElement("button");
         find_game.id = "main-menu-find-game";
         find_game.classList.add("main-menu-button");
+        find_game.onclick = () => History.push_state(Scenes.game);
         const find_game_span = document.createElement("span");
         find_game_span.innerText = "Find Game";
         find_game.appendChild(find_game_span);
