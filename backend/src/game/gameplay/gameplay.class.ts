@@ -8,11 +8,6 @@ import { Ball, PlayerData, ResultsObject } from '../objects';
 
 const Constants = require('../constants/constants');
 
-/*
-	TODO:
- 	- find way to link with service
-*/
-
 /* Track the state of the game, calculates the accuracy of the incomming data */
 export class Gameplay {
 	private scores: Score;
@@ -56,8 +51,9 @@ export class Gameplay {
 		return this.generateUpdate();
 	}
 
+	/* Generates a ball update */
 	public refresh(): GameUpdate {
-		console.info('Refreshing...');
+		//console.info('Refreshing...');
 		const ret: number = this.ball.refresh();
 		if (ret === 1) {
 			// Ball is far right
@@ -73,29 +69,37 @@ export class Gameplay {
 		return this.generateUpdate();
 	}
 
-	public checkUpdate(who: number, dto: PaddleDto): PaddleDto { // AntiCheat
+	// TODO: Cleanup this function...
+	public checkUpdate(who: number, dto: PaddleDto): {
+		has_cheated: boolean,
+		updated_paddle: PaddleDto
+	} {
 		if (who === 1) {
-			this.verifyAccuracyPaddle(dto, this.paddle1);
-			this.paddle1 = dto;
+			const checked_value: PaddleDto = this.verifyAccuracyPaddle(dto, this.paddle1);
+			this.paddle1 = checked_value;
 		} else {
-			this.verifyAccuracyPaddle(dto, this.paddle1);
-			this.paddle2 = dto;
+			const checked_value: PaddleDto = this.verifyAccuracyPaddle(dto, this.paddle2);
+			this.paddle2 = checked_value;
 		}
-		return (dto);
+		// Return corrected paddle if anticheat stroke
+		return {
+			has_cheated: false,
+			updated_paddle: dto
+		};
 	}
 
 	/* -- UTILS --------------------------------------------------------------- */
-	public getScores(): Score {
+	public getScores(): Score { // TODO: useless??
 		return this.scores;
 	}
-
 
 	/* == PRIVATE ================================================================================= */
 
 	/* -- PADDLE LOOK AT ------------------------------------------------------ */
-	private verifyAccuracyPaddle(dto: PaddleDto, paddle_checked: PaddleDto): void {
+	/* Check if received paddle seems accurate */
+	private verifyAccuracyPaddle(dto: PaddleDto, paddle_checked: PaddleDto): PaddleDto {
 		//TODO anticheat
-		//throw anticheat;
+		return dto;
 	}
 
 	/* -- GAME STATUS UPDATE -------------------------------------------------- */
@@ -108,6 +112,7 @@ export class Gameplay {
 		};
 	}
 
+	/* Players 1 marked a point, send results OR reinitialize */
 	private oneWon(): void {
 		this.scores.player1_score++;
 		if (this.scores.player1_score === Constants.max_score) {
@@ -116,10 +121,10 @@ export class Gameplay {
 				new PlayerData(this.scores.player2_score, false)
 			);
 		}
-		// Someone lost: Reinitialize ball
 		this.ball = new Ball();
 	}
 
+	/* Players 2 marked a point, send results OR reinitialize */
 	private twoWon(): void {
 		this.scores.player2_score++;
 		if (this.scores.player2_score === Constants.max_score) {
@@ -128,8 +133,6 @@ export class Gameplay {
 				new PlayerData(this.scores.player2_score, true)
 			);
 		}
-		// Someone lost: Reinitialize ball
 		this.ball = new Ball();
 	}
-
 }

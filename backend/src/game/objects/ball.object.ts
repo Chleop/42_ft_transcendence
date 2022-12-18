@@ -21,12 +21,8 @@ export class Ball {
 	/* Send refreshed ball value */
 	public refresh(): number {
 		//console.info(this);
-		console.info('Old x:', this.x);
-		console.info('Old y:', this.y);
 		this.refreshX();
 		this.refreshY();
-		console.info('New x:', this.x);
-		console.info('New y:', this.y);
 		if (this.x > Constants.limit_x)
 			return 1;
 		else if (this.x < - Constants.limit_x)
@@ -37,7 +33,8 @@ export class Ball {
 	/* Check if ball hits paddle */
 	public checkPaddleCollision(paddle_y: number): boolean {
 		if (this.y < paddle_y + Constants.paddle_radius
-				&& this.y > paddle_y - Constants.paddle_radius) {
+			&& this.y > paddle_y - Constants.paddle_radius) {
+			this.x = Constants.paddle_x;
 			this.shiftBouncing(paddle_y);
 			this.increaseSpeed();
 			return true;
@@ -49,12 +46,12 @@ export class Ball {
 
 	/* Refresh on X axis */
 	private refreshX(): void {
-		this.x = this.vx * this.velocity * Constants.ping * .001;
+		this.x += this.vx * this.velocity * Constants.ping * .001;
 	}
 
 	/* Refresh on Y axis */
 	private refreshY(): void {
-		const new_y: number = this.vy * this.velocity * Constants.ping * .001;
+		const new_y: number = this.y + (this.vy * this.velocity * Constants.ping * .001);
 		if (new_y > Constants.h_2) {
 			this.y = Constants.h_2;
 		} else if (new_y < -Constants.h_2) {
@@ -78,5 +75,4 @@ export class Ball {
 		this.vy = vy / norm;
 		this.vx = - this.vx / norm;
 	}
-
-};
+}

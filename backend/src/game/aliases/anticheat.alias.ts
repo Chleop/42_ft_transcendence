@@ -1,3 +1,4 @@
+import { OpponentUpdate } from './';
 import { PaddleDto } from '../dto';
 
 export type AntiCheat = {
@@ -6,5 +7,5 @@ export type AntiCheat = {
 	p1: PaddleDto | null,
 
 	// p2: to send back to p2
-	p2: PaddleDto
+	p2: OpponentUpdate
 };

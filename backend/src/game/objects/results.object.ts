@@ -7,7 +7,6 @@ function getCurrentTime(date: Date): string {
 		+ date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
 }
 
-
 export class ResultsObject {
 	public readonly player1: PlayerData;
 	public readonly player2: PlayerData;
