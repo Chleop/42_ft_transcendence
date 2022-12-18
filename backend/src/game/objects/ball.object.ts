@@ -1,4 +1,3 @@
-//const Constants = require('../constants');
 const Constants = require('../constants/constants');
 
 export class Ball {
@@ -53,10 +52,10 @@ export class Ball {
 	/* Refresh on Y axis */
 	private refreshY(): void {
 		const new_y: number = this.vy * this.velocity * Constants.ping;
-		if (new_y > h_2) {
-			this.y = h_2;
-		} else if (new_y < -h_2) {
-			this.y = -h_2;
+		if (new_y > Constants.h_2) {
+			this.y = Constants.h_2;
+		} else if (new_y < -Constants.h_2) {
+			this.y = -Constants.h_2;
 		} else {
 			this.y = new_y;
 			return;

@@ -1,3 +1,6 @@
+/* Timespan before kicked out of queue */
+const matchmaking_timeout: number = 10000;
+
 /* Speed */
 const initial_speed: number = 5;
 
@@ -35,6 +38,7 @@ const sin: number = 5;
 const margin: number = .02;
 
 module.exports = {
+	matchmaking_timeout: matchmaking_timeout,
 	initial_speed: initial_speed,
 	acceleration: acceleration,
 	ping: ping,

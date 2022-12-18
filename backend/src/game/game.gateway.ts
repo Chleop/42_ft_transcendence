@@ -17,9 +17,9 @@ import {
 	GameUpdate
 } from './aliases';
 
-// PLACEHOLDERS ==============
-const matchmaking_timeout: number = 10000;
+const Constants = require('./constants/constants');
 
+// PLACEHOLDERS ==============
 /* Track timeouts */
 type TimeoutId = {
 	match: string,
@@ -100,8 +100,6 @@ export class GameGateway {
 	@WebSocketServer()
 	private readonly server: Server = new Server();
 	private readonly game_service: GameService = new GameService();
-
-	/* TODO: CHECK !! */
 	private timeout_checker: TimeoutId[] = [];
 
 	/* == PRIVATE ================================================================================= */
@@ -173,8 +171,8 @@ export class GameGateway {
 		match.player1.socket.emit('matchFound');
 		match.player2.socket.emit('matchFound');
 		const new_timeout: TimeoutId = {
-				match: match.name,
-				id: setTimeout(this.checkTimeout, matchmaking_timeout, this, match)
+			match: match.name,
+			id: setTimeout(this.checkTimeout, Constants.matchmaking_timeout, this, match)
 		};
 		this.timeout_checker.push(new_timeout);
 	}
