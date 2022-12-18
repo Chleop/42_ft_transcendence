@@ -1,4 +1,5 @@
-import { Ball, Score } from './';
+import { Score } from './';
+import { Ball } from '../objects';
 
 // Update for spectators
 export type GameUpdate = {

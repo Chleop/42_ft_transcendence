@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { GameRoom } from './room';
 import {
+	AntiCheat,
 	OpponentUpdate,
 	GameUpdate,
 	Score,
@@ -9,7 +10,7 @@ import {
 	Match
 } from './aliases';
 import { PaddleDto } from './dto';
-import { ResultsObject } from './results';
+import { ResultsObject } from './objects';
 
 /* For now, gamerooms are named after a name given in the dto
 	 Bound to be named after the host once we manage the jwt/auth token. */
@@ -34,19 +35,26 @@ export class GameService {
 	/* == PUBLIC ================================================================================== */
 
 	/* -- DATABASE LINKING ---------------------------------------------------- */
-	// TODO get user in db
-	public retrieveUser(jwt: string): string {
-		return 'This will retrieve the user ids in the db thanks to the jwt';
+	// TODO get user infos in db
+	public decode(jwt: string): {id: string} { // UserData
+		return {
+			id: jwt
+		};
 	}
 
 	// TODO save score to db
-	public saveScore(room: GameRoom, results: ResultsObject): void { //TODO: Bound to be nodejs.time
+	public saveScore(room: GameRoom, results: ResultsObject | null): Match {
+		const match: Match = room.match;
 		try {
-			console.info("Scores:", results);
+			if (results)
+				console.info("Scores:", results);
+			else
+				console.info(`Game ${results} cut short before it started`);
 		} catch (e) {
 			console.info(e);
 		}
 		this.destroyRoom(room);
+		return match;
 	}
 
 /* -- MATCHMAKING --------------------------------------------------------- */
@@ -82,9 +90,8 @@ export class GameService {
 			const index: number = this.findUserRoomIndex(client);
 			if (!(index < 0)) {
 				console.info('Kicked');
-				const match: Match = this.game_rooms[index].match;
-				//this.saveScore(this.game_rooms[index], this.game_rooms[index].cutGameShort());
-				this.destroyRoom(index); //ignore
+				const room: GameRoom = this.game_rooms[index];
+				const match: Match = this.saveScore(room, room.cutGameShort(room.playerNumber(client)));
 				return match;
 			}
 		}
@@ -102,6 +109,7 @@ export class GameService {
 		return null;
 	}
 
+	/* -- ROOM MANIPULATION --------------------------------------------------- */
 	public ignore(match: Match): void {
 		const index: number = this.handshakes.findIndex((obj) => {
 			return (obj.match.name === match.name);
@@ -111,19 +119,25 @@ export class GameService {
 		this.handshakes.splice(index, 1);
 	}
 
-	/* -- ROOM MANIPULATION --------------------------------------------------- */
-	public destroyRoom(index: number | GameRoom): void { //TODO: Bound to be nodejs.time
+	public destroyRoom(index: number | GameRoom): void {
 		if (typeof(index) !== 'number') {
+			const new_index: number = this.game_rooms.indexOf(index)
+			if (new_index < 0)
+				return;
+			console.info(`Destroying ${index.match.name}`);
 			index.destroyPing();
-			this.game_rooms.splice(this.game_rooms.indexOf(index), 1);
+			this.game_rooms.splice(new_index, 1);
 		} else {
+			if (index < 0)
+				return;
+			console.info(`Destroying ${this.game_rooms[index].match.name}`);
 			this.game_rooms[index].destroyPing();
 			this.game_rooms.splice(index, 1);
 		}
 	}
 
 	/* -- GAME UPDATING ------------------------------------------------------- */
-	public updateOpponent(client: Socket, dto: PaddleDto): OpponentUpdate {
+	public updateOpponent(client: Socket, dto: PaddleDto): AntiCheat {
 		const index: number = this.findUserRoomIndex(client);
 		if (index < 0)
 			throw 'Paddle update received but not in game';
@@ -136,7 +150,7 @@ export class GameService {
 			throw 'Wrong key';
 		return {
 			socket: sock,
-			id: 'xyz'
+			id: 'xyz' // jwt token
 		};
 	}
 
@@ -147,7 +161,7 @@ export class GameService {
 		});
 	}
 
-/* == PRIVATE ================================================================================= */
+	/* == PRIVATE ================================================================================= */
 
 	/* -- ROOM MANIPULATION --------------------------------------------------- */
 	private createRoom(match: Match): GameRoom {
@@ -172,5 +186,4 @@ export class GameService {
 		});
 		return index;
 	}
-
 }

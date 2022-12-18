@@ -5,21 +5,19 @@ import {
 	SubscribeMessage
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-
 import { GameService } from './game.service';
 import { GameRoom } from './room';
 import { PaddleDto } from './dto';
-import { ResultsObject } from './results';
+import { Ball, ResultsObject } from './objects';
 import {
+	AntiCheat,
 	OpponentUpdate,
 	Client,
 	Match,
-	Ball,
 	GameUpdate
 } from './aliases';
 
-// PLACEHOLDERS ==============
-const matchmaking_timeout: number = 10000;
+const Constants = require('./constants/constants');
 
 /* Track timeouts */
 type TimeoutId = {
@@ -27,10 +25,13 @@ type TimeoutId = {
 	id: NodeJS.Timer
 }
 
+// PLACEHOLDERS ==============
+type UserData = {
+	id: string
+}
+
 /* TODO:
-	 - add timeout everywhere
 	 - handle spectators
-	 - separate matchmaking with gaminggggg
 */
 
 /* === EVENT LIST ==================================================================================
@@ -56,6 +57,10 @@ From the client:
 		 	the gateway will check those values (TODO: anticheat), and, if the data seems accurate,
 		 	it is sent to their opponent.
 
+	- `stop`
+ 			will simply disconnect the client.
+			temporary, this is meant to test the setInterval stuff
+
 From the server:
 	- `connected`
  			sent to the client as an acknowledgement of their initial connection.
@@ -64,11 +69,11 @@ From the server:
  			once two clients are matched, they are sent this event.
 		 	the gateway will then await for both matched client to send the `ok` event.
 
-	- `timedOut` (TODO: check validity)
+	- `timedOut` // deprecated: useless if disconnect
  			if the two clients that were awaited didn't both accept, they get timed out and removed from
 			the queue.
 
-	- `unQueue`
+	- `unQueue` // deprecated: useless if disconnect
  			if the client was in the queue or in a game and suddenly disconnects, their opponent is
 		 	notified via the `unQueue` event and both are properly disconnected.
 
@@ -90,7 +95,6 @@ From the server:
 
 ======================================================================== END OF LIST ============ */
 
-
 /* Gateway to events comming from `http://localhost:3000/game` */
 @WebSocketGateway({
 	namespace: '/game',
@@ -102,8 +106,6 @@ export class GameGateway {
 	@WebSocketServer()
 	private readonly server: Server = new Server();
 	private readonly game_service: GameService = new GameService();
-
-	/* TODO: CHECK !! */
 	private timeout_checker: TimeoutId[] = [];
 
 	/* == PRIVATE ================================================================================= */
@@ -114,7 +116,8 @@ export class GameGateway {
 		console.info(`[${client.id} connected]`);
 		client.emit('connected', 'Welcome');
 		try {
-			//TODO: Check if they are not spectator
+			//TODO: Check if they are not spectator: middleware->`/spectator`?
+			//TODO: handle authkey
 			const user: Client = this.game_service.getUser(client, 'abc'); // authkey
 			const match: Match = this.game_service.queueUp(user);
 			if (match !== null)
@@ -130,10 +133,8 @@ export class GameGateway {
 	private handleDisconnect(client: Socket): void {
 		const match: Match = this.game_service.unQueue(client);
 		if (match !== null) {
-			//TODO: Disconnect or just destroy room ?
-			//match.player1.socket.emit('unQueued');
+			this.ignoreTimeout(match, true);
 			match.player1.socket.disconnect(true);
-			//match.player2.socket.emit('unQueued');
 			match.player2.socket.disconnect(true);
 		}
 		console.info(`[${client.id} disconnected]`);
@@ -148,9 +149,15 @@ export class GameGateway {
 			const room: GameRoom = this.game_service.playerAcknowledged(client);
 			if (room !== null) {
 				this.ignoreTimeout(room.match);
-				room.match.player1.socket.emit('gameReady', room.match.player2.id);
-				room.match.player2.socket.emit('gameReady', room.match.player1.id);
-				setTimeout(this.startGame, 3000, room);
+				const p1_decoded: UserData = this.game_service.decode(room.match.player1.id);
+				const p2_decoded: UserData = this.game_service.decode(room.match.player2.id);
+				room.match.player1.socket.emit('gameReady', p2_decoded);
+				room.match.player2.socket.emit('gameReady', p1_decoded);
+				const new_timeout: TimeoutId = {
+					match: room.match.name,
+					id: setTimeout(this.startGame, 3000, this, room)
+				};
+				this.timeout_checker.push(new_timeout);
 			}
 		} catch (e) {
 			console.info(e);
@@ -158,14 +165,26 @@ export class GameGateway {
 		}
 	}
 
+	/* Handle paddle updates for the game */
 	@SubscribeMessage('update')
 	private updateEnemy(client: Socket, dto: PaddleDto): void {
 		try {
-			const opponent_update: OpponentUpdate = this.game_service.updateOpponent(client, dto);
+			// TODO: Check paddledto accuracy
+			const anticheat: AntiCheat = this.game_service.updateOpponent(client, dto);
+			const opponent_update: OpponentUpdate = anticheat.p2;
 			opponent_update.player.emit('updatedOpponent', opponent_update.updated_paddle);
+			if (anticheat.p1) {
+				client.emit('antiCheat', anticheat.p1);
+			}
 		} catch (e) {
 			console.info(e);
 		}
+	}
+
+	/* TEMPORARY: to stop the interval thingy */
+	@SubscribeMessage('stop')
+	private stopGame(client: Socket): void {
+		client.disconnect(true);
 	}
 
 	/* -- MATCHMAKING --------------------------------------------------------- */
@@ -173,51 +192,59 @@ export class GameGateway {
 	private matchmake(match: Match): void {
 		match.player1.socket.emit('matchFound');
 		match.player2.socket.emit('matchFound');
-		/* TODO: NEEDS TESTING !! */
 		const new_timeout: TimeoutId = {
-				match: match.name,
-				id: setTimeout(this.checkTimeout, matchmaking_timeout, this, match)
+			match: match.name,
+			id: setTimeout(this.matchTimeout, Constants.matchmaking_timeout, this, match)
 		};
 		this.timeout_checker.push(new_timeout);
 	}
 
-	private checkTimeout(me: GameGateway, match: Match): void {
+	/* Time out the 2 players if they don't accept the match */
+	private matchTimeout(me: GameGateway, match: Match): void {
 		const index_timeout: number = me.timeout_checker.findIndex((obj) => {
 			return obj.match === match.name;
 		});
 		if (index_timeout < 0)
 			return;
+		console.info('Match timed out');
 		me.game_service.ignore(match);
-		match.player1.socket.emit('timedOut');
 		match.player1.socket.disconnect(true);
-		match.player2.socket.emit('timedOut');
 		match.player2.socket.disconnect(true);
 		me.timeout_checker.splice(index_timeout, 1);
 	}
 
-	private ignoreTimeout(match: Match): void {
+	/* Ignore the timeout id */
+	private ignoreTimeout(match: Match, clear: boolean = false): void {
 		const index_timeout: number = this.timeout_checker.findIndex((obj) => {
 			return obj.match === match.name;
 		});
 		if (index_timeout < 0)
 			return;
-		clearTimeout(this.timeout_checker[index_timeout].id);
+		if (clear)
+			clearTimeout(this.timeout_checker[index_timeout].id);
 		console.info(`Ignored timer ${this.timeout_checker[index_timeout].match}`);
 		this.timeout_checker.splice(index_timeout, 1);
 	}
 
 	/* -- UPDATING TOOLS ------------------------------------------------------ */
 	/* The game will start */
-	private startGame(room: GameRoom): void {
-		//const initial_game_state: GameUpdate = room.startGame();
+	private startGame(me: GameGateway, room: GameRoom): void {
+		console.info(room);
+		me.ignoreTimeout(room.match);
+		const initial_game_state: GameUpdate = room.startGame();
 		// Send the initial ball { pos, v0 }
-		room.match.player1.socket.emit('gameStart', 'Game starting!!');//initial_game_state);
-		room.match.player2.socket.emit('gameStart', 'Game starting!!');//initial_game_state);
-		//room.setPingId(setInterval(this.sendGameUpdates, 20));
+		room.match.player1.socket.emit('gameStart', initial_game_state);
+		room.match.player2.socket.emit('gameStart', initial_game_state);
+		room.setPingId(setInterval(
+			me.sendGameUpdates,
+			16,
+			me,
+			room
+		));
 	}
 
-	/* This will send a GameUpdate every 20ms to both clients in a game */
-	private sendGameUpdates(room: GameRoom): void {
+	/* This will send a GameUpdate every 16ms to both clients in a game */
+	private sendGameUpdates(me: GameGateway, room: GameRoom): void {
 		try {
 			const update: GameUpdate = room.updateGame();
 			console.log(update);
@@ -226,12 +253,23 @@ export class GameGateway {
 		} catch (e) {
 			if (e instanceof ResultsObject) {
 				/* Save results and destroy game */
-				return this.game_service.saveScore(room, e);
+				return me.disconnectRoom(me.game_service.saveScore(room, e));
+			} else if (e === null) { // TEMPORARY: remove this catch
+				console.log('Finish');
+				me.disconnectRoom(room.match);
+				me.game_service.destroyRoom(room);
+			} else {
+				// TODO: handle properly, with error sending
+				// Other error occured, make sure to destroy interval
+				me.disconnectRoom(room.match);
+				throw e;
 			}
-			// Error occured, make sure to destroy interval
-			this.game_service.destroyRoom(room);
-			throw e;
 		}
 	}
 
+	/* -- UTILS --------------------------------------------------------------- */
+	//TODO: make it cleaner
+	private disconnectRoom(match: Match): void {
+		match.player1.socket.disconnect(true);
+	}
 }

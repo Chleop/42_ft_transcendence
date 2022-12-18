@@ -1,40 +1,12 @@
 import {
 	Score,
-	Ball,
 	GameUpdate,
 	Client
 } from '../aliases';
 import { PaddleDto } from '../dto';
-import { PlayerData, ResultsObject } from '../results';
+import { Ball, PlayerData, ResultsObject } from '../objects';
 
-// PLACEHOLDERS =================
-const ping: number = 20;
-const speed_factor: number = 1.005;
-
-/* Height and width, divided by 2 */
-const w_2: number = 8;
-const h_2: number = 4.5;
-
-/* Half of paddle size */
-const paddle_radius: number = 1;
-
-/* Shift paddle from wall */
-const paddle_x: number = 1;
-const max_paddle: number = w_2 - paddle_x; // = 8 - 1 = 7
-
-/* Ball radius */
-const radius: number = 0.2;
-const max_score: number = 3;
-
-const limit_x: number = max_paddle - radius; // 7 - 0.2 = 6.8
-
-// END PLACEHOLDERS =============
-
-
-/*
-	TODO:
- 	- find way to link with service
-*/
+const Constants = require('../constants/constants');
 
 /* Track the state of the game, calculates the accuracy of the incomming data */
 export class Gameplay {
@@ -45,8 +17,10 @@ export class Gameplay {
 	private last_update: number = null;
 
 	constructor() {
-		this.scores.player1_score = 0;
-		this.scores.player2_score = 0;
+		this.scores = {
+			player1_score: 0,
+			player2_score: 0
+		};
 		this.paddle1 = new PaddleDto();
 		this.paddle2 = new PaddleDto();
 	}
@@ -54,59 +28,78 @@ export class Gameplay {
 	/* == PUBLIC ================================================================================== */
 
 	/* -- RESULTS ------------------------------------------------------------- */
-	public getResults(): ResultsObject {
-		return new ResultsObject(
-			new PlayerData(this.scores.player1_score, false),
-			new PlayerData(this.scores.player2_score, false)
-		);
+	public getResults(guilty: number): ResultsObject {
+		if (guilty === 2) {
+			return new ResultsObject(
+				new PlayerData(this.scores.player1_score, true),
+				new PlayerData(this.scores.player2_score, false)
+			);
+		} else {
+			return new ResultsObject(
+				new PlayerData(this.scores.player1_score, false),
+				new PlayerData(this.scores.player2_score, true)
+			);
+		}
 	}
 
 	/* -- UPDATING GAME ------------------------------------------------------- */
 	/* Generate random initial ball velocity vector */
 	public initializeGame(): GameUpdate {
-		this.initializeBall();
+		this.ball = new Ball();
+		console.info('Initializing:');
+		console.info(this.ball);
 		return this.generateUpdate();
 	}
 
+	/* Generates a ball update */
 	public refresh(): GameUpdate {
-		this.refreshBall();
+		//console.info('Refreshing...');
+		const ret: number = this.ball.refresh();
+		if (ret === 1) {
+			// Ball is far right
+			if (!this.ball.checkPaddleCollision(this.paddle1.position)) {
+				this.oneWon();
+			}
+		} else if (ret === -1) {
+			// Ball is far left
+			if (!this.ball.checkPaddleCollision(this.paddle2.position)) {
+				this.twoWon();
+			}
+		}
 		return this.generateUpdate();
 	}
 
-	public checkUpdate(who: number, dto: PaddleDto): PaddleDto {
+	// TODO: Cleanup this function...
+	public checkUpdate(who: number, dto: PaddleDto): {
+		has_cheated: boolean,
+		updated_paddle: PaddleDto
+	} {
 		if (who === 1) {
-			//this.verifyAccuracyPaddle(dto, this.paddle1);
-			this.paddle1 = dto;
+			const checked_value: PaddleDto = this.verifyAccuracyPaddle(dto, this.paddle1);
+			this.paddle1 = checked_value;
 		} else {
-			//this.verifyAccuracyPaddle(dto, this.paddle1);
-			this.paddle2 = dto;
+			const checked_value: PaddleDto = this.verifyAccuracyPaddle(dto, this.paddle2);
+			this.paddle2 = checked_value;
 		}
-		return (dto);
+		// Return corrected paddle if anticheat stroke
+		return {
+			has_cheated: false,
+			updated_paddle: dto
+		};
 	}
 
 	/* -- UTILS --------------------------------------------------------------- */
-	public getScores(): Score {
+	public getScores(): Score { // TODO: useless??
 		return this.scores;
 	}
 
 	/* == PRIVATE ================================================================================= */
 
 	/* -- PADDLE LOOK AT ------------------------------------------------------ */
-	private verifyAccuracyPaddle(dto: PaddleDto, paddle_checked: PaddleDto): void {
+	/* Check if received paddle seems accurate */
+	private verifyAccuracyPaddle(dto: PaddleDto, paddle_checked: PaddleDto): PaddleDto {
 		//TODO anticheat
-		//throw anticheat;
-	}
-
-	private checkPaddleCollision(paddle: PaddleDto): boolean {
-		if (this.ball.y < paddle.position + paddle_radius
-				&& this.ball.y > paddle.position - paddle_radius) {
-			// ball hit paddle
-			this.ball.vx = -this.ball.vx; // Invert direction 
-			this.increaseSpeed();
-			// TODO: shift ball.vy a little depending on position of ball on paddle
-			return true;
-		}
-		return false;
+		return dto;
 	}
 
 	/* -- GAME STATUS UPDATE -------------------------------------------------- */
@@ -119,81 +112,27 @@ export class Gameplay {
 		};
 	}
 
-	private endOfGame(player1: PlayerData, player2: PlayerData): ResultsObject {
-		return new ResultsObject(player1, player2);
-	}
-
+	/* Players 1 marked a point, send results OR reinitialize */
 	private oneWon(): void {
 		this.scores.player1_score++;
-		if (this.scores.player1_score === max_score) {
-			throw this.endOfGame(
+		if (this.scores.player1_score === Constants.max_score) {
+			throw new ResultsObject(
 				new PlayerData(this.scores.player1_score, true),
 				new PlayerData(this.scores.player2_score, false)
 			);
 		}
-		this.initializeBall();
+		this.ball = new Ball();
 	}
 
+	/* Players 2 marked a point, send results OR reinitialize */
 	private twoWon(): void {
 		this.scores.player2_score++;
-		if (this.scores.player2_score === max_score) {
-			throw this.endOfGame(
+		if (this.scores.player2_score === Constants.max_score) {
+			throw new ResultsObject(
 				new PlayerData(this.scores.player1_score, false),
 				new PlayerData(this.scores.player2_score, true)
 			);
 		}
-		this.initializeBall();
+		this.ball = new Ball();
 	}
-
-	/* -- BALL UPDATE --------------------------------------------------------- */
-	private initializeBall(): void {
-		const x: number = Math.random(); //TODO: get limit angle
-		const y: number = Math.random();
-		const v_norm: number = Math.sqrt(x * x + y * y);
-		this.ball = {
-			x: x,
-			y: y,
-			vx: x / v_norm,
-			vy: y / v_norm
-		};
-	}
-
-	/* Send refreshed ball value */
-	private refreshBall(): void {
-		console.info(this.ball);
-		this.refreshY();
-		this.refreshX();
-	}
-
-	/* Refresh on X axis */
-	private refreshX(): void {
-		this.ball.x = this.ball.vx * ping;
-		if (this.ball.x > limit_x) {
-			if (!this.checkPaddleCollision(this.paddle1))
-				return this.twoWon();
-		} else if (this.ball.x < -limit_x) {
-			if (!this.checkPaddleCollision(this.paddle2))
-				return this.oneWon();
-		}
-	}
-
-	/* Refresh on Y axis */
-	private refreshY(): void {
-		const new_y: number = this.ball.vy * ping;
-		if (new_y > h_2) {
-			this.ball.y = h_2;
-		} else if (new_y < -h_2) {
-			this.ball.y = -h_2;
-		} else {
-			this.ball.y = new_y;
-			return;
-		}
-		this.ball.vy = -this.ball.vy;
-	}
-
-	private increaseSpeed(): void {
-		this.ball.vx *= speed_factor;
-		this.ball.vy *= speed_factor;
-	}
-
 }
