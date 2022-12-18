@@ -8,7 +8,7 @@ const initial_speed: number = 5;
 const acceleration: number = 1.005;
 
 /* Value in seconds */
-const ping: number = .0016;
+const ping: number = 16;
 
 /* Height and width, divided by 2 */
 const w_2: number = 8;

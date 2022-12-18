@@ -1,4 +1,10 @@
+import { PaddleDto } from '../dto';
+
 export type AntiCheat = {
-	updated_position: number,
-	updated_velocity: number
+
+	// p1: can be null if no cheat
+	p1: PaddleDto | null,
+
+	// p2: to send back to p2
+	p2: PaddleDto
 };

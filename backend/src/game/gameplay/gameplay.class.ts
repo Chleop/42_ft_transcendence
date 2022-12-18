@@ -50,19 +50,22 @@ export class Gameplay {
 	/* -- UPDATING GAME ------------------------------------------------------- */
 	/* Generate random initial ball velocity vector */
 	public initializeGame(): GameUpdate {
-		//this.initializeBall();
 		this.ball = new Ball();
+		console.info('Initializing:');
+		console.info(this.ball);
 		return this.generateUpdate();
 	}
 
 	public refresh(): GameUpdate {
+		console.info('Refreshing...');
 		const ret: number = this.ball.refresh();
-		// Ball is 
 		if (ret === 1) {
+			// Ball is far right
 			if (!this.ball.checkPaddleCollision(this.paddle1.position)) {
 				this.oneWon();
 			}
 		} else if (ret === -1) {
+			// Ball is far left
 			if (!this.ball.checkPaddleCollision(this.paddle2.position)) {
 				this.twoWon();
 			}
@@ -70,7 +73,7 @@ export class Gameplay {
 		return this.generateUpdate();
 	}
 
-	public checkUpdate(who: number, dto: PaddleDto): PaddleDto {
+	public checkUpdate(who: number, dto: PaddleDto): PaddleDto { // AntiCheat
 		if (who === 1) {
 			this.verifyAccuracyPaddle(dto, this.paddle1);
 			this.paddle1 = dto;
@@ -95,18 +98,6 @@ export class Gameplay {
 		//throw anticheat;
 	}
 
-//	private checkPaddleCollision(paddle: PaddleDto): boolean {
-//		if (this.ball.y < paddle.position + paddle_radius
-//				&& this.ball.y > paddle.position - paddle_radius) {
-//			// ball hit paddle: adjust x position
-//			//this.ball.vx = -this.ball.vx; // Invert direction 
-//			this.ball.shiftBouncing();
-//			this.increaseSpeed();
-//			return true;
-//		}
-//		return false;
-//	}
-
 	/* -- GAME STATUS UPDATE -------------------------------------------------- */
 	/* Generate GameUpdate */
 	private generateUpdate(): GameUpdate {
@@ -125,8 +116,8 @@ export class Gameplay {
 				new PlayerData(this.scores.player2_score, false)
 			);
 		}
+		// Someone lost: Reinitialize ball
 		this.ball = new Ball();
-		//this.initializeBall();
 	}
 
 	private twoWon(): void {
@@ -137,59 +128,8 @@ export class Gameplay {
 				new PlayerData(this.scores.player2_score, true)
 			);
 		}
+		// Someone lost: Reinitialize ball
 		this.ball = new Ball();
-		//this.initializeBall();
 	}
-
-	/* -- BALL UPDATE --------------------------------------------------------- */
-	//private initializeBall(): void {
-	//	const vx: number = Math.random(); //TODO: get limit angle
-	//	const vy: number = Math.random();
-	//	const v_norm: number = Math.sqrt((vx * vx) + (vy * vy));
-	//	this.ball = {
-	//		x: 0,
-	//		y: 0,
-	//		vx: vx / v_norm,
-	//		vy: vy / v_norm
-	//	};
-	//}
-
-	///* Send refreshed ball value */
-	//private refreshBall(): void {
-	//	//console.info(this.ball);
-	//	this.refreshY();
-	//	this.refreshX();
-	//}
-
-	///* Refresh on X axis */
-	//private refreshX(): void {
-	//	this.ball.x = this.ball.vx * ping;
-	//	if (this.ball.x > limit_x) {
-	//		if (!this.checkPaddleCollision(this.paddle1))
-	//			return this.twoWon();
-	//	} else if (this.ball.x < -limit_x) {
-	//		if (!this.checkPaddleCollision(this.paddle2))
-	//			return this.oneWon();
-	//	}
-	//}
-
-	///* Refresh on Y axis */
-	//private refreshY(): void {
-	//	const new_y: number = this.ball.vy * ping;
-	//	if (new_y > h_2) {
-	//		this.ball.y = h_2;
-	//	} else if (new_y < -h_2) {
-	//		this.ball.y = -h_2;
-	//	} else {
-	//		this.ball.y = new_y;
-	//		return;
-	//	}
-	//	this.ball.vy = -this.ball.vy;
-	//}
-
-	//private increaseSpeed(): void {
-	//	this.ball.vx *= speed_factor;
-	//	this.ball.vy *= speed_factor;
-	//}
 
 }

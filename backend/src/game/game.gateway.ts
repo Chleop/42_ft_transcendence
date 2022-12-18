@@ -148,6 +148,9 @@ export class GameGateway {
 				room.match.player1.socket.emit('gameReady', room.match.player2.id);
 				room.match.player2.socket.emit('gameReady', room.match.player1.id);
 				setTimeout(this.startGame, 3000, this, room);
+				setTimeout((o) => { try { o.updateGame(); } catch (e) {} console.info(o); }, 5000, room);
+				setTimeout((o) => { try { o.updateGame(); } catch (e) {} console.info(o); }, 6000, room);
+
 			}
 		} catch (e) {
 			console.info(e);
@@ -210,6 +213,7 @@ export class GameGateway {
 		// Send the initial ball { pos, v0 }
 		room.match.player1.socket.emit('gameStart', initial_game_state);
 		room.match.player2.socket.emit('gameStart', initial_game_state);
+		return ;
 		room.setPingId(setInterval(
 			me.sendGameUpdates,
 //			(me: GameGateway, room: GameRoom) => {
@@ -251,7 +255,8 @@ export class GameGateway {
 				return me.game_service.saveScore(room, e);
 			} else if (e === null) {
 				console.log('finish');
-				me.game_service.destroyRoom(room);
+				room.destroyPing();
+				//me.game_service.destroyRoom(room);
 				return;
 			}
 			// Error occured, make sure to destroy interval

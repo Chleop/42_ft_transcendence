@@ -63,11 +63,6 @@ export class GameRoom {
 		this.ping_id = timer_id;
 	}
 
-	/* Returns the associated setInteval id */
-	//public getPingId(): number {
-	//	return this.ping_id;
-	//}
-
 	/* Destroys associated setInteval instance */
 	public destroyPing(): void {
 		clearInterval(this.ping_id);
