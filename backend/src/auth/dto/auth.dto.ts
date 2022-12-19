@@ -1,16 +1,10 @@
-import { 
-    IsEmail, 
+import {
     IsNotEmpty, 
     IsString 
 } from "class-validator";
 
-export class AuthDto {
+export class TokenAuthDto {
+    @IsNotEmpty()
     @IsString()
-    @IsNotEmpty()
-    name: string;
-
-    @IsEmail()
-    @IsNotEmpty()
-    email: string;
-
+    public token_42: string = "";
 }
