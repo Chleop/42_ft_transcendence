@@ -21,8 +21,8 @@ import { ChannelMessage } from "@prisma/client";
 export class ChannelController {
 	private _channel_service: ChannelService;
 
-	constructor(channel_service: ChannelService) {
-		this._channel_service = channel_service;
+	constructor() {
+		this._channel_service = new ChannelService();
 	}
 
 	@Post()
@@ -35,6 +35,8 @@ export class ChannelController {
 		switch (ret) {
 			case e_status.SUCCESS:
 				break;
+			case e_status.ERR_CHANNEL_PASSWORD_NOT_ALLOWED:
+				throw new BadRequestException("Expected no password");
 			case e_status.ERR_CHANNEL_FIELD_UNAVAILABLE:
 				throw new ForbiddenException("One of the provided fields is already taken");
 			case e_status.ERR_UNKNOWN:

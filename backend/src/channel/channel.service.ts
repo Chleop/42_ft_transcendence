@@ -2,15 +2,16 @@ import { ChannelCreateDto } from "src/channel/dto";
 import { e_status } from "src/channel/enum";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
-import { ChannelMessage } from "@prisma/client";
+import { ChannelMessage, ChanType } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import * as argon2 from "argon2";
 
 @Injectable()
 export class ChannelService {
 	private _prisma: PrismaService;
 
-	constructor(prisma: PrismaService) {
-		this._prisma = prisma;
+	constructor() {
+		this._prisma = new PrismaService();
 	}
 
 	/**
@@ -21,15 +22,29 @@ export class ChannelService {
 	 * @return	A promise containing the status of the operation.
 	 */
 	public async create_one(dto: ChannelCreateDto): Promise<e_status> {
+		let channel_type: ChanType;
+
+		// DBG
+		console.log("Determining channel type...");
+		if (dto.is_private) {
+			if (dto.password) {
+				return e_status.ERR_CHANNEL_PASSWORD_NOT_ALLOWED;
+			}
+			channel_type = ChanType.private;
+		} else if (dto.password) {
+			channel_type = ChanType.protected;
+		} else {
+			channel_type = ChanType.public;
+		}
+
 		try {
 			// DBG
 			console.log("Creating channel...");
 			await this._prisma.channel.create({
 				data: {
 					name: dto.name,
-					// TODO: Hash password before storing it
-					hash: dto.password,
-					chantype: dto.type,
+					hash: dto.password ? await argon2.hash(dto.password) : null,
+					chantype: channel_type,
 				},
 			});
 			// DBG
@@ -40,13 +55,17 @@ export class ChannelService {
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2002":
+						// DBG
+						console.log("Field already taken");
 						return e_status.ERR_CHANNEL_FIELD_UNAVAILABLE;
 				}
 				console.log(error.code);
 			}
-
+			// DBG
+			console.log("Unknown error");
 			return e_status.ERR_UNKNOWN;
 		}
+
 		return e_status.SUCCESS;
 	}
 

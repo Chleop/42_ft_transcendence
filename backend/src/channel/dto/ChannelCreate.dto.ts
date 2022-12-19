@@ -1,5 +1,4 @@
-import { ChanType } from "@prisma/client";
-import { IsBoolean, IsNotEmpty, IsString } from "class-validator";
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class ChannelCreateDto {
 	@IsNotEmpty()
@@ -7,9 +6,10 @@ export class ChannelCreateDto {
 	public name: string = "";
 
 	@IsNotEmpty()
+	@IsOptional()
 	@IsString()
-	public password: string = "";
+	public password?: string;
 
 	@IsBoolean()
-	public type: ChanType = ChanType.public;
+	public is_private: boolean = false;
 }
