@@ -11,83 +11,83 @@ datasource db {
 }
 
 model User {
-  id              String    @id @unique @default(cuid())
-  name            String    @unique
-  email           String    @unique
-  avatar          String    @default("resource/avatar/default.jpg") // !le choix de l'avatar
+  id              String           @id @unique @default(cuid())
+  name            String           @unique
+  email           String?          @unique
+  avatar          String           @default("resource/avatar/default.jpg") // !le choix de l'avatar
   // par defaut se fait au niveau du signup
-  skin            Skin      @relation(fields:[skinId], references: [id])
-  elo             Int       @default(0)
-  twoFactAuth     Boolean   @default(false)
+  skin            Skin             @relation(fields: [skinId], references: [id])
+  elo             Int              @default(0)
+  twoFactAuth     Boolean          @default(false)
   twoFactSecret   String?
-  channels        Channel[] @relation("userchannels")
-  gamesPlayed     Game[]    @relation("gamesplayed")
-  gamesWon        Game[]    @relation("gameswon")
-  friends         User[]    @relation("friendship")
-  blocked         User[]    @relation("blocked")
-// les champs ci-dessous sont neccessaires pour les relations
-// mais ne sont pas accessibles par le client Prisma gra ce a l'attribut 
-// @ignore.
-// Pour utiliser Prisma Studio, commenter les @ignore
-  mirrorOperators Channel[] @relation("chanops") //@ignore
-  mirrorFriends   User[]    @relation("friendship") //@ignore
-  mirrorBlocked   User[]    @relation("blocked") //@ignore
-  mirrorDms       DM[]      @relation("userdms") //@ignore
+  channels        Channel[]        @relation("userchannels")
+  gamesPlayed     Game[]           @relation("gamesplayed")
+  gamesWon        Game[]           @relation("gameswon")
+  friends         User[]           @relation("friendship")
+  blocked         User[]           @relation("blocked")
+  // les champs ci-dessous sont neccessaires pour les relations mais
+  // ne sont pas accessibles par le client Prisma grace a l'attribut 
+  // @ignore.
+  // Pour utiliser Prisma Studio, commenter les @ignore
+  mirrorOperators Channel[]        @relation("chanops") //@ignore
+  mirrorFriends   User[]           @relation("friendship") //@ignore
+  mirrorBlocked   User[]           @relation("blocked") //@ignore
+  mirrorDms       DM[]             @relation("userdms") //@ignore
   mirrorSender    ChannelMessage[] @relation("usermessage") //@ignore
-// les champs ci-dessous sont neccessaires pour les relations
-// mais n'existent pas reellement dans la bdd (foreign keys)
+  // les champs ci-dessous sont neccessaires pour les relations
+  // mais n'existent pas reellement dans la bdd (foreign keys)
   skinId          String
 }
 
 model Channel {
-  id        String    @id @unique @default(cuid())
-  name      String?   @unique
-  chantype  ChanType  @default(public)
+  id        String           @id @unique @default(cuid())
+  name      String?          @unique
+  chanType  ChanType         @default(PUBLIC)
   hash      String?
-  members   User[]    @relation("userchannels")
-  operators User[]    @relation("chanops")
+  members   User[]           @relation("userchannels")
+  operators User[]           @relation("chanops")
   messages  ChannelMessage[] @relation("channelmessage")
 }
 
 model ChannelMessage {
-  id        String  @id @unique @default(cuid())
-  sender    User    @relation("usermessage", fields: [senderid], references: [id])
-  channel   Channel @relation("channelmessage", fields:[channelid], references: [id])
-  datetime  DateTime@default(now())
+  id        String   @id @unique @default(cuid())
+  sender    User     @relation("usermessage", fields: [senderId], references: [id])
+  channel   Channel  @relation("channelmessage", fields: [channelId], references: [id])
+  dateTime  DateTime @default(now())
   content   String
-// les champs ci-dessous sont neccessaires pour les relations
-// mais n'existent pas reellement dans la bdd (foreign keys)
-  senderid  String
-  channelid String
+  // les champs ci-dessous sont neccessaires pour les relations
+  // mais n'existent pas reellement dans la bdd (foreign keys)
+  senderId  String
+  channelId String
 }
 
 model DM {
-  id        String    @id @unique @default(cuid())
-  users     User[]    @relation("userdms")
-  datetime  DateTime  @default(now())
-  content   String
+  id       String   @id @unique @default(cuid())
+  users    User[]   @relation("userdms")
+  dateTime DateTime @default(now())
+  content  String
 }
 
 model Game {
-  id        String  @id @unique @default(cuid())
-  players   User[]  @relation("gamesplayed")
-  winner    User    @relation("gameswon", fields:[winnerid], references: [id])
-  scores    Int[]
-  datetime  DateTime@default(now())
-// les champs ci-dessous sont neccessaires pour les relations
-// mais n'existent pas reellement dans la bdd (foreign keys)
-  winnerid  String
+  id       String   @id @unique @default(cuid())
+  players  User[]   @relation("gamesplayed")
+  winner   User     @relation("gameswon", fields: [winnerId], references: [id])
+  scores   Int[]
+  dateTime DateTime @default(now())
+  // les champs ci-dessous sont neccessaires pour les relations
+  // mais n'existent pas reellement dans la bdd (foreign keys)
+  winnerId String
 }
 
 model Skin {
-  id    String  @id @unique @default(cuid())
-  name  String  @unique
-  url   String  @unique
+  id    String @id @unique @default(cuid())
+  name  String @unique
+  url   String @unique
   users User[]
 }
 
 enum ChanType {
-  public
-  private
-  protected
+  PUBLIC
+  PRIBATE
+  PROTECTED
 }
