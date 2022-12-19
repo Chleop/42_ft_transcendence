@@ -14,9 +14,9 @@ model User {
   id              String    @id @unique @default(cuid())
   name            String    @unique
   email           String    @unique
-  avatar          String    @default("default") // !le choix de l'avatar 
+  avatar          String    @default("resource/avatar/default.jpg") // !le choix de l'avatar
   // par defaut se fait au niveau du signup
-  skin            Skin      @relation(fields:[skinid], references: [id])
+  skin            Skin      @relation(fields:[skinId], references: [id])
   elo             Int       @default(0)
   twoFactAuth     Boolean   @default(false)
   twoFactSecret   String?
@@ -36,7 +36,7 @@ model User {
   mirrorSender    ChannelMessage[] @relation("usermessage") //@ignore
 // les champs ci-dessous sont neccessaires pour les relations
 // mais n'existent pas reellement dans la bdd (foreign keys)
-  skinid          String
+  skinId          String
 }
 
 model Channel {
