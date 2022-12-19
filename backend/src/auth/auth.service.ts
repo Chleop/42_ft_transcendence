@@ -7,7 +7,7 @@ import * as argon from 'argon2';
 @Injectable()
 export class AuthService {
     constructor(private prisma: PrismaService) {}
-    async signup(signupDto: AuthDto) {
+    async login(signupDto: AuthDto) {
         // generate the password hash
         // const hash = await argon.hash(signupDto.password);
         // save the new user in the db
@@ -26,5 +26,29 @@ export class AuthService {
         // return the saved user
         return user;
     };
-    signin() {};
+
+/*
+
+login:
+if access_token && valide && existing user
+    res.welcomepage
+else if state et code dans le header
+    verifie que le state envoye pour la creation de l'appli 42 est bien le meme que celui recu
+    recupere le code
+    renvoie le code + client_id + client_secret + redirect_uri (welcomepage)
+else
+    redirect to 42 API
+    = redirect to https://api.intra.42.fr/oauth/authorize
+    + client_id + client_secret + redirect_uri (42callback??)
+
+42callback:
+    recupere le token42
+    demande name + email a l'API42 avec le token42
+    recupere name + email
+    cree un user
+    cree un access_token pour le user
+
+
+*/
+
 }
