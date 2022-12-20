@@ -1,36 +1,48 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { UserService } from 'src/user/user.service';
+// import { PrismaService } from '../prisma/prisma.service';
 import { TokenAuthDto } from './dto';
 
-@Injectable({})
+@Injectable()
 export class AuthService {
-    // constructor(private prisma: PrismaService) { }
+    // private readonly _prisma: PrismaService;
+    private readonly _user: UserService;
 
-    // public createUserAndAccessToken(tokenAuthDto: TokenAuthDto){
-    //     // generate the password hash
-    //     // const hash = await argon.hash(signupDto.password);
-    //     // save the new user in the db
-    //     // const user = await this.prisma.user.create({
-    //     //     data: {
-    //     //         name: signupDto.name,
-    //     //         email: signupDto.email,
-    //     //         skin: {
-    //     //             create: {
-    //     //                 name: "skin2",
-    //     //                 url: "skin2",
-    //     //             }
-    //     //         }
-    //     //     }
-    //     // })
-    //     // return the saved user
-    //     console.log("DANS LE SERVICE");
-
-    //     return tokenAuthDto.token_42;
-    // };
-
-    signin() {
-        console.log("DANS LE SERVICE");
-        return { msg: 'nininini' };
+    constructor(user: UserService) {
+        this._user = user;
     }
 
-}
+    // public async createUserAndAccessToken(username: string){
+    //     // save the new user in the db
+    //     const user = await this._prisma.user.create({
+    //         data: {
+    //             name: username,
+    //             skin: {
+    //                 connect: { name: "Default" }
+    //             },
+    //         }
+    //     })
+    //     return user.id;
+    // };
+
+
+    public async createUserAndAccessToken(username: string){
+        // create object type
+        type t_fields = {
+			name: string;
+			email: string;
+			two_fact_auth: boolean;
+            two_fact_secret: string;
+		};
+        // create user object
+        const userObj: t_fields = {
+            name: username,
+            email: "lalala",
+			two_fact_auth: false,
+            two_fact_secret: "",
+        };
+        // save the new user in the db
+        return this._user.create_one(userObj);
+    };
+
+};
