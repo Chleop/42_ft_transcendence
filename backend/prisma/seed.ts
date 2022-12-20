@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 async function main() {
 	const skin: Skin = await prisma.skin.create({
 		data: {
+      id: "SkinId",
 			name: "Default",
 			url: "resource/skin/default.jpg",
 		},
@@ -63,23 +64,23 @@ async function main() {
       },
       messages: {
         create: [{
-            senderid: 'majacque',
+            senderId: 'majacque',
             content: "Jesus!",
         },
         {
-            senderid: 'cproesch',
+            senderId: 'cproesch',
             content: "Revient!",
         },
         {
-            senderid: 'etran',
+            senderId: 'etran',
             content: "Jeeesus revient!",
         },
         {
-            senderid: 'majacque',
+            senderId: 'majacque',
             content: "Jesus revient parmis les tiens!",
         },
         {
-            senderid: 'etran',
+            senderId: 'etran',
             content: "Du haut de ta croix montre nous le chemin",
         },
         ]
