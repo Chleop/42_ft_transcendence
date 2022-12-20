@@ -188,7 +188,7 @@ export class UserService {
 	public async update_one(id: string, dto: UserUpdateDto): Promise<e_status> {
 		type t_fields = {
 			name: string;
-			email: string;
+			// email: string;
 			twoFactAuth: boolean;
 			skinId: string;
 		};
@@ -201,7 +201,7 @@ export class UserService {
 			},
 			select: {
 				name: true,
-				email: true,
+				// email: true,
 				twoFactAuth: true,
 				skinId: true,
 			},
@@ -217,7 +217,7 @@ export class UserService {
 		console.log("User found");
 
 		if (dto.name !== undefined) user.name = dto.name;
-		if (dto.email !== undefined) user.email = dto.email;
+		// if (dto.email !== undefined) user.email = dto.email;
 		if (dto.two_fact_auth !== undefined) user.twoFactAuth = dto.two_fact_auth;
 		if (dto.skin_id !== undefined) user.skinId = dto.skin_id;
 
