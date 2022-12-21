@@ -47,9 +47,9 @@ export class UserService {
 			await this._prisma.user.create({
 				data: {
 					name: dto.name,
-					email: dto.email,
-					twoFactAuth: dto.two_fact_auth,
-					twoFactSecret: dto.two_fact_secret,
+					// email: dto.email,
+					// twoFactAuth: dto.two_fact_auth,
+					// twoFactSecret: dto.two_fact_secret,
 					skinId: skin.id,
 				},
 			});
@@ -104,12 +104,12 @@ export class UserService {
 	/**
 	 * @brief	Get a user from the database.
 	 *
-	 * @param	id The id of the user to get.
+	 * @param	name The name of the user to get.
 	 *
 	 * @return	A promise containing the user and the status of the operation.
 	 */
 	public async get_one(
-		id: string,
+		name: string,
 	): Promise<{ user: (User & t_relations) | null; status: e_status }> {
 		// DBG
 		console.log("Searching user...");
@@ -123,7 +123,7 @@ export class UserService {
 				blocked: true,
 			},
 			where: {
-				id: id,
+				name: name,
 			},
 		});
 
