@@ -8,10 +8,10 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
-  imports: [PrismaModule, UserModule, JwtModule.registerAsync({ }),],
+  imports: [PrismaModule, UserModule, ConfigModule, JwtModule.register({}),],
   controllers: [AuthController],
-  providers: [AuthService, UserService],
-  exports: [AuthService, JwtModule],
+  providers: [AuthService, UserService, ConfigService],
+  exports: [AuthService],
 })
 
 export class AuthModule {}
