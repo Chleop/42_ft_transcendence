@@ -16,12 +16,14 @@ import {
 	Put,
 	StreamableFile,
 	UploadedFile,
+	UseGuards,
 	UseInterceptors,
 	UsePipes,
 	ValidationPipe,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { User } from "@prisma/client";
+import { AuthGuard } from "@nestjs/passport";
 
 @Controller("user")
 export class UserController {
@@ -66,6 +68,7 @@ export class UserController {
 		}
 	}
 
+	@UseGuards(AuthGuard('jwt'))
 	@Get(":id")
 	async get_one(@Param("id") id: string): Promise<(User & t_relations) | null> {
 		type t_ret = {

@@ -87,7 +87,8 @@ export class AuthService {
         this._prisma = prisma;
     }
     
-    public async signin(username: string): Promise<string | undefined> {
+    public async signin(username: string): Promise<{ access_token: string | undefined; }> {
+
         // create new user in the database
         const user = await this._prisma.user.create({
             data: {
@@ -97,11 +98,11 @@ export class AuthService {
                 },
             }
         })
-
-        // create access_token
-        const access_token: string | undefined = await this.signToken(user.id);
-
-        return access_token ;
+        
+        // create access_token object and return it
+        type t_access_token = { access_token: string | undefined; };
+        const token: t_access_token = { access_token: await this.signToken(user.id), };
+        return token ;
     };
 
     public async signToken(userId: string | undefined) : Promise<string> {

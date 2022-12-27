@@ -41,9 +41,11 @@ export class AuthController {
 
     @Post('42callback/name')
     async signin(@Body('name') name: string) {
-        var access_token : string | undefined;
+        type t_access_token = { access_token: string | undefined; };
+        var token: t_access_token;
         try {
-            access_token = await this._authService.signin(name);
+            token = await this._authService.signin(name);
+            return token;
         }
         catch (error) {
             console.info(error);
@@ -54,7 +56,6 @@ export class AuthController {
 			else
                 throw new InternalServerErrorException("An unknown error occured");
         }
-        return access_token;
     }
 
 };
