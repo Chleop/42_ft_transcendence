@@ -1,14 +1,18 @@
-import { ChanType, PrismaClient, Skin } from "@prisma/client";
+import { Channel, ChanType, PrismaClient, Skin, User } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+async function delay(ms: number) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function main() {
 	// Delete all data
-	await prisma.user.deleteMany({});
-	await prisma.channel.deleteMany({});
 	await prisma.channelMessage.deleteMany({});
 	await prisma.dM.deleteMany({});
 	await prisma.game.deleteMany({});
+	await prisma.user.deleteMany({});
+	await prisma.channel.deleteMany({});
 	await prisma.skin.deleteMany({});
 
 	// Create default skin
@@ -51,28 +55,30 @@ async function main() {
 	});
 
 	// Create default channels
-	await prisma.channel.createMany({
-		data: [
-			{
-				name: "general",
-				chanType: ChanType.PRIVATE,
-			},
-			{
-				name: "random",
-				chanType: ChanType.PROTECTED,
-				// Password: `pouic`
-				// Salt: `GEwEKCORKkL6IFO5`
-				hash: "$argon2id$v=19$m=16,t=2,p=1$R0V3RUtDT1JLa0w2SUZPNQ$QqeTRY0jOjozzSWEKLaTRw",
-			},
-			{
-				name: "42",
-				chanType: ChanType.PUBLIC,
-			},
-		],
+	const joke: Channel = await prisma.channel.create({
+		data: {
+			name: "joke",
+			chanType: ChanType.PRIVATE,
+		},
+	});
+	const random: Channel = await prisma.channel.create({
+		data: {
+			name: "random",
+			chanType: ChanType.PROTECTED,
+			// Password: `pouic`
+			// Salt: `GEwEKCORKkL6IFO5`
+			hash: "$argon2id$v=19$m=16,t=2,p=1$R0V3RUtDT1JLa0w2SUZPNQ$QqeTRY0jOjozzSWEKLaTRw",
+		},
+	});
+	const general: Channel = await prisma.channel.create({
+		data: {
+			name: "general",
+			chanType: ChanType.PUBLIC,
+		},
 	});
 
 	// Create default userchannels relations
-	await prisma.user.update({
+	const jodufour: User = await prisma.user.update({
 		where: {
 			name: "jodufour",
 		},
@@ -86,7 +92,7 @@ async function main() {
 			},
 		},
 	});
-	await prisma.user.update({
+	const etran: User = await prisma.user.update({
 		where: {
 			name: "etran",
 		},
@@ -103,7 +109,7 @@ async function main() {
 			},
 		},
 	});
-	await prisma.user.update({
+	const majacque: User = await prisma.user.update({
 		where: {
 			name: "majacque",
 		},
@@ -114,13 +120,13 @@ async function main() {
 						name: "general",
 					},
 					{
-						name: "42",
+						name: "joke",
 					},
 				],
 			},
 		},
 	});
-	await prisma.user.update({
+	const cproesch: User = await prisma.user.update({
 		where: {
 			name: "cproesch",
 		},
@@ -131,13 +137,13 @@ async function main() {
 						name: "random",
 					},
 					{
-						name: "42",
+						name: "joke",
 					},
 				],
 			},
 		},
 	});
-	await prisma.user.update({
+	const nmathieu: User = await prisma.user.update({
 		where: {
 			name: "nmathieu",
 		},
@@ -151,10 +157,75 @@ async function main() {
 						name: "random",
 					},
 					{
-						name: "42",
+						name: "joke",
 					},
 				],
 			},
+		},
+	});
+
+	// Create default channel messages
+	for (let i = 0; i < 100; i++) {
+		await prisma.channelMessage.create({
+			data: {
+				content: `general: ${i}`,
+				senderId: jodufour.id,
+				channelId: general.id,
+			},
+		});
+		await delay(100);
+	}
+
+	await prisma.channelMessage.create({
+		data: {
+			content: "Hello World !",
+			senderId: jodufour.id,
+			channelId: general.id,
+		},
+	});
+	await delay(100);
+
+	await prisma.channelMessage.create({
+		data: {
+			content: "How are you ?",
+			senderId: etran.id,
+			channelId: general.id,
+		},
+	});
+	await delay(100);
+
+	await prisma.channelMessage.create({
+		data: {
+			content: "I'm fine, thanks !",
+			senderId: majacque.id,
+			channelId: general.id,
+		},
+	});
+	await delay(100);
+
+	await prisma.channelMessage.create({
+		data: {
+			content: "Hola que tal ?",
+			senderId: cproesch.id,
+			channelId: random.id,
+		},
+	});
+	await delay(100);
+
+	await prisma.channelMessage.create({
+		data: {
+			content: "Muy bien, gracias !",
+			senderId: nmathieu.id,
+			channelId: random.id,
+		},
+	});
+	await delay(100);
+
+	await prisma.channelMessage.create({
+		data: {
+			content: "Did you get it ?...",
+			senderId: majacque.id,
+			channelId: joke.id,
 		},
 	});
 }

@@ -86,6 +86,8 @@ export class ChannelController {
 				break;
 			case e_status.ERR_CHANNEL_NOT_FOUND:
 				throw new BadRequestException("No such channel");
+			case e_status.ERR_CHANNEL_MESSAGE_NOT_FOUND:
+				throw new BadRequestException("No such message");
 			case e_status.ERR_UNKNOWN:
 				throw new InternalServerErrorException("An unknown error occured");
 		}

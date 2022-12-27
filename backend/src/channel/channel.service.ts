@@ -15,6 +15,145 @@ export class ChannelService {
 	}
 
 	/**
+	 * @brief	Get channel's messages which have been sent after a specific one from the database.
+	 *
+	 * @param	id The id of the channel to get the messages from.
+	 * @param	message_id The id of the message to get the messages after.
+	 * @param	limit The maximum number of messages to get.
+	 *
+	 * @return	A promise containing the messages and the status of the operation.
+	 */
+	private async _get_ones_messages_after_a_specific_message(
+		id: string,
+		message_id: string,
+		limit: number,
+	): Promise<{ messages: ChannelMessage[] | null; status: e_status }> {
+		type t_fields = {
+			dateTime: Date;
+		};
+
+		// DBG
+		console.log("Getting messages after a specific message");
+		const message: t_fields | null = await this._prisma.channelMessage.findUnique({
+			where: {
+				id: message_id,
+			},
+			select: {
+				dateTime: true,
+			},
+		});
+
+		if (!message) {
+			// DBG
+			console.log("No such reference message");
+			return { messages: null, status: e_status.ERR_CHANNEL_MESSAGE_NOT_FOUND };
+		}
+
+		const messages: ChannelMessage[] | null = await this._prisma.channelMessage.findMany({
+			where: {
+				channelId: id,
+				dateTime: {
+					gt: message.dateTime,
+				},
+			},
+			orderBy: {
+				dateTime: "asc",
+			},
+			take: limit,
+		});
+
+		// DBG
+		console.log("Messages found");
+		return { messages, status: e_status.SUCCESS };
+	}
+
+	/**
+	 * @brief	Get channel's messages which have been sent before a specific one from the database.
+	 *
+	 * @param	id The id of the channel to get the messages from.
+	 * @param	message_id The id of the message to get the messages before.
+	 * @param	limit The maximum number of messages to get.
+	 *
+	 * @return	A promise containing the messages and the status of the operation.
+	 */
+	private async _get_ones_messages_before_a_specific_message(
+		id: string,
+		message_id: string,
+		limit: number,
+	): Promise<{ messages: ChannelMessage[] | null; status: e_status }> {
+		type t_fields = {
+			dateTime: Date;
+		};
+
+		// DBG
+		console.log("Getting messages before a specific message");
+		const message: t_fields | null = await this._prisma.channelMessage.findUnique({
+			where: {
+				id: message_id,
+			},
+			select: {
+				dateTime: true,
+			},
+		});
+
+		if (!message) {
+			// DBG
+			console.log("No such reference message");
+			return { messages: null, status: e_status.ERR_CHANNEL_MESSAGE_NOT_FOUND };
+		}
+
+		const messages: ChannelMessage[] | null = await this._prisma.channelMessage.findMany({
+			where: {
+				channelId: id,
+				dateTime: {
+					lt: message.dateTime,
+				},
+			},
+			orderBy: {
+				dateTime: "desc",
+			},
+			take: limit,
+		});
+
+		// DBG
+		console.log("Messages found");
+		// Get the most ancient messages first
+		messages.reverse();
+		return { messages, status: e_status.SUCCESS };
+	}
+
+	/**
+	 * @brief	Get channel's most recent messages from the database.
+	 *
+	 * @param	id The id of the channel to get the messages from.
+	 * @param	limit The maximum number of messages to get.
+	 *
+	 * @return	A promise containing the messages and the status of the operation.
+	 */
+	private async _get_ones_most_recent_messages(
+		id: string,
+		limit: number,
+	): Promise<{ messages: ChannelMessage[] | null; status: e_status }> {
+		// DBG
+		console.log("Getting most recent messages");
+		const messages: ChannelMessage[] | null = await this._prisma.channelMessage.findMany({
+			where: {
+				channelId: id,
+			},
+			orderBy: {
+				dateTime: "desc",
+			},
+			take: limit,
+		});
+
+		// DBG
+		console.log("Messages found");
+		// Get the most ancient messages first
+		messages.reverse();
+		return { messages, status: e_status.SUCCESS };
+	}
+
+	/**
 	 * @brief	Create a new channel in the database.
 	 *
 	 * @param	dto The dto containing the data to create the channel.
@@ -112,6 +251,7 @@ export class ChannelService {
 	 * @brief	Get channel's messages from the database.
 	 *
 	 * @param	id The id of the channel to get the messages from.
+	 * @param	dto The dto containing the data to get the messages.
 	 *
 	 * @return	A promise containing the messages and the status of the operation.
 	 */
@@ -119,30 +259,12 @@ export class ChannelService {
 		id: string,
 		dto: ChannelMessageGetDto,
 	): Promise<{ messages: ChannelMessage[] | null; status: e_status }> {
-		type t_fields = {
-			messages: ChannelMessage[];
-		};
-
-		console.log(dto);
-		// DBG
-		console.log("Searching channel...");
-		const channel: t_fields | null = await this._prisma.channel.findUnique({
-			select: {
-				messages: true,
-			},
-			where: {
-				id: id,
-			},
-		});
-
-		if (channel === null) {
-			// DBG
-			console.log("No such channel");
-			return { messages: null, status: e_status.ERR_CHANNEL_NOT_FOUND };
+		if (dto.before) {
+			return this._get_ones_messages_before_a_specific_message(id, dto.before, dto.limit);
+		} else if (dto.after) {
+			return this._get_ones_messages_after_a_specific_message(id, dto.after, dto.limit);
+		} else {
+			return this._get_ones_most_recent_messages(id, dto.limit);
 		}
-
-		// DBG
-		console.log("Channel found");
-		return { messages: channel.messages, status: e_status.SUCCESS };
 	}
 }
