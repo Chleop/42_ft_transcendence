@@ -1,4 +1,4 @@
-import { ChannelCreateDto } from "src/channel/dto";
+import { ChannelCreateDto, ChannelMessageGetDto } from "src/channel/dto";
 import { e_status } from "src/channel/enum";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
@@ -30,11 +30,11 @@ export class ChannelService {
 			if (dto.password) {
 				return e_status.ERR_CHANNEL_PASSWORD_NOT_ALLOWED;
 			}
-			channel_type = ChanType.private;
+			channel_type = ChanType.PRIVATE;
 		} else if (dto.password) {
-			channel_type = ChanType.protected;
+			channel_type = ChanType.PROTECTED;
 		} else {
-			channel_type = ChanType.public;
+			channel_type = ChanType.PUBLIC;
 		}
 
 		try {
@@ -44,7 +44,7 @@ export class ChannelService {
 				data: {
 					name: dto.name,
 					hash: dto.password ? await argon2.hash(dto.password) : null,
-					chantype: channel_type,
+					chanType: channel_type,
 				},
 			});
 			// DBG
@@ -117,11 +117,13 @@ export class ChannelService {
 	 */
 	public async get_ones_messages(
 		id: string,
+		dto: ChannelMessageGetDto,
 	): Promise<{ messages: ChannelMessage[] | null; status: e_status }> {
 		type t_fields = {
 			messages: ChannelMessage[];
 		};
 
+		console.log(dto);
 		// DBG
 		console.log("Searching channel...");
 		const channel: t_fields | null = await this._prisma.channel.findUnique({

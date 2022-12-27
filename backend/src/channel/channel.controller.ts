@@ -10,10 +10,11 @@ import {
 	Param,
 	Patch,
 	Post,
+	Query,
 	UsePipes,
 	ValidationPipe,
 } from "@nestjs/common";
-import { ChannelCreateDto } from "src/channel/dto/ChannelCreate.dto";
+import { ChannelCreateDto, ChannelJoinDto, ChannelMessageGetDto } from "src/channel/dto";
 import { e_status } from "src/channel/enum";
 import { ChannelMessage } from "@prisma/client";
 
@@ -61,13 +62,24 @@ export class ChannelController {
 	}
 
 	@Get(":id/message")
-	async get_ones_messages(@Param("id") id: string): Promise<ChannelMessage[] | null> {
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	async get_ones_messages(
+		@Param("id") id: string,
+		@Query() dto: ChannelMessageGetDto,
+	): Promise<ChannelMessage[] | null> {
 		type t_ret = {
 			messages: ChannelMessage[] | null;
 			status: e_status;
 		};
 
-		const ret: t_ret = await this._channel_service.get_ones_messages(id);
+		// DBG
+		console.log(`dto: ${JSON.stringify(dto)}`);
+
+		if (dto.after && dto.before) {
+			throw new BadRequestException("Expected either `before` or `after`");
+		}
+
+		const ret: t_ret = await this._channel_service.get_ones_messages(id, dto);
 
 		switch (ret.status) {
 			case e_status.SUCCESS:
@@ -82,9 +94,10 @@ export class ChannelController {
 	}
 
 	@Patch(":id/join")
-	async join_one(@Param("id") id: string): Promise<void> {
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	async join_one(@Param("id") id: string, @Body() dto: ChannelJoinDto): Promise<void> {
 		// TODO
-		console.log(`Someone wants to join the channel ${id}`);
+		console.log(`User ${dto.user_id} wants to join the channel ${id}`);
 	}
 
 	@Patch(":id/leave")

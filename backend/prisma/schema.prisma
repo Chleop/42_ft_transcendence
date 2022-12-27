@@ -42,7 +42,7 @@ model User {
 model Channel {
   id        String    @id @unique @default(cuid())
   name      String?   @unique
-  chantype  ChanType  @default(public)
+  chanType  ChanType  @default(PUBLIC)
   hash      String?
   members   User[]    @relation("userchannels")
   operators User[]    @relation("chanops")
@@ -51,32 +51,32 @@ model Channel {
 
 model ChannelMessage {
   id        String  @id @unique @default(cuid())
-  sender    User    @relation("usermessage", fields: [senderid], references: [id])
-  channel   Channel @relation("channelmessage", fields:[channelid], references: [id])
-  datetime  DateTime@default(now())
+  sender    User    @relation("usermessage", fields: [senderId], references: [id])
+  channel   Channel @relation("channelmessage", fields:[channelId], references: [id])
+  dateTime  DateTime@default(now())
   content   String
 // les champs ci-dessous sont neccessaires pour les relations
 // mais n'existent pas reellement dans la bdd (foreign keys)
-  senderid  String
-  channelid String
+  senderId  String
+  channelId String
 }
 
 model DM {
   id        String    @id @unique @default(cuid())
   users     User[]    @relation("userdms")
-  datetime  DateTime  @default(now())
+  dateTime  DateTime  @default(now())
   content   String
 }
 
 model Game {
   id        String  @id @unique @default(cuid())
   players   User[]  @relation("gamesplayed")
-  winner    User    @relation("gameswon", fields:[winnerid], references: [id])
+  winner    User    @relation("gameswon", fields:[winnerId], references: [id])
   scores    Int[]
-  datetime  DateTime@default(now())
+  dateTime  DateTime@default(now())
 // les champs ci-dessous sont neccessaires pour les relations
 // mais n'existent pas reellement dans la bdd (foreign keys)
-  winnerid  String
+  winnerId  String
 }
 
 model Skin {
@@ -87,7 +87,7 @@ model Skin {
 }
 
 enum ChanType {
-  public
-  private
-  protected
+  PUBLIC
+  PRIVATE
+  PROTECTED
 }
