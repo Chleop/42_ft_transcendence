@@ -1,8 +1,8 @@
-import { ChannelCreateDto, ChannelMessageGetDto } from "src/channel/dto";
+import { ChannelCreateDto, ChannelJoinDto, ChannelMessageGetDto } from "src/channel/dto";
 import { e_status } from "src/channel/enum";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
-import { ChannelMessage, ChanType } from "@prisma/client";
+import { Channel, ChannelMessage, ChanType } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import * as argon2 from "argon2";
 
@@ -32,8 +32,7 @@ export class ChannelService {
 			dateTime: Date;
 		};
 
-		// DBG
-		console.log("Getting messages after a specific message");
+		console.log("Getting messages after a specific message"); /* DBG */
 		const message: t_fields | null = await this._prisma.channelMessage.findUnique({
 			where: {
 				id: message_id,
@@ -44,8 +43,7 @@ export class ChannelService {
 		});
 
 		if (!message) {
-			// DBG
-			console.log("No such reference message");
+			console.log("No such reference message"); /* DBG */
 			return { messages: null, status: e_status.ERR_CHANNEL_MESSAGE_NOT_FOUND };
 		}
 
@@ -62,8 +60,7 @@ export class ChannelService {
 			take: limit,
 		});
 
-		// DBG
-		console.log("Messages found");
+		console.log("Messages found"); /* DBG */
 		return { messages, status: e_status.SUCCESS };
 	}
 
@@ -85,8 +82,7 @@ export class ChannelService {
 			dateTime: Date;
 		};
 
-		// DBG
-		console.log("Getting messages before a specific message");
+		console.log("Getting messages before a specific message"); /* DBG */
 		const message: t_fields | null = await this._prisma.channelMessage.findUnique({
 			where: {
 				id: message_id,
@@ -97,8 +93,7 @@ export class ChannelService {
 		});
 
 		if (!message) {
-			// DBG
-			console.log("No such reference message");
+			console.log("No such reference message"); /* DBG */
 			return { messages: null, status: e_status.ERR_CHANNEL_MESSAGE_NOT_FOUND };
 		}
 
@@ -115,8 +110,7 @@ export class ChannelService {
 			take: limit,
 		});
 
-		// DBG
-		console.log("Messages found");
+		console.log("Messages found"); /* DBG */
 		// Get the most ancient messages first
 		messages.reverse();
 		return { messages, status: e_status.SUCCESS };
@@ -134,8 +128,7 @@ export class ChannelService {
 		id: string,
 		limit: number,
 	): Promise<{ messages: ChannelMessage[] | null; status: e_status }> {
-		// DBG
-		console.log("Getting most recent messages");
+		console.log("Getting most recent messages"); /* DBG */
 		const messages: ChannelMessage[] | null = await this._prisma.channelMessage.findMany({
 			where: {
 				channelId: id,
@@ -146,8 +139,7 @@ export class ChannelService {
 			take: limit,
 		});
 
-		// DBG
-		console.log("Messages found");
+		console.log("Messages found"); /* DBG */
 		// Get the most ancient messages first
 		messages.reverse();
 		return { messages, status: e_status.SUCCESS };
@@ -163,22 +155,24 @@ export class ChannelService {
 	public async create_one(dto: ChannelCreateDto): Promise<e_status> {
 		let channel_type: ChanType;
 
-		// DBG
-		console.log("Determining channel type...");
+		console.log("Determining channel type..."); /* DBG */
 		if (dto.is_private) {
 			if (dto.password) {
+				console.log("Channel password not allowed for private channels"); /* DBG */
 				return e_status.ERR_CHANNEL_PASSWORD_NOT_ALLOWED;
 			}
+			console.log("Channel type is private"); /* DBG */
 			channel_type = ChanType.PRIVATE;
 		} else if (dto.password) {
+			console.log("Channel type is protected"); /* DBG */
 			channel_type = ChanType.PROTECTED;
 		} else {
+			console.log("Channel type is public"); /* DBG */
 			channel_type = ChanType.PUBLIC;
 		}
 
 		try {
-			// DBG
-			console.log("Creating channel...");
+			console.log("Creating channel..."); /* DBG */
 			await this._prisma.channel.create({
 				data: {
 					name: dto.name,
@@ -186,22 +180,18 @@ export class ChannelService {
 					chanType: channel_type,
 				},
 			});
-			// DBG
-			console.log("Channel created");
+			console.log("Channel created"); /* DBG */
 		} catch (error) {
-			// DBG
-			console.log("Error occured while creating channel");
+			console.log("Error occured while creating channel"); /* DBG */
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2002":
-						// DBG
-						console.log("Field already taken");
+						console.log("Field already taken"); /* DBG */
 						return e_status.ERR_CHANNEL_FIELD_UNAVAILABLE;
 				}
 				console.log(error.code);
 			}
-			// DBG
-			console.log("Unknown error");
+			console.log("Unknown error"); /* DBG */
 			return e_status.ERR_UNKNOWN;
 		}
 
@@ -217,30 +207,24 @@ export class ChannelService {
 	 */
 	public async delete_one(id: string): Promise<e_status> {
 		try {
-			// DBG
-			console.log("Deleting channel...");
+			console.log("Deleting channel..."); /* DBG */
 			await this._prisma.channel.delete({
 				where: {
 					id: id,
 				},
 			});
-			// DBG
-			console.log("Channel deleted");
+			console.log("Channel deleted"); /* DBG */
 		} catch (error) {
-			// DBG
-			console.log("Error occured while deleting channel");
+			console.log("Error occured while deleting channel"); /* DBG */
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2025":
-						// DBG
-						console.log("No such channel");
+						console.log("No such channel"); /* DBG */
 						return e_status.ERR_CHANNEL_NOT_FOUND;
 				}
-				// DBG
-				console.log(error.code);
+				console.log(error.code); /* DBG */
 			}
-			// DBG
-			console.log("Unknown error");
+			console.log("Unknown error"); /* DBG */
 			return e_status.ERR_UNKNOWN;
 		}
 
@@ -287,5 +271,81 @@ export class ChannelService {
 		}
 
 		return ret;
+	}
+
+	/**
+	 * @brief	Make an user join a channel.
+	 *
+	 * @param	id The id of the channel to join.
+	 * @param	dto The dto containing the data to join the channel.
+	 *
+	 * @return	A promise containing the status of the operation.
+	 */
+	public async join_one(id: string, dto: ChannelJoinDto): Promise<e_status> {
+		console.log("Searching for the channel to join..."); /* DBG */
+		const channel: Channel | null = await this._prisma.channel.findUnique({
+			where: {
+				id: id,
+			},
+		});
+		if (!channel) {
+			console.log("No such channel"); /* DBG */
+			return e_status.ERR_CHANNEL_NOT_FOUND;
+		}
+
+		console.log("Checking for already joined..."); /* DBG */
+		if (
+			await this._prisma.channel.count({
+				where: {
+					id: id,
+					members: {
+						some: { id: dto.user_id },
+					},
+				},
+			})
+		) {
+			console.log("Already joined"); /* DBG */
+			return e_status.ERR_CHANNEL_ALREADY_JOINED;
+		}
+
+		console.log("Checking channel type..."); /* DBG */
+		if (channel.chanType === ChanType.PRIVATE) {
+			console.log("Channel is private"); /* DBG */
+			console.log("You cannot join private channels yet"); /* DBG */
+			return e_status.ERR_CHANNEL_PRIVATE;
+		} else if (channel.chanType === ChanType.PROTECTED) {
+			console.log("Channel is protected"); /* DBG */
+			console.log("Checking password..."); /* DBG */
+			if (dto.password === undefined) {
+				console.log("No password provided"); /* DBG */
+				return e_status.ERR_CHANNEL_PASSWORD_MISSING;
+			} else if (!(await argon2.verify(<string>channel.hash, dto.password))) {
+				console.log("Provided password is incorrect"); /* DBG */
+				return e_status.ERR_CHANNEL_PASSWORD_INCORRECT;
+			}
+		} else {
+			console.log("Channel is public"); /* DBG */
+			if (dto.password !== undefined) {
+				console.log("Unexpected provided password"); /* DBG */
+				return e_status.ERR_CHANNEL_PASSWORD_UNEXPECTED;
+			}
+		}
+
+		console.log("Joining channel..."); /* DBG */
+		await this._prisma.channel.update({
+			where: {
+				id: id,
+			},
+			data: {
+				members: {
+					connect: {
+						id: dto.user_id,
+					},
+				},
+			},
+		});
+		console.log("Channel joined"); /* DBG */
+
+		return e_status.SUCCESS;
 	}
 }

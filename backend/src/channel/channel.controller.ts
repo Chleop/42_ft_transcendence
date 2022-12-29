@@ -72,11 +72,8 @@ export class ChannelController {
 			status: e_status;
 		};
 
-		// DBG
-		console.log(`dto: ${JSON.stringify(dto)}`);
-
 		if (dto.after && dto.before) {
-			throw new BadRequestException("Expected either `before` or `after`");
+			throw new BadRequestException("Unexpected both `before` and `after` received");
 		}
 
 		const ret: t_ret = await this._channel_service.get_ones_messages(id, dto);
@@ -95,11 +92,32 @@ export class ChannelController {
 		return ret.messages;
 	}
 
+	// REMIND: Update the return type later, to return the joined channel's data
 	@Patch(":id/join")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async join_one(@Param("id") id: string, @Body() dto: ChannelJoinDto): Promise<void> {
-		// TODO
-		console.log(`User ${dto.user_id} wants to join the channel ${id}`);
+		type t_ret = e_status;
+
+		const ret: t_ret = await this._channel_service.join_one(id, dto);
+
+		switch (ret) {
+			case e_status.SUCCESS:
+				break;
+			case e_status.ERR_CHANNEL_NOT_FOUND:
+				throw new BadRequestException("No such channel");
+			case e_status.ERR_CHANNEL_ALREADY_JOINED:
+				throw new BadRequestException("User already joined");
+			case e_status.ERR_CHANNEL_PRIVATE:
+				throw new BadRequestException("Channel is private");
+			case e_status.ERR_CHANNEL_PASSWORD_MISSING:
+				throw new BadRequestException("Expected a password");
+			case e_status.ERR_CHANNEL_PASSWORD_INCORRECT:
+				throw new BadRequestException("Incorrect password");
+			case e_status.ERR_CHANNEL_PASSWORD_UNEXPECTED:
+				throw new BadRequestException("Expected no password");
+			case e_status.ERR_UNKNOWN:
+				throw new InternalServerErrorException("An unknown error occured");
+		}
 	}
 
 	@Patch(":id/leave")

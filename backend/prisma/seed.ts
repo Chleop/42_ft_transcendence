@@ -1,11 +1,11 @@
 import { Channel, ChanType, PrismaClient, Skin, User } from "@prisma/client";
+import * as argon2 from "argon2";
 
 const prisma = new PrismaClient();
 
 async function delay(ms: number) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
 async function main() {
 	// Delete all data
 	await prisma.channelMessage.deleteMany({});
@@ -65,9 +65,7 @@ async function main() {
 		data: {
 			name: "random",
 			chanType: ChanType.PROTECTED,
-			// Password: `pouic`
-			// Salt: `GEwEKCORKkL6IFO5`
-			hash: "$argon2id$v=19$m=16,t=2,p=1$R0V3RUtDT1JLa0w2SUZPNQ$QqeTRY0jOjozzSWEKLaTRw",
+			hash: await argon2.hash("pouic"),
 		},
 	});
 	const general: Channel = await prisma.channel.create({
