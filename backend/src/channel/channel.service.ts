@@ -259,12 +259,33 @@ export class ChannelService {
 		id: string,
 		dto: ChannelMessageGetDto,
 	): Promise<{ messages: ChannelMessage[] | null; status: e_status }> {
+		type t_ret = {
+			messages: ChannelMessage[] | null;
+			status: e_status;
+		};
+
+		let ret: t_ret;
+
 		if (dto.before) {
-			return this._get_ones_messages_before_a_specific_message(id, dto.before, dto.limit);
+			ret = await this._get_ones_messages_before_a_specific_message(
+				id,
+				dto.before,
+				dto.limit,
+			);
 		} else if (dto.after) {
-			return this._get_ones_messages_after_a_specific_message(id, dto.after, dto.limit);
+			ret = await this._get_ones_messages_after_a_specific_message(id, dto.after, dto.limit);
 		} else {
-			return this._get_ones_most_recent_messages(id, dto.limit);
+			ret = await this._get_ones_most_recent_messages(id, dto.limit);
 		}
+
+		if (ret.messages !== null && !ret.messages.length) {
+			// REMIND: Check with Nils if he prefers null or empty array
+			ret.messages = null;
+			if (!(await this._prisma.channel.count({ where: { id: id } }))) {
+				ret.status = e_status.ERR_CHANNEL_NOT_FOUND;
+			}
+		}
+
+		return ret;
 	}
 }

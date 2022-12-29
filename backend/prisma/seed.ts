@@ -76,6 +76,12 @@ async function main() {
 			chanType: ChanType.PUBLIC,
 		},
 	});
+	await prisma.channel.create({
+		data: {
+			name: "desert",
+			chanType: ChanType.PUBLIC,
+		},
+	});
 
 	// Create default userchannels relations
 	const jodufour: User = await prisma.user.update({
