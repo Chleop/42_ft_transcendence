@@ -14,7 +14,12 @@ import {
 	UsePipes,
 	ValidationPipe,
 } from "@nestjs/common";
-import { ChannelCreateDto, ChannelJoinDto, ChannelMessageGetDto } from "src/channel/dto";
+import {
+	ChannelCreateDto,
+	ChannelJoinDto,
+	ChannelLeaveDto,
+	ChannelMessageGetDto,
+} from "src/channel/dto";
 import { e_status } from "src/channel/enum";
 import { ChannelMessage } from "@prisma/client";
 
@@ -121,8 +126,21 @@ export class ChannelController {
 	}
 
 	@Patch(":id/leave")
-	async leave_one(@Param("id") id: string): Promise<void> {
-		// TODO
-		console.log(`Someone wants to leave the channel ${id}`);
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	async leave_one(@Param("id") id: string, @Body() dto: ChannelLeaveDto): Promise<void> {
+		type t_ret = e_status;
+
+		const ret: t_ret = await this._channel_service.leave_one(id, dto);
+
+		switch (ret) {
+			case e_status.SUCCESS:
+				break;
+			case e_status.ERR_CHANNEL_NOT_FOUND:
+				throw new BadRequestException("No such channel");
+			case e_status.ERR_CHANNEL_NOT_JOINED:
+				throw new BadRequestException("User not joined");
+			case e_status.ERR_UNKNOWN:
+				throw new InternalServerErrorException("An unknown error occured");
+		}
 	}
 }

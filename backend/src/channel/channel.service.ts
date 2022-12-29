@@ -1,4 +1,9 @@
-import { ChannelCreateDto, ChannelJoinDto, ChannelMessageGetDto } from "src/channel/dto";
+import {
+	ChannelCreateDto,
+	ChannelJoinDto,
+	ChannelLeaveDto,
+	ChannelMessageGetDto,
+} from "src/channel/dto";
 import { e_status } from "src/channel/enum";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
@@ -29,20 +34,22 @@ export class ChannelService {
 		limit: number,
 	): Promise<{ messages: ChannelMessage[] | null; status: e_status }> {
 		type t_fields = {
+			channelId: string;
 			dateTime: Date;
 		};
 
-		console.log("Getting messages after a specific message"); /* DBG */
+		console.log("Getting messages after a specific message..."); /* DBG */
 		const message: t_fields | null = await this._prisma.channelMessage.findUnique({
 			where: {
 				id: message_id,
 			},
 			select: {
+				channelId: true,
 				dateTime: true,
 			},
 		});
 
-		if (!message) {
+		if (!message || message.channelId !== id) {
 			console.log("No such reference message"); /* DBG */
 			return { messages: null, status: e_status.ERR_CHANNEL_MESSAGE_NOT_FOUND };
 		}
@@ -79,20 +86,22 @@ export class ChannelService {
 		limit: number,
 	): Promise<{ messages: ChannelMessage[] | null; status: e_status }> {
 		type t_fields = {
+			channelId: string;
 			dateTime: Date;
 		};
 
-		console.log("Getting messages before a specific message"); /* DBG */
+		console.log("Getting messages before a specific message..."); /* DBG */
 		const message: t_fields | null = await this._prisma.channelMessage.findUnique({
 			where: {
 				id: message_id,
 			},
 			select: {
+				channelId: true,
 				dateTime: true,
 			},
 		});
 
-		if (!message) {
+		if (!message || message.channelId !== id) {
 			console.log("No such reference message"); /* DBG */
 			return { messages: null, status: e_status.ERR_CHANNEL_MESSAGE_NOT_FOUND };
 		}
@@ -345,6 +354,60 @@ export class ChannelService {
 			},
 		});
 		console.log("Channel joined"); /* DBG */
+
+		return e_status.SUCCESS;
+	}
+
+	/**
+	 * @brief	Make an user leave a channel.
+	 *
+	 * @param	id The id of the channel to leave.
+	 * @param	dto The dto containing the data to leave the channel.
+	 *
+	 * @return	A promise containing the status of the operation.
+	 */
+	public async leave_one(id: string, dto: ChannelLeaveDto): Promise<e_status> {
+		console.log("Searching for the channel to leave..."); /* DBG */
+		const channel: Channel | null = await this._prisma.channel.findUnique({
+			where: {
+				id: id,
+			},
+		});
+
+		if (!channel) {
+			console.log("No such channel"); /* DBG */
+			return e_status.ERR_CHANNEL_NOT_FOUND;
+		}
+
+		console.log("Checking for not joined..."); /* DBG */
+		if (
+			!(await this._prisma.channel.count({
+				where: {
+					id: id,
+					members: {
+						some: { id: dto.user_id },
+					},
+				},
+			}))
+		) {
+			console.log("Not joined"); /* DBG */
+			return e_status.ERR_CHANNEL_NOT_JOINED;
+		}
+
+		console.log("Leaving channel..."); /* DBG */
+		await this._prisma.channel.update({
+			where: {
+				id: id,
+			},
+			data: {
+				members: {
+					disconnect: {
+						id: dto.user_id,
+					},
+				},
+			},
+		});
+		console.log("Channel left"); /* DBG */
 
 		return e_status.SUCCESS;
 	}
