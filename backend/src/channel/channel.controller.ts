@@ -104,12 +104,15 @@ export class ChannelController {
 	// REMIND: Update the return type later, to return the joined channel's data
 	@Patch(":id/join")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async join_one(@Param("id") id: string, @Body() dto: ChannelJoinDto): Promise<void> {
-		type t_ret = e_status;
+	async join_one(@Param("id") id: string, @Body() dto: ChannelJoinDto): Promise<Channel | null> {
+		type t_ret = {
+			channel: Channel | null;
+			status: e_status;
+		};
 
 		const ret: t_ret = await this._channel_service.join_one(id, dto);
 
-		switch (ret) {
+		switch (ret.status) {
 			case e_status.SUCCESS:
 				break;
 			case e_status.ERR_CHANNEL_NOT_FOUND:
@@ -127,6 +130,8 @@ export class ChannelController {
 			case e_status.ERR_UNKNOWN:
 				throw new InternalServerErrorException("An unknown error occured");
 		}
+
+		return ret.channel;
 	}
 
 	@Patch(":id/leave")

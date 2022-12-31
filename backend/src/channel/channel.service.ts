@@ -209,6 +209,7 @@ export class ChannelService {
 			return { channel: null, status: e_status.ERR_UNKNOWN };
 		}
 
+		channel.hash = null;
 		return { channel, status: e_status.SUCCESS };
 	}
 
@@ -298,16 +299,21 @@ export class ChannelService {
 	 *
 	 * @return	A promise containing the status of the operation.
 	 */
-	public async join_one(id: string, dto: ChannelJoinDto): Promise<e_status> {
+	public async join_one(
+		id: string,
+		dto: ChannelJoinDto,
+	): Promise<{ channel: Channel | null; status: e_status }> {
+		let channel: Channel | null;
+
 		console.log("Searching for the channel to join..."); /* DBG */
-		const channel: Channel | null = await this._prisma.channel.findUnique({
+		channel = await this._prisma.channel.findUnique({
 			where: {
 				id: id,
 			},
 		});
 		if (!channel) {
 			console.log("No such channel"); /* DBG */
-			return e_status.ERR_CHANNEL_NOT_FOUND;
+			return { channel: null, status: e_status.ERR_CHANNEL_NOT_FOUND };
 		}
 
 		console.log("Checking for already joined..."); /* DBG */
@@ -322,34 +328,34 @@ export class ChannelService {
 			})
 		) {
 			console.log("Already joined"); /* DBG */
-			return e_status.ERR_CHANNEL_ALREADY_JOINED;
+			return { channel: null, status: e_status.ERR_CHANNEL_ALREADY_JOINED };
 		}
 
 		console.log("Checking channel type..."); /* DBG */
 		if (channel.chanType === ChanType.PRIVATE) {
 			console.log("Channel is private"); /* DBG */
 			console.log("You cannot join private channels yet"); /* DBG */
-			return e_status.ERR_CHANNEL_PRIVATE;
+			return { channel: null, status: e_status.ERR_CHANNEL_PRIVATE };
 		} else if (channel.chanType === ChanType.PROTECTED) {
 			console.log("Channel is protected"); /* DBG */
 			console.log("Checking password..."); /* DBG */
 			if (dto.password === undefined) {
 				console.log("No password provided"); /* DBG */
-				return e_status.ERR_CHANNEL_PASSWORD_MISSING;
+				return { channel: null, status: e_status.ERR_CHANNEL_PASSWORD_MISSING };
 			} else if (!(await argon2.verify(<string>channel.hash, dto.password))) {
 				console.log("Provided password is incorrect"); /* DBG */
-				return e_status.ERR_CHANNEL_PASSWORD_INCORRECT;
+				return { channel: null, status: e_status.ERR_CHANNEL_PASSWORD_INCORRECT };
 			}
 		} else {
 			console.log("Channel is public"); /* DBG */
 			if (dto.password !== undefined) {
 				console.log("Unexpected provided password"); /* DBG */
-				return e_status.ERR_CHANNEL_PASSWORD_UNEXPECTED;
+				return { channel: null, status: e_status.ERR_CHANNEL_PASSWORD_UNEXPECTED };
 			}
 		}
 
 		console.log("Joining channel..."); /* DBG */
-		await this._prisma.channel.update({
+		channel = await this._prisma.channel.update({
 			where: {
 				id: id,
 			},
@@ -363,7 +369,8 @@ export class ChannelService {
 		});
 		console.log("Channel joined"); /* DBG */
 
-		return e_status.SUCCESS;
+		channel.hash = null;
+		return { channel, status: e_status.SUCCESS };
 	}
 
 	/**
