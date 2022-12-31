@@ -271,12 +271,12 @@ export class ChannelService {
 			ret = await this._get_ones_most_recent_messages(id, dto.limit);
 		}
 
-		if (ret.messages !== null && !ret.messages.length) {
-			// REMIND: Check with Nils if he prefers null or empty array
-			ret.messages = null;
-			if (!(await this._prisma.channel.count({ where: { id: id } }))) {
-				ret.status = e_status.ERR_CHANNEL_NOT_FOUND;
-			}
+		if (
+			ret.messages !== null &&
+			!ret.messages.length &&
+			!(await this._prisma.channel.count({ where: { id: id } }))
+		) {
+			ret.status = e_status.ERR_CHANNEL_NOT_FOUND;
 		}
 
 		return ret;
