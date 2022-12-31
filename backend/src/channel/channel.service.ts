@@ -159,30 +159,35 @@ export class ChannelService {
 	 *
 	 * @param	dto The dto containing the data to create the channel.
 	 *
-	 * @return	A promise containing the status of the operation.
+	 * @return	A promise containing the newly created channel's data
+	 * 			and the status of the operation.
 	 */
-	public async create_one(dto: ChannelCreateDto): Promise<e_status> {
+	// TODO: Add the user that created the channel to the channel's members and operators
+	public async create_one(
+		dto: ChannelCreateDto,
+	): Promise<{ channel: Channel | null; status: e_status }> {
 		let channel_type: ChanType;
+		let channel: Channel;
 
 		console.log("Determining channel type..."); /* DBG */
 		if (dto.is_private) {
 			if (dto.password) {
-				console.log("Channel password not allowed for private channels"); /* DBG */
-				return e_status.ERR_CHANNEL_PASSWORD_NOT_ALLOWED;
+				console.log("Channel password not allowed for PRIVATE channels"); /* DBG */
+				return { channel: null, status: e_status.ERR_CHANNEL_PASSWORD_NOT_ALLOWED };
 			}
-			console.log("Channel type is private"); /* DBG */
+			console.log("Channel type is PRIVATE"); /* DBG */
 			channel_type = ChanType.PRIVATE;
 		} else if (dto.password) {
-			console.log("Channel type is protected"); /* DBG */
+			console.log("Channel type is PROTECTED"); /* DBG */
 			channel_type = ChanType.PROTECTED;
 		} else {
-			console.log("Channel type is public"); /* DBG */
+			console.log("Channel type is PUBLIC"); /* DBG */
 			channel_type = ChanType.PUBLIC;
 		}
 
 		try {
 			console.log("Creating channel..."); /* DBG */
-			await this._prisma.channel.create({
+			channel = await this._prisma.channel.create({
 				data: {
 					name: dto.name,
 					hash: dto.password ? await argon2.hash(dto.password) : null,
@@ -196,15 +201,15 @@ export class ChannelService {
 				switch (error.code) {
 					case "P2002":
 						console.log("Field already taken"); /* DBG */
-						return e_status.ERR_CHANNEL_FIELD_UNAVAILABLE;
+						return { channel: null, status: e_status.ERR_CHANNEL_FIELD_UNAVAILABLE };
 				}
 				console.log(error.code);
 			}
 			console.log("Unknown error"); /* DBG */
-			return e_status.ERR_UNKNOWN;
+			return { channel: null, status: e_status.ERR_UNKNOWN };
 		}
 
-		return e_status.SUCCESS;
+		return { channel, status: e_status.SUCCESS };
 	}
 
 	/**
@@ -227,6 +232,9 @@ export class ChannelService {
 			console.log("Error occured while deleting channel"); /* DBG */
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
+					case "P2003":
+						console.log("Channel is not empty"); /* DBG */
+						return e_status.ERR_CHANNEL_NOT_EMPTY;
 					case "P2025":
 						console.log("No such channel"); /* DBG */
 						return e_status.ERR_CHANNEL_NOT_FOUND;
