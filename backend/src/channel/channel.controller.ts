@@ -21,7 +21,11 @@ import {
 	ChannelMessageGetDto,
 } from "src/channel/dto";
 import { e_status } from "src/channel/enum";
-import { t_create_one_return } from "src/channel/alias";
+import {
+	t_create_one_return,
+	t_get_ones_messages_return,
+	t_join_one_return,
+} from "src/channel/alias";
 import { Channel, ChannelMessage } from "@prisma/client";
 
 @Controller("channel")
@@ -75,16 +79,14 @@ export class ChannelController {
 		@Param("id") id: string,
 		@Query() dto: ChannelMessageGetDto,
 	): Promise<ChannelMessage[] | null> {
-		type t_ret = {
-			messages: ChannelMessage[] | null;
-			status: e_status;
-		};
-
 		if (dto.after && dto.before) {
 			throw new BadRequestException("Unexpected both `before` and `after` received");
 		}
 
-		const ret: t_ret = await this._channel_service.get_ones_messages(id, dto);
+		const ret: t_get_ones_messages_return = await this._channel_service.get_ones_messages(
+			id,
+			dto,
+		);
 
 		switch (ret.status) {
 			case e_status.SUCCESS:
@@ -104,12 +106,7 @@ export class ChannelController {
 	@Patch(":id/join")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async join_one(@Param("id") id: string, @Body() dto: ChannelJoinDto): Promise<Channel | null> {
-		type t_ret = {
-			channel: Channel | null;
-			status: e_status;
-		};
-
-		const ret: t_ret = await this._channel_service.join_one(id, dto);
+		const ret: t_join_one_return = await this._channel_service.join_one(id, dto);
 
 		switch (ret.status) {
 			case e_status.SUCCESS:

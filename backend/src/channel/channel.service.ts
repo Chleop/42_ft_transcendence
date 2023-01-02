@@ -5,7 +5,11 @@ import {
 	ChannelMessageGetDto,
 } from "src/channel/dto";
 import { e_status } from "src/channel/enum";
-import { t_create_one_return } from "src/channel/alias";
+import {
+	t_create_one_return,
+	t_get_ones_messages_return,
+	t_join_one_return,
+} from "src/channel/alias";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
 import { Channel, ChannelMessage, ChanType } from "@prisma/client";
@@ -33,7 +37,7 @@ export class ChannelService {
 		id: string,
 		message_id: string,
 		limit: number,
-	): Promise<{ messages: ChannelMessage[] | null; status: e_status }> {
+	): Promise<t_get_ones_messages_return> {
 		type t_fields = {
 			channelId: string;
 			dateTime: Date;
@@ -85,7 +89,7 @@ export class ChannelService {
 		id: string,
 		message_id: string,
 		limit: number,
-	): Promise<{ messages: ChannelMessage[] | null; status: e_status }> {
+	): Promise<t_get_ones_messages_return> {
 		type t_fields = {
 			channelId: string;
 			dateTime: Date;
@@ -137,7 +141,7 @@ export class ChannelService {
 	private async _get_ones_most_recent_messages(
 		id: string,
 		limit: number,
-	): Promise<{ messages: ChannelMessage[] | null; status: e_status }> {
+	): Promise<t_get_ones_messages_return> {
 		console.log("Getting most recent messages"); /* DBG */
 		const messages: ChannelMessage[] | null = await this._prisma.channelMessage.findMany({
 			where: {
@@ -259,7 +263,7 @@ export class ChannelService {
 	public async get_ones_messages(
 		id: string,
 		dto: ChannelMessageGetDto,
-	): Promise<{ messages: ChannelMessage[] | null; status: e_status }> {
+	): Promise<t_get_ones_messages_return> {
 		type t_ret = {
 			messages: ChannelMessage[] | null;
 			status: e_status;
@@ -298,10 +302,7 @@ export class ChannelService {
 	 *
 	 * @return	A promise containing the status of the operation.
 	 */
-	public async join_one(
-		id: string,
-		dto: ChannelJoinDto,
-	): Promise<{ channel: Channel | null; status: e_status }> {
+	public async join_one(id: string, dto: ChannelJoinDto): Promise<t_join_one_return> {
 		let channel: Channel | null;
 
 		console.log("Searching for the channel to join..."); /* DBG */
