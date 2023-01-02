@@ -21,6 +21,7 @@ import {
 	ChannelMessageGetDto,
 } from "src/channel/dto";
 import { e_status } from "src/channel/enum";
+import { t_create_one_return } from "src/channel/alias";
 import { Channel, ChannelMessage } from "@prisma/client";
 
 @Controller("channel")
@@ -34,9 +35,7 @@ export class ChannelController {
 	@Post()
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async create_one(@Body() dto: ChannelCreateDto): Promise<Channel | null> {
-		type t_ret = { channel: Channel | null; status: e_status };
-
-		const ret: t_ret = await this._channel_service.create_one(dto);
+		const ret: t_create_one_return = await this._channel_service.create_one(dto);
 
 		switch (ret.status) {
 			case e_status.SUCCESS:

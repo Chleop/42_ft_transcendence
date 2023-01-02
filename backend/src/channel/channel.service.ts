@@ -5,6 +5,7 @@ import {
 	ChannelMessageGetDto,
 } from "src/channel/dto";
 import { e_status } from "src/channel/enum";
+import { t_create_one_return } from "src/channel/alias";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
 import { Channel, ChannelMessage, ChanType } from "@prisma/client";
@@ -163,10 +164,8 @@ export class ChannelService {
 	 * 			and the status of the operation.
 	 */
 	// TODO: Add the user that created the channel to the channel's members and operators
-	public async create_one(
-		dto: ChannelCreateDto,
-	): Promise<{ channel: Channel | null; status: e_status }> {
-		let channel_type: ChanType;
+	public async create_one(dto: ChannelCreateDto): Promise<t_create_one_return> {
+		let type: ChanType;
 		let channel: Channel;
 
 		console.log("Determining channel type..."); /* DBG */
@@ -176,13 +175,13 @@ export class ChannelService {
 				return { channel: null, status: e_status.ERR_CHANNEL_PASSWORD_NOT_ALLOWED };
 			}
 			console.log("Channel type is PRIVATE"); /* DBG */
-			channel_type = ChanType.PRIVATE;
+			type = ChanType.PRIVATE;
 		} else if (dto.password) {
 			console.log("Channel type is PROTECTED"); /* DBG */
-			channel_type = ChanType.PROTECTED;
+			type = ChanType.PROTECTED;
 		} else {
 			console.log("Channel type is PUBLIC"); /* DBG */
-			channel_type = ChanType.PUBLIC;
+			type = ChanType.PUBLIC;
 		}
 
 		try {
@@ -191,7 +190,7 @@ export class ChannelService {
 				data: {
 					name: dto.name,
 					hash: dto.password ? await argon2.hash(dto.password) : null,
-					chanType: channel_type,
+					chanType: type,
 				},
 			});
 			console.log("Channel created"); /* DBG */
