@@ -22,9 +22,9 @@ import {
 } from "src/channel/dto";
 import { e_status } from "src/channel/enum";
 import {
-	t_create_one_return,
-	t_get_ones_messages_return,
-	t_join_one_return,
+	t_return_create_one,
+	t_return_get_ones_messages,
+	t_return_join_one,
 } from "src/channel/alias";
 import { Channel, ChannelMessage } from "@prisma/client";
 
@@ -39,7 +39,7 @@ export class ChannelController {
 	@Post()
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async create_one(@Body() dto: ChannelCreateDto): Promise<Channel | null> {
-		const ret: t_create_one_return = await this._channel_service.create_one(dto);
+		const ret: t_return_create_one = await this._channel_service.create_one(dto);
 
 		switch (ret.status) {
 			case e_status.SUCCESS:
@@ -83,7 +83,7 @@ export class ChannelController {
 			throw new BadRequestException("Unexpected both `before` and `after` received");
 		}
 
-		const ret: t_get_ones_messages_return = await this._channel_service.get_ones_messages(
+		const ret: t_return_get_ones_messages = await this._channel_service.get_ones_messages(
 			id,
 			dto,
 		);
@@ -106,7 +106,7 @@ export class ChannelController {
 	@Patch(":id/join")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async join_one(@Param("id") id: string, @Body() dto: ChannelJoinDto): Promise<Channel | null> {
-		const ret: t_join_one_return = await this._channel_service.join_one(id, dto);
+		const ret: t_return_join_one = await this._channel_service.join_one(id, dto);
 
 		switch (ret.status) {
 			case e_status.SUCCESS:
@@ -115,8 +115,8 @@ export class ChannelController {
 				throw new BadRequestException("No such channel");
 			case e_status.ERR_CHANNEL_ALREADY_JOINED:
 				throw new BadRequestException("User already joined");
-			case e_status.ERR_CHANNEL_PRIVATE:
-				throw new BadRequestException("Channel is private");
+			case e_status.ERR_CHANNEL_INVITATION_INCORRECT:
+				throw new BadRequestException("Incorrect invitation");
 			case e_status.ERR_CHANNEL_PASSWORD_MISSING:
 				throw new BadRequestException("Expected a password");
 			case e_status.ERR_CHANNEL_PASSWORD_INCORRECT:

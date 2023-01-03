@@ -6,9 +6,9 @@ import {
 } from "src/channel/dto";
 import { e_status } from "src/channel/enum";
 import {
-	t_create_one_return,
-	t_get_ones_messages_return,
-	t_join_one_return,
+	t_return_create_one,
+	t_return_get_ones_messages,
+	t_return_join_one,
 } from "src/channel/alias";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
@@ -37,7 +37,7 @@ export class ChannelService {
 		id: string,
 		message_id: string,
 		limit: number,
-	): Promise<t_get_ones_messages_return> {
+	): Promise<t_return_get_ones_messages> {
 		type t_fields = {
 			channelId: string;
 			dateTime: Date;
@@ -89,7 +89,7 @@ export class ChannelService {
 		id: string,
 		message_id: string,
 		limit: number,
-	): Promise<t_get_ones_messages_return> {
+	): Promise<t_return_get_ones_messages> {
 		type t_fields = {
 			channelId: string;
 			dateTime: Date;
@@ -141,7 +141,7 @@ export class ChannelService {
 	private async _get_ones_most_recent_messages(
 		id: string,
 		limit: number,
-	): Promise<t_get_ones_messages_return> {
+	): Promise<t_return_get_ones_messages> {
 		console.log("Getting most recent messages"); /* DBG */
 		const messages: ChannelMessage[] | null = await this._prisma.channelMessage.findMany({
 			where: {
@@ -168,7 +168,7 @@ export class ChannelService {
 	 * 			and the status of the operation.
 	 */
 	// TODO: Add the user that created the channel to the channel's members and operators
-	public async create_one(dto: ChannelCreateDto): Promise<t_create_one_return> {
+	public async create_one(dto: ChannelCreateDto): Promise<t_return_create_one> {
 		let type: ChanType;
 		let channel: Channel;
 
@@ -263,7 +263,7 @@ export class ChannelService {
 	public async get_ones_messages(
 		id: string,
 		dto: ChannelMessageGetDto,
-	): Promise<t_get_ones_messages_return> {
+	): Promise<t_return_get_ones_messages> {
 		type t_ret = {
 			messages: ChannelMessage[] | null;
 			status: e_status;
@@ -302,7 +302,7 @@ export class ChannelService {
 	 *
 	 * @return	A promise containing the status of the operation.
 	 */
-	public async join_one(id: string, dto: ChannelJoinDto): Promise<t_join_one_return> {
+	public async join_one(id: string, dto: ChannelJoinDto): Promise<t_return_join_one> {
 		let channel: Channel | null;
 
 		console.log("Searching for the channel to join..."); /* DBG */
@@ -322,7 +322,7 @@ export class ChannelService {
 				where: {
 					id: id,
 					members: {
-						some: { id: dto.user_id },
+						some: { id: dto.joining_user_id },
 					},
 				},
 			})
@@ -334,8 +334,25 @@ export class ChannelService {
 		console.log("Checking channel type..."); /* DBG */
 		if (channel.chanType === ChanType.PRIVATE) {
 			console.log("Channel is private"); /* DBG */
-			console.log("You cannot join private channels yet"); /* DBG */
-			return { channel: null, status: e_status.ERR_CHANNEL_PRIVATE };
+			if (dto.password !== undefined) {
+				console.log("Unexpected provided password"); /* DBG */
+				return { channel: null, status: e_status.ERR_CHANNEL_PASSWORD_UNEXPECTED };
+			}
+			console.log("Checking invitation..."); /* DBG */
+			if (
+				dto.inviting_user_id === undefined ||
+				!(await this._prisma.channel.count({
+					where: {
+						id: id,
+						members: {
+							some: { id: dto.inviting_user_id },
+						},
+					},
+				}))
+			) {
+				console.log("Invitation is incorrect"); /* DBG */
+				return { channel: null, status: e_status.ERR_CHANNEL_INVITATION_INCORRECT };
+			}
 		} else if (channel.chanType === ChanType.PROTECTED) {
 			console.log("Channel is protected"); /* DBG */
 			console.log("Checking password..."); /* DBG */
@@ -362,7 +379,7 @@ export class ChannelService {
 			data: {
 				members: {
 					connect: {
-						id: dto.user_id,
+						id: dto.joining_user_id,
 					},
 				},
 			},
