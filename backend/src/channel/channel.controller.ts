@@ -48,6 +48,8 @@ export class ChannelController {
 				throw new BadRequestException("Expected no password");
 			case e_status.ERR_CHANNEL_FIELD_UNAVAILABLE:
 				throw new ForbiddenException("One of the provided fields is already taken");
+			case e_status.ERR_CHANNEL_RELATION_NOT_FOUND:
+				throw new BadRequestException("One of the provided relations does not exist");
 			case e_status.ERR_UNKNOWN:
 				throw new InternalServerErrorException("An unknown error occured");
 		}
@@ -66,8 +68,6 @@ export class ChannelController {
 				break;
 			case e_status.ERR_CHANNEL_NOT_FOUND:
 				throw new BadRequestException("No such channel");
-			case e_status.ERR_CHANNEL_NOT_EMPTY:
-				throw new ForbiddenException("Channel is not empty");
 			case e_status.ERR_UNKNOWN:
 				throw new InternalServerErrorException("An unknown error occured");
 		}
@@ -117,6 +117,8 @@ export class ChannelController {
 				throw new BadRequestException("User already joined");
 			case e_status.ERR_CHANNEL_INVITATION_INCORRECT:
 				throw new BadRequestException("Incorrect invitation");
+			case e_status.ERR_CHANNEL_INVITATION_UNEXPECTED:
+				throw new BadRequestException("Expected no invitation");
 			case e_status.ERR_CHANNEL_PASSWORD_MISSING:
 				throw new BadRequestException("Expected a password");
 			case e_status.ERR_CHANNEL_PASSWORD_INCORRECT:

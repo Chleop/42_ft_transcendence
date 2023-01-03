@@ -167,7 +167,6 @@ export class ChannelService {
 	 * @return	A promise containing the newly created channel's data
 	 * 			and the status of the operation.
 	 */
-	// TODO: Add the user that created the channel to the channel's members and operators
 	public async create_one(dto: ChannelCreateDto): Promise<t_return_create_one> {
 		let type: ChanType;
 		let channel: Channel;
@@ -195,6 +194,16 @@ export class ChannelService {
 					name: dto.name,
 					hash: dto.password ? await argon2.hash(dto.password) : null,
 					chanType: type,
+					members: {
+						connect: {
+							id: dto.user_id,
+						},
+					},
+					operators: {
+						connect: {
+							id: dto.user_id,
+						},
+					},
 				},
 			});
 			console.log("Channel created"); /* DBG */
@@ -205,6 +214,9 @@ export class ChannelService {
 					case "P2002":
 						console.log("Field already taken"); /* DBG */
 						return { channel: null, status: e_status.ERR_CHANNEL_FIELD_UNAVAILABLE };
+					case "P2025":
+						console.log("No such user"); /* DBG */
+						return { channel: null, status: e_status.ERR_CHANNEL_RELATION_NOT_FOUND };
 				}
 				console.log(error.code);
 			}
@@ -225,6 +237,12 @@ export class ChannelService {
 	 */
 	public async delete_one(id: string): Promise<e_status> {
 		try {
+			console.log("Deleting channel's messages..."); /* DBG */
+			await this._prisma.channelMessage.deleteMany({
+				where: {
+					channelId: id,
+				},
+			});
 			console.log("Deleting channel..."); /* DBG */
 			await this._prisma.channel.delete({
 				where: {
@@ -236,9 +254,6 @@ export class ChannelService {
 			console.log("Error occured while deleting channel"); /* DBG */
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
-					case "P2003":
-						console.log("Channel is not empty"); /* DBG */
-						return e_status.ERR_CHANNEL_NOT_EMPTY;
 					case "P2025":
 						console.log("No such channel"); /* DBG */
 						return e_status.ERR_CHANNEL_NOT_FOUND;
@@ -355,6 +370,10 @@ export class ChannelService {
 			}
 		} else if (channel.chanType === ChanType.PROTECTED) {
 			console.log("Channel is protected"); /* DBG */
+			if (dto.inviting_user_id !== undefined) {
+				console.log("Unexpected provided invitation"); /* DBG */
+				return { channel: null, status: e_status.ERR_CHANNEL_INVITATION_UNEXPECTED };
+			}
 			console.log("Checking password..."); /* DBG */
 			if (dto.password === undefined) {
 				console.log("No password provided"); /* DBG */
