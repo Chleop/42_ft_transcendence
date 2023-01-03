@@ -102,7 +102,6 @@ export class ChannelController {
 		return ret.messages;
 	}
 
-	// REMIND: Update the return type later, to return the joined channel's data
 	@Patch(":id/join")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async join_one(@Param("id") id: string, @Body() dto: ChannelJoinDto): Promise<Channel | null> {
