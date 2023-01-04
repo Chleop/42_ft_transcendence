@@ -1,9 +1,9 @@
-import { t_relations } from "./alias";
-import { UserCreateDto, UserUpdateDto } from "./dto";
-import { e_status } from "./enum";
+import { t_relations } from "src/user/alias";
+import { UserCreateDto, UserUpdateDto } from "src/user/dto";
+import { e_status } from "src/user/enum";
+import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, StreamableFile } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-import { PrismaService } from "src/prisma/prisma.service";
 import { User } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
@@ -12,8 +12,8 @@ import { join } from "path";
 export class UserService {
 	private _prisma: PrismaService;
 
-	constructor(prisma: PrismaService) {
-		this._prisma = prisma;
+	constructor() {
+		this._prisma = new PrismaService();
 	}
 
 	/**
@@ -28,6 +28,7 @@ export class UserService {
 			id: string;
 		};
 
+		console.log("Getting default skin..."); /* DBG */
 		const skin: t_fields | null = await this._prisma.skin.findUnique({
 			where: {
 				name: "Default",
@@ -37,13 +38,13 @@ export class UserService {
 			},
 		});
 
-		if (skin === null) {
+		if (!skin) {
+			console.log("No such skin"); /* DBG */
 			return e_status.ERR_USER_RELATION_NOT_FOUND;
 		}
 
 		try {
-			// DBG
-			console.log("Creating user...");
+			console.log("Creating user..."); /* DBG */
 			await this._prisma.user.create({
 				data: {
 					name: dto.name,
@@ -53,19 +54,18 @@ export class UserService {
 					skinId: skin.id,
 				},
 			});
-			// DBG
-			console.log("User created");
+			console.log("User created"); /* DBG */
 		} catch (error) {
-			// DBG
-			console.log("Error occured while creating user");
+			console.log("Error occured while creating user"); /* DBG */
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2002":
+						console.log("Field already taken"); /* DBG */
 						return e_status.ERR_USER_FIELD_UNAVAILABLE;
 				}
-				console.log(error.code);
+				console.log(error.code); /* DBG */
 			}
-
+			console.log("Unknown error"); /* DBG */
 			return e_status.ERR_UNKNOWN;
 		}
 
@@ -81,23 +81,27 @@ export class UserService {
 	 */
 	public async delete_one(id: string): Promise<e_status> {
 		try {
-			// DBG
-			console.log("Deleting user...");
+			console.log("Deleting user..."); /* DBG */
 			await this._prisma.user.delete({
 				where: {
 					id: id,
 				},
 			});
-			// DBG
-			console.log("User deleted");
+			console.log("User deleted"); /* DBG */
 		} catch (error) {
-			// DBG
-			console.log("Error occured while deleting user");
-			if (error instanceof PrismaClientKnownRequestError && error.code === "P2025") {
-				return e_status.ERR_USER_NOT_FOUND;
+			console.log("Error occured while deleting user"); /* DBG */
+			if (error instanceof PrismaClientKnownRequestError) {
+				switch (error.code) {
+					case "P2025":
+						console.log("No such user"); /* DBG */
+						return e_status.ERR_USER_NOT_FOUND;
+				}
+				console.log(error.code); /* DBG */
 			}
+			console.log("Unknown error"); /* DBG */
 			return e_status.ERR_UNKNOWN;
 		}
+
 		return e_status.SUCCESS;
 	}
 
@@ -111,8 +115,7 @@ export class UserService {
 	public async get_one(
 		id: string,
 	): Promise<{ user: (User & t_relations) | null; status: e_status }> {
-		// DBG
-		console.log("Searching user...");
+		console.log("Searching user..."); /* DBG */
 		const user: (User & t_relations) | null = await this._prisma.user.findUnique({
 			include: {
 				skin: true,
@@ -127,15 +130,19 @@ export class UserService {
 			},
 		});
 
-		if (user === null) {
-			// DBG
-			console.log("No such user");
-			return { user: null, status: e_status.ERR_USER_NOT_FOUND };
+		if (!user) {
+			console.log("No such user"); /* DBG */
+			return {
+				user: null,
+				status: e_status.ERR_USER_NOT_FOUND,
+			};
 		}
 
-		// DBG
-		console.log("User found");
-		return { user, status: e_status.SUCCESS };
+		console.log("User found"); /* DBG */
+		return {
+			user,
+			status: e_status.SUCCESS,
+		};
 	}
 
 	/**
@@ -152,8 +159,7 @@ export class UserService {
 			avatar: string;
 		};
 
-		// DBG
-		console.log("Searching user...");
+		console.log("Searching user..."); /* DBG */
 		const user: t_fields | null = await this._prisma.user.findUnique({
 			select: {
 				avatar: true,
@@ -163,14 +169,15 @@ export class UserService {
 			},
 		});
 
-		if (user === null) {
-			// DBG
-			console.log("No such user");
-			return { sfile: null, status: e_status.ERR_USER_NOT_FOUND };
+		if (!user) {
+			console.log("No such user"); /* DBG */
+			return {
+				sfile: null,
+				status: e_status.ERR_USER_NOT_FOUND,
+			};
 		}
 
-		// DBG
-		console.log("User found");
+		console.log("User found"); /* DBG */
 		return {
 			sfile: new StreamableFile(createReadStream(join(process.cwd(), user.avatar))),
 			status: e_status.SUCCESS,
@@ -193,8 +200,7 @@ export class UserService {
 			skinId: string;
 		};
 
-		// DBG
-		console.log("Searching user...");
+		console.log("Searching user..."); /* DBG */
 		const user: t_fields | null = await this._prisma.user.findUnique({
 			where: {
 				id: id,
@@ -207,14 +213,12 @@ export class UserService {
 			},
 		});
 
-		if (user === null) {
-			// DBG
-			console.log("No such user");
+		if (!user) {
+			console.log("No such user"); /* DBG */
 			return e_status.ERR_USER_NOT_FOUND;
 		}
 
-		// DBG
-		console.log("User found");
+		console.log("User found"); /* DBG */
 
 		if (dto.name !== undefined) user.name = dto.name;
 		if (dto.email !== undefined) user.email = dto.email;
@@ -222,19 +226,16 @@ export class UserService {
 		if (dto.skin_id !== undefined) user.skinId = dto.skin_id;
 
 		try {
-			// DBG
-			console.log("Updating user...");
+			console.log("Updating user..."); /* DBG */
 			await this._prisma.user.update({
 				where: {
 					id: id,
 				},
 				data: user,
 			});
-			// DBG
-			console.log("User updated");
+			console.log("User updated"); /* DBG */
 		} catch (error) {
-			// DBG
-			console.log("Error occured while updating user");
+			console.log("Error occured while updating user"); /* DBG */
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2002":
@@ -260,8 +261,7 @@ export class UserService {
 			avatar: string;
 		};
 
-		// DBG
-		console.log("Searching user...");
+		console.log("Searching user..."); /* DBG */
 		const user: t_fields | null = await this._prisma.user.findUnique({
 			where: {
 				id: id,
@@ -271,36 +271,29 @@ export class UserService {
 			},
 		});
 
-		if (user === null) {
-			// DBG
-			console.log("No such user");
+		if (!user) {
+			console.log("No such user"); /* DBG */
 			return e_status.ERR_USER_NOT_FOUND;
 		}
 
-		// DBG
-		console.log("User found");
+		console.log("User found"); /* DBG */
 
-		// DBG
-		console.log("Updating user's avatar...");
+		console.log("Updating user's avatar..."); /* DBG */
 		if (user.avatar === "resource/avatar/default.jpg") {
-			// DBG
-			console.log("User's avatar is default, creating new one");
+			console.log("User's avatar is default, creating new one"); /* DBG */
 			user.avatar = `resource/avatar/${id}.jpg`;
 
 			try {
-				// DBG
-				console.log("Updating user...");
+				console.log("Updating user..."); /* DBG */
 				await this._prisma.user.update({
 					where: {
 						id: id,
 					},
 					data: user,
 				});
-				// DBG
-				console.log("User updated");
+				console.log("User updated"); /* DBG */
 			} catch (error) {
-				// DBG
-				console.log("Error occured while updating user");
+				console.log("Error occured while updating user"); /* DBG */
 				if (error instanceof PrismaClientKnownRequestError) {
 					console.log(error.code);
 				}
@@ -309,8 +302,7 @@ export class UserService {
 		}
 		createWriteStream(join(process.cwd(), user.avatar)).write(file.buffer);
 
-		// DBG
-		console.log("User's avatar updated");
+		console.log("User's avatar updated"); /* DBG */
 		return e_status.SUCCESS;
 	}
 }

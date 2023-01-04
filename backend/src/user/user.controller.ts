@@ -1,7 +1,7 @@
-import { t_relations } from "./alias";
-import { UserCreateDto, UserUpdateDto } from "./dto";
-import { e_status } from "./enum";
-import { UserService } from "./user.service";
+import { t_relations } from "src/user/alias";
+import { UserCreateDto, UserUpdateDto } from "src/user/dto";
+import { e_status } from "src/user/enum";
+import { UserService } from "src/user/user.service";
 import {
 	BadRequestException,
 	Body,
@@ -27,8 +27,8 @@ import { User } from "@prisma/client";
 export class UserController {
 	private _user_service: UserService;
 
-	constructor(user_service: UserService) {
-		this._user_service = user_service;
+	constructor() {
+		this._user_service = new UserService();
 	}
 
 	@Post()
