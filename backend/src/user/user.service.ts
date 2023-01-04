@@ -1,4 +1,9 @@
-import { t_relations } from "src/user/alias";
+import {
+	t_relations,
+	t_return_create_one,
+	t_return_get_one,
+	t_return_get_ones_avatar,
+} from "src/user/alias";
 import { UserCreateDto, UserUpdateDto } from "src/user/dto";
 import { e_status } from "src/user/enum";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -23,7 +28,7 @@ export class UserService {
 	 *
 	 * @return	A promise containing the status of the operation.
 	 */
-	public async create_one(dto: UserCreateDto): Promise<e_status> {
+	public async create_one(dto: UserCreateDto): Promise<t_return_create_one> {
 		type t_fields = {
 			id: string;
 		};
@@ -40,20 +45,27 @@ export class UserService {
 
 		if (!skin) {
 			console.log("No such skin"); /* DBG */
-			return e_status.ERR_USER_RELATION_NOT_FOUND;
+			return {
+				id: null,
+				status: e_status.ERR_USER_RELATION_NOT_FOUND,
+			};
 		}
+
+		let id: string;
 
 		try {
 			console.log("Creating user..."); /* DBG */
-			await this._prisma.user.create({
-				data: {
-					name: dto.name,
-					email: dto.email,
-					twoFactAuth: dto.two_fact_auth,
-					twoFactSecret: dto.two_fact_secret,
-					skinId: skin.id,
-				},
-			});
+			id = (
+				await this._prisma.user.create({
+					data: {
+						name: dto.name,
+						email: dto.email,
+						twoFactAuth: dto.two_fact_auth,
+						twoFactSecret: dto.two_fact_secret,
+						skinId: skin.id,
+					},
+				})
+			).id;
 			console.log("User created"); /* DBG */
 		} catch (error) {
 			console.log("Error occured while creating user"); /* DBG */
@@ -61,15 +73,24 @@ export class UserService {
 				switch (error.code) {
 					case "P2002":
 						console.log("Field already taken"); /* DBG */
-						return e_status.ERR_USER_FIELD_UNAVAILABLE;
+						return {
+							id: null,
+							status: e_status.ERR_USER_FIELD_UNAVAILABLE,
+						};
 				}
 				console.log(error.code); /* DBG */
 			}
 			console.log("Unknown error"); /* DBG */
-			return e_status.ERR_UNKNOWN;
+			return {
+				id: null,
+				status: e_status.ERR_UNKNOWN,
+			};
 		}
 
-		return e_status.SUCCESS;
+		return {
+			id,
+			status: e_status.SUCCESS,
+		};
 	}
 
 	/**
@@ -112,9 +133,7 @@ export class UserService {
 	 *
 	 * @return	A promise containing the user and the status of the operation.
 	 */
-	public async get_one(
-		id: string,
-	): Promise<{ user: (User & t_relations) | null; status: e_status }> {
+	public async get_one(id: string): Promise<t_return_get_one> {
 		console.log("Searching user..."); /* DBG */
 		const user: (User & t_relations) | null = await this._prisma.user.findUnique({
 			include: {
@@ -152,9 +171,7 @@ export class UserService {
 	 *
 	 * @return	A promise containing the avatar and the status of the operation.
 	 */
-	public async get_ones_avatar(
-		id: string,
-	): Promise<{ sfile: StreamableFile | null; status: e_status }> {
+	public async get_ones_avatar(id: string): Promise<t_return_get_ones_avatar> {
 		type t_fields = {
 			avatar: string;
 		};
