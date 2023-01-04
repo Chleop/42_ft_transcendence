@@ -13,7 +13,7 @@ datasource db {
 model User {
   id              String    @id @unique @default(cuid())
   name            String    @unique
-  email           String    @unique
+  email           String?   @unique
   avatar          String    @default("resource/avatar/default.jpg") // !le choix de l'avatar
   // par defaut se fait au niveau du signup
   skin            Skin      @relation(fields:[skinId], references: [id])

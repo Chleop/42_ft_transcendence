@@ -59,9 +59,6 @@ export class UserService {
 				await this._prisma.user.create({
 					data: {
 						name: dto.name,
-						email: dto.email,
-						twoFactAuth: dto.two_fact_auth,
-						twoFactSecret: dto.two_fact_secret,
 						skinId: skin.id,
 					},
 				})
@@ -212,7 +209,7 @@ export class UserService {
 	public async update_one(id: string, dto: UserUpdateDto): Promise<e_status> {
 		type t_fields = {
 			name: string;
-			email: string;
+			email: string | null;
 			twoFactAuth: boolean;
 			skinId: string;
 		};
