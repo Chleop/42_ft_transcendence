@@ -42,11 +42,10 @@ export class UserController {
 		try {
 			await this._user_service.create_one(dto);
 		} catch (error) {
-			if (error instanceof UserRelationNotFoundError) {
-				console.log(error.message);
-				throw new ForbiddenException(error.message);
-			}
-			if (error instanceof UserFieldUnaivalableError) {
+			if (
+				error instanceof UserRelationNotFoundError ||
+				error instanceof UserFieldUnaivalableError
+			) {
 				console.log(error.message);
 				throw new ForbiddenException(error.message);
 			}
