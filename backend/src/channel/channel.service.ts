@@ -4,12 +4,21 @@ import {
 	ChannelLeaveDto,
 	ChannelMessageGetDto,
 } from "src/channel/dto";
-import { e_status } from "src/channel/enum";
 import {
-	t_return_create_one,
-	t_return_get_ones_messages,
-	t_return_join_one,
-} from "src/channel/alias";
+	ChannelAlreadyJoinedError,
+	ChannelFieldUnavailableError,
+	ChannelInvitationIncorrectError,
+	ChannelInvitationUnexpectedError,
+	ChannelMessageNotFoundError,
+	ChannelNotFoundError,
+	ChannelNotJoinedError,
+	ChannelPasswordIncorrectError,
+	ChannelPasswordMissingError,
+	ChannelPasswordNotAllowedError,
+	ChannelPasswordUnexpectedError,
+	ChannelRelationNotFoundError,
+	UnknownError,
+} from "src/channel/error";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
 import { Channel, ChannelMessage, ChanType } from "@prisma/client";
@@ -31,13 +40,16 @@ export class ChannelService {
 	 * @param	message_id The id of the message to get the messages after.
 	 * @param	limit The maximum number of messages to get.
 	 *
-	 * @return	A promise containing the messages and the status of the operation.
+	 * @potential_throws
+	 * 	- ChannelMessageNotFoundError
+	 *
+	 * @return	A promise containing the wanted messages.
 	 */
 	private async _get_ones_messages_after_a_specific_message(
 		id: string,
 		message_id: string,
 		limit: number,
-	): Promise<t_return_get_ones_messages> {
+	): Promise<ChannelMessage[]> {
 		type t_fields = {
 			channelId: string;
 			dateTime: Date;
@@ -55,14 +67,10 @@ export class ChannelService {
 		});
 
 		if (!message || message.channelId !== id) {
-			console.log("No such reference message");
-			return {
-				messages: null,
-				status: e_status.ERR_CHANNEL_MESSAGE_NOT_FOUND,
-			};
+			throw new ChannelMessageNotFoundError(message_id);
 		}
 
-		const messages: ChannelMessage[] | null = await this._prisma.channelMessage.findMany({
+		const messages: ChannelMessage[] = await this._prisma.channelMessage.findMany({
 			where: {
 				channelId: id,
 				dateTime: {
@@ -76,10 +84,7 @@ export class ChannelService {
 		});
 
 		console.log("Messages found");
-		return {
-			messages,
-			status: e_status.SUCCESS,
-		};
+		return messages;
 	}
 
 	/**
@@ -89,13 +94,16 @@ export class ChannelService {
 	 * @param	message_id The id of the message to get the messages before.
 	 * @param	limit The maximum number of messages to get.
 	 *
-	 * @return	A promise containing the messages and the status of the operation.
+	 * @potential_throws
+	 * 	- ChannelMessageNotFoundError
+	 *
+	 * @return	A promise containing the wanted messages.
 	 */
 	private async _get_ones_messages_before_a_specific_message(
 		id: string,
 		message_id: string,
 		limit: number,
-	): Promise<t_return_get_ones_messages> {
+	): Promise<ChannelMessage[]> {
 		type t_fields = {
 			channelId: string;
 			dateTime: Date;
@@ -113,14 +121,10 @@ export class ChannelService {
 		});
 
 		if (!message || message.channelId !== id) {
-			console.log("No such reference message");
-			return {
-				messages: null,
-				status: e_status.ERR_CHANNEL_MESSAGE_NOT_FOUND,
-			};
+			throw new ChannelMessageNotFoundError(message_id);
 		}
 
-		const messages: ChannelMessage[] | null = await this._prisma.channelMessage.findMany({
+		const messages: ChannelMessage[] = await this._prisma.channelMessage.findMany({
 			where: {
 				channelId: id,
 				dateTime: {
@@ -136,10 +140,7 @@ export class ChannelService {
 		console.log("Messages found");
 		// Get the most ancient messages first
 		messages.reverse();
-		return {
-			messages,
-			status: e_status.SUCCESS,
-		};
+		return messages;
 	}
 
 	/**
@@ -148,14 +149,14 @@ export class ChannelService {
 	 * @param	id The id of the channel to get the messages from.
 	 * @param	limit The maximum number of messages to get.
 	 *
-	 * @return	A promise containing the messages and the status of the operation.
+	 * @return	A promise containing the wanted messages.
 	 */
 	private async _get_ones_most_recent_messages(
 		id: string,
 		limit: number,
-	): Promise<t_return_get_ones_messages> {
+	): Promise<ChannelMessage[]> {
 		console.log("Getting most recent messages...");
-		const messages: ChannelMessage[] | null = await this._prisma.channelMessage.findMany({
+		const messages: ChannelMessage[] = await this._prisma.channelMessage.findMany({
 			where: {
 				channelId: id,
 			},
@@ -168,10 +169,7 @@ export class ChannelService {
 		console.log("Messages found");
 		// Get the most ancient messages first
 		messages.reverse();
-		return {
-			messages,
-			status: e_status.SUCCESS,
-		};
+		return messages;
 	}
 
 	/**
@@ -179,21 +177,25 @@ export class ChannelService {
 	 *
 	 * @param	dto The dto containing the data to create the channel.
 	 *
-	 * @return	A promise containing the newly created channel's data
-	 * 			and the status of the operation.
+	 * @potential_throws
+	 * - ChannelPasswordNotAllowedError
+	 * - ChannelFieldUnavailableError
+	 * - ChannelRelationNotFoundError
+	 * - UnknownError
+	 *
+	 * @return	A promise containing the created channel's data.
 	 */
-	public async create_one(dto: ChannelCreateDto): Promise<t_return_create_one> {
+	public async create_one(dto: ChannelCreateDto): Promise<Channel> {
 		let type: ChanType;
 		let channel: Channel;
 
 		console.log("Determining channel type...");
 		if (dto.is_private) {
-			if (dto.password) {
-				console.log("Channel password not allowed for PRIVATE channels");
-				return { channel: null, status: e_status.ERR_CHANNEL_PASSWORD_NOT_ALLOWED };
-			}
 			console.log("Channel type is PRIVATE");
 			type = ChanType.PRIVATE;
+			if (dto.password) {
+				throw new ChannelPasswordNotAllowedError();
+			}
 		} else if (dto.password) {
 			console.log("Channel type is PROTECTED");
 			type = ChanType.PROTECTED;
@@ -227,33 +229,18 @@ export class ChannelService {
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2002":
-						console.log("Field already taken");
-						return {
-							channel: null,
-							status: e_status.ERR_CHANNEL_FIELD_UNAVAILABLE,
-						};
+						throw new ChannelFieldUnavailableError("name");
 					case "P2025":
-						console.log("No such user");
-						return {
-							channel: null,
-							status: e_status.ERR_CHANNEL_RELATION_NOT_FOUND,
-						};
+						throw new ChannelRelationNotFoundError("user");
 				}
 				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
 
-			console.log("Unknown error");
-			return {
-				channel: null,
-				status: e_status.ERR_UNKNOWN,
-			};
+			throw new UnknownError();
 		}
 
 		channel.hash = null;
-		return {
-			channel,
-			status: e_status.SUCCESS,
-		};
+		return channel;
 	}
 
 	/**
@@ -261,9 +248,13 @@ export class ChannelService {
 	 *
 	 * @param	id The id of the channel to delete.
 	 *
-	 * @return	A promise containing the status of the operation.
+	 * @potential_throws
+	 * - ChannelNotFoundError
+	 * - UnknownError
+	 *
+	 * @return	An empty promise.
 	 */
-	public async delete_one(id: string): Promise<e_status> {
+	public async delete_one(id: string): Promise<void> {
 		try {
 			console.log("Deleting channel's messages...");
 			await this._prisma.channelMessage.deleteMany({
@@ -285,17 +276,13 @@ export class ChannelService {
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2025":
-						console.log("No such channel");
-						return e_status.ERR_CHANNEL_NOT_FOUND;
+						throw new ChannelNotFoundError(id);
 				}
 				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
 
-			console.log("Unknown error");
-			return e_status.ERR_UNKNOWN;
+			throw new UnknownError();
 		}
-
-		return e_status.SUCCESS;
 	}
 
 	/**
@@ -304,35 +291,39 @@ export class ChannelService {
 	 * @param	id The id of the channel to get the messages from.
 	 * @param	dto The dto containing the data to get the messages.
 	 *
-	 * @return	A promise containing the messages and the status of the operation.
+	 * @potential_throws
+	 * - ChannelMessageNotFoundError
+	 * - ChannelNotFoundError
+	 *
+	 * @return	A promise containing the wanted messages.
 	 */
 	public async get_ones_messages(
 		id: string,
 		dto: ChannelMessageGetDto,
-	): Promise<t_return_get_ones_messages> {
-		let ret: t_return_get_ones_messages;
+	): Promise<ChannelMessage[]> {
+		let messages: ChannelMessage[];
 
 		if (dto.before) {
-			ret = await this._get_ones_messages_before_a_specific_message(
+			messages = await this._get_ones_messages_before_a_specific_message(
 				id,
 				dto.before,
 				dto.limit,
 			);
 		} else if (dto.after) {
-			ret = await this._get_ones_messages_after_a_specific_message(id, dto.after, dto.limit);
+			messages = await this._get_ones_messages_after_a_specific_message(
+				id,
+				dto.after,
+				dto.limit,
+			);
 		} else {
-			ret = await this._get_ones_most_recent_messages(id, dto.limit);
+			messages = await this._get_ones_most_recent_messages(id, dto.limit);
 		}
 
-		if (
-			ret.messages !== null &&
-			!ret.messages.length &&
-			!(await this._prisma.channel.count({ where: { id: id } }))
-		) {
-			ret.status = e_status.ERR_CHANNEL_NOT_FOUND;
+		if (!messages.length && !(await this._prisma.channel.count({ where: { id: id } }))) {
+			throw new ChannelNotFoundError(id);
 		}
 
-		return ret;
+		return messages;
 	}
 
 	/**
@@ -341,9 +332,18 @@ export class ChannelService {
 	 * @param	id The id of the channel to join.
 	 * @param	dto The dto containing the data to join the channel.
 	 *
-	 * @return	A promise containing the status of the operation.
+	 * @potential_throws
+	 * - ChannelNotFoundError
+	 * - ChannelAlreadyJoinedError
+	 * - ChannelPasswordUnexpectedError
+	 * - ChannelInvitationIncorrectError
+	 * - ChannelInvitationUnexpectedError
+	 * - ChannelPasswordMissingError
+	 * - ChannelPasswordIncorrectError
+	 *
+	 * @return	A promise containing the joined channel's data.
 	 */
-	public async join_one(id: string, dto: ChannelJoinDto): Promise<t_return_join_one> {
+	public async join_one(id: string, dto: ChannelJoinDto): Promise<Channel> {
 		let channel: Channel | null;
 
 		console.log("Searching for the channel to join...");
@@ -353,11 +353,7 @@ export class ChannelService {
 			},
 		});
 		if (!channel) {
-			console.log("No such channel");
-			return {
-				channel: null,
-				status: e_status.ERR_CHANNEL_NOT_FOUND,
-			};
+			throw new ChannelNotFoundError(id);
 		}
 
 		console.log("Checking for already joined...");
@@ -371,22 +367,14 @@ export class ChannelService {
 				},
 			})
 		) {
-			console.log("Already joined");
-			return {
-				channel: null,
-				status: e_status.ERR_CHANNEL_ALREADY_JOINED,
-			};
+			throw new ChannelAlreadyJoinedError(id);
 		}
 
 		console.log("Checking channel type...");
 		if (channel.chanType === ChanType.PRIVATE) {
 			console.log("Channel is private");
 			if (dto.password !== undefined) {
-				console.log("Unexpected provided password");
-				return {
-					channel: null,
-					status: e_status.ERR_CHANNEL_PASSWORD_UNEXPECTED,
-				};
+				throw new ChannelPasswordUnexpectedError();
 			}
 			console.log("Checking invitation...");
 			if (
@@ -400,43 +388,23 @@ export class ChannelService {
 					},
 				}))
 			) {
-				console.log("Invitation is incorrect");
-				return {
-					channel: null,
-					status: e_status.ERR_CHANNEL_INVITATION_INCORRECT,
-				};
+				throw new ChannelInvitationIncorrectError();
 			}
 		} else if (channel.chanType === ChanType.PROTECTED) {
 			console.log("Channel is protected");
 			if (dto.inviting_user_id !== undefined) {
-				console.log("Unexpected provided invitation");
-				return {
-					channel: null,
-					status: e_status.ERR_CHANNEL_INVITATION_UNEXPECTED,
-				};
+				throw new ChannelInvitationUnexpectedError();
 			}
 			console.log("Checking password...");
 			if (dto.password === undefined) {
-				console.log("No password provided");
-				return {
-					channel: null,
-					status: e_status.ERR_CHANNEL_PASSWORD_MISSING,
-				};
+				throw new ChannelPasswordMissingError();
 			} else if (!(await argon2.verify(<string>channel.hash, dto.password))) {
-				console.log("Provided password is incorrect");
-				return {
-					channel: null,
-					status: e_status.ERR_CHANNEL_PASSWORD_INCORRECT,
-				};
+				throw new ChannelPasswordIncorrectError();
 			}
 		} else {
 			console.log("Channel is public");
 			if (dto.password !== undefined) {
-				console.log("Unexpected provided password");
-				return {
-					channel: null,
-					status: e_status.ERR_CHANNEL_PASSWORD_UNEXPECTED,
-				};
+				throw new ChannelPasswordUnexpectedError();
 			}
 		}
 
@@ -456,10 +424,7 @@ export class ChannelService {
 		console.log("Channel joined");
 
 		channel.hash = null;
-		return {
-			channel,
-			status: e_status.SUCCESS,
-		};
+		return channel;
 	}
 
 	/**
@@ -468,9 +433,13 @@ export class ChannelService {
 	 * @param	id The id of the channel to leave.
 	 * @param	dto The dto containing the data to leave the channel.
 	 *
-	 * @return	A promise containing the status of the operation.
+	 * @potential_throws
+	 * - ChannelNotFoundError
+	 * - ChannelNotJoinedError
+	 *
+	 * @return	An empty promise.
 	 */
-	public async leave_one(id: string, dto: ChannelLeaveDto): Promise<e_status> {
+	public async leave_one(id: string, dto: ChannelLeaveDto): Promise<void> {
 		console.log("Searching for the channel to leave...");
 		const channel: Channel | null = await this._prisma.channel.findUnique({
 			where: {
@@ -479,8 +448,7 @@ export class ChannelService {
 		});
 
 		if (!channel) {
-			console.log("No such channel");
-			return e_status.ERR_CHANNEL_NOT_FOUND;
+			throw new ChannelNotFoundError(id);
 		}
 
 		console.log("Checking for not joined...");
@@ -494,8 +462,7 @@ export class ChannelService {
 				},
 			}))
 		) {
-			console.log("Not joined");
-			return e_status.ERR_CHANNEL_NOT_JOINED;
+			throw new ChannelNotJoinedError(id);
 		}
 
 		console.log("Leaving channel...");
@@ -512,7 +479,5 @@ export class ChannelService {
 			},
 		});
 		console.log("Channel left");
-
-		return e_status.SUCCESS;
 	}
 }

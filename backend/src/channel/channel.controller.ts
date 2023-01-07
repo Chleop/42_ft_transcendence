@@ -20,13 +20,22 @@ import {
 	ChannelLeaveDto,
 	ChannelMessageGetDto,
 } from "src/channel/dto";
-import { e_status } from "src/channel/enum";
-import {
-	t_return_create_one,
-	t_return_get_ones_messages,
-	t_return_join_one,
-} from "src/channel/alias";
 import { Channel, ChannelMessage } from "@prisma/client";
+import {
+	ChannelAlreadyJoinedError,
+	ChannelFieldUnavailableError,
+	ChannelInvitationIncorrectError,
+	ChannelInvitationUnexpectedError,
+	ChannelMessageNotFoundError,
+	ChannelNotFoundError,
+	ChannelNotJoinedError,
+	ChannelPasswordIncorrectError,
+	ChannelPasswordMissingError,
+	ChannelPasswordNotAllowedError,
+	ChannelPasswordUnexpectedError,
+	ChannelRelationNotFoundError,
+	UnknownError,
+} from "src/channel/error";
 
 @Controller("channel")
 export class ChannelController {
@@ -38,38 +47,49 @@ export class ChannelController {
 
 	@Post()
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async create_one(@Body() dto: ChannelCreateDto): Promise<Channel | null> {
-		const ret: t_return_create_one = await this._channel_service.create_one(dto);
+	async create_one(@Body() dto: ChannelCreateDto): Promise<Channel> {
+		let channel: Channel;
 
-		switch (ret.status) {
-			case e_status.SUCCESS:
-				break;
-			case e_status.ERR_CHANNEL_PASSWORD_NOT_ALLOWED:
-				throw new BadRequestException("Expected no password");
-			case e_status.ERR_CHANNEL_FIELD_UNAVAILABLE:
-				throw new ForbiddenException("One of the provided fields is already taken");
-			case e_status.ERR_CHANNEL_RELATION_NOT_FOUND:
-				throw new BadRequestException("One of the provided relations does not exist");
-			case e_status.ERR_UNKNOWN:
-				throw new InternalServerErrorException("An unknown error occured");
+		try {
+			channel = await this._channel_service.create_one(dto);
+		} catch (error) {
+			if (
+				error instanceof ChannelPasswordNotAllowedError ||
+				error instanceof ChannelRelationNotFoundError
+			) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelFieldUnavailableError) {
+				console.log(error.message);
+				throw new ForbiddenException(error.message);
+			}
+			if (error instanceof UnknownError) {
+				console.log(error.message);
+				throw new InternalServerErrorException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
 		}
 
-		return ret.channel;
+		return channel;
 	}
 
 	@Delete(":id")
 	async delete_one(@Param("id") id: string): Promise<void> {
-		type t_ret = e_status;
-
-		const ret: t_ret = await this._channel_service.delete_one(id);
-
-		switch (ret) {
-			case e_status.SUCCESS:
-				break;
-			case e_status.ERR_CHANNEL_NOT_FOUND:
-				throw new BadRequestException("No such channel");
-			case e_status.ERR_UNKNOWN:
-				throw new InternalServerErrorException("An unknown error occured");
+		try {
+			await this._channel_service.delete_one(id);
+		} catch (error) {
+			if (error instanceof ChannelNotFoundError) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof UnknownError) {
+				console.log(error.message);
+				throw new InternalServerErrorException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
 		}
 	}
 
@@ -78,75 +98,67 @@ export class ChannelController {
 	async get_ones_messages(
 		@Param("id") id: string,
 		@Query() dto: ChannelMessageGetDto,
-	): Promise<ChannelMessage[] | null> {
+	): Promise<ChannelMessage[]> {
 		if (dto.after && dto.before) {
 			throw new BadRequestException("Unexpected both `before` and `after` received");
 		}
 
-		const ret: t_return_get_ones_messages = await this._channel_service.get_ones_messages(
-			id,
-			dto,
-		);
+		let messages: ChannelMessage[];
 
-		switch (ret.status) {
-			case e_status.SUCCESS:
-				break;
-			case e_status.ERR_CHANNEL_NOT_FOUND:
-				throw new BadRequestException("No such channel");
-			case e_status.ERR_CHANNEL_MESSAGE_NOT_FOUND:
-				throw new BadRequestException("No such message");
-			case e_status.ERR_UNKNOWN:
-				throw new InternalServerErrorException("An unknown error occured");
+		try {
+			messages = await this._channel_service.get_ones_messages(id, dto);
+		} catch (error) {
+			if (
+				error instanceof ChannelNotFoundError ||
+				error instanceof ChannelMessageNotFoundError
+			) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
 		}
 
-		return ret.messages;
+		return messages;
 	}
 
 	@Patch(":id/join")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async join_one(@Param("id") id: string, @Body() dto: ChannelJoinDto): Promise<Channel | null> {
-		const ret: t_return_join_one = await this._channel_service.join_one(id, dto);
+	async join_one(@Param("id") id: string, @Body() dto: ChannelJoinDto): Promise<Channel> {
+		let channel: Channel;
 
-		switch (ret.status) {
-			case e_status.SUCCESS:
-				break;
-			case e_status.ERR_CHANNEL_NOT_FOUND:
-				throw new BadRequestException("No such channel");
-			case e_status.ERR_CHANNEL_ALREADY_JOINED:
-				throw new BadRequestException("User already joined");
-			case e_status.ERR_CHANNEL_INVITATION_INCORRECT:
-				throw new BadRequestException("Incorrect invitation");
-			case e_status.ERR_CHANNEL_INVITATION_UNEXPECTED:
-				throw new BadRequestException("Expected no invitation");
-			case e_status.ERR_CHANNEL_PASSWORD_MISSING:
-				throw new BadRequestException("Expected a password");
-			case e_status.ERR_CHANNEL_PASSWORD_INCORRECT:
-				throw new BadRequestException("Incorrect password");
-			case e_status.ERR_CHANNEL_PASSWORD_UNEXPECTED:
-				throw new BadRequestException("Expected no password");
-			case e_status.ERR_UNKNOWN:
-				throw new InternalServerErrorException("An unknown error occured");
+		try {
+			channel = await this._channel_service.join_one(id, dto);
+		} catch (error) {
+			if (
+				error instanceof ChannelNotFoundError ||
+				error instanceof ChannelAlreadyJoinedError ||
+				error instanceof ChannelPasswordUnexpectedError ||
+				error instanceof ChannelInvitationIncorrectError ||
+				error instanceof ChannelInvitationUnexpectedError ||
+				error instanceof ChannelPasswordMissingError ||
+				error instanceof ChannelPasswordIncorrectError
+			) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
 		}
 
-		return ret.channel;
+		return channel;
 	}
 
 	@Patch(":id/leave")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async leave_one(@Param("id") id: string, @Body() dto: ChannelLeaveDto): Promise<void> {
-		type t_ret = e_status;
-
-		const ret: t_ret = await this._channel_service.leave_one(id, dto);
-
-		switch (ret) {
-			case e_status.SUCCESS:
-				break;
-			case e_status.ERR_CHANNEL_NOT_FOUND:
-				throw new BadRequestException("No such channel");
-			case e_status.ERR_CHANNEL_NOT_JOINED:
-				throw new BadRequestException("User not joined");
-			case e_status.ERR_UNKNOWN:
-				throw new InternalServerErrorException("An unknown error occured");
+		try {
+			await this._channel_service.leave_one(id, dto);
+		} catch (error) {
+			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
 		}
 	}
 }
