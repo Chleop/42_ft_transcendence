@@ -125,7 +125,7 @@ export class UserService {
 	 *
 	 * @return	A promise containing the wanted user.
 	 */
-	public async get_one(id: string): Promise<User & t_relations> {
+	public async get_one(id: string | undefined): Promise<User & t_relations> {
 		console.log("Searching user...");
 		const user: (User & t_relations) | null = await this._prisma.user.findUnique({
 			include: {
@@ -137,7 +137,7 @@ export class UserService {
 				blocked: true,
 			},
 			where: {
-				name: name,
+				id: id,
 			},
 		});
 
@@ -210,7 +210,7 @@ export class UserService {
 			},
 			select: {
 				name: true,
-				// email: true,
+				email: true,
 				twoFactAuth: true,
 				skinId: true,
 			},

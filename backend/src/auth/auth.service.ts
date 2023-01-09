@@ -1,124 +1,58 @@
-import { ForbiddenException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { UserCreateDto } from 'src/user/dto';
-import { e_status } from 'src/user/enum';
 import { UserService } from 'src/user/user.service';
-import { TokenAuthDto } from './dto';
 
-// @Injectable()
-// export class AuthService {
-//     private readonly _user: UserService;
-//     private _jwt: JwtService;
-//     private _config: ConfigService;
-//     private _prisma: PrismaService;
-
-//     constructor(user: UserService, jwt: JwtService, config: ConfigService, prisma: PrismaService) {
-//         this._user = user;
-//         this._jwt = jwt;
-//         this._config = config;
-//         this._prisma = prisma;
-//     }
-    
-//     public async signin(username: string): Promise<{
-//         access_token: string | undefined;
-//         status: e_status;
-//     }> 
-//     {
-
-//         // define types
-//         type t_ret = {
-// 			access_token: string | undefined;
-// 			status: e_status;
-// 		};
-
-//         // create user object
-//         const userObj: UserCreateDto = {
-//             name: username,
-//         }
-    
-//         // create new user in the database
-//         const status: e_status = await this._user.create_one(userObj);
-
-//         // get the id of the user created (normalement plus a 
-//         // faire si Jonathan renvoi le user dans le create one)
-//         const user = await this._prisma.user.findUnique({
-//             where: {
-//                 name: username,
-//             },
-//         });
-    
-//         // create access_token
-//         const access_token: string | undefined = await this.signToken(user?.id);
-
-//         return {
-//             access_token,
-// 			status,
-//         };
-//     };
-
-//     public async signToken(userId: string | undefined) : Promise<string> {
-//         const oursecret: string | undefined = this._config.get<string>('JWT_SECRET');
-//         if (oursecret === undefined)
-// 			throw new Error("JWT_SECRET is undefined!");
-//         const access_token: string | undefined = await this._jwt.signAsync(
-//             { sub: userId }, 
-//             { secret: oursecret, expiresIn: '1h'},
-//             );
-//         if (!access_token)
-//             throw new Error("JWT signAsync function error"); 
-//         return access_token;
-//     }
-    
-// };
+type t_access_token = { access_token: string | undefined };
+type t_payload = { sub: string | undefined };
 
 @Injectable()
 export class AuthService {
     private readonly _user: UserService;
+    private readonly _config: ConfigService;
     private _jwt: JwtService;
-    private _config: ConfigService;
-    private _prisma: PrismaService;
-
-    constructor(user: UserService, jwt: JwtService, config: ConfigService, prisma: PrismaService) {
-        this._user = user;
-        this._jwt = jwt;
-        this._config = config;
-        this._prisma = prisma;
-    }
     
-    public async signin(username: string): Promise<{ access_token: string | undefined; }> {
-
-        // create new user in the database
-        const user = await this._prisma.user.create({
-            data: {
-                name: username,
-                skin: {
-                    connect: { name: "Default" }
-                },
-            }
-        })
+    constructor() {
+        this._user = new UserService;
+        this._jwt = new JwtService;
+        this._config = new ConfigService;
+    }
         
-        // create access_token object and return it
-        type t_access_token = { access_token: string | undefined; };
-        const token: t_access_token = { access_token: await this.signToken(user.id), };
-        return token ;
+    public async signin(username: string): Promise < t_access_token > {
+        
+    // create new user in the database
+        const userObj: UserCreateDto = {
+            name: username,
+        }
+        const userId = await this._user.create_one(userObj);
+        
+    // create access_token object
+        
+        const payload : t_payload = { sub: userId };
+        const tokenObj: t_access_token = await this.signToken(payload);
+        
+        return tokenObj ;
     };
-
-    public async signToken(userId: string | undefined) : Promise<string> {
-        
+    
+    public async signToken(payload: t_payload) : Promise < t_access_token > {
+    
+    // get the secret from the .env file
         const oursecret: string | undefined = this._config.get<string>('JWT_SECRET');
         if (oursecret === undefined)
-			throw new Error("JWT_SECRET is undefined");
-        
-        const access_token: string | undefined = await this._jwt.signAsync(
-            { sub: userId }, 
+            throw new Error("JWT_SECRET is undefined");
+    
+    // create the access_token based on user id and jwt secret
+        const token: string | undefined = await this._jwt.signAsync(
+            { sub: payload.sub }, 
             { secret: oursecret, expiresIn: '1h'},
-        );
-        if (!access_token)
+            );
+        if (!token)
             throw new Error("JWT signAsync function error"); 
-        
-        return access_token;
+    
+    // include the access_token in an object and return it
+        let ret: t_access_token = { access_token : token };
+        return ret;
     }
     
 };

@@ -29,6 +29,7 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { User } from "@prisma/client";
 import { AuthGuard } from "@nestjs/passport";
+import { JwtGuard } from "src/auth/guards";
 
 @Controller("user")
 export class UserController {
@@ -78,7 +79,7 @@ export class UserController {
 		}
 	}
 
-	@UseGuards(AuthGuard('jwt'))
+	@UseGuards(JwtGuard)
 	@Get(":id")
 	async get_one(@Param("id") id: string): Promise<User & t_relations> {
 		let user: User & t_relations;
