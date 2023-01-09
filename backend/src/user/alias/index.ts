@@ -1,1 +1,1 @@
-export * from "./relations.alias";
+export * from "src/user/alias/relations.alias";
