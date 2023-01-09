@@ -1,7 +1,12 @@
-import { t_relations } from "./alias";
-import { UserCreateDto, UserUpdateDto } from "./dto";
-import { e_status } from "./enum";
-import { UserService } from "./user.service";
+import { t_relations } from "src/user/alias";
+import { UserCreateDto, UserUpdateDto } from "src/user/dto";
+import {
+	UnknownError,
+	UserFieldUnaivalableError,
+	UserNotFoundError,
+	UserRelationNotFoundError,
+} from "src/user/error";
+import { UserService } from "src/user/user.service";
 import {
 	BadRequestException,
 	Body,
@@ -27,97 +32,106 @@ import { User } from "@prisma/client";
 export class UserController {
 	private _user_service: UserService;
 
-	constructor(user_service: UserService) {
-		this._user_service = user_service;
+	constructor() {
+		this._user_service = new UserService();
 	}
 
 	@Post()
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async create_one(@Body() dto: UserCreateDto): Promise<void> {
-		type t_ret = e_status;
-
-		const ret: t_ret = await this._user_service.create_one(dto);
-
-		switch (ret) {
-			case e_status.SUCCESS:
-				break;
-			case e_status.ERR_USER_FIELD_UNAVAILABLE:
-				throw new ForbiddenException("One of the provided fields is already taken");
-			case e_status.ERR_USER_RELATION_NOT_FOUND:
-				throw new ForbiddenException("One of the provided relations does not exist");
-			case e_status.ERR_UNKNOWN:
-				throw new InternalServerErrorException("An unknown error occured");
+		try {
+			await this._user_service.create_one(dto);
+		} catch (error) {
+			if (
+				error instanceof UserRelationNotFoundError ||
+				error instanceof UserFieldUnaivalableError
+			) {
+				console.log(error.message);
+				throw new ForbiddenException(error.message);
+			}
+			if (error instanceof UnknownError) {
+				console.log(error.message);
+				throw new InternalServerErrorException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
 		}
 	}
 
 	@Delete(":id")
 	async delete_one(@Param("id") id: string): Promise<void> {
-		type t_ret = e_status;
-
-		const ret: t_ret = await this._user_service.delete_one(id);
-
-		switch (ret) {
-			case e_status.SUCCESS:
-				break;
-			case e_status.ERR_USER_NOT_FOUND:
-				throw new BadRequestException("No such user");
-			case e_status.ERR_UNKNOWN:
-				throw new InternalServerErrorException("An unknown error occured");
+		try {
+			await this._user_service.delete_one(id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof UnknownError) {
+				console.log(error.message);
+				throw new InternalServerErrorException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
 		}
 	}
 
 	@Get(":id")
-	async get_one(@Param("id") id: string): Promise<(User & t_relations) | null> {
-		type t_ret = {
-			user: (User & t_relations) | null;
-			status: e_status;
-		};
+	async get_one(@Param("id") id: string): Promise<User & t_relations> {
+		let user: User & t_relations;
 
-		const ret: t_ret = await this._user_service.get_one(id);
-
-		switch (ret.status) {
-			case e_status.SUCCESS:
-				break;
-			case e_status.ERR_USER_NOT_FOUND:
-				throw new BadRequestException("No such user");
+		try {
+			user = await this._user_service.get_one(id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
 		}
-		return ret.user;
+
+		return user;
 	}
 
 	@Get(":id/avatar")
-	async get_ones_avatar(@Param("id") id: string): Promise<StreamableFile | null> {
-		type t_ret = {
-			sfile: StreamableFile | null;
-			status: e_status;
-		};
+	async get_ones_avatar(@Param("id") id: string): Promise<StreamableFile> {
+		let sfile: StreamableFile;
 
-		const ret: t_ret = await this._user_service.get_ones_avatar(id);
-
-		switch (ret.status) {
-			case e_status.SUCCESS:
-				break;
-			case e_status.ERR_USER_NOT_FOUND:
-				throw new BadRequestException("No such user");
+		try {
+			sfile = await this._user_service.get_ones_avatar(id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
 		}
-		return ret.sfile;
+
+		return sfile;
 	}
 
 	@Patch(":id")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async update_one(@Param("id") id: string, @Body() dto: UserUpdateDto): Promise<void> {
-		type t_ret = e_status;
-
-		const ret: t_ret = await this._user_service.update_one(id, dto);
-
-		switch (ret) {
-			case e_status.SUCCESS:
-				break;
-			case e_status.ERR_USER_NOT_FOUND:
-				throw new BadRequestException("No such user");
-			case e_status.ERR_USER_FIELD_UNAVAILABLE:
-				throw new ForbiddenException("One of the provided fields is already taken");
-			case e_status.ERR_UNKNOWN:
-				throw new InternalServerErrorException("An unknown error occured");
+		try {
+			await this._user_service.update_one(id, dto);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof UserFieldUnaivalableError) {
+				console.log(error.message);
+				throw new ForbiddenException(error.message);
+			}
+			if (error instanceof UnknownError) {
+				console.log(error.message);
+				throw new InternalServerErrorException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
 		}
 	}
 
@@ -127,15 +141,19 @@ export class UserController {
 		@Param("id") id: string,
 		@UploadedFile() file: Express.Multer.File,
 	): Promise<void> {
-		type t_ret = e_status;
-
-		const ret: t_ret = await this._user_service.update_ones_avatar(id, file);
-
-		switch (ret) {
-			case e_status.SUCCESS:
-				break;
-			case e_status.ERR_USER_NOT_FOUND:
-				throw new BadRequestException("No such user");
+		try {
+			await this._user_service.update_ones_avatar(id, file);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof UnknownError) {
+				console.log(error.message);
+				throw new InternalServerErrorException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
 		}
 	}
 }
