@@ -25,6 +25,7 @@ model User {
   gamesWon        Game[]           @relation("gameswon")
   friends         User[]           @relation("friendship")
   blocked         User[]           @relation("blocked")
+  channelOwned    Channel[]        @relation("chanowner")
   // les champs ci-dessous sont neccessaires pour les relations mais
   // ne sont pas accessibles par le client Prisma grace a l'attribut 
   // @ignore.
@@ -44,9 +45,13 @@ model Channel {
   name      String    @unique
   chanType  ChanType  @default(PUBLIC)
   hash      String?
+  owner     User             @relation("chanowner", fields: [ownerId], references: [id])
   members   User[]           @relation("userchannels")
   operators User[]           @relation("chanops")
   messages  ChannelMessage[] @relation("channelmessage")
+  // les champs ci-dessous sont neccessaires pour les relations
+  // mais n'existent pas reellement dans la bdd (foreign keys)
+  ownerId          String
 }
 
 model ChannelMessage {
