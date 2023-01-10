@@ -24,7 +24,7 @@ function get_cookie(name: string): string | undefined {
 /**
  * The entry point of the application.
  */
-export function entry_point() {
+function entry_point() {
     // Verify that the user is connected and if so, create a client to start interacting with the
     // backend.
     const token = get_cookie("token");
@@ -52,3 +52,5 @@ export function entry_point() {
         // TODO: 404 error
     }
 }
+
+entry_point();
