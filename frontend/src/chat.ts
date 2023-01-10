@@ -234,7 +234,7 @@ export class ChatElement {
      *
      * @returns The function resolves to `null` if no channel is selected.
      */
-    public async send_message_input(_client: ApiClient): Promise<Message | null> {
+    public async send_message_input(): Promise<Message | null> {
         if (!this.selected_channel) {
             return null;
         }
@@ -244,7 +244,7 @@ export class ChatElement {
 
         // TODO:
         //  Use the API for real here.
-        let message: Message = /* await client.send_message(this.selected_channel.channel_id, content); */ {
+        let message: Message = /* await Client.send_message(this.selected_channel.channel_id, content); */ {
             author_avatar: "",
             author_id: "Nils",
             author_name: "Nils",

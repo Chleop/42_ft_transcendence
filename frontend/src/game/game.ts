@@ -245,9 +245,6 @@ export class GameScene extends Scene {
             this.renderer.draw_hitbox(this.ball_state.x, this.ball_state.y, this.ball_state.radius, this.ball_state.radius);
         }
 
-        console.log(this.left_player);
-        console.log(this.left_player_state);
-
         if (!this.should_stop) {
             requestAnimationFrame(ts => this.animation_frame_callback(ts));
         }

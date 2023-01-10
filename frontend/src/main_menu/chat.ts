@@ -153,7 +153,7 @@ export class ChatElement {
     /**
      * Creates a new `ChatContainer` element.
      */
-    public constructor(client: RawHTTPClient) {
+    public constructor() {
         this.container = document.createElement("div");
         this.container.id = "chat-container";
 
@@ -188,7 +188,7 @@ export class ChatElement {
         this.message_input = document.createElement("input");
         this.message_input.id = "chat-send-message";
         this.message_input.type = "text";
-        this.message_input.onkeydown = ev => { if (ev.key === "Enter") { this.send_message_input(client); } };
+        this.message_input.onkeydown = ev => { if (ev.key === "Enter") { this.send_message_input(); } };
         send_message_container.appendChild(this.message_input);
     }
 
@@ -258,7 +258,7 @@ export class ChatElement {
      * Sends the content of the `<input id="chat-send-message">` to the currently selected
      * channel, and through the network.
      */
-    public async send_message_input(_client: RawHTTPClient): Promise<Message | null> {
+    public async send_message_input(): Promise<Message | null> {
         if (!this.selected_channel) {
             return null;
         }

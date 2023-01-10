@@ -1,4 +1,3 @@
-import { RawHTTPClient } from "./api/raw_client";
 import { GameScene } from "./game/game";
 import { MainMenuScene } from "./main_menu/main_menu";
 
@@ -7,8 +6,8 @@ export const Scenes = (function () {
         private main_menu_: MainMenuScene;
         private game_: GameScene;
 
-        public initialize(client: RawHTTPClient) {
-            this.main_menu_ = new MainMenuScene(client);
+        public initialize() {
+            this.main_menu_ = new MainMenuScene();
             this.game_ = new GameScene();
             this.game_.show_debug = true;
         }
