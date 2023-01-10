@@ -12,11 +12,12 @@ datasource db {
 
 model User {
   id              String    @id @unique @default(cuid())
+  login           String    @unique
   name            String    @unique
   email           String?   @unique
   avatar          String    @default("resource/avatar/default.jpg") // !le choix de l'avatar
   // par defaut se fait au niveau du signup
-  skin            Skin             @relation(fields: [skinId], references: [id])
+  skin            Skin             @relation(fields: [skinId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   elo             Int              @default(0)
   twoFactAuth     Boolean          @default(false)
   twoFactSecret   String?
@@ -45,19 +46,19 @@ model Channel {
   name      String    @unique
   chanType  ChanType  @default(PUBLIC)
   hash      String?
-  owner     User             @relation("chanowner", fields: [ownerId], references: [id])
+  owner     User             @relation("chanowner", fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   members   User[]           @relation("userchannels")
   operators User[]           @relation("chanops")
   messages  ChannelMessage[] @relation("channelmessage")
   // les champs ci-dessous sont neccessaires pour les relations
   // mais n'existent pas reellement dans la bdd (foreign keys)
-  ownerId          String
+  ownerId   String
 }
 
 model ChannelMessage {
   id        String   @id @unique @default(cuid())
-  sender    User     @relation("usermessage", fields: [senderId], references: [id])
-  channel   Channel  @relation("channelmessage", fields: [channelId], references: [id])
+  sender    User     @relation("usermessage", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  channel   Channel  @relation("channelmessage", fields: [channelId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   dateTime  DateTime @default(now())
   content   String
   // les champs ci-dessous sont neccessaires pour les relations
@@ -76,7 +77,7 @@ model DM {
 model Game {
   id       String   @id @unique @default(cuid())
   players  User[]   @relation("gamesplayed")
-  winner   User     @relation("gameswon", fields: [winnerId], references: [id])
+  winner   User     @relation("gameswon", fields: [winnerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   scores   Int[]
   dateTime DateTime @default(now())
   // les champs ci-dessous sont neccessaires pour les relations
