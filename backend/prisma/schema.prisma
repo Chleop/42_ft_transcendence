@@ -21,6 +21,7 @@ model User {
   twoFactAuth     Boolean   @default(false)
   twoFactSecret   String?
   channels        Channel[] @relation("userchannels")
+  channelsOwned   Channel[] @relation("chanowner")
   gamesPlayed     Game[]    @relation("gamesplayed")
   gamesWon        Game[]    @relation("gameswon")
   friends         User[]    @relation("friendship")
@@ -44,9 +45,13 @@ model Channel {
   name      String    @unique
   chanType  ChanType  @default(PUBLIC)
   hash      String?
+  owner     User      @relation("chanowner", fields: [ownerId], references: [id])
   members   User[]    @relation("userchannels")
   operators User[]    @relation("chanops")
   messages  ChannelMessage[] @relation("channelmessage")
+// les champs ci-dessous sont neccessaires pour les relations
+// mais n'existent pas reellement dans la bdd (foreign keys)
+  ownerId   String
 }
 
 model ChannelMessage {

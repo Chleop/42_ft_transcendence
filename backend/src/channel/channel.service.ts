@@ -41,7 +41,8 @@ export class ChannelService {
 	 * @param	limit The maximum number of messages to get.
 	 *
 	 * @potential_throws
-	 * 	- ChannelMessageNotFoundError
+	 * - ChannelNotFoundError
+	 * - ChannelMessageNotFoundError
 	 *
 	 * @return	A promise containing the wanted messages.
 	 */
@@ -67,6 +68,15 @@ export class ChannelService {
 		});
 
 		if (!message || message.channelId !== id) {
+			console.log("Reference message not found");
+			if (
+				!(await this._prisma.channel.count({
+					where: { id: id },
+				}))
+			) {
+				console.log("Specified channel does not exist");
+				throw new ChannelNotFoundError(id);
+			}
 			throw new ChannelMessageNotFoundError(message_id);
 		}
 
@@ -95,7 +105,8 @@ export class ChannelService {
 	 * @param	limit The maximum number of messages to get.
 	 *
 	 * @potential_throws
-	 * 	- ChannelMessageNotFoundError
+	 * - ChannelNotFoundError
+	 * - ChannelMessageNotFoundError
 	 *
 	 * @return	A promise containing the wanted messages.
 	 */
@@ -121,6 +132,15 @@ export class ChannelService {
 		});
 
 		if (!message || message.channelId !== id) {
+			console.log("Reference message not found");
+			if (
+				!(await this._prisma.channel.count({
+					where: { id: id },
+				}))
+			) {
+				console.log("Specified channel does not exist");
+				throw new ChannelNotFoundError(id);
+			}
 			throw new ChannelMessageNotFoundError(message_id);
 		}
 
@@ -149,6 +169,9 @@ export class ChannelService {
 	 * @param	id The id of the channel to get the messages from.
 	 * @param	limit The maximum number of messages to get.
 	 *
+	 * @potential_throws
+	 * - ChannelNotFoundError
+	 *
 	 * @return	A promise containing the wanted messages.
 	 */
 	private async _get_ones_most_recent_messages(
@@ -165,6 +188,18 @@ export class ChannelService {
 			},
 			take: limit,
 		});
+
+		if (
+			!messages &&
+			!(await this._prisma.channel.count({
+				where: {
+					id: id,
+				},
+			}))
+		) {
+			console.log("Specified channel does not exist");
+			throw new ChannelNotFoundError(id);
+		}
 
 		console.log("Messages found");
 		// Get the most ancient messages first
@@ -209,8 +244,13 @@ export class ChannelService {
 			channel = await this._prisma.channel.create({
 				data: {
 					name: dto.name,
-					hash: dto.password ? await argon2.hash(dto.password) : null,
 					chanType: type,
+					hash: dto.password ? await argon2.hash(dto.password) : null,
+					owner: {
+						connect: {
+							id: dto.user_id,
+						},
+					},
 					members: {
 						connect: {
 							id: dto.user_id,
@@ -292,8 +332,8 @@ export class ChannelService {
 	 * @param	dto The dto containing the data to get the messages.
 	 *
 	 * @potential_throws
-	 * - ChannelMessageNotFoundError
 	 * - ChannelNotFoundError
+	 * - ChannelMessageNotFoundError
 	 *
 	 * @return	A promise containing the wanted messages.
 	 */
@@ -301,29 +341,17 @@ export class ChannelService {
 		id: string,
 		dto: ChannelMessageGetDto,
 	): Promise<ChannelMessage[]> {
-		let messages: ChannelMessage[];
-
 		if (dto.before) {
-			messages = await this._get_ones_messages_before_a_specific_message(
+			return await this._get_ones_messages_before_a_specific_message(
 				id,
 				dto.before,
 				dto.limit,
 			);
 		} else if (dto.after) {
-			messages = await this._get_ones_messages_after_a_specific_message(
-				id,
-				dto.after,
-				dto.limit,
-			);
+			return await this._get_ones_messages_after_a_specific_message(id, dto.after, dto.limit);
 		} else {
-			messages = await this._get_ones_most_recent_messages(id, dto.limit);
+			return await this._get_ones_most_recent_messages(id, dto.limit);
 		}
-
-		if (!messages.length && !(await this._prisma.channel.count({ where: { id: id } }))) {
-			throw new ChannelNotFoundError(id);
-		}
-
-		return messages;
 	}
 
 	/**
@@ -340,6 +368,8 @@ export class ChannelService {
 	 * - ChannelInvitationUnexpectedError
 	 * - ChannelPasswordMissingError
 	 * - ChannelPasswordIncorrectError
+	 * - ChannelRelationNotFoundError
+	 * - UnknownError
 	 *
 	 * @return	A promise containing the joined channel's data.
 	 */
@@ -408,20 +438,32 @@ export class ChannelService {
 			}
 		}
 
-		console.log("Joining channel...");
-		channel = await this._prisma.channel.update({
-			where: {
-				id: id,
-			},
-			data: {
-				members: {
-					connect: {
-						id: dto.joining_user_id,
+		try {
+			console.log("Joining channel...");
+			channel = await this._prisma.channel.update({
+				where: {
+					id: id,
+				},
+				data: {
+					members: {
+						connect: {
+							id: dto.joining_user_id,
+						},
 					},
 				},
-			},
-		});
-		console.log("Channel joined");
+			});
+			console.log("Channel joined");
+		} catch (error) {
+			console.log("Error occured while joining channel");
+			if (error instanceof PrismaClientKnownRequestError) {
+				switch (error.code) {
+					case "P2025":
+						throw new ChannelRelationNotFoundError("members");
+				}
+				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
+			}
+			throw new UnknownError();
+		}
 
 		channel.hash = null;
 		return channel;
