@@ -81,7 +81,9 @@ export class UserService {
 									},
 								})
 							).id;
+
 							console.log("User created");
+							return id;
 						} catch (error) {
 							throw new UserFieldUnaivalableError();
 						}
