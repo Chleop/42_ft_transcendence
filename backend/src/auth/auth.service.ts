@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UserCreateDto } from 'src/user/dto';
+import { UserNotFoundError } from 'src/user/error';
 import { UserService } from 'src/user/user.service';
 
 type t_access_token = { access_token: string | undefined };
@@ -18,17 +19,27 @@ export class AuthService {
         this._jwt = new JwtService;
         this._config = new ConfigService;
     }
+
+    public async createAccessToken(login: string): Promise < t_access_token > {
         
-    public async signin(username: string): Promise < t_access_token > {
-        
-    // create new user in the database
-        const userObj: UserCreateDto = {
-            name: username,
+    // get the user id (creates user if not already existing)
+        let userId: string | undefined;
+        try {
+            userId = await this._user.get_user_id_by_login(login);
         }
-        const userId = await this._user.create_one(userObj);
-        
+        catch (error) {
+            if (error instanceof UserNotFoundError) {
+                console.log(error.message);
+                const userObj: UserCreateDto = { 
+                    login: login,
+                }
+                userId = await this._user.create_one(userObj);
+            }
+            else
+                throw error;
+        }
+
     // create access_token object
-        
         const payload : t_payload = { sub: userId };
         const tokenObj: t_access_token = await this.signToken(payload);
         
