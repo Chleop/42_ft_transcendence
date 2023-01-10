@@ -22,7 +22,7 @@ export class AuthController {
     async signin(@Body('name') name: string) {
         let token: t_access_token;
         try {
-            token = await this._authService.signin(name);
+            token = await this._authService.createAccessToken(name);
             return token;
         }
         catch (error) {
