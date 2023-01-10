@@ -18,11 +18,11 @@ export class AuthController {
         this._authService = authService;
     }
 
-    @Post('42callback/name')
-    async signin(@Body('name') name: string) {
+    @Post('42callback/login')
+    async signin(@Body('login') login: string) {
         let token: t_access_token;
         try {
-            token = await this._authService.createAccessToken(name);
+            token = await this._authService.createAccessToken(login);
             return token;
         }
         catch (error) {
