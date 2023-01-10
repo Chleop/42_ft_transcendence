@@ -137,10 +137,15 @@ export class ChannelController {
 				error instanceof ChannelInvitationIncorrectError ||
 				error instanceof ChannelInvitationUnexpectedError ||
 				error instanceof ChannelPasswordMissingError ||
-				error instanceof ChannelPasswordIncorrectError
+				error instanceof ChannelPasswordIncorrectError ||
+				error instanceof ChannelRelationNotFoundError
 			) {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
+			}
+			if (error instanceof UnknownError) {
+				console.log(error.message);
+				throw new InternalServerErrorException(error.message);
 			}
 			console.log("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
