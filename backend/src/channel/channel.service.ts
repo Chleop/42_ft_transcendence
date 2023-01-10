@@ -211,6 +211,11 @@ export class ChannelService {
 					name: dto.name,
 					hash: dto.password ? await argon2.hash(dto.password) : null,
 					chanType: type,
+					owner: {
+						connect: {
+							id: dto.user_id,
+						},
+					},
 					members: {
 						connect: {
 							id: dto.user_id,

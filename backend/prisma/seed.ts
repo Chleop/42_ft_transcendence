@@ -18,7 +18,6 @@ async function main() {
 	// Create default skin
 	const skin: Skin = await prisma.skin.create({
 		data: {
-      id: "SkinId",
 			name: "Default",
 			url: "resource/skin/default.jpg",
 		},
@@ -28,31 +27,31 @@ async function main() {
 	await prisma.user.createMany({
 		data: [
 			{
-        id: "jodufour",
+				login: "jodufour",
 				name: "jodufour",
 				email: "jodufour@student.42.fr",
 				skinId: skin.id,
 			},
 			{
-				id: "etran",
-        name: "etran",
+				login: "etran",
+        		name: "etran",
 				email: "etran@student.42.fr",
 				skinId: skin.id,
 			},
 			{
-				id: "majacque",
-        name: "majacque",
+				login: "majacque",
+        		name: "majacque",
 				email: "majacque@student.42.fr",
 				skinId: skin.id,
 			},
 			{
-        id: "cproesch",
+				login: "cproesch",
 				name: "cproesch",
 				email: "cproesch@student.42.fr",
 				skinId: skin.id,
 			},
 			{
-        id: "nmathieu",
+				login: "nmathieu",
 				name: "nmathieu",
 				email: "nmathieu@student.42.fr",
 				skinId: skin.id,
@@ -65,12 +64,18 @@ async function main() {
 		data: {
 			name: "joke",
 			chanType: ChanType.PRIVATE,
+			owner: {
+				connect: { name: "cproesch" },
+			},
 		},
 	});
 	const random: Channel = await prisma.channel.create({
 		data: {
 			name: "random",
 			chanType: ChanType.PROTECTED,
+			owner: {
+				connect: { name: "cproesch" },
+			},
 			hash: await argon2.hash("pouic"),
 		},
 	});
@@ -78,12 +83,18 @@ async function main() {
 		data: {
 			name: "general",
 			chanType: ChanType.PUBLIC,
+			owner: {
+				connect: { name: "cproesch" },
+			},
 		},
 	});
 	await prisma.channel.create({
 		data: {
 			name: "desert",
 			chanType: ChanType.PUBLIC,
+			owner: {
+				connect: { name: "cproesch" },
+			},
 		},
 	});
 

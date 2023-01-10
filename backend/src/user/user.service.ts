@@ -59,7 +59,8 @@ export class UserService {
 			id = (
 				await this._prisma.user.create({
 					data: {
-						name: dto.name,
+						login: dto.login,
+						name: dto.login,
 						skinId: skin.id,
 					},
 				})
@@ -70,11 +71,23 @@ export class UserService {
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2002":
-						throw new UserFieldUnaivalableError();
+						try {
+							id = (
+								await this._prisma.user.create({
+									data: {
+										login: dto.login,
+										name: "_" + dto.login,
+										skinId: skin.id,
+									},
+								})
+							).id;
+							console.log("User created");
+						} catch (error) {
+							throw new UserFieldUnaivalableError();
+						}
 				}
 				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
-
 			throw new UnknownError();
 		}
 
@@ -109,6 +122,7 @@ export class UserService {
 						throw new UserNotFoundError();
 				}
 				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
+				console.log(`error being : ${error}`);
 			}
 
 			throw new UnknownError();
@@ -318,4 +332,30 @@ export class UserService {
 
 		console.log("User's avatar updated");
 	}
+
+		/**
+	 * @brief	Get user id from its login.
+	 *
+	 * @param	login The login of the user to get.
+	 *
+	 * @potential_throws
+	 * - UserNotFoundError
+	 *
+	 * @return	A promise containing the wanted user id.
+	 */
+		 public async get_user_id_by_login(login: string | undefined): Promise< string | undefined > {
+			console.log("Searching user...");
+			const user: User | null = await this._prisma.user.findUnique({
+				where: {
+					login: login,
+				},
+			});
+	
+			if (!user) {
+				throw new UserNotFoundError();
+			}
+	
+			console.log("User found");
+			return user.id;
+		}
 }
