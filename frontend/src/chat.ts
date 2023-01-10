@@ -9,12 +9,12 @@ export class MessageElement {
     /**
      * The `<div>` that contains the whole message.
      */
-    container: HTMLDivElement;
+    private container: HTMLDivElement;
 
     /**
      * This constructor should basically never be called outside of the module.
      */
-    constructor(continuing: boolean, message: Message) {
+    private constructor(continuing: boolean, message: Message) {
         const avatar = document.createElement("avatar");
         avatar.classList.add("message-avatar");
         avatar.style.backgroundImage = `/avatar/${message.author_avatar}`;
