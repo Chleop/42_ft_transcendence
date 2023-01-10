@@ -2,9 +2,13 @@ import { t_relations } from "src/user/alias";
 import { UserCreateDto, UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
+	UserAlreadyBlockedError,
 	UserFieldUnaivalableError,
+	UserNotBlockedError,
 	UserNotFoundError,
 	UserRelationNotFoundError,
+	UserSelfBlockError,
+	UserSelfUnblockError,
 } from "src/user/error";
 import { UserService } from "src/user/user.service";
 import {
@@ -19,6 +23,7 @@ import {
 	Patch,
 	Post,
 	Put,
+	Query,
 	StreamableFile,
 	UploadedFile,
 	UseInterceptors,
@@ -34,6 +39,28 @@ export class UserController {
 
 	constructor() {
 		this._user_service = new UserService();
+	}
+
+	@Patch(":blocked_user_id/block")
+	// TODO: Remove the `blocking_user_id` query when the authentification is implemented
+	async block_one(
+		@Param("blocked_user_id") blocked_user_id: string,
+		@Query("blocking_user_id") blocking_user_id: string,
+	): Promise<void> {
+		try {
+			await this._user_service.block_one(blocked_user_id, blocking_user_id);
+		} catch (error) {
+			if (
+				error instanceof UserNotFoundError ||
+				error instanceof UserSelfBlockError ||
+				error instanceof UserAlreadyBlockedError
+			) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
 	}
 
 	@Post()
@@ -110,6 +137,28 @@ export class UserController {
 		}
 
 		return sfile;
+	}
+
+	@Patch(":unblocked_user_id/unblock")
+	// TODO: Remove the `unblocking_user_id` query when the authentification is implemented
+	async unblock_one(
+		@Param("unblocked_user_id") unblocked_user_id: string,
+		@Query("unblocking_user_id") unblocking_user_id: string,
+	): Promise<void> {
+		try {
+			await this._user_service.unblock_one(unblocked_user_id, unblocking_user_id);
+		} catch (error) {
+			if (
+				error instanceof UserNotFoundError ||
+				error instanceof UserSelfUnblockError ||
+				error instanceof UserNotBlockedError
+			) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
 	}
 
 	@Patch(":id")

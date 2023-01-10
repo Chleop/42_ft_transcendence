@@ -2,9 +2,13 @@ import { t_relations } from "src/user/alias";
 import { UserCreateDto, UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
+	UserAlreadyBlockedError,
 	UserFieldUnaivalableError,
+	UserNotBlockedError,
 	UserNotFoundError,
 	UserRelationNotFoundError,
+	UserSelfBlockError,
+	UserSelfUnblockError,
 } from "src/user/error";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, StreamableFile } from "@nestjs/common";
@@ -22,14 +26,87 @@ export class UserService {
 	}
 
 	/**
+	 * @brief	Make an user block an other user, preventing the blocking user of :
+	 * 			- being challenged by the blocked user
+	 * 			- being invited to a channel by the blocked user
+	 * 			- seeing the blocked user's messages
+	 *
+	 * @param	dto The dto containing the data to block an user.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserSelfBlockError
+	 * 			- UserAlreadyBlockedError
+	 */
+	public async block_one(blocked_user_id: string, blocking_user_id: string): Promise<void> {
+		console.log("Checking if blocking user exists...");
+		if (
+			!(await this._prisma.user.count({
+				where: {
+					id: blocking_user_id,
+				},
+			}))
+		) {
+			throw new UserNotFoundError();
+		}
+
+		console.log("Checking if blocked user exists...");
+		if (
+			!(await this._prisma.user.count({
+				where: {
+					id: blocked_user_id,
+				},
+			}))
+		) {
+			throw new UserNotFoundError();
+		}
+
+		console.log("Checking for self-blocking...");
+		if (blocked_user_id === blocking_user_id) {
+			throw new UserSelfBlockError();
+		}
+
+		console.log("Checking for already blocked...");
+		if (
+			await this._prisma.user.count({
+				where: {
+					id: blocking_user_id,
+					blocked: {
+						some: {
+							id: blocked_user_id,
+						},
+					},
+				},
+			})
+		) {
+			throw new UserAlreadyBlockedError();
+		}
+
+		console.log("Blocking user...");
+		await this._prisma.user.update({
+			where: {
+				id: blocking_user_id,
+			},
+			data: {
+				blocked: {
+					connect: {
+						id: blocked_user_id,
+					},
+				},
+			},
+		});
+		console.log("User blocked");
+	}
+
+	/**
 	 * @brief	Create a new user in the database.
 	 *
 	 * @param	dto The dto containing the data to create the user.
 	 *
-	 * @potential_throws
-	 * - UserRelationNotFoundError
-	 * - UserFieldUnaivalableError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- UserRelationNotFoundError
+	 * 			- UserFieldUnaivalableError
+	 * 			- UnknownError
 	 *
 	 * @return	A promise containing the id of the created user.
 	 */
@@ -86,9 +163,9 @@ export class UserService {
 	 *
 	 * @param	id The id of the user to delete.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
@@ -154,8 +231,8 @@ export class UserService {
 	 *
 	 * @param	id The id of the user to get the avatar from.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
 	 *
 	 * @return	A promise containing the wanted avatar.
 	 */
@@ -183,15 +260,85 @@ export class UserService {
 	}
 
 	/**
+	 * @brief	Make an user unblock an other user, ending the restrictions imposed by the block.
+	 *
+	 * @param	dto The dto containing the data to unblock an user.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- SelfUnblockError
+	 * 			- NotBlockedError
+	 */
+	public async unblock_one(unblocked_user_id: string, unblocking_user_id: string): Promise<void> {
+		console.log("Checking for unblocking user's existence...");
+		if (
+			!(await this._prisma.user.count({
+				where: {
+					id: unblocking_user_id,
+				},
+			}))
+		) {
+			throw new UserNotFoundError();
+		}
+
+		console.log("Checking for unblocked user's existence...");
+		if (
+			!(await this._prisma.user.count({
+				where: {
+					id: unblocked_user_id,
+				},
+			}))
+		) {
+			throw new UserNotFoundError();
+		}
+
+		console.log("Checking for self-unblocking...");
+		if (unblocked_user_id === unblocking_user_id) {
+			throw new UserSelfUnblockError();
+		}
+
+		console.log("Checking for not blocked...");
+		if (
+			!(await this._prisma.user.count({
+				where: {
+					id: unblocking_user_id,
+					blocked: {
+						some: {
+							id: unblocked_user_id,
+						},
+					},
+				},
+			}))
+		) {
+			throw new UserNotBlockedError();
+		}
+
+		console.log("Unblocking user...");
+		await this._prisma.user.update({
+			where: {
+				id: unblocking_user_id,
+			},
+			data: {
+				blocked: {
+					disconnect: {
+						id: unblocked_user_id,
+					},
+				},
+			},
+		});
+		console.log("User unblocked");
+	}
+
+	/**
 	 * @brief	Update a user in the database.
 	 *
 	 * @param	id The id of the user to update.
 	 * @param	dto The dto containing the fields to update.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
-	 * - UserFieldUnaivalableError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserFieldUnaivalableError
+	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
@@ -256,9 +403,9 @@ export class UserService {
 	 * @param	id The id of the user to update the avatar from.
 	 * @param	file The file containing the new avatar.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
