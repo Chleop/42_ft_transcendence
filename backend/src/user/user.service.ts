@@ -56,15 +56,15 @@ export class UserService {
 
 		try {
 			console.log("Creating user...");
-			let name : string = dto.login;
-			let already_existing : number = await PrismaClientKnownRequestError.user.count({
-				select: { name: name, }
-			})
+			let name: string = dto.login;
+			let already_existing: number = await PrismaClientKnownRequestError.user.count({
+				select: { name: name },
+			});
 			while (already_existing) {
-				name = "_" + name,
-				already_existing = await PrismaClientKnownRequestError.user.count({
-					select: { name: name, }
-				})
+				(name = "_" + name),
+					(already_existing = await PrismaClientKnownRequestError.user.count({
+						select: { name: name },
+					}));
 			}
 			id = (
 				await this._prisma.user.create({
@@ -330,7 +330,7 @@ export class UserService {
 		console.log("User's avatar updated");
 	}
 
-		/**
+	/**
 	 * @brief	Get user id from its login.
 	 *
 	 * @param	login The login of the user to get.
@@ -340,19 +340,19 @@ export class UserService {
 	 *
 	 * @return	A promise containing the wanted user id.
 	 */
-		 public async get_user_id_by_login(login: string | undefined): Promise< string | undefined > {
-			console.log("Searching user...");
-			const user: User | null = await this._prisma.user.findUnique({
-				where: {
-					login: login,
-				},
-			});
-	
-			if (!user) {
-				throw new UserNotFoundError();
-			}
-	
-			console.log("User found");
-			return user.id;
+	public async get_user_id_by_login(login: string | undefined): Promise<string | undefined> {
+		console.log("Searching user...");
+		const user: User | null = await this._prisma.user.findUnique({
+			where: {
+				login: login,
+			},
+		});
+
+		if (!user) {
+			throw new UserNotFoundError();
 		}
+
+		console.log("User found");
+		return user.id;
+	}
 }
