@@ -57,13 +57,13 @@ export class UserService {
 		try {
 			console.log("Creating user...");
 			let name: string = dto.login;
-			let already_existing: number = await PrismaClientKnownRequestError.user.count({
-				select: { name: name },
+			let already_existing: number = await this._prisma.user.count({
+				where: { name: name },
 			});
 			while (already_existing) {
 				(name = "_" + name),
-					(already_existing = await PrismaClientKnownRequestError.user.count({
-						select: { name: name },
+					(already_existing = await this._prisma.user.count({
+						where: { name: name },
 					}));
 			}
 			id = (
@@ -342,7 +342,7 @@ export class UserService {
 	 */
 	public async get_user_id_by_login(login: string | undefined): Promise<string | undefined> {
 		console.log("Searching user...");
-		const user: User | null = await this._prisma.user.findUnique({
+		const user: User | null = await this._prisma.user.findFirst({
 			where: {
 				login: login,
 			},
