@@ -93,7 +93,76 @@ export class UserService {
 	 * @return	An empty promise.
 	 */
 	public async delete_one(id: string): Promise<void> {
+		type t_fields = {
+			id: string;
+			members: User[];
+			operators: User[];
+		};
 		try {
+			console.log("Searching channels owned by the user to delete...");
+			const channels: t_fields[] = await this._prisma.channel.findMany({
+				where: {
+					ownerId: id,
+				},
+				select: {
+					id: true,
+					members: true,
+					operators: true,
+				},
+			});
+
+			console.log("Delegating ownership of channels...");
+			for (const channel of channels) {
+				console.log(`Leaving channel ${channel.id}...`);
+				await this._prisma.channel.update({
+					where: {
+						id: channel.id,
+					},
+					data: {
+						members: {
+							disconnect: {
+								id: id,
+							},
+						},
+						operators: {
+							disconnect: {
+								id: id,
+							},
+						},
+					},
+				});
+
+				console.log(`Delegating ownership of channel ${channel.id}...`);
+				if (channel.operators[0]) {
+					console.log("Delegating ownership to an operator...");
+					await this._prisma.channel.update({
+						where: {
+							id: channel.id,
+						},
+						data: {
+							ownerId: channel.operators[0].id,
+						},
+					});
+				} else if (channel.members[0]) {
+					console.log("Delegating ownership to a member...");
+					await this._prisma.channel.update({
+						where: {
+							id: channel.id,
+						},
+						data: {
+							ownerId: channel.members[0].id,
+						},
+					});
+				} else {
+					console.log("No one else present in channel, deleting it...");
+					await this._prisma.channel.delete({
+						where: {
+							id: channel.id,
+						},
+					});
+				}
+			}
+
 			console.log("Deleting user...");
 			await this._prisma.user.delete({
 				where: {
@@ -107,6 +176,8 @@ export class UserService {
 				switch (error.code) {
 					case "P2025":
 						throw new UserNotFoundError();
+					case "P2003":
+						console.log(error.message);
 				}
 				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
