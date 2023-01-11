@@ -197,8 +197,8 @@ export class UserService {
 	 *
 	 * @param	id The id of the user to get.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
 	 *
 	 * @return	A promise containing the wanted user.
 	 */
