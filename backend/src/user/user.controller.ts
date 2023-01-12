@@ -21,13 +21,16 @@ import {
 	Put,
 	StreamableFile,
 	UploadedFile,
+	UseGuards,
 	UseInterceptors,
 	UsePipes,
 	ValidationPipe,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { User } from "@prisma/client";
+import { JwtGuard } from "src/auth/guards";
 
+@UseGuards(JwtGuard)
 @Controller("user")
 export class UserController {
 	private _user_service: UserService;
