@@ -15,6 +15,8 @@ model User {
   login           String    @unique
   name            String    @unique
   email           String?   @unique
+  state           StateType @default(ACTIVE)
+  stateDate       DateTime  @default(now())
   avatar          String    @default("resource/avatar/default.jpg") // !le choix de l'avatar
   // par defaut se fait au niveau du signup
   skin            Skin             @relation(fields: [skinId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -96,4 +98,9 @@ enum ChanType {
   PUBLIC
   PRIVATE
   PROTECTED
+}
+
+enum StateType {
+  ACTIVE
+  DISABLED
 }
