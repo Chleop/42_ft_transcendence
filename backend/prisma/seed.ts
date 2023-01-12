@@ -7,14 +7,6 @@ async function delay(ms: number) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 async function main() {
-	// Delete all data
-	await prisma.channelMessage.deleteMany({});
-	await prisma.dM.deleteMany({});
-	await prisma.game.deleteMany({});
-	await prisma.user.deleteMany({});
-	await prisma.channel.deleteMany({});
-	await prisma.skin.deleteMany({});
-
 	// Create default skin
 	const skin: Skin = await prisma.skin.create({
 		data: {
@@ -27,26 +19,31 @@ async function main() {
 	await prisma.user.createMany({
 		data: [
 			{
+				login: "jodufour",
 				name: "jodufour",
 				email: "jodufour@student.42.fr",
 				skinId: skin.id,
 			},
 			{
+				login: "etran",
 				name: "etran",
 				email: "etran@student.42.fr",
 				skinId: skin.id,
 			},
 			{
+				login: "majacque",
 				name: "majacque",
 				email: "majacque@student.42.fr",
 				skinId: skin.id,
 			},
 			{
+				login: "cproesch",
 				name: "cproesch",
 				email: "cproesch@student.42.fr",
 				skinId: skin.id,
 			},
 			{
+				login: "nmathieu",
 				name: "nmathieu",
 				email: "nmathieu@student.42.fr",
 				skinId: skin.id,
@@ -60,9 +57,7 @@ async function main() {
 			name: "joke",
 			chanType: ChanType.PRIVATE,
 			owner: {
-				connect: {
-					name: "majacque",
-				},
+				connect: { name: "cproesch" },
 			},
 		},
 	});
@@ -70,12 +65,10 @@ async function main() {
 		data: {
 			name: "random",
 			chanType: ChanType.PROTECTED,
-			hash: await argon2.hash("pouic"),
 			owner: {
-				connect: {
-					name: "etran",
-				},
+				connect: { name: "cproesch" },
 			},
+			hash: await argon2.hash("pouic"),
 		},
 	});
 	const general: Channel = await prisma.channel.create({
@@ -83,9 +76,7 @@ async function main() {
 			name: "general",
 			chanType: ChanType.PUBLIC,
 			owner: {
-				connect: {
-					name: "jodufour",
-				},
+				connect: { name: "cproesch" },
 			},
 		},
 	});
@@ -94,9 +85,7 @@ async function main() {
 			name: "desert",
 			chanType: ChanType.PUBLIC,
 			owner: {
-				connect: {
-					name: "jodufour",
-				},
+				connect: { name: "cproesch" },
 			},
 		},
 	});

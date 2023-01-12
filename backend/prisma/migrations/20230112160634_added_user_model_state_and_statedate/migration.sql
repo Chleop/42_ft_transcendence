@@ -1,0 +1,6 @@
+-- CreateEnum
+CREATE TYPE "StateType" AS ENUM ('ACTIVE', 'DISABLED');
+
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "state" "StateType" NOT NULL DEFAULT 'ACTIVE',
+ADD COLUMN     "stateDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
