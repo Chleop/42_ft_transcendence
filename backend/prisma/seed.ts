@@ -1,107 +1,254 @@
-import { PrismaClient } from '@prisma/client'
+import { Channel, ChanType, PrismaClient, Skin, User } from "@prisma/client";
+import * as argon2 from "argon2";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
+async function delay(ms: number) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
 async function main() {
+	// Create default skin
+	const skin: Skin = await prisma.skin.create({
+		data: {
+			name: "Default",
+			url: "resource/skin/default.jpg",
+		},
+	});
 
-  const user1 = await prisma.user.upsert({
-    where: { id: 'User1' },
-    update: {},
-    create: {
-        id: 'User1',
-        name: 'FirstUser',
-        email: 'user1@42.fr',
-        skin: {
-            create: {
-                id: "skin1",
-                name: "skin1",
-                url: "skin1",
-            },
-      },
-    },
-  })
+	// Create default users
+	await prisma.user.createMany({
+		data: [
+			{
+				login: "jodufour",
+				name: "jodufour",
+				email: "jodufour@student.42.fr",
+				skinId: skin.id,
+			},
+			{
+				login: "etran",
+				name: "etran",
+				email: "etran@student.42.fr",
+				skinId: skin.id,
+			},
+			{
+				login: "majacque",
+				name: "majacque",
+				email: "majacque@student.42.fr",
+				skinId: skin.id,
+			},
+			{
+				login: "cproesch",
+				name: "cproesch",
+				email: "cproesch@student.42.fr",
+				skinId: skin.id,
+			},
+			{
+				login: "nmathieu",
+				name: "nmathieu",
+				email: "nmathieu@student.42.fr",
+				skinId: skin.id,
+			},
+		],
+	});
 
-  const user2 = await prisma.user.upsert({
-    where: { id: 'User2' },
-    update: {},
-    create: {
-        id: 'User2',
-        name: 'SecondUser',
-        email: 'user2@42.fr',
-        skin: {
-            create: {
-                id: "skin2",
-                name: "skin2",
-                url: "skin2",
-            },
-      },
-    },
-  })
+	// Create default channels
+	const joke: Channel = await prisma.channel.create({
+		data: {
+			name: "joke",
+			chanType: ChanType.PRIVATE,
+			owner: {
+				connect: { name: "cproesch" },
+			},
+		},
+	});
+	const random: Channel = await prisma.channel.create({
+		data: {
+			name: "random",
+			chanType: ChanType.PROTECTED,
+			owner: {
+				connect: { name: "cproesch" },
+			},
+			hash: await argon2.hash("pouic"),
+		},
+	});
+	const general: Channel = await prisma.channel.create({
+		data: {
+			name: "general",
+			chanType: ChanType.PUBLIC,
+			owner: {
+				connect: { name: "cproesch" },
+			},
+		},
+	});
+	await prisma.channel.create({
+		data: {
+			name: "desert",
+			chanType: ChanType.PUBLIC,
+			owner: {
+				connect: { name: "cproesch" },
+			},
+		},
+	});
 
-  const user3 = await prisma.user.upsert({
-    where: { id: 'User3' },
-    update: {},
-    create: {
-        id: 'User3',
-        name: 'ThirdUser',
-        email: 'user3@42.fr',
-        skin: {
-            connect: { id: 'skin1' },
-      },
-    },
-  })
+	// Create default userchannels relations
+	const jodufour: User = await prisma.user.update({
+		where: {
+			name: "jodufour",
+		},
+		data: {
+			channels: {
+				connect: [
+					{
+						name: "general",
+					},
+				],
+			},
+		},
+	});
+	const etran: User = await prisma.user.update({
+		where: {
+			name: "etran",
+		},
+		data: {
+			channels: {
+				connect: [
+					{
+						name: "general",
+					},
+					{
+						name: "random",
+					},
+				],
+			},
+		},
+	});
+	const majacque: User = await prisma.user.update({
+		where: {
+			name: "majacque",
+		},
+		data: {
+			channels: {
+				connect: [
+					{
+						name: "general",
+					},
+					{
+						name: "joke",
+					},
+				],
+			},
+		},
+	});
+	const cproesch: User = await prisma.user.update({
+		where: {
+			name: "cproesch",
+		},
+		data: {
+			channels: {
+				connect: [
+					{
+						name: "random",
+					},
+					{
+						name: "joke",
+					},
+				],
+			},
+		},
+	});
+	const nmathieu: User = await prisma.user.update({
+		where: {
+			name: "nmathieu",
+		},
+		data: {
+			channels: {
+				connect: [
+					{
+						name: "general",
+					},
+					{
+						name: "random",
+					},
+					{
+						name: "joke",
+					},
+				],
+			},
+		},
+	});
 
-  const chan1 = await prisma.channel.upsert({
-    where: { name: 'FirstChannel' },
-    update: {},
-    create: {
-        name: 'FirstChannel',
-        hash: '123456789',
-        members: {
-            connect: [
-                { id: 'User1' },
-                { id: 'User2' },
-                { id: 'User3' }
-            ]
-        },
-        operators: {
-            connect: { id: 'User1' },
-        },
-        messages: {
-            create: [{
-                senderid: 'User1',
-                content: "Jesus!",
-            },
-            {
-                senderid: 'User2',
-                content: "Revient!",
-            },
-            {
-                senderid: 'User3',
-                content: "Jeeesus revient!",
-            },
-            {
-                senderid: 'User1',
-                content: "Jesus revient parmis les tiens!",
-            },
-            {
-                senderid: 'User3',
-                content: "Du haut de ta croix montre nous le chemin",
-            },
-            ]
-        },
-    },
-  })
+	// Create default channel messages
+	for (let i = 0; i < 100; i++) {
+		await prisma.channelMessage.create({
+			data: {
+				content: `general: ${i}`,
+				senderId: jodufour.id,
+				channelId: general.id,
+			},
+		});
+		await delay(100);
+	}
 
-//   console.log({ user1 });
+	await prisma.channelMessage.create({
+		data: {
+			content: "Hello World !",
+			senderId: jodufour.id,
+			channelId: general.id,
+		},
+	});
+	await delay(100);
+
+	await prisma.channelMessage.create({
+		data: {
+			content: "How are you ?",
+			senderId: etran.id,
+			channelId: general.id,
+		},
+	});
+	await delay(100);
+
+	await prisma.channelMessage.create({
+		data: {
+			content: "I'm fine, thanks !",
+			senderId: majacque.id,
+			channelId: general.id,
+		},
+	});
+	await delay(100);
+
+	await prisma.channelMessage.create({
+		data: {
+			content: "Hola que tal ?",
+			senderId: cproesch.id,
+			channelId: random.id,
+		},
+	});
+	await delay(100);
+
+	await prisma.channelMessage.create({
+		data: {
+			content: "Muy bien, gracias !",
+			senderId: nmathieu.id,
+			channelId: random.id,
+		},
+	});
+	await delay(100);
+
+	await prisma.channelMessage.create({
+		data: {
+			content: "Did you get it ?...",
+			senderId: majacque.id,
+			channelId: joke.id,
+		},
+	});
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect()
-  })
-  .catch(async (e) => {
-    console.error(e)
-    await prisma.$disconnect()
-    process.exit(1)
-  })
+	.then(async () => {
+		await prisma.$disconnect();
+	})
+	.catch(async (e) => {
+		console.error(e);
+		await prisma.$disconnect();
+		process.exit(1);
+	});
