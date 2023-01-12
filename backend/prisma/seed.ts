@@ -57,7 +57,9 @@ async function main() {
 			name: "joke",
 			chanType: ChanType.PRIVATE,
 			owner: {
-				connect: { name: "cproesch" },
+				connect: {
+					name: "majacque",
+				},
 			},
 		},
 	});
@@ -65,10 +67,12 @@ async function main() {
 		data: {
 			name: "random",
 			chanType: ChanType.PROTECTED,
-			owner: {
-				connect: { name: "cproesch" },
-			},
 			hash: await argon2.hash("pouic"),
+			owner: {
+				connect: {
+					name: "etran",
+				},
+			},
 		},
 	});
 	const general: Channel = await prisma.channel.create({
@@ -76,7 +80,9 @@ async function main() {
 			name: "general",
 			chanType: ChanType.PUBLIC,
 			owner: {
-				connect: { name: "cproesch" },
+				connect: {
+					name: "jodufour",
+				},
 			},
 		},
 	});
@@ -85,7 +91,9 @@ async function main() {
 			name: "desert",
 			chanType: ChanType.PUBLIC,
 			owner: {
-				connect: { name: "cproesch" },
+				connect: {
+					name: "jodufour",
+				},
 			},
 		},
 	});
