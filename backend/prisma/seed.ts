@@ -7,14 +7,6 @@ async function delay(ms: number) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 async function main() {
-	// Delete all data
-	await prisma.channelMessage.deleteMany({});
-	await prisma.dM.deleteMany({});
-	await prisma.game.deleteMany({});
-	await prisma.user.deleteMany({});
-	await prisma.channel.deleteMany({});
-	await prisma.skin.deleteMany({});
-
 	// Create default skin
 	const skin: Skin = await prisma.skin.create({
 		data: {
@@ -34,13 +26,13 @@ async function main() {
 			},
 			{
 				login: "etran",
-        		name: "etran",
+				name: "etran",
 				email: "etran@student.42.fr",
 				skinId: skin.id,
 			},
 			{
 				login: "majacque",
-        		name: "majacque",
+				name: "majacque",
 				email: "majacque@student.42.fr",
 				skinId: skin.id,
 			},
