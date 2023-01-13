@@ -1,15 +1,23 @@
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { GameModule } from './game/game.module';
+import { ConfigModule } from "@nestjs/config";
+import { Module } from "@nestjs/common";
+import { UserModule } from "src/user/user.module";
+import { ChannelModule } from "src/channel/channel.module";
+import { GameModule } from "src/game/game.module"
 
 // TODO: Delete this when file server is set up.
 import { FileModule } from "./file.module";
-import { FileController } from "./file.controller";
 
 @Module({
-  imports: [GameModule, FileModule],
-  controllers: [AppController, FileController],
-  providers: [AppService]
+	imports: [
+		ChannelModule,
+		ConfigModule.forRoot({
+			isGlobal: true,
+		}),
+		UserModule,
+		GameModule,
+
+		// TODO: Remove this.
+		FileModule
+	],
 })
 export class AppModule {}

@@ -1,10 +1,21 @@
-import { PlayerData } from './';
+import { PlayerData } from "./";
 
 function getCurrentTime(date: Date): string {
 	const day: string = ("0" + date.getDate()).slice(-2);
 	const month: string = ("0" + (date.getMonth() + 1)).slice(-2);
-	return date.getFullYear() + '-' + month + '-' + day + ' '
-		+ date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
+	return (
+		date.getFullYear() +
+		"-" +
+		month +
+		"-" +
+		day +
+		" " +
+		date.getHours() +
+		":" +
+		date.getMinutes() +
+		":" +
+		date.getSeconds()
+	);
 }
 
 export class ResultsObject {
