@@ -1,4 +1,4 @@
-import { Scene, History } from "../strawberry";
+import { Scene, History, State } from "../strawberry";
 import { Player, Constants } from ".";
 import { Renderer, Sprite } from "./renderer";
 import { GameSocket } from "../api";
@@ -125,6 +125,9 @@ export class GameScene extends Scene {
     /** Whether the game has started. */
     private game_started: boolean;
 
+    /** The socket that we are using. */
+    private socket: GameSocket;
+
     /**
      * Creates a new `GameScene` instance.
      */
@@ -181,7 +184,14 @@ export class GameScene extends Scene {
             History.go_back();
         };
 
+        this.socket = socket;
+
         window.requestAnimationFrame(timestamp => this.animation_frame_callback(timestamp));
+    }
+
+    public on_left(prev: State): void {
+        this.socket.disconnect();
+        super.on_left(prev);
     }
 
     /**
