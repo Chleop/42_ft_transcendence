@@ -1,11 +1,10 @@
-import { OpponentUpdate } from './';
-import { PaddleDto } from '../dto';
+import { OpponentUpdate } from "./";
+import { PaddleDto } from "../dto";
 
 export type AntiCheat = {
-
 	// p1: can be null if no cheat
-	p1: PaddleDto | null,
+	p1: PaddleDto | null;
 
 	// p2: to send back to p2
-	p2: OpponentUpdate
+	p2: OpponentUpdate;
 };

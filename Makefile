@@ -10,7 +10,7 @@ DOWN 			= down
 REMOVEALL 		= --rmi all --volumes
 
 all:
-	${DOCKERCOMPOSE} ${COMPOSEFILE} ${BUILD} --build
+	${DOCKERCOMPOSE} ${COMPOSEFILE} ${BUILD}
 
 .PHONY: start
 start:

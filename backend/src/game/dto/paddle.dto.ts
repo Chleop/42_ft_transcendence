@@ -1,7 +1,6 @@
 /* Data received from front-end */
 //TODO: validators?
 export class PaddleDto {
-
 	// Paddle position
 	position: number;
 

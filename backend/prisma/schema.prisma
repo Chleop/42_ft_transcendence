@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                      String    @id @unique @default(cuid())
+  login                   String    @unique
+  name                    String    @unique
+  email                   String?   @unique
+  state                   StateType @default(ACTIVE)
+  stateDate               DateTime  @default(now())
+  avatar                  String    @default("resource/avatar/default.jpg") // !le choix de l'avatar
+  // par defaut se fait au niveau du signup
+  skin                    Skin      @relation(fields: [skinId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  elo                     Int       @default(0)
+  twoFactAuth             Boolean   @default(false)
+  twoFactSecret           String?
+  channels                Channel[] @relation("userchannels")
+  gamesPlayed             Game[]    @relation("gamesplayed")
+  gamesWon                Game[]    @relation("gameswon")
+  friends                 User[]    @relation("friendship")
+  pendingFriendsRequests  User[]    @relation("pending friendship")
+  blocked                 User[]    @relation("blocked")
+  channelOwned            Channel[] @relation("chanowner")
+  // les champs ci-dessous sont neccessaires pour les relations mais
+  // ne sont pas accessibles par le client Prisma grace a l'attribut 
+  // @ignore.
+  // Pour utiliser Prisma Studio, commenter les @ignore
+  mirrorOperators               Channel[]         @relation("chanops") //@ignore
+  mirrorFriends                 User[]            @relation("friendship") //@ignore
+  mirrorpendingFriendsRequests  User[]            @relation("pending friendship") //@ignore
+  mirrorBlocked                 User[]            @relation("blocked") //@ignore
+  mirrorDms                     DM[]              @relation("userdms") //@ignore
+  mirrorSender                  ChannelMessage[]  @relation("usermessage") //@ignore
+  // les champs ci-dessous sont neccessaires pour les relations
+  // mais n'existent pas reellement dans la bdd (foreign keys)
+  skinId          String
+}
+
+model Channel {
+  id        String    @id @unique @default(cuid())
+  name      String    @unique
+  chanType  ChanType  @default(PUBLIC)
+  hash      String?
+  owner     User             @relation("chanowner", fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  members   User[]           @relation("userchannels")
+  operators User[]           @relation("chanops")
+  messages  ChannelMessage[] @relation("channelmessage")
+  // les champs ci-dessous sont neccessaires pour les relations
+  // mais n'existent pas reellement dans la bdd (foreign keys)
+  ownerId   String
+}
+
+model ChannelMessage {
+  id        String   @id @unique @default(cuid())
+  sender    User     @relation("usermessage", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  channel   Channel  @relation("channelmessage", fields: [channelId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  dateTime  DateTime @default(now())
+  content   String
+  // les champs ci-dessous sont neccessaires pour les relations
+  // mais n'existent pas reellement dans la bdd (foreign keys)
+  senderId  String
+  channelId String
+}
+
+model DM {
+  id       String   @id @unique @default(cuid())
+  users    User[]   @relation("userdms")
+  dateTime DateTime @default(now())
+  content  String
+}
+
+model Game {
+  id       String   @id @unique @default(cuid())
+  players  User[]   @relation("gamesplayed")
+  winner   User     @relation("gameswon", fields: [winnerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  scores   Int[]
+  dateTime DateTime @default(now())
+  // les champs ci-dessous sont neccessaires pour les relations
+  // mais n'existent pas reellement dans la bdd (foreign keys)
+  winnerId String
+}
+
+model Skin {
+  id    String @id @unique @default(cuid())
+  name  String @unique
+  url   String @unique
+  users User[]
+}
+
+enum ChanType {
+  PUBLIC
+  PRIVATE
+  PROTECTED
+}
+
+enum StateType {
+  ACTIVE
+  DISABLED
+}
