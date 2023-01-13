@@ -58,6 +58,7 @@ export class MainMenuScene extends Scene {
                     History.push_state(new GameScene(this.game_socket, new LocalPlayer(this.game_socket), new RemotePlayer(this.game_socket)));
                     this.game_socket = null;
                     this.match_found = false;
+                    find_game_span.innerText = "Find Game";
                 } else {
                     console.log("Cancelled matchmaking.");
 
