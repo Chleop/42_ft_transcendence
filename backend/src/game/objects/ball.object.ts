@@ -7,17 +7,18 @@ export class Ball {
 	private y: number;
 	private vx: number;
 	private vy: number;
-	private velocity: number;
+	// private velocity: number;
 
 	constructor() {
-		const vx: number = Math.random(); //TODO: get limit angle
-		const vy: number = Math.random();
-		const v_norm: number = Math.sqrt(vx * vx + vy * vy);
+		const angle: number = Math.random() * Math.PI * 2;
+		// const vx: number = Math.random(); //TODO: get limit angle
+		// const vy: number = Math.random();
+		// const v_norm: number = Math.sqrt(vx * vx + vy * vy);
 		this.x = 0;
 		this.y = 0;
-		this.vx = vx / v_norm;
-		this.vy = vy / v_norm;
-		this.velocity = Constants.initial_speed;
+		this.vx = Math.cos(angle) * Constants.initial_speed;
+		this.vy = Math.sin(angle) * Constants.initial_speed;
+		// this.velocity = Constants.initial_speed;
 	}
 
 	/* == PUBLIC ================================================================================ */
@@ -50,12 +51,12 @@ export class Ball {
 
 	/* Refresh on X axis */
 	private refreshX(): void {
-		this.x += this.vx * this.velocity * Constants.ping * 0.001;
+		this.x += this.vx /** this.velocity */ * Constants.ping * 0.001;
 	}
 
 	/* Refresh on Y axis */
 	private refreshY(): void {
-		const new_y: number = this.y + this.vy * this.velocity * Constants.ping * 0.001;
+		const new_y: number = this.y + (this.vy /** this.velocity */ * Constants.ping * 0.001);
 		if (new_y > Constants.h_2) {
 			this.y = Constants.h_2;
 		} else if (new_y < -Constants.h_2) {
@@ -68,15 +69,23 @@ export class Ball {
 	}
 
 	private increaseSpeed(): void {
-		this.velocity *= Constants.acceleration;
+		this.vx *= Constants.acceleration;
+		this.vy *= Constants.acceleration;
 	}
 
 	/* Shift ball.vy a little depending on position of ball on paddle */
 	private shiftBouncing(paddle_y: number): void {
-		const oh: number = this.y - paddle_y; // OH vector
-		const vy: number = this.vy + 0.5 * oh;
-		const norm: number = Math.sqrt(this.vx * this.vx + vy * vy);
-		this.vy = vy / norm;
-		this.vx = -this.vx / norm;
+		const orig_norm: number = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+		const oh: number = this.y - paddle_y;
+		const vy: number = this.vy / orig_norm + 0.5 * oh;
+		const vx: number = this.vx / orig_norm;
+		const norm: number = Math.sqrt(vx * vx + vy * vy);
+		this.vy = (vy / norm) * orig_norm;
+		this.vx = -(vx / norm) * orig_norm;
+		// const oh: number = this.y - paddle_y; // OH vector
+		// const vy: number = this.vy + 0.5 * oh;
+		// const norm: number = Math.sqrt(this.vx * this.vx + vy * vy);
+		// this.vy = (vy / norm) ;
+		// this.vx = -(this.vx / norm);
 	}
 }

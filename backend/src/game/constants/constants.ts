@@ -36,39 +36,3 @@ export const sin: number = 5;
 
 /* Margin of error for paddle: 2% */
 export const margin: number = 0.02;
-
-// export type Constant = {
-// 	matchmaking_timeout: number;
-// 	initial_speed: number;
-// 	acceleration: number;
-// 	ping: number;
-// 	w_2: number;
-// 	h_2: number;
-// 	paddle_radius: number;
-// 	paddle_x: number;
-// 	max_paddle: number;
-// 	radius: number;
-// 	max_score: number;
-// 	limit_x: number;
-// 	cos: number;
-// 	sin: number;
-// 	margin: number;
-// };
-
-// module.exports = {
-// 	matchmaking_timeout: matchmaking_timeout,
-// 	initial_speed: initial_speed,
-// 	acceleration: acceleration,
-// 	ping: ping,
-// 	w_2: w_2,
-// 	h_2: h_2,
-// 	paddle_radius: paddle_radius,
-// 	paddle_x: paddle_x,
-// 	max_paddle: max_paddle,
-// 	radius: radius,
-// 	max_score: max_score,
-// 	limit_x: limit_x,
-// 	cos: cos,
-// 	sin: sin,
-// 	margin: margin,
-// };

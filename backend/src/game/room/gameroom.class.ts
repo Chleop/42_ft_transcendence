@@ -19,13 +19,13 @@ export class GameRoom {
 	private game: Gameplay | null;
 
 	// TEMPORARY
-	private nb_update: number;
+	// private nb_update: number;
 
 	constructor(match: Match) {
 		this.match = match;
 		this.ping_id = null;
 		this.game = null;
-		this.nb_update = 0; // TEMPORARY
+		// this.nb_update = 0; // TEMPORARY
 		console.info("Room created:", this.match.name);
 	}
 
@@ -41,7 +41,7 @@ export class GameRoom {
 	/* Called every 16ms to send ball updates */
 	public updateGame(): GameUpdate | null {
 		// TEMPORARY: Comment the 2 lines to avoid early kick
-		if (this.nb_update++ > 5) throw null;
+		// if (this.nb_update++ > 5) throw null;
 		if (this.game === null) return null;
 		return this.game.refresh();
 	}
