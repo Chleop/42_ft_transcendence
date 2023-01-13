@@ -20,7 +20,6 @@ export class LocalPlayer extends PlayerBase {
 
     private update_movement_input() {
         this.movement_input = 0;
-        console.log(this.movement_input);
 
         if (this.pressing_up) {
             this.movement_input += 1.0;

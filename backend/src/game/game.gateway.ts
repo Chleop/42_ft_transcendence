@@ -133,9 +133,8 @@ export class GameGateway {
 			if (client.id === match.player1.id)
 				match.player2.socket.disconnect(true);
 			else
-				match.player2.socket.disconnect(true);
+				match.player1.socket.disconnect(true);
 		}
-
 		console.info(`[${client.id} disconnected]`);
 		this.game_service.display();
 	}
@@ -180,7 +179,8 @@ export class GameGateway {
 				client.emit("antiCheat", anticheat.p1);
 			}
 		} catch (e) {
-			console.info(e);
+			e;
+			// console.info(e);
 		}
 	}
 
@@ -268,5 +268,6 @@ export class GameGateway {
 	//TODO: make it cleaner
 	private disconnectRoom(match: Match): void {
 		match.player1.socket.disconnect(true);
+		match.player2.socket.disconnect(true);
 	}
 }

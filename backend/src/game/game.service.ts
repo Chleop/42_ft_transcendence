@@ -124,7 +124,7 @@ export class GameService {
 			// The game was ongoing
 			const index: number = this.findUserRoomIndex(client);
 			if (!(index < 0)) {
-				console.info("Kicked");
+				console.info("Kicked from room");
 				const room: GameRoom = this.game_rooms[index];
 				const match: Match = this.saveScore(
 					room,

@@ -32,6 +32,11 @@ export class GameSocket {
     public on_connected: () => void = noop;
 
     /**
+     * Indicates that the socket is not currently connected to the server.
+     */
+    public on_disconnected: () => void = noop;
+
+    /**
      * Indicates that an opponent has been selected.
      */
     public on_match_found: () => void = noop;
@@ -62,7 +67,8 @@ export class GameSocket {
     public constructor() {
         this.socket = io("/game");
 
-        this.socket.on("connected", () => this.on_connected());
+        this.socket.on("connect", () => this.on_connected());
+        this.socket.on("disconnect", () => this.on_disconnected());
         this.socket.on("matchFound", () => this.on_match_found());
         this.socket.on("gameReady", () => this.on_game_ready());
         this.socket.on("gameStart", () => this.on_game_start());

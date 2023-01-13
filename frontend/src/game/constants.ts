@@ -40,6 +40,11 @@ export const Constants = (function() {
         readonly max_score: number,
 
         /**
+         * The ball's velocity is multiply by this value each tick.
+         */
+        readonly ball_acceleration_factor: number;
+
+        /**
          * The maximum amount of time a tick may take. Any duration larger than this number will
          * start slowing the game down to avoid tunelling.
          *
@@ -58,5 +63,6 @@ export const Constants = (function() {
         ball_radius: 0.2,
         max_score: 3,
         max_tick_period: 0.2,
+        ball_acceleration_factor: 0.005,
     };
 })();
