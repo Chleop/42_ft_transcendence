@@ -30,30 +30,26 @@ export const Client = (function() {
         private raw: RawHTTPClient;
 
         /**
-         * The web socket that is opened to receive messages and channel events from the backend.
+         * Cached information about the user.
          */
-        private chat_socket: WebSocket;
-
-        /**
-         * Information about the user.
-         */
-        private me_: PrivateUser;
+        private me_: PrivateUser | undefined;
 
         /**
          * Creates a new `Client`.
          */
         public constructor(token: string) {
             this.raw = new RawHTTPClient(token);
-            this.raw.me().then(me => this.me_ = me);
-
-            this.chat_socket = new WebSocket("/chat", ["access_token", token]);
         }
 
         /**
          * Returns information about the current user.
          */
-        public get me(): PrivateUser {
-            return this.me;
+        public async me(): Promise<PrivateUser> {
+            if (this.me_)
+                return this.me_;
+
+            this.me_ = await this.raw.me();
+            return this.me_;
         }
     }
 

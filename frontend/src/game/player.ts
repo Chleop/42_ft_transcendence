@@ -25,5 +25,5 @@ export abstract class Player {
     /**
      * Indicates to the player that it should move.
      */
-    abstract tick(delta_time: number, state: PlayerState);
+    abstract tick(delta_time: number, state: PlayerState): void;
 }

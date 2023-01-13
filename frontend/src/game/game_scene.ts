@@ -1,6 +1,4 @@
 import { Scene } from "../strawberry/scene";
-import { DummyPlayer } from "./dummy_player";
-import { LocalPlayer } from "./local_player";
 import { Player } from "./player";
 import { Renderer, Sprite } from "./renderer";
 import { Constants } from "./constants"
@@ -127,7 +125,7 @@ export class GameScene extends Scene {
     /**
      * Creates a new `GameScene` instance.
      */
-    public constructor() {
+    public constructor(left: Player, right: Player) {
         super();
 
         this.canvas = document.createElement("canvas");
@@ -144,9 +142,9 @@ export class GameScene extends Scene {
         if (!gl) throw new WebGL2NotSupported();
         this.renderer = new Renderer(gl);
 
-        this.left_player = new DummyPlayer();
+        this.left_player = left;
         this.left_player_state = new PlayerStateInternal();
-        this.right_player = new DummyPlayer();
+        this.right_player = right;
         this.right_player_state = new PlayerStateInternal();
         this.ball_state = new BallState();
         this.ball_sprite = this.renderer.create_sprite("ball.png");      // TODO: Those sprites will later depend on the players.
@@ -161,7 +159,7 @@ export class GameScene extends Scene {
 
         this.show_debug_ = false;
 
-        this.start(new LocalPlayer(), new DummyPlayer());
+        window.requestAnimationFrame(timestamp => this.animation_frame_callback(timestamp));
     }
 
     /**
@@ -176,18 +174,6 @@ export class GameScene extends Scene {
      */
     public get location(): string {
         return "/game"
-    }
-
-    /**
-     * Starts the game.
-     */
-    public start(left: Player, right: Player) {
-        this.left_player = left;
-        this.right_player = right;
-
-        this.should_stop = false;
-        this.last_timestamp = 0;
-        window.requestAnimationFrame(timestamp => this.animation_frame_callback(timestamp));
     }
 
     /**

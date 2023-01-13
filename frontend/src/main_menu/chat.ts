@@ -190,6 +190,8 @@ export class ChatElement {
         this.message_input.type = "text";
         this.message_input.onkeydown = ev => { if (ev.key === "Enter") { this.send_message_input(); } };
         send_message_container.appendChild(this.message_input);
+
+        this.selected_channel = null;
     }
 
     /**

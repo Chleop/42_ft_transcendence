@@ -14,5 +14,5 @@ export class DummyPlayer extends Player {
     /**
      * This function does nothing.
      */
-    public tick(_delta_time: number, _state: PlayerState) { }
+    public tick(_delta_time: number, _state: PlayerState): void { }
 }

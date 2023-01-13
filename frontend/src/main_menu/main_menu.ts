@@ -2,7 +2,8 @@ import { ChatElement } from "./chat";
 import { Scene } from "../strawberry/scene";
 import { PrivateUser } from "../api/user";
 import { History } from "../strawberry/history";
-import { Scenes } from "../scenes"
+import { io, Socket } from "socket.io-client";
+import { GameScene, DummyPlayer, LocalPlayer } from "../game";
 
 /**
  * The scene that contains the main menu.
@@ -17,6 +18,11 @@ export class MainMenuScene extends Scene {
      * The root HTML element of the main menu.
      */
     private container: HTMLDivElement;
+
+    /**
+     * When the user is looking for a game, the matchmaking socket is stored here.
+     */
+    private game_socket: Socket | null;
 
     /**
      * Creatse a new `MainMenuElement` instance.
@@ -39,10 +45,27 @@ export class MainMenuScene extends Scene {
         const find_game = document.createElement("button");
         find_game.id = "main-menu-find-game";
         find_game.classList.add("main-menu-button");
-        find_game.onclick = () => History.push_state(Scenes.game);
         const find_game_span = document.createElement("span");
         find_game_span.innerText = "Find Game";
         find_game.appendChild(find_game_span);
+        find_game.onclick = () => {
+            if (this.game_socket) {
+                this.game_socket.disconnect();
+
+                this.game_socket = null;
+                find_game_span.innerText = "Find Game";
+            } else {
+                find_game_span.innerText = "Searching...";
+
+                // Start looking for a game.
+                this.game_socket = io("/game");
+                this.game_socket.onAny(e => console.log(e));
+
+                this.game_socket.on("matchFound", () => {
+                    History.push_state(new GameScene(new LocalPlayer(), new DummyPlayer()));
+                });
+            }
+        };
         this.container.appendChild(find_game);
 
         const profile = document.createElement("button");
@@ -92,6 +115,8 @@ export class MainMenuScene extends Scene {
                 }
             }
         };
+
+        this.game_socket = null;
     }
 
     public get location(): string {

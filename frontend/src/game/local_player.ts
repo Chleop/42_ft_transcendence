@@ -1,14 +1,9 @@
-import { Player, PlayerState } from "./player";
+import { PlayerBase, PlayerState } from ".";
 
 /**
  * A player that's controlled locally.
  */
-export class LocalPlayer extends Player {
-    /**
-     * The position of the controlled player.
-     */
-    private position_: number;
-
+export class LocalPlayer extends PlayerBase {
     /**
      * Whether the user is pressing up.
      */
@@ -18,6 +13,17 @@ export class LocalPlayer extends Player {
      */
     private pressing_down: boolean;
 
+    private update_movement_input() {
+        super.movement_input = 0;
+
+        if (this.pressing_up) {
+            super.movement_input += 1.0;
+        }
+        if (this.pressing_down) {
+            super.movement_input -= 1.0;
+        }
+    }
+
     /**
      * Creates a new `ControlledPlayer`.
      *
@@ -26,8 +32,6 @@ export class LocalPlayer extends Player {
      */
     public constructor() {
         super();
-
-        this.position_ = 0;
 
         this.pressing_up = false;
         this.pressing_down = false;
@@ -41,6 +45,8 @@ export class LocalPlayer extends Player {
                     this.pressing_down = true;
                     break;
             }
+
+            this.update_movement_input();
         };
         window.onkeyup = (ev: KeyboardEvent) => {
             switch (ev.key) {
@@ -51,36 +57,8 @@ export class LocalPlayer extends Player {
                     this.pressing_down = false;
                     break;
             }
+
+            this.update_movement_input();
         };
-    }
-
-    /**
-     * Returns the position of the player.
-     */
-    public get position(): number {
-        return this.position_;
-    }
-
-    /**
-     * Moves the player.
-     */
-    public tick(delta_time: number, state: PlayerState) {
-        let velocity: number = 0;
-
-        if (this.pressing_up) {
-            velocity += 1.0;
-        }
-        if (this.pressing_down) {
-            velocity -= 1.0;
-        }
-
-        this.position_ += velocity * delta_time * state.speed;
-
-        if (this.position - state.height / 2 < -4.5) {
-            this.position_ = -4.5 + state.height / 2;
-        }
-        if (this.position + state.height / 2 >= 4.5) {
-            this.position_ = 4.5 - state.height / 2;
-        }
     }
 }
