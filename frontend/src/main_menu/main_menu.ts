@@ -52,18 +52,22 @@ export class MainMenuScene extends Scene {
         find_game.onclick = () => {
             if (this.game_socket) {
                 if (this.match_found) {
+                    console.log("A match has been found.");
                     // Notify the server that we are ready to start the match.
                     this.game_socket.ok();
                     History.push_state(new GameScene(this.game_socket, new LocalPlayer(this.game_socket), new RemotePlayer(this.game_socket)));
                     this.game_socket = null;
                     this.match_found = false;
                 } else {
+                    console.log("Cancelled matchmaking.");
+
                     this.game_socket.disconnect();
 
                     this.game_socket = null;
                     find_game_span.innerText = "Find Game";
                 }
             } else {
+                console.log("Looking for a game.");
                 find_game_span.innerText = "Searching...";
 
                 // Start looking for a game.

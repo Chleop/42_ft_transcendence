@@ -122,6 +122,9 @@ export class GameScene extends Scene {
      */
     private show_debug_: boolean;
 
+    /** Whether the game has started. */
+    private game_started: boolean;
+
     /**
      * Creates a new `GameScene` instance.
      */
@@ -134,8 +137,8 @@ export class GameScene extends Scene {
         // FIXME:
         //  Properly calculate dimentions for the canvas depending on the window size, and handle
         //  window resizes.
-        this.canvas.width = 1280 * 1.3;
-        this.canvas.height = 720 * 1.3;
+        this.canvas.width = 16 * 30;
+        this.canvas.height = 9 * 30;
         document.body.style.backgroundColor = "black";
 
         const gl = this.canvas.getContext("webgl2");
@@ -158,6 +161,12 @@ export class GameScene extends Scene {
         this.last_timestamp = 0;
 
         this.show_debug_ = true;
+        this.game_started = false;
+
+        socket.on_game_start = () => {
+            console.log("The game has started.");
+            this.game_started = true;
+        };
 
         socket.on_game_updated = data => {
             this.ball_state.x = data.updated_ball.x;
@@ -199,30 +208,33 @@ export class GameScene extends Scene {
             delta_time = Constants.max_tick_period;
         this.last_timestamp = timestamp;
 
-        // Move the ball.
-        this.ball_state.x += this.ball_state.vx * delta_time;
-        this.ball_state.y += this.ball_state.vy * delta_time;
+        if (this.game_started)
+        {
+            // Move the ball.
+            this.ball_state.x += this.ball_state.vx * delta_time;
+            this.ball_state.y += this.ball_state.vy * delta_time;
 
-        if (this.ball_state.y - this.ball_state.radius < -Constants.board_height / 2) {
-            this.ball_state.y = -Constants.board_height / 2 + this.ball_state.radius;
-            this.ball_state.vy = Math.abs(this.ball_state.vy);
-        }
-        if (this.ball_state.y + this.ball_state.radius > Constants.board_height / 2) {
-            this.ball_state.y = Constants.board_height / 2 - this.ball_state.radius;
-            this.ball_state.vy = -Math.abs(this.ball_state.vy);
-        }
-        if (this.ball_state.x + this.ball_state.radius > Constants.board_width / 2) {
-            this.ball_state.x = Constants.board_width / 2 - this.ball_state.radius;
-            this.ball_state.vx = -Math.abs(this.ball_state.vx);
-        }
-        if (this.ball_state.x - this.ball_state.radius < -Constants.board_width / 2) {
-            this.ball_state.x = -Constants.board_width / 2 + this.ball_state.radius;
-            this.ball_state.vx = Math.abs(this.ball_state.vx);
-        }
+            if (this.ball_state.y - this.ball_state.radius < -Constants.board_height / 2) {
+                this.ball_state.y = -Constants.board_height / 2 + this.ball_state.radius;
+                this.ball_state.vy = Math.abs(this.ball_state.vy);
+            }
+            if (this.ball_state.y + this.ball_state.radius > Constants.board_height / 2) {
+                this.ball_state.y = Constants.board_height / 2 - this.ball_state.radius;
+                this.ball_state.vy = -Math.abs(this.ball_state.vy);
+            }
+            if (this.ball_state.x + this.ball_state.radius > Constants.board_width / 2) {
+                this.ball_state.x = Constants.board_width / 2 - this.ball_state.radius;
+                this.ball_state.vx = -Math.abs(this.ball_state.vx);
+            }
+            if (this.ball_state.x - this.ball_state.radius < -Constants.board_width / 2) {
+                this.ball_state.x = -Constants.board_width / 2 + this.ball_state.radius;
+                this.ball_state.vx = Math.abs(this.ball_state.vx);
+            }
 
-        // Move the players.
-        this.left_player.tick(delta_time, this.left_player_state);
-        this.right_player.tick(delta_time, this.right_player_state);
+            // Move the players.
+            this.left_player.tick(delta_time, this.left_player_state);
+            this.right_player.tick(delta_time, this.right_player_state);
+        }
 
         // Render the scene.
         const pixel_scale: number = 1 / 200;

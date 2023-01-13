@@ -19,13 +19,14 @@ export class LocalPlayer extends PlayerBase {
     private socket: GameSocket;
 
     private update_movement_input() {
-        super.movement_input = 0;
+        this.movement_input = 0;
+        console.log(this.movement_input);
 
         if (this.pressing_up) {
-            super.movement_input += 1.0;
+            this.movement_input += 1.0;
         }
         if (this.pressing_down) {
-            super.movement_input -= 1.0;
+            this.movement_input -= 1.0;
         }
     }
 
