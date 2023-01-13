@@ -119,7 +119,6 @@ export class UserService {
 						throw new UserNotFoundError();
 				}
 				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
-				console.log(`error being : ${error}`);
 			}
 
 			throw new UnknownError();
@@ -234,7 +233,7 @@ export class UserService {
 		console.log("User found");
 
 		if (dto.name !== undefined) user.name = dto.name;
-		// if (dto.email !== undefined) user.email = dto.email;
+		if (dto.email !== undefined) user.email = dto.email;
 		if (dto.two_fact_auth !== undefined) user.twoFactAuth = dto.two_fact_auth;
 		if (dto.skin_id !== undefined) user.skinId = dto.skin_id;
 
