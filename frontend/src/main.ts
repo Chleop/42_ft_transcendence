@@ -1,6 +1,5 @@
 import { History } from "./strawberry/history";
 import { RouteData, Router } from "./strawberry/router";
-import { GameScene, LocalPlayer, DummyPlayer } from "./game";
 import { MainMenuScene } from "./main_menu/main_menu";
 
 /**
@@ -9,8 +8,6 @@ import { MainMenuScene } from "./main_menu/main_menu";
 function entry_point() {
     const router = new Router<(data: RouteData) => void>();
 
-    router.register_route("/game", () => History.replace_state(new GameScene(new LocalPlayer(), new DummyPlayer())));
-    router.register_route("/game/", () => History.replace_state(new GameScene(new LocalPlayer(), new DummyPlayer())));
     router.register_route("/", () => History.replace_state(new MainMenuScene()));
 
     const route_result = router.get(window.location.pathname);

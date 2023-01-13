@@ -1,7 +1,7 @@
 import { Scene } from "../strawberry/scene";
-import { Player } from "./player";
+import { Player, Constants } from ".";
 import { Renderer, Sprite } from "./renderer";
-import { Constants } from "./constants"
+import { GameSocket } from "../api";
 
 /**
  * An exception which indicates that WebGL2 technology is not supported by the
@@ -125,7 +125,7 @@ export class GameScene extends Scene {
     /**
      * Creates a new `GameScene` instance.
      */
-    public constructor(left: Player, right: Player) {
+    public constructor(socket: GameSocket, left: Player, right: Player) {
         super();
 
         this.canvas = document.createElement("canvas");
@@ -154,10 +154,17 @@ export class GameScene extends Scene {
         //  Call this function again when the canvas is resized.
         this.renderer.notify_size_changed(this.canvas.width, this.canvas.height);
 
-        this.should_stop = true;
+        this.should_stop = false;
         this.last_timestamp = 0;
 
-        this.show_debug_ = false;
+        this.show_debug_ = true;
+
+        socket.on_game_updated = data => {
+            this.ball_state.x = data.updated_ball.x;
+            this.ball_state.y = data.updated_ball.y;
+            this.ball_state.vx = data.updated_ball.vx;
+            this.ball_state.vy = data.updated_ball.vy;
+        };
 
         window.requestAnimationFrame(timestamp => this.animation_frame_callback(timestamp));
     }

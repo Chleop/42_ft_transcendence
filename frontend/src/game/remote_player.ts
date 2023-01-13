@@ -1,10 +1,14 @@
 import { PlayerBase } from ".";
-import { Socket } from "socket.io-client";
+import { GameSocket } from "../api";
 
 export class RemotePlayer extends PlayerBase {
-    constructor(socket: Socket) {
+    public constructor(socket: GameSocket) {
         super();
 
         // TODO: Subscribe to the events.
+        socket.on_opponent_updated = data => {
+            super.position_ = data.position;
+            super.movement_input = data.velocity;
+        };
     }
 }

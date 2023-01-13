@@ -1,9 +1,8 @@
 import { ChatElement } from "./chat";
 import { Scene } from "../strawberry/scene";
-import { PrivateUser } from "../api/user";
+import { PrivateUser, GameSocket } from "../api";
 import { History } from "../strawberry/history";
-import { io, Socket } from "socket.io-client";
-import { GameScene, DummyPlayer, LocalPlayer } from "../game";
+import { GameScene, RemotePlayer, LocalPlayer } from "../game";
 
 /**
  * The scene that contains the main menu.
@@ -22,7 +21,9 @@ export class MainMenuScene extends Scene {
     /**
      * When the user is looking for a game, the matchmaking socket is stored here.
      */
-    private game_socket: Socket | null;
+    private game_socket: GameSocket | null;
+    /** Whether a match has been found. The user just need to accept it. */
+    private match_found: boolean;
 
     /**
      * Creatse a new `MainMenuElement` instance.
@@ -50,20 +51,28 @@ export class MainMenuScene extends Scene {
         find_game.appendChild(find_game_span);
         find_game.onclick = () => {
             if (this.game_socket) {
-                this.game_socket.disconnect();
+                if (this.match_found) {
+                    // Notify the server that we are ready to start the match.
+                    this.game_socket.ok();
+                    History.push_state(new GameScene(this.game_socket, new LocalPlayer(this.game_socket), new RemotePlayer(this.game_socket)));
+                    this.game_socket = null;
+                    this.match_found = false;
+                } else {
+                    this.game_socket.disconnect();
 
-                this.game_socket = null;
-                find_game_span.innerText = "Find Game";
+                    this.game_socket = null;
+                    find_game_span.innerText = "Find Game";
+                }
             } else {
                 find_game_span.innerText = "Searching...";
 
                 // Start looking for a game.
-                this.game_socket = io("/game");
-                this.game_socket.onAny(e => console.log(e));
+                this.game_socket = new GameSocket();
 
-                this.game_socket.on("matchFound", () => {
-                    History.push_state(new GameScene(new LocalPlayer(), new DummyPlayer()));
-                });
+                this.game_socket.on_match_found = () => {
+                    this.match_found = true;
+                    find_game_span.innerText = "Start!";
+                };
             }
         };
         this.container.appendChild(find_game);
@@ -117,6 +126,7 @@ export class MainMenuScene extends Scene {
         };
 
         this.game_socket = null;
+        this.match_found = false;
     }
 
     public get location(): string {

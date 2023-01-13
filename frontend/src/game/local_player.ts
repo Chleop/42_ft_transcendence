@@ -1,4 +1,6 @@
-import { PlayerBase, PlayerState } from ".";
+import { PlayerBase } from "./player_base";
+import { PlayerState } from "./player";
+import { GameSocket } from "../api";
 
 /**
  * A player that's controlled locally.
@@ -12,6 +14,9 @@ export class LocalPlayer extends PlayerBase {
      * Whether the user is pressing down.
      */
     private pressing_down: boolean;
+
+    /** The socket to which we are sending data. */
+    private socket: GameSocket;
 
     private update_movement_input() {
         super.movement_input = 0;
@@ -30,11 +35,12 @@ export class LocalPlayer extends PlayerBase {
      * Note that calling this constructor will highjack the window's global onkeydown/onkeyup
      * callbacks.
      */
-    public constructor() {
+    public constructor(socket: GameSocket) {
         super();
 
         this.pressing_up = false;
         this.pressing_down = false;
+        this.socket = socket;
 
         window.onkeydown = (ev: KeyboardEvent) => {
             switch (ev.key) {
@@ -60,5 +66,14 @@ export class LocalPlayer extends PlayerBase {
 
             this.update_movement_input();
         };
+    }
+
+    public tick(delta_time: number, state: PlayerState): void {
+        this.socket.update({
+            position: this.position,
+            velocity: this.movement_input,
+        });
+
+        super.tick(delta_time, state);
     }
 }
