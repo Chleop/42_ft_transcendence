@@ -247,11 +247,11 @@ export class GameGateway {
 				/* Save results and destroy game */
 				const match: Match = me.game_service.saveScore(room, e); //await me.game_service.saveScore(room, e);
 				return me.disconnectRoom(match);
-			} else if (e === null) {
-				// TEMPORARY: remove this catch
-				console.log("Finish");
-				me.disconnectRoom(room.match);
-				me.game_service.destroyRoom(room);
+			// } else if (e === null) {
+			// 	// TEMPORARY: remove this catch
+			// 	console.log("Finish");
+			// 	me.disconnectRoom(room.match);
+			// 	me.game_service.destroyRoom(room);
 			} else {
 				// TODO: handle properly, with error sending
 				// Other error occured, make sure to destroy interval
