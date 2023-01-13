@@ -55,13 +55,13 @@ export const Client = (function() {
 
     // Verify that the user is connected and if so, create a client to start interacting with the
     // backend.
-    const token = get_cookie("token");
+    let token = get_cookie("token");
     if (!token) {
         // The user is not connected.
 
         // TODO:
         //  Redirect to School 42.
-        throw "User Not Connected!";
+        token = "totally real token";
     }
 
     return new ClientClass(token);

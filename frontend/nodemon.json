@@ -2,5 +2,5 @@
   "watch": ["src"],
   "ext": ".ts",
   "ignore": [],
-  "exec": "tsc && npx webpack"
+  "exec": "npx tsc && npx webpack"
 }
