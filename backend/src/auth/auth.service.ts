@@ -1,6 +1,8 @@
+import { MailerService } from "@nestjs-modules/mailer";
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
+import { User } from "@prisma/client";
 import { UserCreateDto } from "src/user/dto";
 import { UserNotFoundError } from "src/user/error";
 import { UserService } from "src/user/user.service";
@@ -12,12 +14,16 @@ type t_payload = { sub: string | undefined };
 export class AuthService {
 	private readonly _user: UserService;
 	private readonly _config: ConfigService;
+	private readonly _mailer: MailerService;
 	private _jwt: JwtService;
+	private readonly _code: number;
 
 	constructor() {
 		this._user = new UserService();
 		this._jwt = new JwtService();
 		this._config = new ConfigService();
+		this._mailer = new MailerService();
+		this._code = Math.floor(10000 + Math.random() * 90000);
 	}
 
 	public async createAccessToken(login: string): Promise<t_access_token> {
@@ -57,5 +63,51 @@ export class AuthService {
 		// include the access_token in an object and return it
 		let ret: t_access_token = { access_token: token };
 		return ret;
+	}
+
+	public async sendConfirmedEmail(user: User) {
+		const login: string = user.login;
+		let email: string;
+
+		console.log("Sending email");
+		if (user.email !== null) {
+			email = user.email;
+			await this._mailer.sendMail({
+				to: email,
+				subject: "Welcome to Nice App! Email Confirmed",
+				template: "confirmed",
+				context: {
+					login,
+					email,
+				},
+			});
+			console.log("Email sent");
+		} else {
+			console.log("No email entered for this user");
+			throw new Error("No email entered for this user");
+		}
+	}
+
+	public async sendConfirmationEmail(user: any) {
+		const login: string = user.login;
+		let email: string;
+
+		console.log("Sending email");
+		if (user.email !== null) {
+			email = user.email;
+			await this._mailer.sendMail({
+				to: email,
+				subject: "Welcome to Nice App! Please confirm email",
+				template: "confirm",
+				context: {
+					login,
+					code: this._code,
+				},
+			});
+			console.log("Email sent");
+		} else {
+			console.log("No email entered for this user");
+			throw new Error("No email entered for this user");
+		}
 	}
 }
