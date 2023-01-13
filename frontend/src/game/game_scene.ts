@@ -189,9 +189,15 @@ export class GameScene extends Scene {
         window.requestAnimationFrame(timestamp => this.animation_frame_callback(timestamp));
     }
 
-    public on_left(prev: State): void {
-        this.socket.disconnect();
-        super.on_left(prev);
+    public on_left(new_state: State): void {
+        if (!this.should_stop) {
+            console.log("Disconnecting!");
+            this.should_stop = true;
+            this.socket.on_disconnected = () => {};
+            this.socket.disconnect();
+        }
+
+        super.on_left(new_state);
     }
 
     /**
