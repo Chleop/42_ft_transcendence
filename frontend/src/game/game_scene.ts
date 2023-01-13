@@ -1,4 +1,4 @@
-import { Scene } from "../strawberry/scene";
+import { Scene, History } from "../strawberry";
 import { Player, Constants } from ".";
 import { Renderer, Sprite } from "./renderer";
 import { GameSocket } from "../api";
@@ -169,11 +169,16 @@ export class GameScene extends Scene {
         };
 
         socket.on_game_updated = data => {
-            console.log(data);
             this.ball_state.x = data.updated_ball.x;
             this.ball_state.y = data.updated_ball.y;
             this.ball_state.vx = data.updated_ball.vx;
             this.ball_state.vy = data.updated_ball.vy;
+        };
+
+        socket.on_disconnected = () => {
+            console.log("Disconnected!");
+            this.should_stop = true;
+            History.go_back();
         };
 
         window.requestAnimationFrame(timestamp => this.animation_frame_callback(timestamp));

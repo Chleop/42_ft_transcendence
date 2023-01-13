@@ -97,8 +97,16 @@ export const History = (function () {
          * Pops the current state.
          */
         public go_back() {
+            if (this.state_stack_index == 0)
+                return;
+        
+            const prev_state = this.state_stack[this.state_stack_index];
+            const new_state = this.state_stack[this.state_stack_index - 1];
+
+            prev_state.on_left(new_state);
             window.history.back();
             this.state_stack_index -= 1;
+            new_state.on_entered(prev_state);
         }
 
         /**
