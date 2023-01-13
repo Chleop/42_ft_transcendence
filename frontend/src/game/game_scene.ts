@@ -169,6 +169,7 @@ export class GameScene extends Scene {
         };
 
         socket.on_game_updated = data => {
+            console.log(data);
             this.ball_state.x = data.updated_ball.x;
             this.ball_state.y = data.updated_ball.y;
             this.ball_state.vx = data.updated_ball.vx;
@@ -211,6 +212,8 @@ export class GameScene extends Scene {
         if (this.game_started)
         {
             // Move the ball.
+            this.ball_state.vx *= Constants.ball_acceleration_factor;
+            this.ball_state.vy *= Constants.ball_acceleration_factor;
             this.ball_state.x += this.ball_state.vx * delta_time;
             this.ball_state.y += this.ball_state.vy * delta_time;
 

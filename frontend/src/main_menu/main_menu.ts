@@ -74,6 +74,7 @@ export class MainMenuScene extends Scene {
                 this.game_socket = new GameSocket();
 
                 this.game_socket.on_match_found = () => {
+                    console.log("A match has been found.");
                     this.match_found = true;
                     find_game_span.innerText = "Start!";
                 };
