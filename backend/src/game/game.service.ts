@@ -160,12 +160,12 @@ export class GameService {
 		if (typeof index !== "number") {
 			const new_index: number = this.game_rooms.indexOf(index);
 			if (new_index < 0) return;
-			console.info(`Destroying ${index.match.name}`);
+			console.info(`Destroying room ${index.match.name}`);
 			index.destroyPing();
 			this.game_rooms.splice(new_index, 1);
 		} else {
 			if (index < 0) return;
-			console.info(`Destroying ${this.game_rooms[index].match.name}`);
+			console.info(`Destroying room ${this.game_rooms[index].match.name}`);
 			this.game_rooms[index].destroyPing();
 			this.game_rooms.splice(index, 1);
 		}
