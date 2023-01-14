@@ -1,10 +1,12 @@
+// !! TODO: EVENTS !!
+
 /* Timespan before kicked out of queue */
 export const matchmaking_timeout: number = 10000;
 
 /* Speed */
 export const initial_speed: number = 5;
 
-/* Acceleration */
+/* Acceleration factor */
 export const acceleration: number = 1.005;
 
 /* Value in seconds */
@@ -31,8 +33,8 @@ export const max_score: number = 3;
 export const limit_x: number = max_paddle - radius; // 7 - 0.2 = 6.8
 
 /* Limit angle for ball launch: pi/6 (theta) */
-export const cos: number = 8.66;
-export const sin: number = 5;
+// export const cos: number = 8.66;
+// export const sin: number = 5;
 
 /* Margin of error for paddle: 2% */
 export const margin: number = 0.02;

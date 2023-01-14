@@ -40,8 +40,6 @@ export class GameRoom {
 
 	/* Called every 16ms to send ball updates */
 	public updateGame(): GameUpdate | null {
-		// TEMPORARY: Comment the 2 lines to avoid early kick
-		// if (this.nb_update++ > 5) throw null;
 		if (this.game === null) return null;
 		return this.game.refresh();
 	}

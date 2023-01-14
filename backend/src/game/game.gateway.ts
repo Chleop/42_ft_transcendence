@@ -6,7 +6,7 @@ import { PaddleDto } from "./dto";
 import { ResultsObject } from "./objects";
 import { AntiCheat, OpponentUpdate, Client, Match, GameUpdate } from "./aliases";
 
-const Constants = require("./constants/constants");
+import * as Constants from "./constants/constants";
 
 /* Track timeouts */
 type TimeoutId = {
@@ -130,8 +130,8 @@ export class GameGateway {
 		const match: Match | null = this.game_service.unQueue(client);
 		if (match !== null) {
 			this.ignoreTimeout(match, true);
-			match.player1.socket.disconnect(true);
-			match.player2.socket.disconnect(true);
+			if (client.id === match.player1.id) match.player2.socket.disconnect(true);
+			else match.player1.socket.disconnect(true);
 		}
 		console.info(`[${client.id} disconnected]`);
 		this.game_service.display();
@@ -172,12 +172,13 @@ export class GameGateway {
 				return;
 			}
 			const opponent_update: OpponentUpdate = anticheat.p2;
-			opponent_update.player.emit("updatedOpponent", opponent_update.updated_paddle);
+			opponent_update.player.emit("updateOpponent", opponent_update.updated_paddle);
 			if (anticheat.p1) {
 				client.emit("antiCheat", anticheat.p1);
 			}
 		} catch (e) {
-			console.info(e);
+			e;
+			// console.info(e);
 		}
 	}
 
@@ -228,7 +229,9 @@ export class GameGateway {
 	private startGame(me: GameGateway, room: GameRoom): void {
 		console.info(room);
 		me.ignoreTimeout(room.match);
+
 		const initial_game_state: GameUpdate = room.startGame();
+
 		// Send the initial ball { pos, v0 }
 		room.match.player1.socket.emit("gameStart", initial_game_state);
 		room.match.player2.socket.emit("gameStart", initial_game_state);
@@ -236,10 +239,11 @@ export class GameGateway {
 	}
 
 	/* This will send a GameUpdate every 16ms to both clients in a game */
-	private /*async*/ sendGameUpdates(me: GameGateway, room: GameRoom): void { //Promise<void> {
+	private /*async*/ sendGameUpdates(me: GameGateway, room: GameRoom): void {
+		//Promise<void> {
 		try {
 			const update: GameUpdate | null = room.updateGame();
-			console.log(update);
+			// console.log(update);
 			room.match.player1.socket.emit("updateGame", update);
 			room.match.player2.socket.emit("updateGame", update);
 		} catch (e) {
@@ -247,11 +251,6 @@ export class GameGateway {
 				/* Save results and destroy game */
 				const match: Match = me.game_service.saveScore(room, e); //await me.game_service.saveScore(room, e);
 				return me.disconnectRoom(match);
-			// } else if (e === null) {
-			// 	// TEMPORARY: remove this catch
-			// 	console.log("Finish");
-			// 	me.disconnectRoom(room.match);
-			// 	me.game_service.destroyRoom(room);
 			} else {
 				// TODO: handle properly, with error sending
 				// Other error occured, make sure to destroy interval
@@ -265,5 +264,6 @@ export class GameGateway {
 	//TODO: make it cleaner
 	private disconnectRoom(match: Match): void {
 		match.player1.socket.disconnect(true);
+		match.player2.socket.disconnect(true);
 	}
 }
