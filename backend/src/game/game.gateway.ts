@@ -129,9 +129,10 @@ export class GameGateway {
 	public handleDisconnect(client: Socket): void {
 		const match: Match | null = this.game_service.unQueue(client);
 		if (match !== null) {
+			this.disconnectRoom(match);
 			// this.ignoreTimeout(match, true);
-			if (client.id === match.player1.id) match.player2.socket.disconnect(true);
-			else match.player1.socket.disconnect(true);
+			// if (client.id === match.player1.id) match.player2.socket.disconnect(true);
+			// else match.player1.socket.disconnect(true);
 		}
 		console.info(`[${client.id} disconnected]`);
 		this.game_service.display();
