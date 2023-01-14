@@ -15,7 +15,7 @@ type Handshake = {
 	match: Match;
 
 	// If hands were shook
-	shook: boolean;
+	// shook: boolean;
 };
 
 /* Matchmaking class */
@@ -106,7 +106,7 @@ export class GameService {
 		this.queue = null;
 		this.handshakes.push({
 			match: match,
-			shook: false,
+			// shook: false,
 		});
 		return match;
 	}
@@ -137,18 +137,25 @@ export class GameService {
 		return null;
 	}
 
-	public playerAcknowledged(client: Socket): GameRoom | null {
-		const handshake: Handshake | undefined = this.findUserMatch(client);
-		if (handshake === undefined)
-			// Tried to send ok before room creation/once game started
-			throw "Received matchmaking acknowledgement but not awaiting";
-		console.info(`${client.id} accepted`);
-		if (handshake.shook) return this.createRoom(handshake.match);
-		handshake.shook = true;
-		return null;
-	}
+	// public playerAcknowledged(client: Socket): GameRoom | null {
+	// 	const handshake: Handshake | undefined = this.findUserMatch(client);
+	// 	if (handshake === undefined)
+	// 		// Tried to send ok before room creation/once game started
+	// 		throw "Received matchmaking acknowledgement but not awaiting";
+	// 	console.info(`${client.id} accepted`);
+	// 	if (handshake.shook) return this.createRoom(handshake.match);
+	// 	handshake.shook = true;
+	// 	return null;
+	// }
 
 	/* -- ROOM MANIPULATION --------------------------------------------------- */
+	public createRoom(match: Match): GameRoom {
+		const room: GameRoom = new GameRoom(match);
+		this.game_rooms.push(room);
+		this.ignore(match);
+		return room;
+	}
+
 	public ignore(match: Match): void {
 		const index: number = this.handshakes.findIndex((obj) => {
 			return obj.match.name === match.name;
@@ -196,14 +203,6 @@ export class GameService {
 	}
 
 	/* == PRIVATE =============================================================================== */
-
-	/* -- ROOM MANIPULATION --------------------------------------------------- */
-	private createRoom(match: Match): GameRoom {
-		const room: GameRoom = new GameRoom(match);
-		this.game_rooms.push(room);
-		this.ignore(match);
-		return room;
-	}
 
 	/* -- UTILS --------------------------------------------------------------- */
 	private findUserMatch(client: Socket): Handshake | undefined {
