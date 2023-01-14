@@ -1,8 +1,8 @@
 import { Socket } from "socket.io";
 import { Gameplay } from "../gameplay";
 import { PaddleDto } from "../dto";
-import { AntiCheat, GameUpdate, Score, Match } from "../aliases";
-import { ResultsObject } from "../objects";
+import { AntiCheat, Score, Match } from "../aliases";
+import { ResultsObject, GameUpdate } from "../objects";
 
 // TODO: make it cleaner
 type CheatCheck = {

@@ -1,6 +1,6 @@
-import { Score, GameUpdate } from "../aliases";
+import { Score } from "../aliases";
 import { PaddleDto } from "../dto";
-import { Ball, PlayerData, ResultsObject } from "../objects";
+import { Ball, PlayerData, ResultsObject, GameUpdate } from "../objects";
 
 import * as Constants from "../constants/constants";
 

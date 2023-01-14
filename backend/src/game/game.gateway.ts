@@ -3,8 +3,8 @@ import { Server, Socket } from "socket.io";
 import { GameService } from "./game.service";
 import { GameRoom } from "./room";
 import { PaddleDto } from "./dto";
-import { ResultsObject } from "./objects";
-import { AntiCheat, OpponentUpdate, Client, Match, GameUpdate } from "./aliases";
+import { ResultsObject, GameUpdate } from "./objects";
+import { AntiCheat, OpponentUpdate, Client, Match } from "./aliases";
 
 // import * as Constants from "./constants/constants";
 
