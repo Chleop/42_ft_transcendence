@@ -10,6 +10,7 @@ import {
 	ChannelInvitationIncorrectError,
 	ChannelInvitationUnexpectedError,
 	ChannelMessageNotFoundError,
+	ChannelMissingOwnerError,
 	ChannelNotFoundError,
 	ChannelNotJoinedError,
 	ChannelPasswordIncorrectError,
@@ -17,6 +18,7 @@ import {
 	ChannelPasswordNotAllowedError,
 	ChannelPasswordUnexpectedError,
 	ChannelRelationNotFoundError,
+	ChannelUnpopulatedError,
 	UnknownError,
 } from "src/channel/error";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -284,6 +286,113 @@ export class ChannelService {
 	}
 
 	/**
+	 * @brief	Delegate the ownership of a channel to an other user present in this channel.
+	 *
+	 * @param	id The id of the channel to delegate the ownership.
+	 * @param	channel The channel to delegate the ownership.
+	 *
+	 * @error	The following errors may be thrown:
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelUnpopulatedError
+	 * 			- ChannelMissingOwnerError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async delegate_ones_ownership(
+		id: string,
+		channel?: {
+			owner: {
+				id: string;
+			} | null;
+			members: {
+				id: string;
+			}[];
+			operators: {
+				id: string;
+			}[];
+		} | null,
+	): Promise<void> {
+		if (!channel) {
+			console.log("Searching for the channel to delegate the ownership...");
+			channel = await this._prisma.channel.findUnique({
+				where: {
+					id: id,
+				},
+				include: {
+					owner: {
+						select: {
+							id: true,
+						},
+					},
+					members: {
+						select: {
+							id: true,
+						},
+					},
+					operators: {
+						select: {
+							id: true,
+						},
+					},
+				},
+			});
+
+			if (!channel) {
+				throw new ChannelNotFoundError(id);
+			}
+		}
+
+		console.log("Checking for missing owner channel...");
+		if (!channel.owner) {
+			throw new ChannelMissingOwnerError(id);
+		}
+
+		console.log("Checking for unpopulated channel...");
+		if (channel.members.length < 2) {
+			throw new ChannelUnpopulatedError(id);
+		}
+
+		for (const operator of channel.operators) {
+			if (operator.id !== channel.owner.id) {
+				console.log("Delegating the ownership to an operator...");
+				await this._prisma.channel.update({
+					where: {
+						id: id,
+					},
+					data: {
+						owner: {
+							connect: {
+								id: operator.id,
+							},
+						},
+					},
+				});
+				console.log("Channel's ownership delegated");
+				return;
+			}
+		}
+		for (const member of channel.members) {
+			if (member.id !== channel.owner.id) {
+				console.log("Delegating the ownership to a member...");
+				await this._prisma.channel.update({
+					where: {
+						id: id,
+					},
+					data: {
+						owner: {
+							connect: {
+								id: member.id,
+							},
+						},
+					},
+				});
+				console.log("Channel's ownership delegated");
+				return;
+			}
+		}
+	}
+
+	/**
 	 * @brief	Delete a channel from the database.
 	 *
 	 * @param	id The id of the channel to delete.
@@ -323,6 +432,66 @@ export class ChannelService {
 
 			throw new UnknownError();
 		}
+	}
+
+	/**
+	 * @brief	Drop the ownership of a channel, making the channel unowned,
+	 * 			and making the next joining user become the new owner of the channel.
+	 *
+	 * @param	id The id of the channel to drop the ownership.
+	 * @param	channel The channel to drop the ownership.
+	 *
+	 * @error	The following errors may be thrown:
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelMissingOwnerError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async drop_ones_ownership(
+		id: string,
+		channel?: {
+			owner: {
+				id: string;
+			} | null;
+		} | null,
+	): Promise<void> {
+		if (!channel) {
+			console.log("Searching for the channel to drop the ownership...");
+			channel = await this._prisma.channel.findUnique({
+				where: {
+					id: id,
+				},
+				select: {
+					owner: {
+						select: {
+							id: true,
+						},
+					},
+				},
+			});
+
+			if (!channel) {
+				throw new ChannelNotFoundError(id);
+			}
+		}
+
+		console.log("Checking for missing owner channel...");
+		if (!channel.owner) {
+			throw new ChannelMissingOwnerError(id);
+		}
+
+		console.log("Dropping the ownership...");
+		await this._prisma.channel.update({
+			where: {
+				id: id,
+			},
+			data: {
+				owner: {
+					disconnect: true,
+				},
+			},
+		});
+		console.log("Ownership dropped");
 	}
 
 	/**

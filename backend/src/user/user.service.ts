@@ -6,18 +6,22 @@ import {
 	UserNotFoundError,
 	UserRelationNotFoundError,
 } from "src/user/error";
+import { ChannelService } from "src/channel/channel.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, StreamableFile } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-import { User } from "@prisma/client";
+import { StateType, User } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
+import { ChannelUnpopulatedError } from "src/channel/error";
 
 @Injectable()
 export class UserService {
 	private _prisma: PrismaService;
+	private _channel: ChannelService;
 
 	constructor() {
+		this._channel = new ChannelService();
 		this._prisma = new PrismaService();
 	}
 
@@ -92,7 +96,8 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Delete a user from the database.
+	 * @brief	Change the account state of an user to DISABLED, before trully deleting them
+	 * 			from the database a certain time later.
 	 *
 	 * @param	id The id of the user to delete.
 	 *
@@ -102,92 +107,76 @@ export class UserService {
 	 *
 	 * @return	An empty promise.
 	 */
-	public async delete_one(id: string): Promise<void> {
+	public async disable_one(id: string): Promise<void> {
 		type t_fields = {
 			id: string;
-			members: User[];
-			operators: User[];
+			owner: {
+				id: string;
+			} | null;
+			members: {
+				id: string;
+			}[];
+			operators: {
+				id: string;
+			}[];
 		};
+
 		try {
-			console.log("Searching channels owned by the user to delete...");
+			console.log("Searching channels owned by the user to disable...");
 			const channels: t_fields[] = await this._prisma.channel.findMany({
 				where: {
 					ownerId: id,
 				},
 				select: {
 					id: true,
-					members: true,
-					operators: true,
+					owner: {
+						select: {
+							id: true,
+						},
+					},
+					members: {
+						select: {
+							id: true,
+						},
+					},
+					operators: {
+						select: {
+							id: true,
+						},
+					},
 				},
 			});
 
-			console.log("Delegating ownership of channels...");
 			for (const channel of channels) {
-				console.log(`Leaving channel ${channel.id}...`);
-				await this._prisma.channel.update({
-					where: {
-						id: channel.id,
-					},
-					data: {
-						members: {
-							disconnect: {
-								id: id,
-							},
-						},
-						operators: {
-							disconnect: {
-								id: id,
-							},
-						},
-					},
-				});
-
-				console.log(`Delegating ownership of channel ${channel.id}...`);
-				if (channel.operators[0]) {
-					console.log("Delegating ownership to an operator...");
-					await this._prisma.channel.update({
-						where: {
-							id: channel.id,
-						},
-						data: {
-							ownerId: channel.operators[0].id,
-						},
-					});
-				} else if (channel.members[0]) {
-					console.log("Delegating ownership to a member...");
-					await this._prisma.channel.update({
-						where: {
-							id: channel.id,
-						},
-						data: {
-							ownerId: channel.members[0].id,
-						},
-					});
-				} else {
-					console.log("No one else present in channel, deleting it...");
-					await this._prisma.channel.delete({
-						where: {
-							id: channel.id,
-						},
-					});
+				try {
+					await this._channel.delegate_ones_ownership(channel.id, channel);
+				} catch (error) {
+					if (error instanceof ChannelUnpopulatedError) {
+						console.log("Channel is unpopulated, dropping its ownership...");
+						await this._channel.drop_ones_ownership(channel.id, channel);
+					}
 				}
 			}
 
-			console.log("Deleting user...");
-			await this._prisma.user.delete({
+			console.log("Disabling user...");
+			await this._prisma.user.update({
 				where: {
-					id: id,
+					idAndState: {
+						id: id,
+						state: StateType.ACTIVE,
+					},
+				},
+				data: {
+					state: StateType.DISABLED,
 				},
 			});
-			console.log("User deleted");
+			console.log("User disabled");
 		} catch (error) {
-			console.log("Error occured while deleting user");
+			console.log("Error occured while disabling user");
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2025":
 						throw new UserNotFoundError();
-					case "P2003":
-						console.log(error.message);
 				}
 				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
