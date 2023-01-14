@@ -42,11 +42,6 @@ export class GameSocket {
     public on_match_found: () => void = noop;
 
     /**
-     * Indicates that the opponent accepted the match.
-     */
-    public on_game_ready: () => void = noop;
-
-    /**
      * Indicates that the game is starting.
      */
     public on_game_start: () => void = noop;
@@ -70,7 +65,6 @@ export class GameSocket {
         this.socket.on("connect", () => this.on_connected());
         this.socket.on("disconnect", () => this.on_disconnected());
         this.socket.on("matchFound", () => this.on_match_found());
-        this.socket.on("gameReady", () => this.on_game_ready());
         this.socket.on("gameStart", () => this.on_game_start());
         this.socket.on("updateOpponent", (state: PlayerStateUpdate) => this.on_opponent_updated(state));
         this.socket.on("updateGame", (state: GameStateUpdate) => this.on_game_updated(state));
@@ -84,11 +78,6 @@ export class GameSocket {
     /** Dropes the connection with the server. */
     public disconnect() {
         this.socket.disconnect();
-    }
-
-    /** Indicate to the server that we are ready to start the match. */
-    public ok() {
-        this.socket.emit("ok");
     }
 
     /** Notify the server of what we are doing. */
