@@ -22,8 +22,6 @@ export class MainMenuScene extends Scene {
      * When the user is looking for a game, the matchmaking socket is stored here.
      */
     private game_socket: GameSocket | null;
-    /** Whether a match has been found. The user just need to accept it. */
-    private match_found: boolean;
 
     /**
      * Creatse a new `MainMenuElement` instance.
@@ -51,22 +49,9 @@ export class MainMenuScene extends Scene {
         find_game.appendChild(find_game_span);
         find_game.onclick = () => {
             if (this.game_socket) {
-                if (this.match_found) {
-                    console.log("A match has been found.");
-                    // Notify the server that we are ready to start the match.
-                    this.game_socket.ok();
-                    History.push_state(new GameScene(this.game_socket, new LocalPlayer(this.game_socket), new RemotePlayer(this.game_socket)));
-                    this.game_socket = null;
-                    this.match_found = false;
-                    find_game_span.innerText = "Find Game";
-                } else {
-                    console.log("Cancelled matchmaking.");
+                console.log("Cancelled matchmaking.");
 
-                    this.game_socket.disconnect();
-
-                    this.game_socket = null;
-                    find_game_span.innerText = "Find Game";
-                }
+                this.game_socket.disconnect();
             } else {
                 console.log("Looking for a game.");
                 find_game_span.innerText = "Searching...";
@@ -83,13 +68,15 @@ export class MainMenuScene extends Scene {
 
                     this.game_socket = null;
                     find_game_span.innerText = "Find Game";
-                    this.match_found = false;
                 };
 
                 this.game_socket.on_match_found = () => {
-                    console.log("A match has been found.");
-                    this.match_found = true;
-                    find_game_span.innerText = "Start!";
+                    console.log("Match found!");
+
+                    const s = <GameSocket>this.game_socket;
+                    History.push_state(new GameScene(s, new LocalPlayer(s), new RemotePlayer(s)));
+                    this.game_socket = null;
+                    find_game_span.innerText = "Find Game";
                 };
             }
         };
@@ -144,7 +131,6 @@ export class MainMenuScene extends Scene {
         };
 
         this.game_socket = null;
-        this.match_found = false;
     }
 
     public get location(): string {
