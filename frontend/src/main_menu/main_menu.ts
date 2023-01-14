@@ -46,7 +46,7 @@ export class MainMenuScene extends Scene {
         const find_game = document.createElement("button");
         find_game.id = "main-menu-find-game";
         find_game.classList.add("main-menu-button");
-        const find_game_span = document.createElement("span");
+        const find_game_span = document.createElement("div");
         find_game_span.innerText = "Find Game";
         find_game.appendChild(find_game_span);
         find_game.onclick = () => {
@@ -98,7 +98,7 @@ export class MainMenuScene extends Scene {
         const profile = document.createElement("button");
         profile.id = "main-menu-profile";
         profile.classList.add("main-menu-button");
-        const profile_span = document.createElement("span");
+        const profile_span = document.createElement("div");
         profile_span.innerText = "Profile";
         profile.appendChild(profile_span);
         this.container.appendChild(profile);

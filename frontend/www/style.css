@@ -62,7 +62,7 @@ body {
     box-shadow: 0px 3px 0px rgba(255, 255, 255, 0.8), 0px 0px 60px rgba(255, 255, 255, 0.3);
 }
 
-.main-menu-button>span {
+.main-menu-button>div {
     display: inline-block;
     transform: matrix(1, 0, 0.4, 1, 0, 0);
 }
