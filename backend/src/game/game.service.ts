@@ -118,8 +118,9 @@ export class GameService {
 			// The match wasn't accepted yet
 			const handshake: Handshake | undefined = this.findUserMatch(client);
 			if (handshake !== undefined) {
+				const match: Match = handshake.match;
 				this.ignore(handshake.match);
-				return handshake.match;
+				return match;
 			}
 			// The game was ongoing
 			const index: number = this.findUserRoomIndex(client);

@@ -242,10 +242,10 @@ export class GameGateway {
 	private /*async*/ sendGameUpdates(me: GameGateway, room: GameRoom): void {
 		//Promise<void> {
 		try {
-			const update: GameUpdate | null = room.updateGame();
+			const update: GameUpdate = room.updateGame();
 			// console.log(update);
 			room.match.player1.socket.emit("updateGame", update);
-			room.match.player2.socket.emit("updateGame", update);
+			room.match.player2.socket.emit("updateGame", update.invert());
 		} catch (e) {
 			if (e instanceof ResultsObject) {
 				/* Save results and destroy game */
