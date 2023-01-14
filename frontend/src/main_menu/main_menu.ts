@@ -1,6 +1,6 @@
 import { ChatElement } from "./chat";
 import { Scene } from "../strawberry/scene";
-;import { PrivateUser, GameSocket } from "../api";
+; import { PrivateUser, GameSocket } from "../api";
 import { History } from "../strawberry/history";
 import { GameScene, RemotePlayer, LocalPlayer } from "../game";
 
@@ -58,6 +58,7 @@ export class MainMenuScene extends Scene {
                     History.push_state(new GameScene(this.game_socket, new LocalPlayer(this.game_socket), new RemotePlayer(this.game_socket)));
                     this.game_socket = null;
                     this.match_found = false;
+                    find_game_span.innerText = "Find Game";
                 } else {
                     console.log("Cancelled matchmaking.");
 
@@ -76,6 +77,14 @@ export class MainMenuScene extends Scene {
                 this.game_socket.on_connected = () => {
                     console.log("Connected to the server!");
                 }
+
+                this.game_socket.on_disconnected = () => {
+                    console.log("Disconnected!");
+
+                    this.game_socket = null;
+                    find_game_span.innerText = "Find Game";
+                    this.match_found = false;
+                };
 
                 this.game_socket.on_match_found = () => {
                     console.log("A match has been found.");

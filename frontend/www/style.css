@@ -89,6 +89,26 @@ body {
 
     display: flex;
     flex-flow: column nowrap;
+
+    transition-duration: 0.4s;
+    transition-timing-function: ease-in;
+}
+
+.chat-hidden {
+    transform: translateX(100%);
+}
+
+#chat-handle {
+    position: absolute;
+    left: 0px;
+    top: 50%;
+    transform: translateX(-100%);
+    width: 25px;
+    height: 50px;
+    border-top-left-radius: 1000px;
+    border-bottom-left-radius: 1000px;
+    backdrop-filter: blur(25px);
+    background-image: linear-gradient(to right, rgba(255,255,255,0.3), rgba(255,255,255,0.05));
 }
 
 #chat-nav {

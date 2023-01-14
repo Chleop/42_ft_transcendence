@@ -185,6 +185,13 @@ export class ChatElement {
         channel_settings_button.id = "chat-settings-button";
         send_message_container.appendChild(channel_settings_button);
 
+        const handle = document.createElement("div");
+        handle.id = "chat-handle";
+        handle.onclick = () => {
+            this.container.classList.toggle("chat-hidden");
+        };
+        this.container.appendChild(handle);
+
         this.message_input = document.createElement("input");
         this.message_input.id = "chat-send-message";
         this.message_input.type = "text";
