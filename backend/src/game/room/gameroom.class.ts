@@ -39,8 +39,8 @@ export class GameRoom {
 	}
 
 	/* Called every 16ms to send ball updates */
-	public updateGame(): GameUpdate | null {
-		if (this.game === null) return null;
+	public updateGame(): GameUpdate {
+		if (this.game === null) throw "Game is null";
 		return this.game.refresh();
 	}
 
@@ -82,8 +82,9 @@ export class GameRoom {
 
 	/* -- IDENTIFIERS --------------------------------------------------------- */
 	public isClientInRoom(client: Socket): boolean {
-		return this.match.player1.socket.id === client.id ||
-			this.match.player2.socket.id === client.id;
+		return (
+			this.match.player1.socket.id === client.id || this.match.player2.socket.id === client.id
+		);
 	}
 
 	/* Returns player's number */

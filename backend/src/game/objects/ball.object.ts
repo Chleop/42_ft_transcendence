@@ -6,13 +6,20 @@ export class Ball {
 	private vx: number;
 	private vy: number;
 
-	constructor() {
-		const angle: number = this.generateSign() * (Math.random() * Math.PI * 0.25);
-		// const angle: number = Math.random() * Math.PI * 2;
-		this.x = 0;
-		this.y = 0;
-		this.vx = this.generateSign() * Math.cos(angle) * Constants.initial_speed;
-		this.vy = this.generateSign() * Math.sin(angle) * Constants.initial_speed;
+	constructor(coords?: { x: number; y: number; vx: number; vy: number }) {
+		if (coords === undefined) {
+			const angle: number = this.generateSign() * (Math.random() * Math.PI * 0.25);
+			// const angle: number = Math.random() * Math.PI * 2;
+			this.x = 0;
+			this.y = 0;
+			this.vx = this.generateSign() * Math.cos(angle) * Constants.initial_speed;
+			this.vy = this.generateSign() * Math.sin(angle) * Constants.initial_speed;
+		} else {
+			this.x = coords.x;
+			this.y = coords.y;
+			this.vx = coords.vx;
+			this.vy = coords.vy;
+		}
 	}
 
 	/* == PUBLIC ================================================================================ */
@@ -39,6 +46,10 @@ export class Ball {
 			return true;
 		}
 		return false;
+	}
+
+	public invert(): Ball {
+		return new Ball({ x: -this.x, y: this.y, vx: -this.vx, vy: this.vy });
 	}
 
 	/* == PRIVATE =============================================================================== */

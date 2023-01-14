@@ -9,7 +9,7 @@ export class Gameplay {
 	private scores: Score;
 	private paddle1: PaddleDto;
 	private paddle2: PaddleDto;
-	private ball: Ball | null;
+	private ball: Ball;
 	private last_update: number;
 
 	constructor() {
@@ -19,8 +19,8 @@ export class Gameplay {
 		};
 		this.paddle1 = new PaddleDto();
 		this.paddle2 = new PaddleDto();
-		this.ball = null;
-		this.last_update = -1;
+		this.ball = new Ball();
+		this.last_update = Date.now();
 	}
 
 	/* == PUBLIC ================================================================================ */
@@ -43,19 +43,15 @@ export class Gameplay {
 	/* -- UPDATING GAME ------------------------------------------------------- */
 	/* Generate random initial ball velocity vector */
 	public initializeGame(): GameUpdate {
-		this.ball = new Ball();
+		// this.ball = new Ball();
 		console.info("Initializing:");
 		console.info(this.ball);
 		this.last_update = Date.now();
-		return {
-			updated_ball: this.ball,
-			scores: this.scores,
-		};
+		return new GameUpdate(this.ball, this.scores);
 	}
 
 	/* Generates a ball update */
-	public refresh(): GameUpdate | null {
-		if (this.ball === null) return null;
+	public refresh(): GameUpdate {
 		const now: number = Date.now();
 		const delta_time = (now - this.last_update) * 0.001;
 		this.last_update = now;
@@ -72,10 +68,7 @@ export class Gameplay {
 				this.twoWon();
 			}
 		}
-		return {
-			updated_ball: this.ball,
-			scores: this.scores,
-		};
+		return new GameUpdate(this.ball, this.scores);
 	}
 
 	// TODO: Cleanup this function...

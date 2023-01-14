@@ -1,6 +1,6 @@
 import { ChatElement } from "./chat";
 import { Scene } from "../strawberry/scene";
-; import { PrivateUser, GameSocket } from "../api";
+import { PrivateUser, GameSocket } from "../api";
 import { History } from "../strawberry/history";
 import { GameScene, RemotePlayer, LocalPlayer } from "../game";
 
@@ -50,7 +50,6 @@ export class MainMenuScene extends Scene {
         find_game.onclick = () => {
             if (this.game_socket) {
                 console.log("Cancelled matchmaking.");
-
                 this.game_socket.disconnect();
             } else {
                 console.log("Looking for a game.");
