@@ -198,6 +198,7 @@ export class GameGateway {
 
 		const room: GameRoom = this.game_service.createRoom(match);
 
+		// TODO: save timeout and reset it when needed
 		setTimeout(this.startGame, 3000, this, room);
 		// match.player1.socket.emit("matchFound");
 		// match.player2.socket.emit("matchFound");
@@ -249,7 +250,6 @@ export class GameGateway {
 		//Promise<void> {
 		try {
 			const update: GameUpdate = room.updateGame();
-			// console.log(update);
 			room.match.player1.socket.emit("updateGame", update);
 			room.match.player2.socket.emit("updateGame", update.invert());
 		} catch (e) {

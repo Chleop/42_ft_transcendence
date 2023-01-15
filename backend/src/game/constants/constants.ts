@@ -7,7 +7,7 @@ export const matchmaking_timeout: number = 10000;
 export const initial_speed: number = 5;
 
 /* Acceleration factor */
-export const acceleration: number = 1.005;
+export const acceleration: number = 1.05;
 
 /* Value in seconds */
 export const ping: number = 16;

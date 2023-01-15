@@ -57,6 +57,8 @@ export class Gameplay {
 		this.last_update = now;
 
 		const ret: number = this.ball.refresh(delta_time);
+
+		//TODO: redo this part
 		if (ret === 1) {
 			// Ball is far left
 			if (this.ball.checkPaddleCollision(this.paddle1.position) === false) {
@@ -113,6 +115,10 @@ export class Gameplay {
 	}
 
 	/* -- GAME STATUS UPDATE -------------------------------------------------- */
+
+	// private letBallLeave(f: Function): void {
+	// 	if (this.ball.isOutside()) return f();
+	// }
 
 	/* Players 1 marked a point, send results OR reinitialize */
 	private oneWon(): void {

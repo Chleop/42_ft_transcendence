@@ -52,6 +52,10 @@ export class Ball {
 		return new Ball({ x: -this.x, y: this.y, vx: -this.vx, vy: this.vy });
 	}
 
+	public isOutside(): boolean {
+		return this.x < -Constants.w_2 || this.x > Constants.w_2;
+	}
+
 	/* == PRIVATE =============================================================================== */
 
 	/* Refresh on X axis */
@@ -82,13 +86,15 @@ export class Ball {
 	private shiftBouncing(paddle_y: number): void {
 		const orig_norm: number = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
 
-		const oh: number = Math.abs(this.y - paddle_y);
+		// const oh: number = Math.abs(this.y - paddle_y);
+		const oh: number = this.y - paddle_y;
+
 		const vy: number = this.vy / orig_norm + 0.5 * oh;
-		const vx: number = this.vx / orig_norm;
+		const vx: number = -this.vx / orig_norm;
 
 		const norm: number = Math.sqrt(vx * vx + vy * vy);
 		this.vy = (vy / norm) * orig_norm;
-		this.vx = -(vx / norm) * orig_norm;
+		this.vx = (vx / norm) * orig_norm;
 	}
 
 	private generateSign(): number {
