@@ -1,6 +1,6 @@
-import { Score, GameUpdate } from "../aliases";
+import { Score } from "../aliases";
 import { PaddleDto } from "../dto";
-import { Ball, PlayerData, ResultsObject } from "../objects";
+import { Ball, PlayerData, ResultsObject, GameUpdate } from "../objects";
 
 import * as Constants from "../constants/constants";
 
@@ -58,13 +58,13 @@ export class Gameplay {
 
 		const ret: number = this.ball.refresh(delta_time);
 		if (ret === 1) {
-			// Ball is far right
-			if (!this.ball.checkPaddleCollision(this.paddle1.position, ret)) {
+			// Ball is far left
+			if (this.ball.checkPaddleCollision(this.paddle1.position) === false) {
 				this.oneWon();
 			}
 		} else if (ret === -1) {
-			// Ball is far left
-			if (!this.ball.checkPaddleCollision(this.paddle2.position, ret)) {
+			// Ball is far right
+			if (this.ball.checkPaddleCollision(this.paddle2.position) === false) {
 				this.twoWon();
 			}
 		}

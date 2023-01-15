@@ -24,17 +24,13 @@ export const paddle_x: number = 1;
 export const max_paddle: number = w_2 - paddle_x; // = 8 - 1 = 7
 
 /* Ball radius */
-export const radius: number = 0.2;
+export const ball_radius: number = 0.2;
 
 /* Limit score for victory */
-export const max_score: number = 3;
+export const max_score: number = 10;
+
+// /* Margin of error for paddle: 2% */
+// export const margin: number = 0.02;
 
 /* Actual limit on x hit by ball */
-export const limit_x: number = max_paddle - radius; // 7 - 0.2 = 6.8
-
-/* Limit angle for ball launch: pi/6 (theta) */
-// export const cos: number = 8.66;
-// export const sin: number = 5;
-
-/* Margin of error for paddle: 2% */
-export const margin: number = 0.02;
+export const limit_x: number = max_paddle - ball_radius; // 7 - 0.2 = 6.8

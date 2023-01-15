@@ -1,4 +1,4 @@
-import { Score } from "./";
+import { Score } from "../aliases";
 import { Ball } from "../objects";
 
 // Update for spectators

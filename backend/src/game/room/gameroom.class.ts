@@ -1,8 +1,8 @@
 import { Socket } from "socket.io";
 import { Gameplay } from "../gameplay";
 import { PaddleDto } from "../dto";
-import { AntiCheat, GameUpdate, Score, Match } from "../aliases";
-import { ResultsObject } from "../objects";
+import { AntiCheat, Score, Match } from "../aliases";
+import { ResultsObject, GameUpdate } from "../objects";
 
 // TODO: make it cleaner
 type CheatCheck = {
@@ -18,14 +18,10 @@ export class GameRoom {
 	private ping_id: NodeJS.Timer | null;
 	private game: Gameplay | null;
 
-	// TEMPORARY
-	// private nb_update: number;
-
 	constructor(match: Match) {
 		this.match = match;
 		this.ping_id = null;
 		this.game = null;
-		// this.nb_update = 0; // TEMPORARY
 		console.info("Room created:", this.match.name);
 	}
 
