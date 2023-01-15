@@ -5,6 +5,11 @@
 
 /frontend/out
 /frontend/www/script.js
+/frontend/tsconfig.tsbuildinfo
+/frontend/package-lock.json
+
+/backend/tsconfig.tsbuildinfo
+/backend/package-lock.json
 
 # Logs
 logs
