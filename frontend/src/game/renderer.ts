@@ -200,9 +200,14 @@ export class Renderer {
      * @param width The new width of the canvas.
      * @param height The new height of the canvas.
      */
-    public notify_size_changed(width: number, height: number) {
+    public notify_size_changed(width: number, height: number): void {
         this.gl.viewport(0, 0, width, height);
-        this.view_matrix = [1 / 8, 0, 0, (width / height) / 8];
+        // this.view_matrix = [1 / 8, 0, 0, (width / height) / 8];
+    }
+
+    /** Sets the global view matrix. */
+    public set_view_matrix(a: number, b: number, c: number, d: number): void {
+        this.view_matrix = [a, b, c, d];
     }
 
     /**
@@ -223,7 +228,7 @@ export class Renderer {
     /**
      * Draws a sprite.
      */
-    public draw_sprite(sprite: Sprite, x: number, y: number, w: number, h: number) {
+    public draw_sprite(sprite: Sprite, x: number, y: number, w: number, h: number): void {
         const sprite_ = sprite as SpriteInternal;
 
         this.gl.useProgram(this.sprite_program);

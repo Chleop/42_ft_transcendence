@@ -1,6 +1,6 @@
 import { Scene, History, State } from "../strawberry";
 import { Player, Constants } from ".";
-import { Renderer, Sprite } from "./renderer";
+import { Renderer } from "./renderer";
 import { GameSocket } from "../api";
 
 /**
@@ -15,10 +15,12 @@ export class WebGL2NotSupported { }
 class PlayerStateInternal {
     public speed: number;
     public height: number;
+    public score: number;
 
     constructor() {
         this.speed = Constants.paddle_speed;
         this.height = Constants.paddle_height;
+        this.score = 0;
     }
 }
 
@@ -104,15 +106,6 @@ export class GameScene extends Scene {
     private ball_state: BallState;
 
     /**
-     * The sprite of the ball.
-     */
-    private ball_sprite: Sprite;
-    /**
-     * The sprite used for paddles.
-     */
-    private paddle_sprite: Sprite;
-
-    /**
      * The last timestamp that was passed to the animation callback.
      */
     private last_timestamp: number;
@@ -137,11 +130,8 @@ export class GameScene extends Scene {
         this.canvas = document.createElement("canvas");
         this.canvas.id = "game-canvas";
 
-        // FIXME:
-        //  Properly calculate dimentions for the canvas depending on the window size, and handle
-        //  window resizes.
-        this.canvas.width = 16 * 30;
-        this.canvas.height = 9 * 30;
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
         document.body.style.backgroundColor = "black";
 
         const gl = this.canvas.getContext("webgl2");
@@ -153,12 +143,9 @@ export class GameScene extends Scene {
         this.right_player = right;
         this.right_player_state = new PlayerStateInternal();
         this.ball_state = new BallState();
-        this.ball_sprite = this.renderer.create_sprite("ball.png");      // TODO: Those sprites will later depend on the players.
-        this.paddle_sprite = this.renderer.create_sprite("paddle.png");
 
-        // TODO:
-        //  Call this function again when the canvas is resized.
         this.renderer.notify_size_changed(this.canvas.width, this.canvas.height);
+        this.renderer.set_view_matrix(2 / Constants.board_width, 0, 0, 2 * (this.canvas.width / this.canvas.height) / Constants.board_width);
 
         this.should_stop = false;
         this.last_timestamp = 0;
@@ -176,6 +163,9 @@ export class GameScene extends Scene {
             this.ball_state.y = data.updated_ball.y;
             this.ball_state.vx = data.updated_ball.vx;
             this.ball_state.vy = data.updated_ball.vy;
+
+            this.left_player_state.score = data.scores.player1_score;
+            this.right_player_state.score = data.scores.player2_score;
         };
 
         socket.on_disconnected = () => {
@@ -230,6 +220,18 @@ export class GameScene extends Scene {
             delta_time = Constants.max_tick_period;
         this.last_timestamp = timestamp;
 
+        // Ensure that the canvas has the right size.
+        if (this.canvas.width != window.innerWidth || this.canvas.height != window.innerHeight) {
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
+
+            // Notify the renderer that the canvas' size has been updated.
+            this.renderer.notify_size_changed(this.canvas.width, this.canvas.height);
+
+            // Update the view matrix to ensure that the whole board remains in view.
+            this.renderer.set_view_matrix(2 / Constants.board_width, 0, 0, 2 * (this.canvas.width / this.canvas.height) / Constants.board_width);
+        }
+
         if (this.game_started)
         {
             // Move the ball.
@@ -260,18 +262,31 @@ export class GameScene extends Scene {
             this.right_player.tick(delta_time, this.right_player_state);
         }
 
+        const HEART_SIZE: number = 0.2;
+        const HEART_GAP: number = 0.05;
+
         // Render the scene.
-        const pixel_scale: number = 1 / 200;
-
         this.renderer.clear(0, 0, 0);
-        this.renderer.draw_sprite(this.ball_sprite, this.ball_state.x, this.ball_state.y, this.ball_sprite.width * pixel_scale, this.ball_sprite.height * pixel_scale);
-        this.renderer.draw_sprite(this.paddle_sprite, -Constants.board_width / 2 + Constants.paddle_x - Constants.paddle_width, this.left_player.position, this.paddle_sprite.width * pixel_scale, this.paddle_sprite.height * pixel_scale);
-        this.renderer.draw_sprite(this.paddle_sprite, Constants.board_width / 2 - Constants.paddle_x, this.right_player.position, this.paddle_sprite.width * pixel_scale, this.paddle_sprite.height * pixel_scale);
+        this.renderer.draw_hitbox(-Constants.board_width / 2, -Constants.board_height / 2, Constants.board_width, Constants.board_height);
 
+        // When debug information are required, hitboxes are drawn.
         if (this.show_debug_) {
-            this.renderer.draw_hitbox(-Constants.board_width / 2 + Constants.paddle_x - Constants.paddle_width, this.left_player.position, Constants.paddle_width, this.right_player_state.height);
-            this.renderer.draw_hitbox(Constants.board_width / 2 - Constants.paddle_x, this.right_player.position, Constants.paddle_width, this.right_player_state.height);
-            this.renderer.draw_hitbox(this.ball_state.x, this.ball_state.y, this.ball_state.radius, this.ball_state.radius);
+            // Display the player and its opponent.
+            this.renderer.draw_hitbox(-Constants.board_width / 2 + Constants.paddle_x - Constants.paddle_width, this.left_player.position - this.left_player_state.height / 2, Constants.paddle_width, this.left_player_state.height);
+            this.renderer.draw_hitbox(Constants.board_width / 2 - Constants.paddle_x, this.right_player.position - this.right_player_state.height / 2, Constants.paddle_width, this.right_player_state.height);
+
+            // Display the ball.
+            this.renderer.draw_hitbox(this.ball_state.x - this.ball_state.radius / 2, this.ball_state.y - this.ball_state.radius / 2, this.ball_state.radius, this.ball_state.radius);
+
+            // Display the health of the opponent.
+            for (let i = 0; i < Constants.max_score - this.left_player_state.score; ++i) {
+                this.renderer.draw_hitbox(Constants.board_width / 2 - (i + 1) * (HEART_SIZE + HEART_GAP), Constants.board_height / 2 - HEART_GAP - HEART_SIZE, HEART_SIZE, HEART_SIZE);
+            }
+
+            // Display the health of the player.
+            for (let i = 0; i < Constants.max_score - this.right_player_state.score; ++i) {
+                this.renderer.draw_hitbox(-Constants.board_width / 2 + HEART_GAP + i * (HEART_SIZE + HEART_GAP), Constants.board_height / 2 - HEART_GAP - HEART_SIZE, HEART_SIZE, HEART_SIZE);
+            }
         }
 
         if (!this.should_stop) {
