@@ -1,7 +1,4 @@
-/* Timespan before kicked out of queue */
-// export const matchmaking_timeout: number = 10000;
-
-/* Speed */
+/* Ball speed */
 export const initial_speed: number = 5;
 
 /* Acceleration factor */
@@ -23,10 +20,11 @@ export const max_score: number = 10;
 /* Half of paddle size */
 export const paddle_radius: number = 1;
 
-// export const paddle_thickness: number = 0.2;x
-
 /* Shift paddle from wall */
 export const paddle_x: number = 1;
+
+/* Shift paddle from wall */
+export const paddle_speed: number = 4;
 
 /* Maximum x value for ball x on wall */
 export const max_x: number = w_2 - paddle_x; // = 8 - 1 = 7
@@ -45,5 +43,5 @@ export enum BallRefreshResult {
 	nothing,
 }
 
-// /* Margin of error for paddle: 2% */
-// export const margin: number = 0.02;
+// /* Margin of error for paddle: 20% */
+export const margin: number = 0.2;

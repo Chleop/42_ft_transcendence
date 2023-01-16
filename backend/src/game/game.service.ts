@@ -180,7 +180,7 @@ export class GameService {
 	}
 
 	/* -- GAME UPDATING ------------------------------------------------------- */
-	public updateOpponent(client: Socket, dto: PaddleDto): AntiCheat | null {
+	public updateOpponent(client: Socket, dto: PaddleDto): AntiCheat {
 		const index: number = this.findUserRoomIndex(client);
 		if (index < 0) throw "Paddle update received but not in game";
 		return this.game_rooms[index].updatePaddle(client, dto);

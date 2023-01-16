@@ -41,13 +41,9 @@ export class GameRoom {
 	}
 
 	/* Called everytime the sender sent an update */
-	public updatePaddle(client: Socket, dto: PaddleDto): AntiCheat | null {
-		if (this.game === null) return null;
-		const cheat_check: CheatCheck | null = this.game.checkUpdate(
-			this.playerNumber(client),
-			dto,
-		);
-		if (cheat_check === null) return null;
+	public updatePaddle(client: Socket, dto: PaddleDto): AntiCheat {
+		if (this.game === null) throw "Game hasn't started yet";
+		const cheat_check: CheatCheck = this.game.checkUpdate(this.playerNumber(client), dto);
 		return {
 			p1: cheat_check.has_cheated ? cheat_check.updated_paddle : null,
 			p2: {

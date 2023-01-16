@@ -6,7 +6,7 @@ import { PaddleDto } from "./dto";
 import { ResultsObject, Ball, ScoreUpdate /* , GameUpdate */ } from "./objects";
 import { AntiCheat, OpponentUpdate, Client, Match } from "./aliases";
 
-// import * as Constants from "./constants/constants";
+import * as Constants from "./constants/constants";
 
 /* Track timeouts */
 // type TimeoutId = {
@@ -148,17 +148,14 @@ export class GameGateway {
 	public updateEnemy(client: Socket, dto: PaddleDto): void {
 		try {
 			// TODO: Check paddledto accuracy
-			const anticheat: AntiCheat | null = this.game_service.updateOpponent(client, dto);
-			if (anticheat === null) {
-				client.emit("stop");
-				return;
-			}
+			const anticheat: AntiCheat = this.game_service.updateOpponent(client, dto);
 			const opponent_update: OpponentUpdate = anticheat.p2;
 			opponent_update.player.emit("updateOpponent", opponent_update.updated_paddle);
 			if (anticheat.p1) {
 				client.emit("antiCheat", anticheat.p1);
 			}
 		} catch (e) {
+			client.emit("stop");
 			e;
 		}
 	}
@@ -192,7 +189,7 @@ export class GameGateway {
 		// Send the initial ball { pos, v0 }
 		room.match.player1.socket.emit("gameStart", initial_game_state);
 		room.match.player2.socket.emit("gameStart", initial_game_state);
-		room.setPingId(setInterval(me.sendGameUpdates, 16, me, room));
+		room.setPingId(setInterval(me.sendGameUpdates, Constants.ping, me, room));
 	}
 
 	/* This will send a GameUpdate every 16ms to both clients in a game */

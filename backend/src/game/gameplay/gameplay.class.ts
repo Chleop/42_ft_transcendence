@@ -1,14 +1,14 @@
 import { Score } from "../aliases";
 import { PaddleDto } from "../dto";
-import { Ball, PlayerData, ResultsObject /* GameUpdate */, ScoreUpdate } from "../objects";
+import { Ball, PlayerData, ResultsObject, Paddle, ScoreUpdate } from "../objects";
 
 import * as Constants from "../constants/constants";
 
 /* Track the state of the game, calculates the accuracy of the incomming data */
 export class Gameplay {
 	private scores: Score;
-	private paddle1: PaddleDto;
-	private paddle2: PaddleDto;
+	private paddle1: Paddle;
+	private paddle2: Paddle;
 	private ball: Ball;
 	private last_update: number;
 
@@ -17,8 +17,8 @@ export class Gameplay {
 			player1_score: 0,
 			player2_score: 0,
 		};
-		this.paddle1 = new PaddleDto();
-		this.paddle2 = new PaddleDto();
+		this.paddle1 = new Paddle();
+		this.paddle2 = new Paddle();
 		this.ball = new Ball();
 		this.last_update = -1;
 	}
@@ -85,20 +85,19 @@ export class Gameplay {
 	): {
 		has_cheated: boolean;
 		updated_paddle: PaddleDto;
-	} | null {
+	} {
+		let updated_paddle: PaddleDto;
 		if (who === 1) {
-			const checked_value: PaddleDto = this.verifyAccuracyPaddle(dto, this.paddle1);
-			this.paddle1 = checked_value;
+			updated_paddle = this.paddle1.update(dto, Date.now());
 		} else if (who === 2) {
-			const checked_value: PaddleDto = this.verifyAccuracyPaddle(dto, this.paddle2);
-			this.paddle2 = checked_value;
+			updated_paddle = this.paddle2.update(dto, Date.now());
 		} else {
-			return null;
+			throw null;
 		}
 		// Return corrected paddle if anticheat stroke
 		return {
 			has_cheated: false,
-			updated_paddle: dto,
+			updated_paddle: updated_paddle,
 		};
 	}
 
@@ -112,12 +111,12 @@ export class Gameplay {
 
 	/* -- PADDLE LOOK AT ------------------------------------------------------ */
 	/* Check if received paddle seems accurate */
-	private verifyAccuracyPaddle(dto: PaddleDto, paddle_checked: PaddleDto): PaddleDto {
-		//TODO anticheat
-		this.last_update;
-		paddle_checked;
-		return dto;
-	}
+	// private verifyAccuracyPaddle(dto: PaddleDto, paddle_checked: Paddle): PaddleDto {
+	// 	//TODO anticheat
+	// 	// this.last_update;
+	// 	// paddle_checked;
+	// 	return dto;
+	// }
 
 	/* -- GAME STATUS UPDATE -------------------------------------------------- */
 

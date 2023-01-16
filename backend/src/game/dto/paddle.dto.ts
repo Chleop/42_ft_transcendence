@@ -2,8 +2,13 @@
 //TODO: validators?
 export class PaddleDto {
 	// Paddle position
-	position: number;
+	public position: number;
 
 	// Paddle velocity vector value
-	velocity: number;
+	public velocity: number;
+
+	constructor(position: number, velocity: number) {
+		this.position = position;
+		this.velocity = velocity;
+	}
 }
