@@ -1,6 +1,6 @@
 import { Score } from "../aliases";
 import { PaddleDto } from "../dto";
-import { Ball, PlayerData, ResultsObject, GameUpdate } from "../objects";
+import { Ball, PlayerData, ResultsObject /* GameUpdate */, ScoreUpdate } from "../objects";
 
 import * as Constants from "../constants/constants";
 
@@ -20,7 +20,7 @@ export class Gameplay {
 		this.paddle1 = new PaddleDto();
 		this.paddle2 = new PaddleDto();
 		this.ball = new Ball();
-		this.last_update = Date.now();
+		this.last_update = -1;
 	}
 
 	/* == PUBLIC ================================================================================ */
@@ -42,15 +42,16 @@ export class Gameplay {
 
 	/* -- UPDATING GAME ------------------------------------------------------- */
 	/* Generate random initial ball velocity vector */
-	public initializeGame(): GameUpdate {
+	public initializeGame(): Ball /* GameUpdate */ {
 		console.log("Initializing:");
 		console.log(this.ball);
 		this.last_update = Date.now();
-		return new GameUpdate(this.ball, this.scores);
+		return this.ball;
+		// return new GameUpdate(this.ball, this.scores);
 	}
 
 	/* Generates a ball update */
-	public refresh(): GameUpdate {
+	public refresh(): Ball | ScoreUpdate /* GameUpdate */ {
 		const now: number = Date.now();
 		const delta_time = (now - this.last_update) * 0.001;
 		this.last_update = now;
@@ -67,13 +68,14 @@ export class Gameplay {
 				this.ball.checkPaddleCollision(this.paddle2.position);
 				break;
 			case Constants.BallRefreshResult.oneOutside:
-				if (this.ball.isOutside()) this.oneWon();
+				if (this.ball.isOutside()) return this.oneWon();
 				break;
 			case Constants.BallRefreshResult.twoOutside:
-				if (this.ball.isOutside()) this.twoWon();
+				if (this.ball.isOutside()) return this.twoWon();
 				break;
 		}
-		return new GameUpdate(this.ball, this.scores);
+		return this.ball;
+		// return new GameUpdate(this.ball, this.scores);
 	}
 
 	// TODO: Cleanup this function...
@@ -120,7 +122,7 @@ export class Gameplay {
 	/* -- GAME STATUS UPDATE -------------------------------------------------- */
 
 	/* Players 1 marked a point, send results OR reinitialize */
-	private oneWon(): void {
+	private oneWon(): ScoreUpdate {
 		++this.scores.player1_score;
 		if (this.scores.player1_score === Constants.max_score) {
 			throw new ResultsObject(
@@ -129,10 +131,11 @@ export class Gameplay {
 			);
 		}
 		this.ball = new Ball();
+		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, true);
 	}
 
 	/* Players 2 marked a point, send results OR reinitialize */
-	private twoWon(): void {
+	private twoWon(): ScoreUpdate {
 		++this.scores.player2_score;
 		if (this.scores.player2_score === Constants.max_score) {
 			throw new ResultsObject(
@@ -141,5 +144,6 @@ export class Gameplay {
 			);
 		}
 		this.ball = new Ball();
+		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, false);
 	}
 }

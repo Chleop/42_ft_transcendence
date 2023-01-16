@@ -3,7 +3,7 @@ import { Server, Socket } from "socket.io";
 import { GameService } from "./game.service";
 import { GameRoom } from "./room";
 import { PaddleDto } from "./dto";
-import { ResultsObject, GameUpdate } from "./objects";
+import { ResultsObject, Ball, ScoreUpdate /* , GameUpdate */ } from "./objects";
 import { AntiCheat, OpponentUpdate, Client, Match } from "./aliases";
 
 // import * as Constants from "./constants/constants";
@@ -186,7 +186,7 @@ export class GameGateway {
 	/* -- UPDATING TOOLS ------------------------------------------------------ */
 	/* The game will start */
 	private startGame(me: GameGateway, room: GameRoom): void {
-		const initial_game_state: GameUpdate = room.startGame();
+		const initial_game_state: Ball /* GameUpdate */ = room.startGame();
 
 		console.log(room);
 		// Send the initial ball { pos, v0 }
@@ -199,9 +199,14 @@ export class GameGateway {
 	private /*async*/ sendGameUpdates(me: GameGateway, room: GameRoom): void {
 		//Promise<void> {
 		try {
-			const update: GameUpdate = room.updateGame();
-			room.match.player1.socket.emit("updateGame", update);
-			room.match.player2.socket.emit("updateGame", update.invert());
+			const update: Ball | ScoreUpdate /* GameUpdate */ = room.updateGame();
+			if (update instanceof Ball) {
+				room.match.player1.socket.emit("updateBall", update);
+				room.match.player2.socket.emit("updateBall", update.invert());
+			} else if (update instanceof ScoreUpdate) {
+				room.match.player1.socket.emit("updateScore", update);
+				room.match.player2.socket.emit("updateScore", update.invert());
+			}
 		} catch (e) {
 			if (e instanceof ResultsObject) {
 				/* Save results and destroy game */
