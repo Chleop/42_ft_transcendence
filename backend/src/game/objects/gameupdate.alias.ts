@@ -4,10 +4,10 @@ import { Ball } from "../objects";
 // Update for spectators
 export class GameUpdate {
 	// New ball infos
-	updated_ball: Ball;
+	private readonly updated_ball: Ball;
 
 	// Scores of the ongoing game
-	scores: Score;
+	private readonly scores: Score;
 
 	constructor(ball: Ball, score: Score) {
 		this.updated_ball = ball;

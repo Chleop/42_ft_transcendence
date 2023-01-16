@@ -27,20 +27,20 @@ export class Ball {
 	public refresh(delta_time: number): number {
 		this.refreshX(delta_time);
 		this.refreshY(delta_time);
-		// right side
-		if (this.x + Constants.ball_radius >= Constants.max_paddle) return -1;
-		// left side
-		else if (this.x - Constants.ball_radius <= -Constants.max_paddle) return 1;
-		return 0;
+
+		if (this.x >= Constants.max_x) return Constants.BallRefreshResult.twoOutside;
+		else if (this.x >= Constants.limit_x) return Constants.BallRefreshResult.twoCollide;
+		else if (this.x <= -Constants.max_x) return Constants.BallRefreshResult.oneOutside;
+		else if (this.x <= -Constants.limit_x) return Constants.BallRefreshResult.oneCollide;
+		return Constants.BallRefreshResult.nothing;
 	}
 
 	/* Check if ball hits paddle */
 	public checkPaddleCollision(paddle_y: number): boolean {
 		if (
-			this.y <= paddle_y + Constants.paddle_radius &&
-			this.y >= paddle_y - Constants.paddle_radius
+			this.y < paddle_y + Constants.paddle_radius &&
+			this.y > paddle_y - Constants.paddle_radius
 		) {
-			// Ball collides on paddle
 			this.shiftBouncing(paddle_y);
 			this.increaseSpeed();
 			return true;
@@ -66,10 +66,10 @@ export class Ball {
 	/* Refresh on Y axis */
 	private refreshY(delta_time: number): void {
 		const new_y: number = this.y + this.vy * delta_time;
-		if (new_y > Constants.h_2) {
-			this.y = Constants.h_2;
-		} else if (new_y < -Constants.h_2) {
-			this.y = -Constants.h_2;
+		if (new_y > Constants.limit_y) {
+			this.y = Constants.limit_y;
+		} else if (new_y < -Constants.limit_y) {
+			this.y = -Constants.limit_y;
 		} else {
 			this.y = new_y;
 			return;
@@ -86,7 +86,6 @@ export class Ball {
 	private shiftBouncing(paddle_y: number): void {
 		const orig_norm: number = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
 
-		// const oh: number = Math.abs(this.y - paddle_y);
 		const oh: number = this.y - paddle_y;
 
 		const vy: number = this.vy / orig_norm + 0.5 * oh;

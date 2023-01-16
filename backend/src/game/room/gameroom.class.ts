@@ -22,7 +22,7 @@ export class GameRoom {
 		this.match = match;
 		this.ping_id = null;
 		this.game = null;
-		console.info("Room created:", this.match.name);
+		console.log("Room created:", this.match.name);
 	}
 
 	/* == PUBLIC ================================================================================ */

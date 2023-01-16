@@ -84,6 +84,14 @@ From the server:
 		every 20 milliseconds, the two matched client receive the pong ball updated data along with
 		the current score.
 
+
+	TODO: Change updateGame to those events
+	- `updateBall`
+		contains ball update
+
+	- `updateScore`
+		updates only once one of the players scores
+
 ======================================================================== END OF LIST ============ */
 
 /* Gateway to events comming from `http://localhost:3000/game` */
@@ -97,12 +105,10 @@ export class GameGateway {
 	@WebSocketServer()
 	public readonly server: Server;
 	private readonly game_service: GameService;
-	// private timeouts: TimeoutId[];
 
 	constructor() {
 		this.server = new Server();
 		this.game_service = new GameService();
-		// this.timeouts = [];
 	}
 
 	/* == PRIVATE =============================================================================== */
@@ -110,7 +116,7 @@ export class GameGateway {
 	/* -- CONNECTION ---------------------------------------------------------- */
 	/* Handle connection to server */
 	public handleConnection(client: Socket): void {
-		console.info(`[${client.id} connected]`);
+		console.log(`[${client.id} connected]`);
 		client.emit("connected", "Welcome");
 		try {
 			//TODO: Check if they are not spectator: middleware->`/spectator`?
@@ -120,7 +126,7 @@ export class GameGateway {
 			if (match !== null) this.matchmake(match);
 		} catch (e) {
 			client.disconnect(true);
-			console.info(e);
+			console.log(e);
 		}
 		this.game_service.display();
 	}
@@ -130,37 +136,12 @@ export class GameGateway {
 		const match: Match | null = this.game_service.unQueue(client);
 		if (match !== null) {
 			this.disconnectRoom(match);
-			// this.ignoreTimeout(match, true);
-			// if (client.id === match.player1.id) match.player2.socket.disconnect(true);
-			// else match.player1.socket.disconnect(true);
 		}
-		console.info(`[${client.id} disconnected]`);
+		console.log(`[${client.id} disconnected]`);
 		this.game_service.display();
 	}
 
 	/* -- EVENT HANDLERS ------------------------------------------------------ */
-	/* Handle room creation (matchmaking accepted from both parties) */
-	// @SubscribeMessage("ok")
-	// public matchAccepted(client: Socket): void {
-	// 	try {
-	// 		const room: GameRoom | null = this.game_service.playerAcknowledged(client);
-	// 		if (room !== null) {
-	// 			this.ignoreTimeout(room.match);
-	// 			const p1_decoded: UserData = this.game_service.decode(room.match.player1.id);
-	// 			const p2_decoded: UserData = this.game_service.decode(room.match.player2.id);
-	// 			room.match.player1.socket.emit("gameReady", p2_decoded);
-	// 			room.match.player2.socket.emit("gameReady", p1_decoded);
-	// 			const new_timeout: TimeoutId = {
-	// 				match: room.match.name,
-	// 				id: setTimeout(this.startGame, 3000, this, room),
-	// 			};
-	// 			this.timeouts.push(new_timeout);
-	// 		}
-	// 	} catch (e) {
-	// 		console.info(e);
-	// 		client.disconnect(true);
-	// 	}
-	// }
 
 	/* Handle paddle updates for the game */
 	@SubscribeMessage("update")
@@ -200,45 +181,14 @@ export class GameGateway {
 
 		// TODO: save timeout and reset it when needed
 		setTimeout(this.startGame, 3000, this, room);
-		// match.player1.socket.emit("matchFound");
-		// match.player2.socket.emit("matchFound");
-		// const new_timeout: TimeoutId = {
-		// 	match: match.name,
-		// 	id: setTimeout(this.matchTimeout, Constants.matchmaking_timeout, this, match),
-		// };
-		// this.timeouts.push(new_timeout);
 	}
-
-	/* Time out the 2 players if they don't accept the match */
-	// private matchTimeout(me: GameGateway, match: Match): void {
-	// 	const index_timeout: number = me.timeouts.findIndex((obj) => {
-	// 		return obj.match === match.name;
-	// 	});
-	// 	if (index_timeout < 0) return;
-	// 	console.info("Match timed out");
-	// 	me.game_service.ignore(match);
-	// 	match.player1.socket.disconnect(true);
-	// 	match.player2.socket.disconnect(true);
-	// 	me.timeouts.splice(index_timeout, 1);
-	// }
-
-	/* Ignore the timeout id */
-	// private ignoreTimeout(match: Match, clear: boolean = false): void {
-	// 	const index_timeout: number = this.timeouts.findIndex((obj) => {
-	// 		return obj.match === match.name;
-	// 	});
-	// 	if (index_timeout < 0) return;
-	// 	if (clear) clearTimeout(this.timeouts[index_timeout].id);
-	// 	console.info(`Ignored timer ${this.timeouts[index_timeout].match}`);
-	// 	this.timeouts.splice(index_timeout, 1);
-	// }
 
 	/* -- UPDATING TOOLS ------------------------------------------------------ */
 	/* The game will start */
 	private startGame(me: GameGateway, room: GameRoom): void {
 		const initial_game_state: GameUpdate = room.startGame();
 
-		console.info(room);
+		console.log(room);
 		// Send the initial ball { pos, v0 }
 		room.match.player1.socket.emit("gameStart", initial_game_state);
 		room.match.player2.socket.emit("gameStart", initial_game_state);

@@ -43,9 +43,8 @@ export class Gameplay {
 	/* -- UPDATING GAME ------------------------------------------------------- */
 	/* Generate random initial ball velocity vector */
 	public initializeGame(): GameUpdate {
-		// this.ball = new Ball();
-		console.info("Initializing:");
-		console.info(this.ball);
+		console.log("Initializing:");
+		console.log(this.ball);
 		this.last_update = Date.now();
 		return new GameUpdate(this.ball, this.scores);
 	}
@@ -58,17 +57,21 @@ export class Gameplay {
 
 		const ret: number = this.ball.refresh(delta_time);
 
-		//TODO: redo this part
-		if (ret === 1) {
-			// Ball is far left
-			if (this.ball.checkPaddleCollision(this.paddle1.position) === false) {
-				this.oneWon();
-			}
-		} else if (ret === -1) {
-			// Ball is far right
-			if (this.ball.checkPaddleCollision(this.paddle2.position) === false) {
-				this.twoWon();
-			}
+		switch (ret) {
+			case Constants.BallRefreshResult.nothing:
+				break;
+			case Constants.BallRefreshResult.oneCollide:
+				this.ball.checkPaddleCollision(this.paddle1.position);
+				break;
+			case Constants.BallRefreshResult.twoCollide:
+				this.ball.checkPaddleCollision(this.paddle2.position);
+				break;
+			case Constants.BallRefreshResult.oneOutside:
+				if (this.ball.isOutside()) this.oneWon();
+				break;
+			case Constants.BallRefreshResult.twoOutside:
+				if (this.ball.isOutside()) this.twoWon();
+				break;
 		}
 		return new GameUpdate(this.ball, this.scores);
 	}
@@ -115,10 +118,6 @@ export class Gameplay {
 	}
 
 	/* -- GAME STATUS UPDATE -------------------------------------------------- */
-
-	// private letBallLeave(f: Function): void {
-	// 	if (this.ball.isOutside()) return f();
-	// }
 
 	/* Players 1 marked a point, send results OR reinitialize */
 	private oneWon(): void {
