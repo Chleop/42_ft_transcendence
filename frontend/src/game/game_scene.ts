@@ -158,14 +158,16 @@ export class GameScene extends Scene {
             this.game_started = true;
         };
 
-        socket.on_game_updated = data => {
-            this.ball_state.x = data.updated_ball.x;
-            this.ball_state.y = data.updated_ball.y;
-            this.ball_state.vx = data.updated_ball.vx;
-            this.ball_state.vy = data.updated_ball.vy;
+        socket.on_ball_updated = state => {
+            this.ball_state.x = state.x;
+            this.ball_state.y = state.y;
+            this.ball_state.vx = state.vx;
+            this.ball_state.vy = state.vy;
+        };
 
-            this.left_player_state.score = data.scores.player1_score;
-            this.right_player_state.score = data.scores.player2_score;
+        socket.on_score_updated = state => {
+            this.right_player_state.score = state.opponent;
+            this.left_player_state.score = state.you;
         };
 
         socket.on_disconnected = () => {
