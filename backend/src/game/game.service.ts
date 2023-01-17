@@ -13,9 +13,6 @@ import { ResultsObject } from "./objects";
 type Handshake = {
 	// The two matched players
 	match: Match;
-
-	// If hands were shook
-	// shook: boolean;
 };
 
 /* Matchmaking class */
@@ -136,17 +133,6 @@ export class GameService {
 		}
 		return null;
 	}
-
-	// public playerAcknowledged(client: Socket): GameRoom | null {
-	// 	const handshake: Handshake | undefined = this.findUserMatch(client);
-	// 	if (handshake === undefined)
-	// 		// Tried to send ok before room creation/once game started
-	// 		throw "Received matchmaking acknowledgement but not awaiting";
-	// 	console.log(`${client.id} accepted`);
-	// 	if (handshake.shook) return this.createRoom(handshake.match);
-	// 	handshake.shook = true;
-	// 	return null;
-	// }
 
 	/* -- ROOM MANIPULATION --------------------------------------------------- */
 	public createRoom(match: Match): GameRoom {

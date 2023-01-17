@@ -54,10 +54,14 @@ export class GameRoom {
 	}
 
 	/* Saves the current state of the game */
-	public cutGameShort(guilty: number | null): ResultsObject | null {
-		if (!this.game) return null;
-		else if (guilty === null) return null;
+	public cutGameShort(guilty: number | null): ResultsObject {
+		if (!this.game) throw null;
+		else if (guilty === null) throw null;
 		return this.game.getResults(guilty);
+	}
+
+	public getFinalScore(): ScoreUpdate {
+		return this.game.getFinalScore();
 	}
 
 	/* -- INTERVAL UTILS ------------------------------------------------------ */
