@@ -24,3 +24,6 @@ Le script ```docker-entrypoint.dev.sh``` va mettre à jour/installer les modules
 Une fois le container lancé (ça peut être un peu long si vous êtes sur les Mac), vous n'avez plus qu'à lancer la commande ```docker logs backend -n 1000 -f``` pour voir la sortie du script node ```start:dev```.
 
 Et pour rappel, si vous voulez accéder au container avec un terminal il faudra lancer ```docker exec -it backend <votre shell>```.
+
+## Frontend
+Pour lancer le daemon de compilation automatique du frontend, il faut lancer `npx nodemon` dans le dossier `/frontend`. Si vous voulez juste compiler une fois, utilisez `npx tsc && npx webpack`. Dans tous les cas, vous devez faire `npm update` une fois pour s'assurer que tout est à jour.
