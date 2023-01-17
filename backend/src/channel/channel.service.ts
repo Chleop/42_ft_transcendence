@@ -5,6 +5,7 @@ import {
 	ChannelInvitationIncorrectError,
 	ChannelInvitationUnexpectedError,
 	ChannelMessageNotFoundError,
+	ChannelMessageTooLongError,
 	ChannelMissingOwnerError,
 	ChannelNotFoundError,
 	ChannelNotJoinedError,
@@ -16,6 +17,7 @@ import {
 	ChannelUnpopulatedError,
 	UnknownError,
 } from "src/channel/error";
+import { g_channel_message_length_limit } from "src/channel/limit";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
 import { Channel, ChannelMessage, ChanType } from "@prisma/client";
@@ -748,5 +750,86 @@ export class ChannelService {
 			},
 		});
 		console.log("Channel left");
+	}
+
+	/**
+	 * @brief	Make an user send a message to a channel they are in.
+	 *
+	 * @param	id The id of the channel to send the message to.
+	 * @param	user_id The id of the user sending the message.
+	 * @param	message The message to send in the channel.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
+	 * 			- ChannelMessageTooLongError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async send_message_to_one(id: string, user_id: string, message: string): Promise<void> {
+		type t_fields = {
+			members: {
+				id: string;
+			}[];
+		};
+
+		console.log("Searching for the channel to send the message to...");
+		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			select: {
+				members: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				id: id,
+			},
+		});
+
+		if (!channel) {
+			throw new ChannelNotFoundError(id);
+		}
+
+		console.log("Checking for not joined...");
+		if (
+			!(await this._prisma.channel.count({
+				where: {
+					id: id,
+					members: {
+						some: {
+							id: user_id,
+						},
+					},
+				},
+			}))
+		) {
+			throw new ChannelNotJoinedError(id);
+		}
+
+		console.log("Checking for message length...");
+		if (message.length > g_channel_message_length_limit) {
+			throw new ChannelMessageTooLongError(
+				`message length: ${message.length} ; limit: ${g_channel_message_length_limit}`,
+			);
+		}
+
+		console.log("Sending message...");
+		await this._prisma.channelMessage.create({
+			data: {
+				channel: {
+					connect: {
+						id: id,
+					},
+				},
+				sender: {
+					connect: {
+						id: user_id,
+					},
+				},
+				content: message,
+			},
+		});
+		console.log("Message sent");
 	}
 }
