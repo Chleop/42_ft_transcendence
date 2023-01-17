@@ -1,10 +1,10 @@
-export class UserNotFoundError implements Error {
+export class ChannelMissingOwnerError implements Error {
 	private readonly _name: string;
 	private readonly _message: string;
 
 	constructor(details?: string) {
-		this._name = "UserNotFoundError";
-		this._message = "No such user";
+		this._name = "ChannelMissingOwnerError";
+		this._message = "Channel is not owned by anyone";
 		if (details) {
 			this._message += ` (${details})`;
 		}

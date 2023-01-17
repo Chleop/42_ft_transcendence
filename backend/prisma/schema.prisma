@@ -14,10 +14,10 @@ model User {
   id                      String    @id @unique @default(cuid())
   login                   String    @unique
   name                    String    @unique
+  avatar                  String    @default("resource/avatar/default.jpg") // !le choix de l'avatar
   email                   String?   @unique
   state                   StateType @default(ACTIVE)
   stateDate               DateTime  @default(now())
-  avatar                  String    @default("resource/avatar/default.jpg") // !le choix de l'avatar
   // par defaut se fait au niveau du signup
   skin                    Skin      @relation(fields: [skinId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   elo                     Int       @default(0)
@@ -43,6 +43,9 @@ model User {
   // les champs ci-dessous sont neccessaires pour les relations
   // mais n'existent pas reellement dans la bdd (foreign keys)
   skinId          String
+
+  @@unique(fields: [id, state], name: "idAndState")
+  @@unique(fields: [login, state], name: "loginAndState")
 }
 
 model Channel {
@@ -50,13 +53,13 @@ model Channel {
   name      String    @unique
   chanType  ChanType  @default(PUBLIC)
   hash      String?
-  owner     User             @relation("chanowner", fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  owner     User?            @relation("chanowner", fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   members   User[]           @relation("userchannels")
   operators User[]           @relation("chanops")
   messages  ChannelMessage[] @relation("channelmessage")
   // les champs ci-dessous sont neccessaires pour les relations
   // mais n'existent pas reellement dans la bdd (foreign keys)
-  ownerId   String
+  ownerId   String?
 }
 
 model ChannelMessage {

@@ -1,10 +1,10 @@
-export class UserNotFoundError implements Error {
+export class ChannelUnpopulatedError implements Error {
 	private readonly _name: string;
 	private readonly _message: string;
 
 	constructor(details?: string) {
-		this._name = "UserNotFoundError";
-		this._message = "No such user";
+		this._name = "ChannelUnpopulatedError";
+		this._message = "Channel is not populated enough";
 		if (details) {
 			this._message += ` (${details})`;
 		}

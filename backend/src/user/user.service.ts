@@ -6,18 +6,21 @@ import {
 	UserNotFoundError,
 	UserRelationNotFoundError,
 } from "src/user/error";
+import { ChannelService } from "src/channel/channel.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, StreamableFile } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-import { User } from "@prisma/client";
+import { StateType, User } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
 
 @Injectable()
 export class UserService {
 	private _prisma: PrismaService;
+	private _channel: ChannelService;
 
 	constructor() {
+		this._channel = new ChannelService();
 		this._prisma = new PrismaService();
 	}
 
@@ -26,10 +29,10 @@ export class UserService {
 	 *
 	 * @param	dto The dto containing the data to create the user.
 	 *
-	 * @potential_throws
-	 * - UserRelationNotFoundError
-	 * - UserFieldUnaivalableError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- UserRelationNotFoundError
+	 * 			- UserFieldUnaivalableError
+	 * 			- UnknownError
 	 *
 	 * @return	A promise containing the id of the created user.
 	 */
@@ -40,11 +43,11 @@ export class UserService {
 
 		console.log("Getting default skin...");
 		const skin: t_fields | null = await this._prisma.skin.findUnique({
-			where: {
-				name: "Default",
-			},
 			select: {
 				id: true,
+			},
+			where: {
+				name: "Default",
 			},
 		});
 
@@ -92,34 +95,82 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Delete a user from the database.
+	 * @brief	Change the account state of an user to DISABLED, before trully deleting them
+	 * 			from the database a certain time later.
 	 *
 	 * @param	id The id of the user to delete.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
-	public async delete_one(id: string): Promise<void> {
+	public async disable_one(id: string): Promise<void> {
+		type t_fields = {
+			id: string;
+			owner: {
+				id: string;
+			} | null;
+			members: {
+				id: string;
+			}[];
+			operators: {
+				id: string;
+			}[];
+		};
+
 		try {
-			console.log("Deleting user...");
-			await this._prisma.user.delete({
+			console.log("Searching channels joined by the user to disable...");
+			const channels: t_fields[] = await this._prisma.channel.findMany({
+				select: {
+					id: true,
+					owner: {
+						select: {
+							id: true,
+						},
+					},
+					members: {
+						select: {
+							id: true,
+						},
+					},
+					operators: {
+						select: {
+							id: true,
+						},
+					},
+				},
 				where: {
-					id: id,
+					ownerId: id,
 				},
 			});
-			console.log("User deleted");
+
+			for (const channel of channels) {
+				await this._channel.leave_one(channel.id, id, channel);
+			}
+
+			console.log("Disabling user...");
+			await this._prisma.user.update({
+				where: {
+					idAndState: {
+						id: id,
+						state: StateType.ACTIVE,
+					},
+				},
+				data: {
+					state: StateType.DISABLED,
+				},
+			});
+			console.log("User disabled");
 		} catch (error) {
-			console.log("Error occured while deleting user");
+			console.log("Error occured while disabling user");
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2025":
-						throw new UserNotFoundError();
+						throw new UserNotFoundError(id);
 				}
 				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
-				console.log(`error being : ${error}`);
 			}
 
 			throw new UnknownError();
@@ -129,14 +180,14 @@ export class UserService {
 	/**
 	 * @brief	Get a user from the database.
 	 *
-	 * @param	name The name of the user to get.
+	 * @param	id The id of the user to get.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
 	 *
 	 * @return	A promise containing the wanted user.
 	 */
-	public async get_one(id: string | undefined): Promise<User & t_relations> {
+	public async get_one(id: string): Promise<User & t_relations> {
 		console.log("Searching user...");
 		const user: (User & t_relations) | null = await this._prisma.user.findUnique({
 			include: {
@@ -148,12 +199,15 @@ export class UserService {
 				blocked: true,
 			},
 			where: {
-				id: id,
+				idAndState: {
+					id: id,
+					state: StateType.ACTIVE,
+				},
 			},
 		});
 
 		if (!user) {
-			throw new UserNotFoundError();
+			throw new UserNotFoundError(id);
 		}
 
 		console.log("User found");
@@ -165,8 +219,8 @@ export class UserService {
 	 *
 	 * @param	id The id of the user to get the avatar from.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
 	 *
 	 * @return	A promise containing the wanted avatar.
 	 */
@@ -181,16 +235,54 @@ export class UserService {
 				avatar: true,
 			},
 			where: {
-				id: id,
+				idAndState: {
+					id: id,
+					state: StateType.ACTIVE,
+				},
 			},
 		});
 
 		if (!user) {
-			throw new UserNotFoundError();
+			throw new UserNotFoundError(id);
 		}
 
 		console.log("User found");
 		return new StreamableFile(createReadStream(join(process.cwd(), user.avatar)));
+	}
+
+	/**
+	 * @brief	Get user id from its login.
+	 *
+	 * @param	login The login of the user to get.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 *
+	 * @return	A promise containing the wanted user id.
+	 */
+	public async get_ones_id_by_login(login: string): Promise<string> {
+		type t_fields = {
+			id: string;
+		};
+		console.log("Searching user...");
+		const user: t_fields | null = await this._prisma.user.findUnique({
+			select: {
+				id: true,
+			},
+			where: {
+				loginAndState: {
+					login: login,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!user) {
+			throw new UserNotFoundError(login);
+		}
+
+		console.log("User found");
+		return user.id;
 	}
 
 	/**
@@ -199,10 +291,10 @@ export class UserService {
 	 * @param	id The id of the user to update.
 	 * @param	dto The dto containing the fields to update.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
-	 * - UserFieldUnaivalableError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserFieldUnaivalableError
+	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
@@ -216,14 +308,17 @@ export class UserService {
 
 		console.log("Searching user...");
 		const user: t_fields | null = await this._prisma.user.findUnique({
-			where: {
-				id: id,
-			},
 			select: {
 				name: true,
 				email: true,
 				twoFactAuth: true,
 				skinId: true,
+			},
+			where: {
+				idAndState: {
+					id: id,
+					state: StateType.ACTIVE,
+				},
 			},
 		});
 
@@ -234,17 +329,20 @@ export class UserService {
 		console.log("User found");
 
 		if (dto.name !== undefined) user.name = dto.name;
-		// if (dto.email !== undefined) user.email = dto.email;
+		if (dto.email !== undefined) user.email = dto.email;
 		if (dto.two_fact_auth !== undefined) user.twoFactAuth = dto.two_fact_auth;
 		if (dto.skin_id !== undefined) user.skinId = dto.skin_id;
 
 		try {
 			console.log("Updating user...");
 			await this._prisma.user.update({
-				where: {
-					id: id,
-				},
 				data: user,
+				where: {
+					idAndState: {
+						id: id,
+						state: StateType.ACTIVE,
+					},
+				},
 			});
 			console.log("User updated");
 		} catch (error) {
@@ -267,9 +365,9 @@ export class UserService {
 	 * @param	id The id of the user to update the avatar from.
 	 * @param	file The file containing the new avatar.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
@@ -280,19 +378,20 @@ export class UserService {
 
 		console.log("Searching user...");
 		const user: t_fields | null = await this._prisma.user.findUnique({
-			where: {
-				id: id,
-			},
 			select: {
 				avatar: true,
+			},
+			where: {
+				idAndState: {
+					id: id,
+					state: StateType.ACTIVE,
+				},
 			},
 		});
 
 		if (!user) {
-			throw new UserNotFoundError();
+			throw new UserNotFoundError(id);
 		}
-
-		console.log("User found");
 
 		console.log("Updating user's avatar...");
 		if (user.avatar === "resource/avatar/default.jpg") {
@@ -302,10 +401,13 @@ export class UserService {
 			try {
 				console.log("Updating user...");
 				await this._prisma.user.update({
-					where: {
-						id: id,
-					},
 					data: user,
+					where: {
+						idAndState: {
+							id: id,
+							state: StateType.ACTIVE,
+						},
+					},
 				});
 				console.log("User updated");
 			} catch (error) {
@@ -328,31 +430,5 @@ export class UserService {
 		}
 
 		console.log("User's avatar updated");
-	}
-
-	/**
-	 * @brief	Get user id from its login.
-	 *
-	 * @param	login The login of the user to get.
-	 *
-	 * @potential_throws
-	 * - UserNotFoundError
-	 *
-	 * @return	A promise containing the wanted user id.
-	 */
-	public async get_user_id_by_login(login: string | undefined): Promise<string | undefined> {
-		console.log("Searching user...");
-		const user: User | null = await this._prisma.user.findFirst({
-			where: {
-				login: login,
-			},
-		});
-
-		if (!user) {
-			throw new UserNotFoundError();
-		}
-
-		console.log("User found");
-		return user.id;
 	}
 }
