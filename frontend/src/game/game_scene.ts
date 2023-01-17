@@ -145,7 +145,7 @@ export class GameScene extends Scene {
         this.ball_state = new BallState();
 
         this.renderer.notify_size_changed(this.canvas.width, this.canvas.height);
-        this.renderer.set_view_matrix(2 / Constants.board_width, 0, 0, 2 * (this.canvas.width / this.canvas.height) / Constants.board_width);
+        this.renderer.set_view_matrix(0.8 * 2 / Constants.board_width, 0, 0, 0.8 * 2 * (this.canvas.width / this.canvas.height) / Constants.board_width);
 
         this.should_stop = false;
         this.last_timestamp = 0;
@@ -231,7 +231,7 @@ export class GameScene extends Scene {
             this.renderer.notify_size_changed(this.canvas.width, this.canvas.height);
 
             // Update the view matrix to ensure that the whole board remains in view.
-            this.renderer.set_view_matrix(2 / Constants.board_width, 0, 0, 2 * (this.canvas.width / this.canvas.height) / Constants.board_width);
+            this.renderer.set_view_matrix(0.8 * 2 / Constants.board_width, 0, 0, 0.8 * 2 * (this.canvas.width / this.canvas.height) / Constants.board_width);
         }
 
         if (this.game_started)
