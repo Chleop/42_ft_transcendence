@@ -90,11 +90,6 @@ async function main() {
 		data: {
 			name: "desert",
 			chanType: ChanType.PUBLIC,
-			owner: {
-				connect: {
-					name: "jodufour",
-				},
-			},
 		},
 	});
 

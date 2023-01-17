@@ -45,6 +45,7 @@ model User {
   skinId          String
 
   @@unique(fields: [id, state], name: "idAndState")
+  @@unique(fields: [login, state], name: "loginAndState")
 }
 
 model Channel {
