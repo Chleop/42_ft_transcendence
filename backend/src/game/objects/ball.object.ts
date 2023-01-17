@@ -28,19 +28,20 @@ export class Ball {
 		this.refreshX(delta_time);
 		this.refreshY(delta_time);
 
-		if (this.x >= Constants.max_x) return Constants.BallRefreshResult.twoOutside;
-		else if (this.x >= Constants.limit_x) return Constants.BallRefreshResult.twoCollide;
-		else if (this.x <= -Constants.max_x) return Constants.BallRefreshResult.oneOutside;
-		else if (this.x <= -Constants.limit_x) return Constants.BallRefreshResult.oneCollide;
+		if (this.x > Constants.max_x) return Constants.BallRefreshResult.twoOutside;
+		else if (this.x > Constants.limit_x) return Constants.BallRefreshResult.twoCollide;
+		else if (this.x < -Constants.max_x) return Constants.BallRefreshResult.oneOutside;
+		else if (this.x < -Constants.limit_x) return Constants.BallRefreshResult.oneCollide;
 		return Constants.BallRefreshResult.nothing;
 	}
 
 	/* Check if ball hits paddle */
 	public checkPaddleCollision(paddle_y: number): boolean {
 		if (
-			this.y < paddle_y + Constants.paddle_radius &&
-			this.y > paddle_y - Constants.paddle_radius
+			this.y - Constants.ball_radius < paddle_y + Constants.paddle_radius &&
+			this.y + Constants.ball_radius > paddle_y - Constants.paddle_radius
 		) {
+			this.x = this.x > Constants.limit_x ? Constants.limit_x : -Constants.limit_x;
 			this.shiftBouncing(paddle_y);
 			this.increaseSpeed();
 			return true;

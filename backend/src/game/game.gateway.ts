@@ -207,9 +207,11 @@ export class GameGateway {
 		} catch (e) {
 			if (e instanceof ResultsObject) {
 				/* Save results and destroy game */
+				const update: ScoreUpdate = room.getFinalScore();
+				room.match.player1.socket.emit("updateScore", update);
+				room.match.player2.socket.emit("updateScore", update.invert());
 				const match: Match = me.game_service.saveScore(room, e); //await me.game_service.saveScore(room, e);
-				// room.match.player1.socket.emit("gameOver", e.player1);
-				// room.match.player2.socket.emit("gameOver", e.player2);
+				// me.game_service.destroyRoom(room);
 				return me.disconnectRoom(match);
 			} else {
 				// TODO: handle properly, with error sending

@@ -19,7 +19,6 @@ void main() {
     else
         vertex = vec2(0.0, 0.0);
 
-    vertex.x -= 0.5; vertex.y -= 0.5;
     vertex = model_position + model_transform * vertex;
     vertex = view_transform * vertex;
 

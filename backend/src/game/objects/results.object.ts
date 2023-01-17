@@ -30,14 +30,14 @@ export class ResultsObject {
 
 		if (guilty === undefined) {
 			this.player1 = new PlayerData(score.player1_score);
-			this.player2 = new PlayerData(score.player1_score);
+			this.player2 = new PlayerData(score.player2_score);
 		} else {
 			if (guilty === 1) {
 				this.player1 = new PlayerData(score.player1_score, false);
-				this.player2 = new PlayerData(score.player1_score, true);
+				this.player2 = new PlayerData(score.player2_score, true);
 			} else {
 				this.player1 = new PlayerData(score.player1_score, true);
-				this.player2 = new PlayerData(score.player1_score, false);
+				this.player2 = new PlayerData(score.player2_score, false);
 			}
 		}
 		this.date = getCurrentTime(date);

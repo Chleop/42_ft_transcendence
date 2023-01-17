@@ -59,10 +59,10 @@ export const Constants = (function() {
         paddle_height: 2,
         paddle_x: 1,
         paddle_width: 0.2,
-        paddle_speed: 4,
+        paddle_speed: 5,
         ball_radius: 0.2,
         max_score: 3,
         max_tick_period: 0.2,
-        ball_acceleration_factor: 0.005,
+        ball_acceleration_factor: 1.005,
     };
 })();

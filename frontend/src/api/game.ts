@@ -1,18 +1,22 @@
 import { Socket, io } from "socket.io-client";
 
 /**
- * Stores information about the game.
- *
- * An event of this type is received every ~20ms.
+ * The payload of the `updateBall` event.
  */
-export interface GameStateUpdate {
-    /** The current state of the ball. */
-    updated_ball: { x: number, y: number, vx: number, vy: number },
-    /** The scores. */
-    scores: { player1_score: number, player2_score: number },
+export interface BallStateUpdate {
+    /** The X coordinate of the ball. */
+    x: number,
+    /** The Y coordinate of the ball. */
+    y: number,
+    /** The horizontal velocity of the ball. */
+    vx: number,
+    /** The vertical velocity of the ball. */
+    vy: number,
 }
 
-/** The state that we need to send to the server. */
+/**
+ * The payload of the `updateOpponent` and `update` events.
+ */
 export interface PlayerStateUpdate {
     /** The position of the paddle. */
     position: number,
@@ -20,7 +24,19 @@ export interface PlayerStateUpdate {
     velocity: number,
 }
 
-function noop(): void {}
+/**
+ * The payload of the `updateScore` event.
+ */
+export interface ScoreStateUpdate {
+    /** The score of the opponent. */
+    opponent: number,
+    /** The score of the local player. */
+    you: number,
+    /** The person that just scored. */
+    just_scored: "you"|"opponent",
+}
+
+function noop(): void { }
 
 export class GameSocket {
     /** The inner socket. */
@@ -52,9 +68,14 @@ export class GameSocket {
     public on_opponent_updated: (state: PlayerStateUpdate) => void = noop;
 
     /**
-     * Indicates that the game has been updated.
+     * Indicates that the ball has moved has been updated.
      */
-    public on_game_updated: (state: GameStateUpdate) => void = noop;
+    public on_ball_updated: (state: BallStateUpdate) => void = noop;
+
+    /**
+     * Indicates that the score has changed.
+     */
+    public on_score_updated: (scores: ScoreStateUpdate) => void = noop;
 
     /**
      * Creates a new GameSocket.
@@ -67,7 +88,8 @@ export class GameSocket {
         this.socket.on("matchFound", () => this.on_match_found());
         this.socket.on("gameStart", () => this.on_game_start());
         this.socket.on("updateOpponent", (state: PlayerStateUpdate) => this.on_opponent_updated(state));
-        this.socket.on("updateGame", (state: GameStateUpdate) => this.on_game_updated(state));
+        this.socket.on("updateBall", (state: BallStateUpdate) => this.on_ball_updated(state));
+        this.socket.on("updateScore", (state: ScoreStateUpdate) => this.on_score_updated(state));
     }
 
     /** Initiates the connection with the server. */

@@ -11,7 +11,6 @@ void main() {
     vec2 vertex = vec2(float(gl_VertexID % 2), float(gl_VertexID >> 1));
     tex_coords = vec2(vertex.x, 1.0 - vertex.y);
 
-    vertex.x -= 0.5; vertex.y -= 0.5;
     vertex = model_position + model_transform * vertex;
     vertex = view_transform * vertex;
 

@@ -45,17 +45,19 @@ export class Gameplay {
 		switch (ret) {
 			case Constants.BallRefreshResult.nothing:
 				break;
-			case Constants.BallRefreshResult.oneCollide:
-				this.ball.checkPaddleCollision(this.paddle1.position);
-				break;
-			case Constants.BallRefreshResult.twoCollide:
-				this.ball.checkPaddleCollision(this.paddle2.position);
-				break;
+
 			case Constants.BallRefreshResult.oneOutside:
 				if (this.ball.isOutside()) return this.oneWon();
 				break;
 			case Constants.BallRefreshResult.twoOutside:
 				if (this.ball.isOutside()) return this.twoWon();
+				break;
+
+			case Constants.BallRefreshResult.oneCollide:
+				this.ball.checkPaddleCollision(this.paddle1.position);
+				break;
+			case Constants.BallRefreshResult.twoCollide:
+				this.ball.checkPaddleCollision(this.paddle2.position);
 				break;
 		}
 		return this.ball;
@@ -89,6 +91,10 @@ export class Gameplay {
 		return this.scores;
 	}
 
+	public getFinalScore(): ScoreUpdate {
+		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, true);
+	}
+
 	public getResults(guilty: number): ResultsObject {
 		return new ResultsObject(this.scores, guilty);
 	}
@@ -100,11 +106,7 @@ export class Gameplay {
 	private oneWon(): ScoreUpdate {
 		++this.scores.player1_score;
 		if (this.scores.player1_score === Constants.max_score) {
-			throw new ResultsObject(
-				this.scores,
-				// new PlayerData(this.scores.player1_score),
-				// new PlayerData(this.scores.player2_score),
-			);
+			throw new ResultsObject(this.scores);
 		}
 		this.ball = new Ball();
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, true);
@@ -114,11 +116,7 @@ export class Gameplay {
 	private twoWon(): ScoreUpdate {
 		++this.scores.player2_score;
 		if (this.scores.player2_score === Constants.max_score) {
-			throw new ResultsObject(
-				this.scores,
-				// new PlayerData(this.scores.player1_score),
-				// new PlayerData(this.scores.player2_score),
-			);
+			throw new ResultsObject(this.scores);
 		}
 		this.ball = new Ball();
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, false);
