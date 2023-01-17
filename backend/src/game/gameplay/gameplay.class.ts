@@ -1,6 +1,6 @@
 import { Score } from "../aliases";
 import { PaddleDto } from "../dto";
-import { Ball, PlayerData, ResultsObject, Paddle, ScoreUpdate } from "../objects";
+import { Ball, ResultsObject, Paddle, ScoreUpdate } from "../objects";
 
 import * as Constants from "../constants/constants";
 
@@ -25,29 +25,13 @@ export class Gameplay {
 
 	/* == PUBLIC ================================================================================ */
 
-	/* -- RESULTS ------------------------------------------------------------- */
-	public getResults(guilty: number): ResultsObject {
-		if (guilty === 2) {
-			return new ResultsObject(
-				new PlayerData(this.scores.player1_score, true),
-				new PlayerData(this.scores.player2_score, false),
-			);
-		} else {
-			return new ResultsObject(
-				new PlayerData(this.scores.player1_score, false),
-				new PlayerData(this.scores.player2_score, true),
-			);
-		}
-	}
-
 	/* -- UPDATING GAME ------------------------------------------------------- */
 	/* Generate random initial ball velocity vector */
-	public initializeGame(): Ball /* GameUpdate */ {
+	public initializeGame(): Ball {
 		console.log("Initializing:");
 		console.log(this.ball);
 		this.last_update = Date.now();
 		return this.ball;
-		// return new GameUpdate(this.ball, this.scores);
 	}
 
 	/* Generates a ball update */
@@ -75,7 +59,6 @@ export class Gameplay {
 				break;
 		}
 		return this.ball;
-		// return new GameUpdate(this.ball, this.scores);
 	}
 
 	// TODO: Cleanup this function...
@@ -103,30 +86,24 @@ export class Gameplay {
 
 	/* -- UTILS --------------------------------------------------------------- */
 	public getScores(): Score {
-		// TODO: useless??
 		return this.scores;
+	}
+
+	public getResults(guilty: number): ResultsObject {
+		return new ResultsObject(this.scores, guilty);
 	}
 
 	/* == PRIVATE =============================================================================== */
 
-	/* -- PADDLE LOOK AT ------------------------------------------------------ */
-	/* Check if received paddle seems accurate */
-	// private verifyAccuracyPaddle(dto: PaddleDto, paddle_checked: Paddle): PaddleDto {
-	// 	//TODO anticheat
-	// 	// this.last_update;
-	// 	// paddle_checked;
-	// 	return dto;
-	// }
-
 	/* -- GAME STATUS UPDATE -------------------------------------------------- */
-
 	/* Players 1 marked a point, send results OR reinitialize */
 	private oneWon(): ScoreUpdate {
 		++this.scores.player1_score;
 		if (this.scores.player1_score === Constants.max_score) {
 			throw new ResultsObject(
-				new PlayerData(this.scores.player1_score, true),
-				new PlayerData(this.scores.player2_score, false),
+				this.scores,
+				// new PlayerData(this.scores.player1_score),
+				// new PlayerData(this.scores.player2_score),
 			);
 		}
 		this.ball = new Ball();
@@ -138,8 +115,9 @@ export class Gameplay {
 		++this.scores.player2_score;
 		if (this.scores.player2_score === Constants.max_score) {
 			throw new ResultsObject(
-				new PlayerData(this.scores.player1_score, false),
-				new PlayerData(this.scores.player2_score, true),
+				this.scores,
+				// new PlayerData(this.scores.player1_score),
+				// new PlayerData(this.scores.player2_score),
 			);
 		}
 		this.ball = new Ball();

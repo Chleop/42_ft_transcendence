@@ -183,7 +183,7 @@ export class GameGateway {
 	/* -- UPDATING TOOLS ------------------------------------------------------ */
 	/* The game will start */
 	private startGame(me: GameGateway, room: GameRoom): void {
-		const initial_game_state: Ball /* GameUpdate */ = room.startGame();
+		const initial_game_state: Ball = room.startGame();
 
 		console.log(room);
 		// Send the initial ball { pos, v0 }
@@ -196,7 +196,7 @@ export class GameGateway {
 	private /*async*/ sendGameUpdates(me: GameGateway, room: GameRoom): void {
 		//Promise<void> {
 		try {
-			const update: Ball | ScoreUpdate /* GameUpdate */ = room.updateGame();
+			const update: Ball | ScoreUpdate = room.updateGame();
 			if (update instanceof Ball) {
 				room.match.player1.socket.emit("updateBall", update);
 				room.match.player2.socket.emit("updateBall", update.invert());
@@ -208,6 +208,8 @@ export class GameGateway {
 			if (e instanceof ResultsObject) {
 				/* Save results and destroy game */
 				const match: Match = me.game_service.saveScore(room, e); //await me.game_service.saveScore(room, e);
+				// room.match.player1.socket.emit("gameOver", e.player1);
+				// room.match.player2.socket.emit("gameOver", e.player2);
 				return me.disconnectRoom(match);
 			} else {
 				// TODO: handle properly, with error sending
