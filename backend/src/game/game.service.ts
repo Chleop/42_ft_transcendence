@@ -48,10 +48,10 @@ export class GameService {
 	public saveScore(room: GameRoom, results: ResultsObject | null): Match {
 		const match: Match = room.match;
 		try {
-			if (results) console.info("Scores:", results);
-			else console.info(`Game ${results} cut short before it started`);
+			if (results) console.log("Scores:", results);
+			else console.log(`Game ${results} cut short before it started`);
 		} catch (e) {
-			console.info(e);
+			console.log(e);
 		}
 		this.destroyRoom(room);
 		return match;
@@ -125,7 +125,7 @@ export class GameService {
 			// The game was ongoing
 			const index: number = this.findUserRoomIndex(client);
 			if (!(index < 0)) {
-				console.info("Kicked from room");
+				console.log("Kicked from room");
 				const room: GameRoom = this.game_rooms[index];
 				const match: Match = this.saveScore(
 					room,
@@ -142,7 +142,7 @@ export class GameService {
 	// 	if (handshake === undefined)
 	// 		// Tried to send ok before room creation/once game started
 	// 		throw "Received matchmaking acknowledgement but not awaiting";
-	// 	console.info(`${client.id} accepted`);
+	// 	console.log(`${client.id} accepted`);
 	// 	if (handshake.shook) return this.createRoom(handshake.match);
 	// 	handshake.shook = true;
 	// 	return null;
@@ -168,19 +168,19 @@ export class GameService {
 		if (typeof index !== "number") {
 			const new_index: number = this.game_rooms.indexOf(index);
 			if (new_index < 0) return;
-			console.info(`Destroying room ${index.match.name}`);
+			console.log(`Destroying room ${index.match.name}`);
 			index.destroyPing();
 			this.game_rooms.splice(new_index, 1);
 		} else {
 			if (index < 0) return;
-			console.info(`Destroying room ${this.game_rooms[index].match.name}`);
+			console.log(`Destroying room ${this.game_rooms[index].match.name}`);
 			this.game_rooms[index].destroyPing();
 			this.game_rooms.splice(index, 1);
 		}
 	}
 
 	/* -- GAME UPDATING ------------------------------------------------------- */
-	public updateOpponent(client: Socket, dto: PaddleDto): AntiCheat | null {
+	public updateOpponent(client: Socket, dto: PaddleDto): AntiCheat {
 		const index: number = this.findUserRoomIndex(client);
 		if (index < 0) throw "Paddle update received but not in game";
 		return this.game_rooms[index].updatePaddle(client, dto);
@@ -196,7 +196,7 @@ export class GameService {
 	}
 
 	public display(): void {
-		console.info({
+		console.log({
 			handshakes: this.handshakes,
 			rooms: this.game_rooms,
 		});

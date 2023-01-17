@@ -2,7 +2,7 @@ import { Socket } from "socket.io";
 import { Gameplay } from "../gameplay";
 import { PaddleDto } from "../dto";
 import { AntiCheat, Score, Match } from "../aliases";
-import { ResultsObject, GameUpdate } from "../objects";
+import { ResultsObject, Ball /* ScoreUpdate */ /* GameUpdate */, ScoreUpdate } from "../objects";
 
 // TODO: make it cleaner
 type CheatCheck = {
@@ -16,38 +16,34 @@ type CheatCheck = {
 export class GameRoom {
 	public readonly match: Match;
 	private ping_id: NodeJS.Timer | null;
-	private game: Gameplay | null;
+	private game: Gameplay;
 
 	constructor(match: Match) {
 		this.match = match;
 		this.ping_id = null;
-		this.game = null;
-		console.info("Room created:", this.match.name);
+		this.game = new Gameplay();
+		console.log("Room created:", this.match.name);
 	}
 
 	/* == PUBLIC ================================================================================ */
 
 	/* -- GAME MANAGEMENT ----------------------------------------------------- */
 	/* Call this function once the game actually starts */
-	public startGame(): GameUpdate {
-		this.game = new Gameplay();
+	public startGame(): Ball /* GameUpdate */ {
+		// this.game = new Gameplay();
 		return this.game.initializeGame();
 	}
 
 	/* Called every 16ms to send ball updates */
-	public updateGame(): GameUpdate {
-		if (this.game === null) throw "Game is null";
+	public updateGame(): Ball | ScoreUpdate /* GameUpdate */ {
+		// if (this.game === null) throw "Game is null";
 		return this.game.refresh();
 	}
 
 	/* Called everytime the sender sent an update */
-	public updatePaddle(client: Socket, dto: PaddleDto): AntiCheat | null {
-		if (this.game === null) return null;
-		const cheat_check: CheatCheck | null = this.game.checkUpdate(
-			this.playerNumber(client),
-			dto,
-		);
-		if (cheat_check === null) return null;
+	public updatePaddle(client: Socket, dto: PaddleDto): AntiCheat {
+		if (this.game === null) throw "Game hasn't started yet";
+		const cheat_check: CheatCheck = this.game.checkUpdate(this.playerNumber(client), dto);
 		return {
 			p1: cheat_check.has_cheated ? cheat_check.updated_paddle : null,
 			p2: {
