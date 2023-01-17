@@ -161,7 +161,7 @@ export class ChannelController {
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async leave_one(@Param("id") id: string, @Body() dto: ChannelLeaveDto): Promise<void> {
 		try {
-			await this._channel_service.leave_one(id, dto);
+			await this._channel_service.leave_one(id, dto.user_id);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
 				console.log(error.message);

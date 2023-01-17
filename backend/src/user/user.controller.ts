@@ -62,9 +62,9 @@ export class UserController {
 	}
 
 	@Delete(":id")
-	async delete_one(@Param("id") id: string): Promise<void> {
+	async disable_one(@Param("id") id: string): Promise<void> {
 		try {
-			await this._user_service.delete_one(id);
+			await this._user_service.disable_one(id);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);

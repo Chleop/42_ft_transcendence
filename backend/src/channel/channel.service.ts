@@ -1,15 +1,11 @@
-import {
-	ChannelCreateDto,
-	ChannelJoinDto,
-	ChannelLeaveDto,
-	ChannelMessageGetDto,
-} from "src/channel/dto";
+import { ChannelCreateDto, ChannelJoinDto, ChannelMessageGetDto } from "src/channel/dto";
 import {
 	ChannelAlreadyJoinedError,
 	ChannelFieldUnavailableError,
 	ChannelInvitationIncorrectError,
 	ChannelInvitationUnexpectedError,
 	ChannelMessageNotFoundError,
+	ChannelMissingOwnerError,
 	ChannelNotFoundError,
 	ChannelNotJoinedError,
 	ChannelPasswordIncorrectError,
@@ -17,6 +13,7 @@ import {
 	ChannelPasswordNotAllowedError,
 	ChannelPasswordUnexpectedError,
 	ChannelRelationNotFoundError,
+	ChannelUnpopulatedError,
 	UnknownError,
 } from "src/channel/error";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -34,15 +31,153 @@ export class ChannelService {
 	}
 
 	/**
+	 * @brief	Delegate the ownership of a channel
+	 * 			to an user chosen arbitrary among those present in this channel.
+	 *
+	 * @param	id The id of the channel to delegate the ownership.
+	 * @param	channel The channel to delegate the ownership.
+	 *
+	 * @error	The following errors may be thrown:
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelUnpopulatedError
+	 * 			- ChannelMissingOwnerError
+	 *
+	 * @return	An empty promise.
+	 */
+	private async _delegate_ones_ownership(
+		id: string,
+		channel: {
+			owner: {
+				id: string;
+			} | null;
+			members: {
+				id: string;
+			}[];
+			operators: {
+				id: string;
+			}[];
+		},
+	): Promise<void> {
+		console.log("Checking for missing owner channel...");
+		if (!channel.owner) {
+			throw new ChannelMissingOwnerError(id);
+		}
+
+		console.log("Checking for unpopulated channel...");
+		if (channel.members.length < 2) {
+			throw new ChannelUnpopulatedError(id);
+		}
+
+		for (const operator of channel.operators) {
+			if (operator.id !== channel.owner.id) {
+				console.log("Delegating the ownership to an operator...");
+				await this._prisma.channel.update({
+					where: {
+						id: id,
+					},
+					data: {
+						owner: {
+							connect: {
+								id: operator.id,
+							},
+						},
+					},
+				});
+				console.log("Channel's ownership delegated");
+				return;
+			}
+		}
+		for (const member of channel.members) {
+			if (member.id !== channel.owner.id) {
+				console.log("Delegating the ownership to a member...");
+				await this._prisma.channel.update({
+					where: {
+						id: id,
+					},
+					data: {
+						owner: {
+							connect: {
+								id: member.id,
+							},
+						},
+					},
+				});
+				console.log("Channel's ownership delegated");
+				return;
+			}
+		}
+	}
+
+	/**
+	 * @brief	Drop the ownership of a channel, making the channel unowned,
+	 * 			and making the next joining user become the new owner of the channel.
+	 *
+	 * @param	id The id of the channel to drop the ownership.
+	 * @param	channel The channel to drop the ownership.
+	 *
+	 * @error	The following errors may be thrown:
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelMissingOwnerError
+	 *
+	 * @return	An empty promise.
+	 */
+	private async _drop_ones_ownership(
+		id: string,
+		channel?: {
+			owner: {
+				id: string;
+			} | null;
+		} | null,
+	): Promise<void> {
+		if (!channel) {
+			console.log("Searching for the channel to drop the ownership...");
+			channel = await this._prisma.channel.findUnique({
+				where: {
+					id: id,
+				},
+				select: {
+					owner: {
+						select: {
+							id: true,
+						},
+					},
+				},
+			});
+
+			if (!channel) {
+				throw new ChannelNotFoundError(id);
+			}
+		}
+
+		console.log("Checking for missing owner channel...");
+		if (!channel.owner) {
+			throw new ChannelMissingOwnerError(id);
+		}
+
+		console.log("Dropping the ownership...");
+		await this._prisma.channel.update({
+			where: {
+				id: id,
+			},
+			data: {
+				owner: {
+					disconnect: true,
+				},
+			},
+		});
+		console.log("Ownership dropped");
+	}
+
+	/**
 	 * @brief	Get channel's messages which have been sent after a specific one from the database.
 	 *
 	 * @param	id The id of the channel to get the messages from.
 	 * @param	message_id The id of the message to get the messages after.
 	 * @param	limit The maximum number of messages to get.
 	 *
-	 * @potential_throws
-	 * - ChannelNotFoundError
-	 * - ChannelMessageNotFoundError
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelMessageNotFoundError
 	 *
 	 * @return	A promise containing the wanted messages.
 	 */
@@ -104,9 +239,9 @@ export class ChannelService {
 	 * @param	message_id The id of the message to get the messages before.
 	 * @param	limit The maximum number of messages to get.
 	 *
-	 * @potential_throws
-	 * - ChannelNotFoundError
-	 * - ChannelMessageNotFoundError
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelMessageNotFoundError
 	 *
 	 * @return	A promise containing the wanted messages.
 	 */
@@ -169,8 +304,8 @@ export class ChannelService {
 	 * @param	id The id of the channel to get the messages from.
 	 * @param	limit The maximum number of messages to get.
 	 *
-	 * @potential_throws
-	 * - ChannelNotFoundError
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
 	 *
 	 * @return	A promise containing the wanted messages.
 	 */
@@ -208,15 +343,47 @@ export class ChannelService {
 	}
 
 	/**
+	 * @brief	Check if a channel is ownerless,
+	 * 			and if so, make the new joining user inherit the ownership of this channel.
+	 *
+	 * @param	channel The channel to check.
+	 * @param	user_id The id of the user who is joining the channel.
+	 *
+	 * @return	A promise containing the updated channel.
+	 */
+	private async _inherit_ones_ownership(channel: Channel, user_id: string): Promise<Channel> {
+		console.log("Checking for ownerless channel...");
+		if (!channel.ownerId) {
+			console.log("Channel is ownerless, making the joining user become the new owner...");
+			channel = await this._prisma.channel.update({
+				where: {
+					id: channel.id,
+				},
+				data: {
+					owner: {
+						connect: {
+							id: user_id,
+						},
+					},
+				},
+			});
+			console.log("Channel owner changed");
+		} else {
+			console.log("Channel is already owned by someone else");
+		}
+		return channel;
+	}
+
+	/**
 	 * @brief	Create a new channel in the database.
 	 *
 	 * @param	dto The dto containing the data to create the channel.
 	 *
-	 * @potential_throws
-	 * - ChannelPasswordNotAllowedError
-	 * - ChannelFieldUnavailableError
-	 * - ChannelRelationNotFoundError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelPasswordNotAllowedError
+	 * 			- ChannelFieldUnavailableError
+	 * 			- ChannelRelationNotFoundError
+	 * 			- UnknownError
 	 *
 	 * @return	A promise containing the created channel's data.
 	 */
@@ -256,11 +423,6 @@ export class ChannelService {
 							id: dto.user_id,
 						},
 					},
-					operators: {
-						connect: {
-							id: dto.user_id,
-						},
-					},
 				},
 			});
 			console.log("Channel created");
@@ -271,7 +433,7 @@ export class ChannelService {
 					case "P2002":
 						throw new ChannelFieldUnavailableError("name");
 					case "P2025":
-						throw new ChannelRelationNotFoundError("user");
+						throw new ChannelRelationNotFoundError("owner|members");
 				}
 				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
@@ -288,9 +450,9 @@ export class ChannelService {
 	 *
 	 * @param	id The id of the channel to delete.
 	 *
-	 * @potential_throws
-	 * - ChannelNotFoundError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
@@ -331,9 +493,9 @@ export class ChannelService {
 	 * @param	id The id of the channel to get the messages from.
 	 * @param	dto The dto containing the data to get the messages.
 	 *
-	 * @potential_throws
-	 * - ChannelNotFoundError
-	 * - ChannelMessageNotFoundError
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelMessageNotFoundError
 	 *
 	 * @return	A promise containing the wanted messages.
 	 */
@@ -356,20 +518,25 @@ export class ChannelService {
 
 	/**
 	 * @brief	Make an user join a channel.
+	 * 			Depending on the channel's type, the user will join the channel in different ways :
+	 * 			- PUBLIC, nothing is requiered.
+	 * 			- PROTECTED, a correct password is required.
+	 * 			- PRIVATE, an valid invitation is required.
+	 * 			If the channel is ownerless, the user will inherit of the ownership of the channel.
 	 *
 	 * @param	id The id of the channel to join.
 	 * @param	dto The dto containing the data to join the channel.
 	 *
-	 * @potential_throws
-	 * - ChannelNotFoundError
-	 * - ChannelAlreadyJoinedError
-	 * - ChannelPasswordUnexpectedError
-	 * - ChannelInvitationIncorrectError
-	 * - ChannelInvitationUnexpectedError
-	 * - ChannelPasswordMissingError
-	 * - ChannelPasswordIncorrectError
-	 * - ChannelRelationNotFoundError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelAlreadyJoinedError
+	 * 			- ChannelPasswordUnexpectedError
+	 * 			- ChannelInvitationIncorrectError
+	 * 			- ChannelInvitationUnexpectedError
+	 * 			- ChannelPasswordMissingError
+	 * 			- ChannelPasswordIncorrectError
+	 * 			- ChannelRelationNotFoundError
+	 * 			- UnknownError
 	 *
 	 * @return	A promise containing the joined channel's data.
 	 */
@@ -392,7 +559,9 @@ export class ChannelService {
 				where: {
 					id: id,
 					members: {
-						some: { id: dto.joining_user_id },
+						some: {
+							id: dto.joining_user_id,
+						},
 					},
 				},
 			})
@@ -413,7 +582,9 @@ export class ChannelService {
 					where: {
 						id: id,
 						members: {
-							some: { id: dto.inviting_user_id },
+							some: {
+								id: dto.inviting_user_id,
+							},
 						},
 					},
 				}))
@@ -465,6 +636,7 @@ export class ChannelService {
 			throw new UnknownError();
 		}
 
+		channel = await this._inherit_ones_ownership(channel, dto.joining_user_id);
 		channel.hash = null;
 		return channel;
 	}
@@ -473,24 +645,59 @@ export class ChannelService {
 	 * @brief	Make an user leave a channel.
 	 *
 	 * @param	id The id of the channel to leave.
+	 * @param	user_id The id of the user leaving the channel.
 	 * @param	dto The dto containing the data to leave the channel.
 	 *
-	 * @potential_throws
-	 * - ChannelNotFoundError
-	 * - ChannelNotJoinedError
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
 	 *
 	 * @return	An empty promise.
 	 */
-	public async leave_one(id: string, dto: ChannelLeaveDto): Promise<void> {
-		console.log("Searching for the channel to leave...");
-		const channel: Channel | null = await this._prisma.channel.findUnique({
-			where: {
-				id: id,
-			},
-		});
 
+	public async leave_one(
+		id: string,
+		user_id: string,
+		channel?: {
+			owner: {
+				id: string;
+			} | null;
+			members: {
+				id: string;
+			}[];
+			operators: {
+				id: string;
+			}[];
+		} | null,
+	): Promise<void> {
 		if (!channel) {
-			throw new ChannelNotFoundError(id);
+			console.log("Searching for the channel to leave...");
+			channel = await this._prisma.channel.findUnique({
+				where: {
+					id: id,
+				},
+				select: {
+					owner: {
+						select: {
+							id: true,
+						},
+					},
+					members: {
+						select: {
+							id: true,
+						},
+					},
+					operators: {
+						select: {
+							id: true,
+						},
+					},
+				},
+			});
+
+			if (!channel) {
+				throw new ChannelNotFoundError(id);
+			}
 		}
 
 		console.log("Checking for not joined...");
@@ -499,12 +706,27 @@ export class ChannelService {
 				where: {
 					id: id,
 					members: {
-						some: { id: dto.user_id },
+						some: {
+							id: user_id,
+						},
 					},
 				},
 			}))
 		) {
 			throw new ChannelNotJoinedError(id);
+		}
+
+		console.log("Checking for the need to delegate ownership...");
+		if (channel.owner?.id === user_id) {
+			try {
+				await this._delegate_ones_ownership(id, channel);
+			} catch (error) {
+				if (error instanceof ChannelUnpopulatedError) {
+					await this._drop_ones_ownership(id, channel);
+				}
+			}
+		} else {
+			console.log("The leaving user is not the owner");
 		}
 
 		console.log("Leaving channel...");
@@ -515,7 +737,12 @@ export class ChannelService {
 			data: {
 				members: {
 					disconnect: {
-						id: dto.user_id,
+						id: user_id,
+					},
+				},
+				operators: {
+					disconnect: {
+						id: user_id,
 					},
 				},
 			},
