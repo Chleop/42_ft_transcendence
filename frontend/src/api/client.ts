@@ -58,10 +58,9 @@ export const Client = (function() {
     let token = get_cookie("token");
     if (!token) {
         // The user is not connected.
-
-        // TODO:
-        //  Redirect to School 42.
-        token = "totally real token";
+        // document.location.pathname = "/42login";
+        // throw "used not connected";
+        token = "my awesome token";
     }
 
     return new ClientClass(token);

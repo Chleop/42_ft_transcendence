@@ -12,5 +12,22 @@
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "incremental": true
-  }
+  },
+
+	"alwaysStrict": false,
+	"exactOptionalPropertyTypes": false,
+	"noFallthroughCasesInSwitch": false,
+	"noImplicitAny": true,
+	"noImplicitOverride": true,
+	"noImplicitReturns": true,
+	"noImplicitThis": true,
+	"noUncheckedIndexedAccess": false,
+	"noUnusedLocals": true,
+	"noUnusedParameters": true,
+	"strict": false,
+	"strictBindCallApply": true,
+	"strictFunctionTypes": true,
+	"strictNullChecks": true,
+	"strictPropertyInitialization": false,
+	"useUnknownInCatchVariables": false,
 }
