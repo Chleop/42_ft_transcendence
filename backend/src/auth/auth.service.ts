@@ -24,7 +24,7 @@ export class AuthService {
 		// get the user id (creates user if not already existing)
 		let userId: string | undefined;
 		try {
-			userId = await this._user.get_user_id_by_login(login);
+			userId = await this._user.get_ones_id_by_login(login);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
