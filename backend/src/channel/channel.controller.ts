@@ -11,7 +11,8 @@ import {
 	Patch,
 	Post,
 	Query,
-	UseGuards,
+	// TODO: Uncomment this line when the access token is well considered in the internal API
+	// UseGuards,
 	UsePipes,
 	ValidationPipe,
 } from "@nestjs/common";
@@ -39,9 +40,11 @@ import {
 	ChannelRelationNotFoundError,
 	UnknownError,
 } from "src/channel/error";
-import { JwtGuard } from "src/auth/guards";
+// TODO: Uncomment this line when the access token is well considered in the internal API
+// import { JwtGuard } from "src/auth/guards";
 
-@UseGuards(JwtGuard)
+// TODO: Uncomment this line when the access token is well considered in the internal API
+// @UseGuards(JwtGuard)
 @Controller("channel")
 export class ChannelController {
 	private _channel_service: ChannelService;

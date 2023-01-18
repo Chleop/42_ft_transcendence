@@ -21,16 +21,19 @@ import {
 	Put,
 	StreamableFile,
 	UploadedFile,
-	UseGuards,
+	// TODO: Uncomment this line when access token is well considered in internal API.
+	// UseGuards,
 	UseInterceptors,
 	UsePipes,
 	ValidationPipe,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { User } from "@prisma/client";
-import { JwtGuard } from "src/auth/guards";
+// TODO: Uncomment this line when access token is well considered in internal API.
+// import { JwtGuard } from "src/auth/guards";
 
-@UseGuards(JwtGuard)
+// TODO: Uncomment this line when access token is well considered in internal API.
+// @UseGuards(JwtGuard)
 @Controller("user")
 export class UserController {
 	private _user_service: UserService;
