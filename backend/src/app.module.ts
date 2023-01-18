@@ -1,7 +1,5 @@
 import { Module } from "@nestjs/common";
-
 import { ConfigModule } from "@nestjs/config";
-import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
 import { JwtModule } from "@nestjs/jwt";
 import { UserModule } from "src/user/user.module";
@@ -19,7 +17,6 @@ import { FileModule } from "./file.module";
 			isGlobal: true,
 		}),
 		UserModule,
-		PrismaModule,
 		AuthModule,
 		JwtModule,
 		PassportModule.register({ session: true }),
