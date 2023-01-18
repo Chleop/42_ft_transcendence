@@ -11,7 +11,8 @@ import {
 	Patch,
 	Post,
 	Query,
-	UseGuards,
+	// TODO: Uncomment this line when the access token is well considered in the internal API
+	// UseGuards,
 	UsePipes,
 	ValidationPipe,
 } from "@nestjs/common";
@@ -20,6 +21,7 @@ import {
 	ChannelJoinDto,
 	ChannelLeaveDto,
 	ChannelMessageGetDto,
+	ChannelMessageSendDto,
 } from "src/channel/dto";
 import { Channel, ChannelMessage } from "@prisma/client";
 import {
@@ -28,6 +30,7 @@ import {
 	ChannelInvitationIncorrectError,
 	ChannelInvitationUnexpectedError,
 	ChannelMessageNotFoundError,
+	ChannelMessageTooLongError,
 	ChannelNotFoundError,
 	ChannelNotJoinedError,
 	ChannelPasswordIncorrectError,
@@ -37,9 +40,11 @@ import {
 	ChannelRelationNotFoundError,
 	UnknownError,
 } from "src/channel/error";
-import { JwtGuard } from "src/auth/guards";
+// TODO: Uncomment this line when the access token is well considered in the internal API
+// import { JwtGuard } from "src/auth/guards";
 
-@UseGuards(JwtGuard)
+// TODO: Uncomment this line when the access token is well considered in the internal API
+// @UseGuards(JwtGuard)
 @Controller("channel")
 export class ChannelController {
 	private _channel_service: ChannelService;
@@ -96,7 +101,7 @@ export class ChannelController {
 		}
 	}
 
-	@Get(":id/message")
+	@Get(":id/messages")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async get_ones_messages(
 		@Param("id") id: string,
@@ -166,6 +171,26 @@ export class ChannelController {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
+			}
+		}
+	}
+
+	@Post(":id/message")
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	async send_message_to_one(
+		@Param("id") id: string,
+		@Body() dto: ChannelMessageSendDto,
+	): Promise<void> {
+		try {
+			await this._channel_service.send_message_to_one(id, dto.user_id, dto.message);
+		} catch (error) {
+			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelMessageTooLongError) {
+				console.log(error.message);
+				throw new ForbiddenException(error.message);
 			}
 		}
 	}

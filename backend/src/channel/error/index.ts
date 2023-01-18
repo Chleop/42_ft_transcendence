@@ -3,6 +3,7 @@ export * from "src/channel/error/ChannelFieldUnavailable.error";
 export * from "src/channel/error/ChannelInvitationIncorrect.error";
 export * from "src/channel/error/ChannelInvitationUnexpected.error";
 export * from "src/channel/error/ChannelMessageNotFound.error";
+export * from "src/channel/error/ChannelMessageTooLong.error";
 export * from "src/channel/error/ChannelMissingOwner.error";
 export * from "src/channel/error/ChannelNotFound.error";
 export * from "src/channel/error/ChannelNotJoined.error";
