@@ -1,11 +1,6 @@
 import { t_relations } from "src/user/alias";
-import { UserCreateDto, UserUpdateDto } from "src/user/dto";
-import {
-	UnknownError,
-	UserFieldUnaivalableError,
-	UserNotFoundError,
-	UserRelationNotFoundError,
-} from "src/user/error";
+import { UserUpdateDto } from "src/user/dto";
+import { UnknownError, UserFieldUnaivalableError, UserNotFoundError } from "src/user/error";
 import { UserService } from "src/user/user.service";
 import {
 	BadRequestException,
@@ -17,7 +12,6 @@ import {
 	InternalServerErrorException,
 	Param,
 	Patch,
-	Post,
 	Put,
 	Req,
 	StreamableFile,
@@ -39,32 +33,18 @@ export class UserController {
 		this._user_service = new UserService();
 	}
 
-	@Post()
-	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async create_one(@Body() dto: UserCreateDto): Promise<void> {
+	@Delete("@me")
+	@UseGuards(JwtGuard)
+	async disable_me(
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+	): Promise<void> {
 		try {
-			await this._user_service.create_one(dto);
-		} catch (error) {
-			if (
-				error instanceof UserRelationNotFoundError ||
-				error instanceof UserFieldUnaivalableError
-			) {
-				console.log(error.message);
-				throw new ForbiddenException(error.message);
-			}
-			if (error instanceof UnknownError) {
-				console.log(error.message);
-				throw new InternalServerErrorException(error.message);
-			}
-			console.log("Unknown error type, this should not happen");
-			throw new InternalServerErrorException();
-		}
-	}
-
-	@Delete(":id")
-	async disable_one(@Param("id") id: string): Promise<void> {
-		try {
-			await this._user_service.disable_one(id);
+			await this._user_service.disable_one(request.user.sub);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
@@ -83,7 +63,7 @@ export class UserController {
 	@UseGuards(JwtGuard)
 	async get_me(
 		@Req()
-		req: {
+		request: {
 			user: {
 				sub: string;
 			};
@@ -92,7 +72,7 @@ export class UserController {
 		let user: User & t_relations;
 
 		try {
-			user = await this._user_service.get_one(req.user.sub);
+			user = await this._user_service.get_one(request.user.sub);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
