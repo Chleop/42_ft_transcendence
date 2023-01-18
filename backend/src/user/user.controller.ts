@@ -19,21 +19,18 @@ import {
 	Patch,
 	Post,
 	Put,
+	Req,
 	StreamableFile,
 	UploadedFile,
-	// TODO: Uncomment this line when access token is well considered in internal API.
-	// UseGuards,
+	UseGuards,
 	UseInterceptors,
 	UsePipes,
 	ValidationPipe,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { User } from "@prisma/client";
-// TODO: Uncomment this line when access token is well considered in internal API.
-// import { JwtGuard } from "src/auth/guards";
+import { JwtGuard } from "src/auth/guards";
 
-// TODO: Uncomment this line when access token is well considered in internal API.
-// @UseGuards(JwtGuard)
 @Controller("user")
 export class UserController {
 	private _user_service: UserService;
@@ -80,6 +77,32 @@ export class UserController {
 			console.log("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
+	}
+
+	@Get("@me")
+	@UseGuards(JwtGuard)
+	async get_me(
+		@Req()
+		req: {
+			user: {
+				sub: string;
+			};
+		},
+	): Promise<User & t_relations> {
+		let user: User & t_relations;
+
+		try {
+			user = await this._user_service.get_one(req.user.sub);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+
+		return user;
 	}
 
 	@Get(":id")
