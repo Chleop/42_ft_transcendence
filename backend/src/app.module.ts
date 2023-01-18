@@ -1,8 +1,11 @@
-import { ConfigModule } from "@nestjs/config";
 import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { AuthModule } from "./auth/auth.module";
+import { JwtModule } from "@nestjs/jwt";
 import { UserModule } from "src/user/user.module";
 import { ChannelModule } from "src/channel/channel.module";
-import { GameModule } from "src/game/game.module"
+import { PassportModule } from "@nestjs/passport";
+import { GameModule } from "src/game/game.module";
 
 // TODO: Delete this when file server is set up.
 import { FileModule } from "./file.module";
@@ -14,10 +17,13 @@ import { FileModule } from "./file.module";
 			isGlobal: true,
 		}),
 		UserModule,
+		AuthModule,
+		JwtModule,
+		PassportModule.register({ session: true }),
 		GameModule,
 
 		// TODO: Remove this.
-		FileModule
+		FileModule,
 	],
 })
 export class AppModule {}

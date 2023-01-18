@@ -6,4 +6,6 @@ npm i
 # Pour le developpement, remplacer par "npx prisma migrate dev"
 npx prisma migrate deploy
 
+npx prisma db seed
+
 exec npm run start:dev

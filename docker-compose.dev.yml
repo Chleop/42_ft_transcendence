@@ -1,7 +1,6 @@
-version: '3'
+version: "3"
 
 services:
-
   backend:
     image: node:transcendence
     build:
@@ -16,6 +15,11 @@ services:
       - ./frontend/www:/app/www
     environment:
       - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - FT_API_CLIENT_ID=${FT_API_CLIENT_ID}
+      - FT_API_CLIENT_SECRET=${FT_API_CLIENT_SECRET}
+      - FT_API_CALLBACK_URL=${FT_API_CALLBACK_URL}
     networks:
       - trans
     depends_on:
