@@ -11,6 +11,7 @@ import {
 	Patch,
 	Post,
 	Query,
+	UseGuards,
 	UsePipes,
 	ValidationPipe,
 } from "@nestjs/common";
@@ -38,7 +39,9 @@ import {
 	ChannelRelationNotFoundError,
 	UnknownError,
 } from "src/channel/error";
+import { JwtGuard } from "src/auth/guards";
 
+@UseGuards(JwtGuard)
 @Controller("channel")
 export class ChannelController {
 	private _channel_service: ChannelService;
