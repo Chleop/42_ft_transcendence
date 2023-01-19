@@ -11,8 +11,9 @@ import {
 	Patch,
 	Post,
 	Query,
+	Req,
 	// TODO: Uncomment this line when the access token is well considered in the internal API
-	// UseGuards,
+	UseGuards,
 	UsePipes,
 	ValidationPipe,
 } from "@nestjs/common";
@@ -33,6 +34,7 @@ import {
 	ChannelMessageTooLongError,
 	ChannelNotFoundError,
 	ChannelNotJoinedError,
+	ChannelNotOwnedError,
 	ChannelPasswordIncorrectError,
 	ChannelPasswordMissingError,
 	ChannelPasswordNotAllowedError,
@@ -41,10 +43,10 @@ import {
 	UnknownError,
 } from "src/channel/error";
 // TODO: Uncomment this line when the access token is well considered in the internal API
-// import { JwtGuard } from "src/auth/guards";
+import { JwtGuard } from "src/auth/guards";
 
 // TODO: Uncomment this line when the access token is well considered in the internal API
-// @UseGuards(JwtGuard)
+@UseGuards(JwtGuard)
 @Controller("channel")
 export class ChannelController {
 	private _channel_service: ChannelService;
@@ -55,11 +57,19 @@ export class ChannelController {
 
 	@Post()
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async create_one(@Body() dto: ChannelCreateDto): Promise<Channel> {
+	async create_one(
+		@Req() request: { user: { sub: string } },
+		@Body() dto: ChannelCreateDto,
+	): Promise<Channel> {
 		let channel: Channel;
 
 		try {
-			channel = await this._channel_service.create_one(dto);
+			channel = await this._channel_service.create_one(
+				request.user.sub,
+				dto.name,
+				dto.is_private,
+				dto.password,
+			);
 		} catch (error) {
 			if (
 				error instanceof ChannelPasswordNotAllowedError ||
@@ -83,12 +93,20 @@ export class ChannelController {
 		return channel;
 	}
 
+	// TODO : Add the access token to the request
 	@Delete(":id")
-	async delete_one(@Param("id") id: string): Promise<void> {
+	async delete_one(
+		@Req() request: { user: { sub: string } },
+		@Param("id") channel_id: string,
+	): Promise<void> {
 		try {
-			await this._channel_service.delete_one(id);
+			await this._channel_service.delete_one(request.user.sub, channel_id);
 		} catch (error) {
-			if (error instanceof ChannelNotFoundError) {
+			if (
+				error instanceof ChannelNotFoundError ||
+				error instanceof ChannelNotJoinedError ||
+				error instanceof ChannelNotOwnedError
+			) {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
 			}
@@ -101,6 +119,7 @@ export class ChannelController {
 		}
 	}
 
+	// TODO : Add the access token to the request
 	@Get(":id/messages")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async get_ones_messages(
@@ -130,6 +149,7 @@ export class ChannelController {
 		return messages;
 	}
 
+	// TODO : Add the access token to the request
 	@Patch(":id/join")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async join_one(@Param("id") id: string, @Body() dto: ChannelJoinDto): Promise<Channel> {
@@ -162,6 +182,7 @@ export class ChannelController {
 		return channel;
 	}
 
+	// TODO : Add the access token to the request
 	@Patch(":id/leave")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async leave_one(@Param("id") id: string, @Body() dto: ChannelLeaveDto): Promise<void> {
@@ -175,6 +196,7 @@ export class ChannelController {
 		}
 	}
 
+	// TODO : Add the access token to the request
 	@Post(":id/message")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async send_message_to_one(

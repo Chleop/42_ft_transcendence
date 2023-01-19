@@ -7,6 +7,7 @@ export * from "src/channel/error/ChannelMessageTooLong.error";
 export * from "src/channel/error/ChannelMissingOwner.error";
 export * from "src/channel/error/ChannelNotFound.error";
 export * from "src/channel/error/ChannelNotJoined.error";
+export * from "src/channel/error/ChannelNotOwned.error";
 export * from "src/channel/error/ChannelPasswordIncorrect.error";
 export * from "src/channel/error/ChannelPasswordMissing.error";
 export * from "src/channel/error/ChannelPasswordNotAllowed.error";

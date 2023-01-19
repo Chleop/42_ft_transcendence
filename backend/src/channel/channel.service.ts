@@ -1,4 +1,4 @@
-import { ChannelCreateDto, ChannelJoinDto, ChannelMessageGetDto } from "src/channel/dto";
+import { ChannelJoinDto, ChannelMessageGetDto } from "src/channel/dto";
 import {
 	ChannelAlreadyJoinedError,
 	ChannelFieldUnavailableError,
@@ -9,6 +9,7 @@ import {
 	ChannelMissingOwnerError,
 	ChannelNotFoundError,
 	ChannelNotJoinedError,
+	ChannelNotOwnedError,
 	ChannelPasswordIncorrectError,
 	ChannelPasswordMissingError,
 	ChannelPasswordNotAllowedError,
@@ -379,7 +380,10 @@ export class ChannelService {
 	/**
 	 * @brief	Create a new channel in the database.
 	 *
-	 * @param	dto The dto containing the data to create the channel.
+	 * @param	user_id The id of the user who is creating the channel.
+	 * @param	name The name of the channel.
+	 * @param	is_private Whether the channel is private or not.
+	 * @param	password The password of the channel, if it isn't private.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelPasswordNotAllowedError
@@ -389,18 +393,23 @@ export class ChannelService {
 	 *
 	 * @return	A promise containing the created channel's data.
 	 */
-	public async create_one(dto: ChannelCreateDto): Promise<Channel> {
+	public async create_one(
+		user_id: string,
+		name: string,
+		is_private: boolean,
+		password?: string,
+	): Promise<Channel> {
 		let type: ChanType;
 		let channel: Channel;
 
 		console.log("Determining channel type...");
-		if (dto.is_private) {
+		if (is_private) {
 			console.log("Channel type is PRIVATE");
 			type = ChanType.PRIVATE;
-			if (dto.password) {
+			if (password) {
 				throw new ChannelPasswordNotAllowedError();
 			}
-		} else if (dto.password) {
+		} else if (password) {
 			console.log("Channel type is PROTECTED");
 			type = ChanType.PROTECTED;
 		} else {
@@ -412,17 +421,17 @@ export class ChannelService {
 			console.log("Creating channel...");
 			channel = await this._prisma.channel.create({
 				data: {
-					name: dto.name,
+					name: name,
 					chanType: type,
-					hash: dto.password ? await argon2.hash(dto.password) : null,
+					hash: password ? await argon2.hash(password) : null,
 					owner: {
 						connect: {
-							id: dto.user_id,
+							id: user_id,
 						},
 					},
 					members: {
 						connect: {
-							id: dto.user_id,
+							id: user_id,
 						},
 					},
 				},
@@ -450,20 +459,48 @@ export class ChannelService {
 	/**
 	 * @brief	Delete a channel from the database.
 	 *
-	 * @param	id The id of the channel to delete.
+	 * @param	user_id The id of the user who is deleting the channel.
+	 * @param	channel_id The id of the channel to delete.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
+	 * 			- ChannelNotOwnedError
 	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
-	public async delete_one(id: string): Promise<void> {
+	public async delete_one(user_id: string, channel_id: string): Promise<void> {
+		type t_fields = {
+			ownerId: string | null;
+			members: {
+				id: string;
+			}[];
+		};
+
+		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			select: {
+				ownerId: true,
+				members: {
+					select: { id: true },
+				},
+			},
+			where: { id: channel_id },
+		});
+
+		if (!channel) {
+			throw new ChannelNotFoundError(channel_id);
+		} else if (channel.members.find((member) => member.id === user_id) === undefined) {
+			throw new ChannelNotJoinedError(channel_id);
+		} else if (channel.ownerId !== user_id) {
+			throw new ChannelNotOwnedError(channel_id);
+		}
+
 		try {
 			console.log("Deleting channel's messages...");
 			await this._prisma.channelMessage.deleteMany({
 				where: {
-					channelId: id,
+					channelId: channel_id,
 				},
 			});
 			console.log("Channel's messages deleted");
@@ -471,7 +508,7 @@ export class ChannelService {
 			console.log("Deleting channel...");
 			await this._prisma.channel.delete({
 				where: {
-					id: id,
+					id: channel_id,
 				},
 			});
 			console.log("Channel deleted");
@@ -480,7 +517,7 @@ export class ChannelService {
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2025":
-						throw new ChannelNotFoundError(id);
+						throw new ChannelNotFoundError(channel_id);
 				}
 				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
