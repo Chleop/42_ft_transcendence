@@ -31,6 +31,7 @@ import { User } from "@prisma/client";
 import { JwtGuard } from "src/auth/guards";
 
 @Controller("user")
+@UseGuards(JwtGuard)
 export class UserController {
 	private _user_service: UserService;
 
@@ -39,7 +40,6 @@ export class UserController {
 	}
 
 	@Delete("@me")
-	@UseGuards(JwtGuard)
 	async disable_me(
 		@Req()
 		request: {
@@ -65,7 +65,6 @@ export class UserController {
 	}
 
 	@Get("@me")
-	@UseGuards(JwtGuard)
 	async get_me(
 		@Req()
 		request: {
@@ -91,7 +90,6 @@ export class UserController {
 	}
 
 	@Get(":id")
-	@UseGuards(JwtGuard)
 	async get_one(
 		@Req()
 		request: {
@@ -122,7 +120,6 @@ export class UserController {
 	}
 
 	@Get(":id/avatar")
-	@UseGuards(JwtGuard)
 	async get_ones_avatar(
 		@Req()
 		request: {
@@ -153,7 +150,6 @@ export class UserController {
 	}
 
 	@Patch("@me")
-	@UseGuards(JwtGuard)
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async update_me(
 		@Req()
@@ -191,7 +187,6 @@ export class UserController {
 	}
 
 	@Put("@me/avatar")
-	@UseGuards(JwtGuard)
 	@UseInterceptors(FileInterceptor("file"))
 	async update_ones_avatar(
 		@Req()
