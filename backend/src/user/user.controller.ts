@@ -184,14 +184,20 @@ export class UserController {
 		}
 	}
 
-	@Put(":id/avatar")
+	@Put("@me/avatar")
+	@UseGuards(JwtGuard)
 	@UseInterceptors(FileInterceptor("file"))
 	async update_ones_avatar(
-		@Param("id") id: string,
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
 		@UploadedFile() file: Express.Multer.File,
 	): Promise<void> {
 		try {
-			await this._user_service.update_ones_avatar(id, file);
+			await this._user_service.update_ones_avatar(request.user.sub, file);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
