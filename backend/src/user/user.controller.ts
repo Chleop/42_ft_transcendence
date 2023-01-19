@@ -1,10 +1,10 @@
 import { t_relations } from "src/user/alias";
-import { UserCreateDto, UserUpdateDto } from "src/user/dto";
+import { UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
 	UserFieldUnaivalableError,
 	UserNotFoundError,
-	UserRelationNotFoundError,
+	UserNotLinkedError,
 } from "src/user/error";
 import { UserService } from "src/user/user.service";
 import {
@@ -17,24 +17,21 @@ import {
 	InternalServerErrorException,
 	Param,
 	Patch,
-	Post,
 	Put,
+	Req,
 	StreamableFile,
 	UploadedFile,
-	// TODO: Uncomment this line when access token is well considered in internal API.
-	// UseGuards,
+	UseGuards,
 	UseInterceptors,
 	UsePipes,
 	ValidationPipe,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { User } from "@prisma/client";
-// TODO: Uncomment this line when access token is well considered in internal API.
-// import { JwtGuard } from "src/auth/guards";
+import { JwtGuard } from "src/auth/guards";
 
-// TODO: Uncomment this line when access token is well considered in internal API.
-// @UseGuards(JwtGuard)
 @Controller("user")
+@UseGuards(JwtGuard)
 export class UserController {
 	private _user_service: UserService;
 
@@ -42,32 +39,17 @@ export class UserController {
 		this._user_service = new UserService();
 	}
 
-	@Post()
-	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async create_one(@Body() dto: UserCreateDto): Promise<void> {
+	@Delete("@me")
+	async disable_me(
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+	): Promise<void> {
 		try {
-			await this._user_service.create_one(dto);
-		} catch (error) {
-			if (
-				error instanceof UserRelationNotFoundError ||
-				error instanceof UserFieldUnaivalableError
-			) {
-				console.log(error.message);
-				throw new ForbiddenException(error.message);
-			}
-			if (error instanceof UnknownError) {
-				console.log(error.message);
-				throw new InternalServerErrorException(error.message);
-			}
-			console.log("Unknown error type, this should not happen");
-			throw new InternalServerErrorException();
-		}
-	}
-
-	@Delete(":id")
-	async disable_one(@Param("id") id: string): Promise<void> {
-		try {
-			await this._user_service.disable_one(id);
+			await this._user_service.disable_one(request.user.sub);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
@@ -82,12 +64,19 @@ export class UserController {
 		}
 	}
 
-	@Get(":id")
-	async get_one(@Param("id") id: string): Promise<User & t_relations> {
+	@Get("@me")
+	async get_me(
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+	): Promise<User & t_relations> {
 		let user: User & t_relations;
 
 		try {
-			user = await this._user_service.get_one(id);
+			user = await this._user_service.get_one(request.user.sub, request.user.sub);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
@@ -100,16 +89,58 @@ export class UserController {
 		return user;
 	}
 
-	@Get(":id/avatar")
-	async get_ones_avatar(@Param("id") id: string): Promise<StreamableFile> {
-		let sfile: StreamableFile;
+	@Get(":id")
+	async get_one(
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+		@Param("id") id: string,
+	): Promise<User & t_relations> {
+		let user: User & t_relations;
 
 		try {
-			sfile = await this._user_service.get_ones_avatar(id);
+			user = await this._user_service.get_one(request.user.sub, id);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
+			}
+			if (error instanceof UserNotLinkedError) {
+				console.log(error.message);
+				throw new ForbiddenException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+
+		return user;
+	}
+
+	@Get(":id/avatar")
+	async get_ones_avatar(
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+		@Param("id") id: string,
+	): Promise<StreamableFile> {
+		let sfile: StreamableFile;
+
+		try {
+			sfile = await this._user_service.get_ones_avatar(request.user.sub, id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof UserNotLinkedError) {
+				console.log(error.message);
+				throw new ForbiddenException(error.message);
 			}
 			console.log("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
@@ -118,11 +149,25 @@ export class UserController {
 		return sfile;
 	}
 
-	@Patch(":id")
+	@Patch("@me")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async update_one(@Param("id") id: string, @Body() dto: UserUpdateDto): Promise<void> {
+	async update_me(
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+		@Body() dto: UserUpdateDto,
+	): Promise<void> {
 		try {
-			await this._user_service.update_one(id, dto);
+			await this._user_service.update_one(
+				request.user.sub,
+				dto.name,
+				dto.email,
+				dto.two_fact_auth,
+				dto.skin_id,
+			);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
@@ -141,14 +186,19 @@ export class UserController {
 		}
 	}
 
-	@Put(":id/avatar")
+	@Put("@me/avatar")
 	@UseInterceptors(FileInterceptor("file"))
 	async update_ones_avatar(
-		@Param("id") id: string,
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
 		@UploadedFile() file: Express.Multer.File,
 	): Promise<void> {
 		try {
-			await this._user_service.update_ones_avatar(id, file);
+			await this._user_service.update_ones_avatar(request.user.sub, file);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
