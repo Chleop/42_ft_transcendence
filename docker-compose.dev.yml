@@ -19,6 +19,9 @@ services:
       - FT_API_CLIENT_ID=${FT_API_CLIENT_ID}
       - FT_API_CLIENT_SECRET=${FT_API_CLIENT_SECRET}
       - FT_API_CALLBACK_URL=${FT_API_CALLBACK_URL}
+      - NO_REPLY_EMAIL=${NO_REPLY_EMAIL}
+      - NO_REPLY_EMAIL_HOST=${NO_REPLY_EMAIL_HOST}
+      - NO_REPLY_EMAIL_PASS=${NO_REPLY_EMAIL_PASS}
     networks:
       - trans
     depends_on:
