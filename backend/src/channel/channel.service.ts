@@ -1,4 +1,3 @@
-import { ChannelCreateDto, ChannelJoinDto, ChannelMessageGetDto } from "src/channel/dto";
 import {
 	ChannelAlreadyJoinedError,
 	ChannelFieldUnavailableError,
@@ -9,6 +8,7 @@ import {
 	ChannelMissingOwnerError,
 	ChannelNotFoundError,
 	ChannelNotJoinedError,
+	ChannelNotOwnedError,
 	ChannelPasswordIncorrectError,
 	ChannelPasswordMissingError,
 	ChannelPasswordNotAllowedError,
@@ -178,7 +178,6 @@ export class ChannelService {
 	 * @param	limit The maximum number of messages to get.
 	 *
 	 * @error	The following errors may be thrown :
-	 * 			- ChannelNotFoundError
 	 * 			- ChannelMessageNotFoundError
 	 *
 	 * @return	A promise containing the wanted messages.
@@ -206,14 +205,6 @@ export class ChannelService {
 
 		if (!message || message.channelId !== id) {
 			console.log("Reference message not found");
-			if (
-				!(await this._prisma.channel.count({
-					where: { id: id },
-				}))
-			) {
-				console.log("Specified channel does not exist");
-				throw new ChannelNotFoundError(id);
-			}
 			throw new ChannelMessageNotFoundError(message_id);
 		}
 
@@ -242,7 +233,6 @@ export class ChannelService {
 	 * @param	limit The maximum number of messages to get.
 	 *
 	 * @error	The following errors may be thrown :
-	 * 			- ChannelNotFoundError
 	 * 			- ChannelMessageNotFoundError
 	 *
 	 * @return	A promise containing the wanted messages.
@@ -270,14 +260,6 @@ export class ChannelService {
 
 		if (!message || message.channelId !== id) {
 			console.log("Reference message not found");
-			if (
-				!(await this._prisma.channel.count({
-					where: { id: id },
-				}))
-			) {
-				console.log("Specified channel does not exist");
-				throw new ChannelNotFoundError(id);
-			}
 			throw new ChannelMessageNotFoundError(message_id);
 		}
 
@@ -306,9 +288,6 @@ export class ChannelService {
 	 * @param	id The id of the channel to get the messages from.
 	 * @param	limit The maximum number of messages to get.
 	 *
-	 * @error	The following errors may be thrown :
-	 * 			- ChannelNotFoundError
-	 *
 	 * @return	A promise containing the wanted messages.
 	 */
 	private async _get_ones_most_recent_messages(
@@ -325,18 +304,6 @@ export class ChannelService {
 			},
 			take: limit,
 		});
-
-		if (
-			!messages &&
-			!(await this._prisma.channel.count({
-				where: {
-					id: id,
-				},
-			}))
-		) {
-			console.log("Specified channel does not exist");
-			throw new ChannelNotFoundError(id);
-		}
 
 		console.log("Messages found");
 		// Get the most ancient messages first
@@ -379,7 +346,10 @@ export class ChannelService {
 	/**
 	 * @brief	Create a new channel in the database.
 	 *
-	 * @param	dto The dto containing the data to create the channel.
+	 * @param	user_id The id of the user who is creating the channel.
+	 * @param	name The name of the channel.
+	 * @param	is_private Whether the channel is private or not.
+	 * @param	password The password of the channel, if it isn't private.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelPasswordNotAllowedError
@@ -389,18 +359,23 @@ export class ChannelService {
 	 *
 	 * @return	A promise containing the created channel's data.
 	 */
-	public async create_one(dto: ChannelCreateDto): Promise<Channel> {
+	public async create_one(
+		user_id: string,
+		name: string,
+		is_private: boolean,
+		password?: string,
+	): Promise<Channel> {
 		let type: ChanType;
 		let channel: Channel;
 
 		console.log("Determining channel type...");
-		if (dto.is_private) {
+		if (is_private) {
 			console.log("Channel type is PRIVATE");
 			type = ChanType.PRIVATE;
-			if (dto.password) {
+			if (password) {
 				throw new ChannelPasswordNotAllowedError();
 			}
-		} else if (dto.password) {
+		} else if (password) {
 			console.log("Channel type is PROTECTED");
 			type = ChanType.PROTECTED;
 		} else {
@@ -412,17 +387,17 @@ export class ChannelService {
 			console.log("Creating channel...");
 			channel = await this._prisma.channel.create({
 				data: {
-					name: dto.name,
+					name: name,
 					chanType: type,
-					hash: dto.password ? await argon2.hash(dto.password) : null,
+					hash: password ? await argon2.hash(password) : null,
 					owner: {
 						connect: {
-							id: dto.user_id,
+							id: user_id,
 						},
 					},
 					members: {
 						connect: {
-							id: dto.user_id,
+							id: user_id,
 						},
 					},
 				},
@@ -450,20 +425,48 @@ export class ChannelService {
 	/**
 	 * @brief	Delete a channel from the database.
 	 *
-	 * @param	id The id of the channel to delete.
+	 * @param	user_id The id of the user who is deleting the channel.
+	 * @param	channel_id The id of the channel to delete.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
+	 * 			- ChannelNotOwnedError
 	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
-	public async delete_one(id: string): Promise<void> {
+	public async delete_one(user_id: string, channel_id: string): Promise<void> {
+		type t_fields = {
+			ownerId: string | null;
+			members: {
+				id: string;
+			}[];
+		};
+
+		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			select: {
+				ownerId: true,
+				members: {
+					select: { id: true },
+				},
+			},
+			where: { id: channel_id },
+		});
+
+		if (!channel) {
+			throw new ChannelNotFoundError(channel_id);
+		} else if (channel.members.find((member) => member.id === user_id) === undefined) {
+			throw new ChannelNotJoinedError(channel_id);
+		} else if (channel.ownerId !== user_id) {
+			throw new ChannelNotOwnedError(channel_id);
+		}
+
 		try {
 			console.log("Deleting channel's messages...");
 			await this._prisma.channelMessage.deleteMany({
 				where: {
-					channelId: id,
+					channelId: channel_id,
 				},
 			});
 			console.log("Channel's messages deleted");
@@ -471,7 +474,7 @@ export class ChannelService {
 			console.log("Deleting channel...");
 			await this._prisma.channel.delete({
 				where: {
-					id: id,
+					id: channel_id,
 				},
 			});
 			console.log("Channel deleted");
@@ -480,7 +483,7 @@ export class ChannelService {
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2025":
-						throw new ChannelNotFoundError(id);
+						throw new ChannelNotFoundError(channel_id);
 				}
 				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
@@ -492,29 +495,57 @@ export class ChannelService {
 	/**
 	 * @brief	Get channel's messages from the database.
 	 *
-	 * @param	id The id of the channel to get the messages from.
-	 * @param	dto The dto containing the data to get the messages.
+	 * @param	user_id The id of the user who is getting the messages.
+	 * @param	channel_id The id of the channel to get the messages from.
+	 * @param	limit The maximum number of messages to get.
+	 * @param	before The id of the message to get the messages before.
+	 * @param	after The id of the message to get the messages after.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
 	 * 			- ChannelMessageNotFoundError
 	 *
 	 * @return	A promise containing the wanted messages.
 	 */
 	public async get_ones_messages(
-		id: string,
-		dto: ChannelMessageGetDto,
+		user_id: string,
+		channel_id: string,
+		limit: number,
+		before?: string,
+		after?: string,
 	): Promise<ChannelMessage[]> {
-		if (dto.before) {
+		type t_fields = {
+			members: {
+				id: string;
+			}[];
+		};
+
+		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			select: {
+				members: {
+					select: { id: true },
+				},
+			},
+			where: { id: channel_id },
+		});
+
+		if (!channel) {
+			throw new ChannelNotFoundError(channel_id);
+		} else if (channel.members.find((member) => member.id === user_id) === undefined) {
+			throw new ChannelNotJoinedError(channel_id);
+		}
+
+		if (before) {
 			return await this._get_ones_messages_before_a_specific_message(
-				id,
-				dto.before,
-				dto.limit,
+				channel_id,
+				before,
+				limit,
 			);
-		} else if (dto.after) {
-			return await this._get_ones_messages_after_a_specific_message(id, dto.after, dto.limit);
+		} else if (after) {
+			return await this._get_ones_messages_after_a_specific_message(channel_id, after, limit);
 		} else {
-			return await this._get_ones_most_recent_messages(id, dto.limit);
+			return await this._get_ones_most_recent_messages(channel_id, limit);
 		}
 	}
 
@@ -526,8 +557,10 @@ export class ChannelService {
 	 * 			- PRIVATE, an valid invitation is required.
 	 * 			If the channel is ownerless, the user will inherit of the ownership of the channel.
 	 *
-	 * @param	id The id of the channel to join.
-	 * @param	dto The dto containing the data to join the channel.
+	 * @param	joining_user_id The id of the user who is joining the channel.
+	 * @param	channel_id The id of the channel to join.
+	 * @param	password The password of the channel to join.
+	 * @param	inviting_user_id The id of the user who invited the joining user.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
@@ -542,50 +575,55 @@ export class ChannelService {
 	 *
 	 * @return	A promise containing the joined channel's data.
 	 */
-	public async join_one(id: string, dto: ChannelJoinDto): Promise<Channel> {
+	public async join_one(
+		joining_user_id: string,
+		channel_id: string,
+		password?: string,
+		inviting_user_id?: string,
+	): Promise<Channel> {
 		let channel: Channel | null;
 
 		console.log("Searching for the channel to join...");
 		channel = await this._prisma.channel.findUnique({
 			where: {
-				id: id,
+				id: channel_id,
 			},
 		});
 		if (!channel) {
-			throw new ChannelNotFoundError(id);
+			throw new ChannelNotFoundError(channel_id);
 		}
 
 		console.log("Checking for already joined...");
 		if (
 			await this._prisma.channel.count({
 				where: {
-					id: id,
+					id: channel_id,
 					members: {
 						some: {
-							id: dto.joining_user_id,
+							id: joining_user_id,
 						},
 					},
 				},
 			})
 		) {
-			throw new ChannelAlreadyJoinedError(id);
+			throw new ChannelAlreadyJoinedError(channel_id);
 		}
 
 		console.log("Checking channel type...");
 		if (channel.chanType === ChanType.PRIVATE) {
 			console.log("Channel is private");
-			if (dto.password !== undefined) {
+			if (password !== undefined) {
 				throw new ChannelPasswordUnexpectedError();
 			}
 			console.log("Checking invitation...");
 			if (
-				dto.inviting_user_id === undefined ||
+				inviting_user_id === undefined ||
 				!(await this._prisma.channel.count({
 					where: {
-						id: id,
+						id: channel_id,
 						members: {
 							some: {
-								id: dto.inviting_user_id,
+								id: inviting_user_id,
 							},
 						},
 					},
@@ -595,18 +633,18 @@ export class ChannelService {
 			}
 		} else if (channel.chanType === ChanType.PROTECTED) {
 			console.log("Channel is protected");
-			if (dto.inviting_user_id !== undefined) {
+			if (inviting_user_id !== undefined) {
 				throw new ChannelInvitationUnexpectedError();
 			}
 			console.log("Checking password...");
-			if (dto.password === undefined) {
+			if (password === undefined) {
 				throw new ChannelPasswordMissingError();
-			} else if (!(await argon2.verify(<string>channel.hash, dto.password))) {
+			} else if (!(await argon2.verify(<string>channel.hash, password))) {
 				throw new ChannelPasswordIncorrectError();
 			}
 		} else {
 			console.log("Channel is public");
-			if (dto.password !== undefined) {
+			if (password !== undefined) {
 				throw new ChannelPasswordUnexpectedError();
 			}
 		}
@@ -615,12 +653,12 @@ export class ChannelService {
 			console.log("Joining channel...");
 			channel = await this._prisma.channel.update({
 				where: {
-					id: id,
+					id: channel_id,
 				},
 				data: {
 					members: {
 						connect: {
-							id: dto.joining_user_id,
+							id: joining_user_id,
 						},
 					},
 				},
@@ -638,7 +676,7 @@ export class ChannelService {
 			throw new UnknownError();
 		}
 
-		channel = await this._inherit_ones_ownership(channel, dto.joining_user_id);
+		channel = await this._inherit_ones_ownership(channel, joining_user_id);
 		channel.hash = null;
 		return channel;
 	}
@@ -646,9 +684,9 @@ export class ChannelService {
 	/**
 	 * @brief	Make an user leave a channel.
 	 *
-	 * @param	id The id of the channel to leave.
+	 * @param	channel_id The id of the channel to leave.
 	 * @param	user_id The id of the user leaving the channel.
-	 * @param	dto The dto containing the data to leave the channel.
+	 * @param	channel The channel to leave.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
@@ -658,7 +696,7 @@ export class ChannelService {
 	 */
 
 	public async leave_one(
-		id: string,
+		channel_id: string,
 		user_id: string,
 		channel?: {
 			owner: {
@@ -676,7 +714,7 @@ export class ChannelService {
 			console.log("Searching for the channel to leave...");
 			channel = await this._prisma.channel.findUnique({
 				where: {
-					id: id,
+					id: channel_id,
 				},
 				select: {
 					owner: {
@@ -698,7 +736,7 @@ export class ChannelService {
 			});
 
 			if (!channel) {
-				throw new ChannelNotFoundError(id);
+				throw new ChannelNotFoundError(channel_id);
 			}
 		}
 
@@ -706,7 +744,7 @@ export class ChannelService {
 		if (
 			!(await this._prisma.channel.count({
 				where: {
-					id: id,
+					id: channel_id,
 					members: {
 						some: {
 							id: user_id,
@@ -715,16 +753,16 @@ export class ChannelService {
 				},
 			}))
 		) {
-			throw new ChannelNotJoinedError(id);
+			throw new ChannelNotJoinedError(channel_id);
 		}
 
 		console.log("Checking for the need to delegate ownership...");
 		if (channel.owner?.id === user_id) {
 			try {
-				await this._delegate_ones_ownership(id, channel);
+				await this._delegate_ones_ownership(channel_id, channel);
 			} catch (error) {
 				if (error instanceof ChannelUnpopulatedError) {
-					await this._drop_ones_ownership(id, channel);
+					await this._drop_ones_ownership(channel_id, channel);
 				}
 			}
 		} else {
@@ -734,7 +772,7 @@ export class ChannelService {
 		console.log("Leaving channel...");
 		await this._prisma.channel.update({
 			where: {
-				id: id,
+				id: channel_id,
 			},
 			data: {
 				members: {
@@ -755,7 +793,7 @@ export class ChannelService {
 	/**
 	 * @brief	Make an user send a message to a channel they are in.
 	 *
-	 * @param	id The id of the channel to send the message to.
+	 * @param	channel_id The id of the channel to send the message to.
 	 * @param	user_id The id of the user sending the message.
 	 * @param	message The message to send in the channel.
 	 *
@@ -766,7 +804,11 @@ export class ChannelService {
 	 *
 	 * @return	An empty promise.
 	 */
-	public async send_message_to_one(id: string, user_id: string, message: string): Promise<void> {
+	public async send_message_to_one(
+		channel_id: string,
+		user_id: string,
+		message: string,
+	): Promise<void> {
 		type t_fields = {
 			members: {
 				id: string;
@@ -783,19 +825,19 @@ export class ChannelService {
 				},
 			},
 			where: {
-				id: id,
+				id: channel_id,
 			},
 		});
 
 		if (!channel) {
-			throw new ChannelNotFoundError(id);
+			throw new ChannelNotFoundError(channel_id);
 		}
 
 		console.log("Checking for not joined...");
 		if (
 			!(await this._prisma.channel.count({
 				where: {
-					id: id,
+					id: channel_id,
 					members: {
 						some: {
 							id: user_id,
@@ -804,7 +846,7 @@ export class ChannelService {
 				},
 			}))
 		) {
-			throw new ChannelNotJoinedError(id);
+			throw new ChannelNotJoinedError(channel_id);
 		}
 
 		console.log("Checking for message length...");
@@ -819,7 +861,7 @@ export class ChannelService {
 			data: {
 				channel: {
 					connect: {
-						id: id,
+						id: channel_id,
 					},
 				},
 				sender: {

@@ -11,9 +11,4 @@ export class ChannelJoinDto {
 	@IsString()
 	@IsOptional()
 	public inviting_user_id?: string;
-
-	// TODO: Remove this when the authentification is implemented
-	@IsNotEmpty()
-	@IsString()
-	public joining_user_id: string = "";
 }
