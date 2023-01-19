@@ -20,7 +20,6 @@ import {
 import {
 	ChannelCreateDto,
 	ChannelJoinDto,
-	ChannelLeaveDto,
 	ChannelMessageGetDto,
 	ChannelMessageSendDto,
 } from "src/channel/dto";
@@ -196,12 +195,14 @@ export class ChannelController {
 		return channel;
 	}
 
-	// TODO : Add the access token to the request
 	@Patch(":id/leave")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async leave_one(@Param("id") id: string, @Body() dto: ChannelLeaveDto): Promise<void> {
+	async leave_one(
+		@Req() request: { user: { sub: string } },
+		@Param("id") id: string,
+	): Promise<void> {
 		try {
-			await this._channel_service.leave_one(id, dto.user_id);
+			await this._channel_service.leave_one(id, request.user.sub);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
 				console.log(error.message);

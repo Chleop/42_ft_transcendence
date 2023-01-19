@@ -717,9 +717,9 @@ export class ChannelService {
 	/**
 	 * @brief	Make an user leave a channel.
 	 *
-	 * @param	id The id of the channel to leave.
+	 * @param	channel_id The id of the channel to leave.
 	 * @param	user_id The id of the user leaving the channel.
-	 * @param	dto The dto containing the data to leave the channel.
+	 * @param	channel The channel to leave.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
@@ -729,7 +729,7 @@ export class ChannelService {
 	 */
 
 	public async leave_one(
-		id: string,
+		channel_id: string,
 		user_id: string,
 		channel?: {
 			owner: {
@@ -747,7 +747,7 @@ export class ChannelService {
 			console.log("Searching for the channel to leave...");
 			channel = await this._prisma.channel.findUnique({
 				where: {
-					id: id,
+					id: channel_id,
 				},
 				select: {
 					owner: {
@@ -769,7 +769,7 @@ export class ChannelService {
 			});
 
 			if (!channel) {
-				throw new ChannelNotFoundError(id);
+				throw new ChannelNotFoundError(channel_id);
 			}
 		}
 
@@ -777,7 +777,7 @@ export class ChannelService {
 		if (
 			!(await this._prisma.channel.count({
 				where: {
-					id: id,
+					id: channel_id,
 					members: {
 						some: {
 							id: user_id,
@@ -786,16 +786,16 @@ export class ChannelService {
 				},
 			}))
 		) {
-			throw new ChannelNotJoinedError(id);
+			throw new ChannelNotJoinedError(channel_id);
 		}
 
 		console.log("Checking for the need to delegate ownership...");
 		if (channel.owner?.id === user_id) {
 			try {
-				await this._delegate_ones_ownership(id, channel);
+				await this._delegate_ones_ownership(channel_id, channel);
 			} catch (error) {
 				if (error instanceof ChannelUnpopulatedError) {
-					await this._drop_ones_ownership(id, channel);
+					await this._drop_ones_ownership(channel_id, channel);
 				}
 			}
 		} else {
@@ -805,7 +805,7 @@ export class ChannelService {
 		console.log("Leaving channel...");
 		await this._prisma.channel.update({
 			where: {
-				id: id,
+				id: channel_id,
 			},
 			data: {
 				members: {
