@@ -1,5 +1,4 @@
 import { t_relations } from "src/user/alias";
-import { UserCreateDto, UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
 	UserFieldUnaivalableError,
@@ -76,7 +75,7 @@ export class UserService {
 	/**
 	 * @brief	Create a new user in the database.
 	 *
-	 * @param	dto The dto containing the data to create the user.
+	 * @param	login The login of the user to create.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserRelationNotFoundError
@@ -85,7 +84,7 @@ export class UserService {
 	 *
 	 * @return	A promise containing the id of the created user.
 	 */
-	public async create_one(dto: UserCreateDto): Promise<string> {
+	public async create_one(login: string): Promise<string> {
 		type t_fields = {
 			id: string;
 		};
@@ -107,21 +106,24 @@ export class UserService {
 		let id: string;
 
 		try {
-			console.log("Creating user...");
-			let name: string = dto.login;
-			let already_existing: number = await this._prisma.user.count({
-				where: { name: name },
-			});
-			while (already_existing) {
-				(name = "_" + name),
-					(already_existing = await this._prisma.user.count({
-						where: { name: name },
-					}));
+			let name: string = login;
+			let suffix: number = 0;
+
+			while (
+				await this._prisma.user.count({
+					where: {
+						name: name,
+					},
+				})
+			) {
+				name = `${login}#${suffix++}`;
 			}
+
+			console.log("Creating user...");
 			id = (
 				await this._prisma.user.create({
 					data: {
-						login: dto.login,
+						login: login,
 						name: name,
 						skinId: skin.id,
 					},
@@ -314,7 +316,7 @@ export class UserService {
 	 * 			and have at least one common channel, be friends, or be the same.
 	 *
 	 * @param	requesting_user_id The id of the user requesting the user's avatar.
-	 * @param	requested_id The id of the user to get the avatar from.
+	 * @param	requested_user_id The id of the user to get the avatar from.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserNotFoundError
@@ -445,7 +447,10 @@ export class UserService {
 	 * @brief	Update a user in the database.
 	 *
 	 * @param	id The id of the user to update.
-	 * @param	dto The dto containing the fields to update.
+	 * @param	name The new name of the user.
+	 * @param	email The new email of the user.
+	 * @param	two_fact_auth The new two factor authentication state of the user.
+	 * @param	skin_id The new skin id of the user.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserNotFoundError
@@ -454,7 +459,13 @@ export class UserService {
 	 *
 	 * @return	An empty promise.
 	 */
-	public async update_one(id: string, dto: UserUpdateDto): Promise<void> {
+	public async update_one(
+		id: string,
+		name?: string,
+		email?: string,
+		two_fact_auth?: boolean,
+		skin_id?: string,
+	): Promise<void> {
 		type t_fields = {
 			name: string;
 			email: string | null;
@@ -484,10 +495,10 @@ export class UserService {
 
 		console.log("User found");
 
-		if (dto.name !== undefined) user.name = dto.name;
-		if (dto.email !== undefined) user.email = dto.email;
-		if (dto.two_fact_auth !== undefined) user.twoFactAuth = dto.two_fact_auth;
-		if (dto.skin_id !== undefined) user.skinId = dto.skin_id;
+		if (name !== undefined) user.name = name;
+		if (email !== undefined) user.email = email;
+		if (two_fact_auth !== undefined) user.twoFactAuth = two_fact_auth;
+		if (skin_id !== undefined) user.skinId = skin_id;
 
 		try {
 			console.log("Updating user...");

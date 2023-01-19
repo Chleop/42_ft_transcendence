@@ -1,7 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
-import { UserCreateDto } from "src/user/dto";
 import { UserNotFoundError } from "src/user/error";
 import { UserService } from "src/user/user.service";
 
@@ -28,10 +27,7 @@ export class AuthService {
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
-				const userObj: UserCreateDto = {
-					login: login,
-				};
-				userId = await this._user.create_one(userObj);
+				userId = await this._user.create_one(login);
 			} else throw error;
 		}
 

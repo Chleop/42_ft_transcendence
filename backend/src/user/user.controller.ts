@@ -165,7 +165,13 @@ export class UserController {
 		@Body() dto: UserUpdateDto,
 	): Promise<void> {
 		try {
-			await this._user_service.update_one(request.user.sub, dto);
+			await this._user_service.update_one(
+				request.user.sub,
+				dto.name,
+				dto.email,
+				dto.two_fact_auth,
+				dto.skin_id,
+			);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
