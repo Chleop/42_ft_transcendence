@@ -118,7 +118,6 @@ export class ChannelController {
 		}
 	}
 
-	// TODO : Add the access token to the request
 	@Get(":id/messages")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async get_ones_messages(
@@ -156,14 +155,22 @@ export class ChannelController {
 		return messages;
 	}
 
-	// TODO : Add the access token to the request
 	@Patch(":id/join")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async join_one(@Param("id") id: string, @Body() dto: ChannelJoinDto): Promise<Channel> {
+	async join_one(
+		@Req() request: { user: { sub: string } },
+		@Param("id") id: string,
+		@Body() dto: ChannelJoinDto,
+	): Promise<Channel> {
 		let channel: Channel;
 
 		try {
-			channel = await this._channel_service.join_one(id, dto);
+			channel = await this._channel_service.join_one(
+				request.user.sub,
+				id,
+				dto.password,
+				dto.inviting_user_id,
+			);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||

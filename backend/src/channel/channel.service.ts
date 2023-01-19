@@ -1,4 +1,3 @@
-import { ChannelJoinDto } from "src/channel/dto";
 import {
 	ChannelAlreadyJoinedError,
 	ChannelFieldUnavailableError,
@@ -591,8 +590,10 @@ export class ChannelService {
 	 * 			- PRIVATE, an valid invitation is required.
 	 * 			If the channel is ownerless, the user will inherit of the ownership of the channel.
 	 *
-	 * @param	id The id of the channel to join.
-	 * @param	dto The dto containing the data to join the channel.
+	 * @param	joining_user_id The id of the user who is joining the channel.
+	 * @param	channel_id The id of the channel to join.
+	 * @param	password The password of the channel to join.
+	 * @param	inviting_user_id The id of the user who invited the joining user.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
@@ -607,50 +608,55 @@ export class ChannelService {
 	 *
 	 * @return	A promise containing the joined channel's data.
 	 */
-	public async join_one(id: string, dto: ChannelJoinDto): Promise<Channel> {
+	public async join_one(
+		joining_user_id: string,
+		channel_id: string,
+		password?: string,
+		inviting_user_id?: string,
+	): Promise<Channel> {
 		let channel: Channel | null;
 
 		console.log("Searching for the channel to join...");
 		channel = await this._prisma.channel.findUnique({
 			where: {
-				id: id,
+				id: channel_id,
 			},
 		});
 		if (!channel) {
-			throw new ChannelNotFoundError(id);
+			throw new ChannelNotFoundError(channel_id);
 		}
 
 		console.log("Checking for already joined...");
 		if (
 			await this._prisma.channel.count({
 				where: {
-					id: id,
+					id: channel_id,
 					members: {
 						some: {
-							id: dto.joining_user_id,
+							id: joining_user_id,
 						},
 					},
 				},
 			})
 		) {
-			throw new ChannelAlreadyJoinedError(id);
+			throw new ChannelAlreadyJoinedError(channel_id);
 		}
 
 		console.log("Checking channel type...");
 		if (channel.chanType === ChanType.PRIVATE) {
 			console.log("Channel is private");
-			if (dto.password !== undefined) {
+			if (password !== undefined) {
 				throw new ChannelPasswordUnexpectedError();
 			}
 			console.log("Checking invitation...");
 			if (
-				dto.inviting_user_id === undefined ||
+				inviting_user_id === undefined ||
 				!(await this._prisma.channel.count({
 					where: {
-						id: id,
+						id: channel_id,
 						members: {
 							some: {
-								id: dto.inviting_user_id,
+								id: inviting_user_id,
 							},
 						},
 					},
@@ -660,18 +666,18 @@ export class ChannelService {
 			}
 		} else if (channel.chanType === ChanType.PROTECTED) {
 			console.log("Channel is protected");
-			if (dto.inviting_user_id !== undefined) {
+			if (inviting_user_id !== undefined) {
 				throw new ChannelInvitationUnexpectedError();
 			}
 			console.log("Checking password...");
-			if (dto.password === undefined) {
+			if (password === undefined) {
 				throw new ChannelPasswordMissingError();
-			} else if (!(await argon2.verify(<string>channel.hash, dto.password))) {
+			} else if (!(await argon2.verify(<string>channel.hash, password))) {
 				throw new ChannelPasswordIncorrectError();
 			}
 		} else {
 			console.log("Channel is public");
-			if (dto.password !== undefined) {
+			if (password !== undefined) {
 				throw new ChannelPasswordUnexpectedError();
 			}
 		}
@@ -680,12 +686,12 @@ export class ChannelService {
 			console.log("Joining channel...");
 			channel = await this._prisma.channel.update({
 				where: {
-					id: id,
+					id: channel_id,
 				},
 				data: {
 					members: {
 						connect: {
-							id: dto.joining_user_id,
+							id: joining_user_id,
 						},
 					},
 				},
@@ -703,7 +709,7 @@ export class ChannelService {
 			throw new UnknownError();
 		}
 
-		channel = await this._inherit_ones_ownership(channel, dto.joining_user_id);
+		channel = await this._inherit_ones_ownership(channel, joining_user_id);
 		channel.hash = null;
 		return channel;
 	}
