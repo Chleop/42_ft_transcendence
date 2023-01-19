@@ -9,6 +9,8 @@ import { ResultsObject } from "./objects";
 
 /* TODO: implement better MM */
 
+const cookie = require("cookie");
+
 /* Track match made */
 type Handshake = {
 	// The two matched players
@@ -21,6 +23,7 @@ export class GameService {
 	// private prisma: PrismaService;
 	private game_rooms: GameRoom[];
 	private handshakes: Handshake[];
+	// TODO: extend queue
 	private queue: Client | null;
 
 	constructor() {
@@ -155,12 +158,12 @@ export class GameService {
 			const new_index: number = this.game_rooms.indexOf(index);
 			if (new_index < 0) return;
 			console.log(`Destroying room ${index.match.name}`);
-			index.destroyPing();
+			index.destroyPlayerPing();
 			this.game_rooms.splice(new_index, 1);
 		} else {
 			if (index < 0) return;
 			console.log(`Destroying room ${this.game_rooms[index].match.name}`);
-			this.game_rooms[index].destroyPing();
+			this.game_rooms[index].destroyPlayerPing();
 			this.game_rooms.splice(index, 1);
 		}
 	}
@@ -183,9 +186,23 @@ export class GameService {
 
 	public display(): void {
 		console.log({
+			queue: this.queue?.id,
+			headers: this.queue?.socket.handshake,
 			handshakes: this.handshakes,
 			rooms: this.game_rooms,
 		});
+	}
+
+	public findUserGame(spectator: Socket): GameRoom | null {
+		const cookies_raw = spectator.handshake.headers.cookie;
+		if (cookies_raw === undefined) throw "Cookie undefined";
+		const user_id: string = cookie.parse(cookies_raw).friend_id;
+		if (user_id === undefined) throw "No friend_id defined";
+		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
+			return obj.match.player1.id === user_id || obj.match.player2.id === user_id;
+		});
+		if (room === undefined) return null;
+		return room;
 	}
 
 	/* == PRIVATE =============================================================================== */
