@@ -5,10 +5,12 @@ import {
 	InternalServerErrorException,
 	UseGuards,
 	Req,
+	Post,
+	Body,
 } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { AuthService } from "./auth.service";
-import { FtOauthGuard } from "./guards";
+import { FtOauthGuard, JwtGuard } from "./guards";
 
 type t_access_token = { access_token: string | undefined };
 
@@ -31,6 +33,8 @@ export class AuthController {
 	async signin(@Req() request: any) {
 		let token: t_access_token;
 		try {
+			// if (request.user.twoFactAuth === true) {
+			// }
 			token = await this._authService.createAccessToken(request.user.login);
 			return token;
 		} catch (error) {
@@ -41,5 +45,13 @@ export class AuthController {
 			} else throw new InternalServerErrorException("An unknown error occured");
 			return undefined;
 		}
+	}
+
+	@UseGuards(JwtGuard)
+	@Post("42/2FAActivate")
+	async activateTwoFactAuth(@Body("email") email: string) {
+		console.log("email = " + email);
+		this._authService.sendConfirmationEmail(email);
+		return "ok!";
 	}
 }

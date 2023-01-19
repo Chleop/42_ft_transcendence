@@ -1,29 +1,51 @@
-import { MailerService } from "@nestjs-modules/mailer";
+// import { MailerService } from "@nestjs-modules/mailer";
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
-import { User } from "@prisma/client";
+// import { User } from "@prisma/client";
 import { UserCreateDto } from "src/user/dto";
 import { UserNotFoundError } from "src/user/error";
 import { UserService } from "src/user/user.service";
+import * as nodemailer from "nodemailer";
 
 type t_access_token = { access_token: string | undefined };
 type t_payload = { sub: string | undefined };
+("use strict");
 
 @Injectable()
 export class AuthService {
 	private readonly _user: UserService;
 	private readonly _config: ConfigService;
-	private readonly _mailer: MailerService;
+	// private readonly _mailer: MailerService;
 	private _jwt: JwtService;
-	private readonly _code: number;
+	private readonly _transporter: any;
+	private readonly _sender: string | undefined;
+	// private readonly _code: number;
 
 	constructor() {
 		this._user = new UserService();
 		this._jwt = new JwtService();
 		this._config = new ConfigService();
-		this._mailer = new MailerService();
-		this._code = Math.floor(10000 + Math.random() * 90000);
+		const host: string | undefined = this._config.get<string>("NO_REPLY_EMAIL_HOST");
+		if (host === undefined) throw new Error("NO_REPLY_EMAIL_HOST is undefined");
+		const pass: string | undefined = this._config.get<string>("NO_REPLY_EMAIL_PASS");
+		if (pass === undefined) throw new Error("NO_REPLY_EMAIL_PASS is undefined");
+
+		this._sender = this._config.get<string>("NO_REPLY_EMAIL");
+		if (this._sender === undefined) throw new Error("NO_REPLY_EMAIL is undefined");
+		// create reusable transporter object using the default SMTP transport
+		this._transporter = nodemailer.createTransport({
+			host: host,
+			port: 587,
+			secure: false,
+			auth: {
+				user: this._sender,
+				pass: pass,
+			},
+		});
+
+		// this._mailer = new MailerService();
+		// this._code = Math.floor(10000 + Math.random() * 90000);
 	}
 
 	public async createAccessToken(login: string): Promise<t_access_token> {
@@ -65,49 +87,37 @@ export class AuthService {
 		return ret;
 	}
 
-	public async sendConfirmedEmail(user: User) {
-		const login: string = user.login;
-		let email: string;
-
-		console.log("Sending email");
-		if (user.email !== null) {
-			email = user.email;
-			await this._mailer.sendMail({
-				to: email,
-				subject: "Welcome to Nice App! Email Confirmed",
-				template: "confirmed",
-				context: {
-					login,
-					email,
-				},
+	public async sendConfirmationEmail(receiver: string) {
+		try {
+			console.log("Sending email ...");
+			let info = await this._transporter.sendMail({
+				from: "Transcendence team <" + this._sender + ">",
+				to: receiver,
+				subject: "Confirmation email ✔",
+				html: "<b>Please enter the following code to our Transcendence application : 0000 </b>",
 			});
-			console.log("Email sent");
-		} else {
-			console.log("No email entered for this user");
-			throw new Error("No email entered for this user");
+			console.log("Email sent: %s", info.messageId);
+		} catch (error) {
+			console.log("envelope" + error.envelope);
+			console.log("messageId" + error.messageId);
+			throw error;
 		}
 	}
 
-	public async sendConfirmationEmail(user: any) {
-		const login: string = user.login;
-		let email: string;
-
-		console.log("Sending email");
-		if (user.email !== null) {
-			email = user.email;
-			await this._mailer.sendMail({
-				to: email,
-				subject: "Welcome to Nice App! Please confirm email",
-				template: "confirm",
-				context: {
-					login,
-					code: this._code,
-				},
+	public async sendThankYouEmail(receiver: string) {
+		try {
+			console.log("Sending email ...");
+			let info = await this._transporter.sendMail({
+				from: "Transcendence team <" + this._sender + ">",
+				to: receiver,
+				subject: "💝 Thank you 💝",
+				html: "<b>Your authentication has been confirmed !</b>",
 			});
-			console.log("Email sent");
-		} else {
-			console.log("No email entered for this user");
-			throw new Error("No email entered for this user");
+			console.log("Email sent: %s", info.messageId);
+		} catch (error) {
+			console.log("envelope" + error.envelope);
+			console.log("messageId" + error.messageId);
+			throw error;
 		}
 	}
 }

@@ -26,6 +26,6 @@ export class FtOauthStrategy extends PassportStrategy(Strategy, "42") {
 				},
 			}),
 		);
-		return { login: data.login };
+		return { login: data.login, twoFactAuth: data.twoFactAuth };
 	}
 }
