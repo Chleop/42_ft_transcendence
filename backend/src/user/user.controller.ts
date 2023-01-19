@@ -152,11 +152,20 @@ export class UserController {
 		return sfile;
 	}
 
-	@Patch(":id")
+	@Patch("@me")
+	@UseGuards(JwtGuard)
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async update_one(@Param("id") id: string, @Body() dto: UserUpdateDto): Promise<void> {
+	async update_me(
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+		@Body() dto: UserUpdateDto,
+	): Promise<void> {
 		try {
-			await this._user_service.update_one(id, dto);
+			await this._user_service.update_one(request.user.sub, dto);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
