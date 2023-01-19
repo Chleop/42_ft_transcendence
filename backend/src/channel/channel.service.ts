@@ -826,7 +826,7 @@ export class ChannelService {
 	/**
 	 * @brief	Make an user send a message to a channel they are in.
 	 *
-	 * @param	id The id of the channel to send the message to.
+	 * @param	channel_id The id of the channel to send the message to.
 	 * @param	user_id The id of the user sending the message.
 	 * @param	message The message to send in the channel.
 	 *
@@ -837,7 +837,11 @@ export class ChannelService {
 	 *
 	 * @return	An empty promise.
 	 */
-	public async send_message_to_one(id: string, user_id: string, message: string): Promise<void> {
+	public async send_message_to_one(
+		channel_id: string,
+		user_id: string,
+		message: string,
+	): Promise<void> {
 		type t_fields = {
 			members: {
 				id: string;
@@ -854,19 +858,19 @@ export class ChannelService {
 				},
 			},
 			where: {
-				id: id,
+				id: channel_id,
 			},
 		});
 
 		if (!channel) {
-			throw new ChannelNotFoundError(id);
+			throw new ChannelNotFoundError(channel_id);
 		}
 
 		console.log("Checking for not joined...");
 		if (
 			!(await this._prisma.channel.count({
 				where: {
-					id: id,
+					id: channel_id,
 					members: {
 						some: {
 							id: user_id,
@@ -875,7 +879,7 @@ export class ChannelService {
 				},
 			}))
 		) {
-			throw new ChannelNotJoinedError(id);
+			throw new ChannelNotJoinedError(channel_id);
 		}
 
 		console.log("Checking for message length...");
@@ -890,7 +894,7 @@ export class ChannelService {
 			data: {
 				channel: {
 					connect: {
-						id: id,
+						id: channel_id,
 					},
 				},
 				sender: {

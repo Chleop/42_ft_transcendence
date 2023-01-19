@@ -12,7 +12,6 @@ import {
 	Post,
 	Query,
 	Req,
-	// TODO: Uncomment this line when the access token is well considered in the internal API
 	UseGuards,
 	UsePipes,
 	ValidationPipe,
@@ -41,10 +40,8 @@ import {
 	ChannelRelationNotFoundError,
 	UnknownError,
 } from "src/channel/error";
-// TODO: Uncomment this line when the access token is well considered in the internal API
 import { JwtGuard } from "src/auth/guards";
 
-// TODO: Uncomment this line when the access token is well considered in the internal API
 @UseGuards(JwtGuard)
 @Controller("channel")
 export class ChannelController {
@@ -211,15 +208,15 @@ export class ChannelController {
 		}
 	}
 
-	// TODO : Add the access token to the request
 	@Post(":id/message")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async send_message_to_one(
+		@Req() request: { user: { sub: string } },
 		@Param("id") id: string,
 		@Body() dto: ChannelMessageSendDto,
 	): Promise<void> {
 		try {
-			await this._channel_service.send_message_to_one(id, dto.user_id, dto.message);
+			await this._channel_service.send_message_to_one(id, request.user.sub, dto.message);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
 				console.log(error.message);
