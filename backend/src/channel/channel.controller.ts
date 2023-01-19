@@ -93,7 +93,6 @@ export class ChannelController {
 		return channel;
 	}
 
-	// TODO : Add the access token to the request
 	@Delete(":id")
 	async delete_one(
 		@Req() request: { user: { sub: string } },
@@ -123,6 +122,7 @@ export class ChannelController {
 	@Get(":id/messages")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async get_ones_messages(
+		@Req() request: { user: { sub: string } },
 		@Param("id") id: string,
 		@Query() dto: ChannelMessageGetDto,
 	): Promise<ChannelMessage[]> {
@@ -133,10 +133,17 @@ export class ChannelController {
 		let messages: ChannelMessage[];
 
 		try {
-			messages = await this._channel_service.get_ones_messages(id, dto);
+			messages = await this._channel_service.get_ones_messages(
+				request.user.sub,
+				id,
+				dto.limit,
+				dto.before,
+				dto.after,
+			);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
+				error instanceof ChannelNotJoinedError ||
 				error instanceof ChannelMessageNotFoundError
 			) {
 				console.log(error.message);

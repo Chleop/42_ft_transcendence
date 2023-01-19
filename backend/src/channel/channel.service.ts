@@ -1,4 +1,4 @@
-import { ChannelJoinDto, ChannelMessageGetDto } from "src/channel/dto";
+import { ChannelJoinDto } from "src/channel/dto";
 import {
 	ChannelAlreadyJoinedError,
 	ChannelFieldUnavailableError,
@@ -529,29 +529,57 @@ export class ChannelService {
 	/**
 	 * @brief	Get channel's messages from the database.
 	 *
-	 * @param	id The id of the channel to get the messages from.
-	 * @param	dto The dto containing the data to get the messages.
+	 * @param	user_id The id of the user who is getting the messages.
+	 * @param	channel_id The id of the channel to get the messages from.
+	 * @param	limit The maximum number of messages to get.
+	 * @param	before The id of the message to get the messages before.
+	 * @param	after The id of the message to get the messages after.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
 	 * 			- ChannelMessageNotFoundError
 	 *
 	 * @return	A promise containing the wanted messages.
 	 */
 	public async get_ones_messages(
-		id: string,
-		dto: ChannelMessageGetDto,
+		user_id: string,
+		channel_id: string,
+		limit: number,
+		before?: string,
+		after?: string,
 	): Promise<ChannelMessage[]> {
-		if (dto.before) {
+		type t_fields = {
+			members: {
+				id: string;
+			}[];
+		};
+
+		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			select: {
+				members: {
+					select: { id: true },
+				},
+			},
+			where: { id: channel_id },
+		});
+
+		if (!channel) {
+			throw new ChannelNotFoundError(channel_id);
+		} else if (channel.members.find((member) => member.id === user_id) === undefined) {
+			throw new ChannelNotJoinedError(channel_id);
+		}
+
+		if (before) {
 			return await this._get_ones_messages_before_a_specific_message(
-				id,
-				dto.before,
-				dto.limit,
+				channel_id,
+				before,
+				limit,
 			);
-		} else if (dto.after) {
-			return await this._get_ones_messages_after_a_specific_message(id, dto.after, dto.limit);
+		} else if (after) {
+			return await this._get_ones_messages_after_a_specific_message(channel_id, after, limit);
 		} else {
-			return await this._get_ones_most_recent_messages(id, dto.limit);
+			return await this._get_ones_most_recent_messages(channel_id, limit);
 		}
 	}
 
