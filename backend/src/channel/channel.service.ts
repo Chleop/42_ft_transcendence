@@ -288,9 +288,6 @@ export class ChannelService {
 	 * @param	id The id of the channel to get the messages from.
 	 * @param	limit The maximum number of messages to get.
 	 *
-	 * @error	The following errors may be thrown :
-	 * 			- ChannelNotFoundError
-	 *
 	 * @return	A promise containing the wanted messages.
 	 */
 	private async _get_ones_most_recent_messages(
@@ -307,18 +304,6 @@ export class ChannelService {
 			},
 			take: limit,
 		});
-
-		if (
-			!messages &&
-			!(await this._prisma.channel.count({
-				where: {
-					id: id,
-				},
-			}))
-		) {
-			console.log("Specified channel does not exist");
-			throw new ChannelNotFoundError(id);
-		}
 
 		console.log("Messages found");
 		// Get the most ancient messages first
