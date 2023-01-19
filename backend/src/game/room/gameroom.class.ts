@@ -16,16 +16,14 @@ type CheatCheck = {
 export class GameRoom {
 	public readonly match: Match;
 	private players_ping_id: NodeJS.Timer | null;
-	// private spectators_ping_id: NodeJS.Timer | null;
 	private game: Gameplay;
-	// public spectators: Socket[];
+	private is_ongoing: boolean;
 
 	constructor(match: Match) {
 		this.match = match;
 		this.players_ping_id = null;
-		// this.spectators_ping_id = null;
 		this.game = new Gameplay();
-		// this.spectators = [];
+		this.is_ongoing = false;
 		console.log("Room created:", this.match.name);
 	}
 
@@ -33,14 +31,13 @@ export class GameRoom {
 
 	/* -- GAME MANAGEMENT ----------------------------------------------------- */
 	/* Call this function once the game actually starts */
-	public startGame(): Ball /* GameUpdate */ {
-		// this.game = new Gameplay();
+	public startGame(): Ball {
+		this.is_ongoing = true;
 		return this.game.initializeGame();
 	}
 
 	/* Called every 16ms to send ball updates */
-	public updateGame(): Ball | ScoreUpdate /* GameUpdate */ {
-		// if (this.game === null) throw "Game is null";
+	public updateGame(): Ball | ScoreUpdate {
 		return this.game.refresh();
 	}
 
@@ -61,29 +58,20 @@ export class GameRoom {
 	public cutGameShort(guilty: number | null): ResultsObject {
 		if (!this.game) throw null;
 		else if (guilty === null) throw null;
+		this.is_ongoing = false;
 		return this.game.getResults(guilty);
 	}
 
+	/* -- GAME MANAGEMENT ----------------------------------------------------- */
 	public getFinalScore(): ScoreUpdate {
 		return this.game.getFinalScore();
 	}
 
-	/* -- GAME MANAGEMENT ----------------------------------------------------- */
-	// public addSpectator(client: Socket): void {
-	// 	this.spectators.push(client);
-	// }
-
-	// public removeSpectator(client: Socket): void {
-	// 	const index: number = this.spectators.findIndex((obj) => {
-	// 		return obj.id === client.id;
-	// 	});
-	// 	if (index < 0) return;
-	// 	this.spectators.splice(index, 1);
-	// }
-
 	public getBall(): Ball {
+		if (!this.is_ongoing) throw null;
 		return this.game.getBall();
 	}
+
 	/* -- INTERVAL UTILS ------------------------------------------------------ */
 	/* Stores the ID of the setInterval function */
 	public setPlayerPingId(timer_id: NodeJS.Timer): void {

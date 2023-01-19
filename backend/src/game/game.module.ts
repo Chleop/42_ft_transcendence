@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
-import { GameService } from "./game.service";
+import { GameService } from "./service";
+// import { SpectatorService } from "./service/spectator.service";
 import { GameGateway, SpectatorGateway } from "./gateways";
 
 //TODO: Middleware

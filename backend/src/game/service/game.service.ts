@@ -1,15 +1,13 @@
 import { Socket } from "socket.io";
-import { GameRoom } from "./room";
-import { AntiCheat, Client, Match } from "./aliases";
-import { PaddleDto } from "./dto";
-import { ResultsObject } from "./objects";
+import { GameRoom } from "../room";
+import { AntiCheat, Client, Match } from "../aliases";
+import { PaddleDto } from "../dto";
+import { ResultsObject } from "../objects";
 // import { PrismaService } from "../prisma/prisma.service";
 // import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 // import { BadRequestException, ConflictException } from "@nestjs/common";
 
 /* TODO: implement better MM */
-
-const cookie = require("cookie");
 
 /* Track match made */
 type Handshake = {
@@ -194,7 +192,14 @@ export class GameService {
 	}
 
 	public findUserGame(spectator: Socket): GameRoom | null {
-		const cookies_raw = spectator.handshake.headers.cookie;
+		const user_id: string | string[] | undefined = spectator.handshake.headers.socket_id;
+		if (typeof user_id !== "string") throw "Room not properly specified";
+		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
+			return obj.match.player1.id === user_id || obj.match.player2.id === user_id;
+		});
+		if (room === undefined) return null;
+		return room;
+		/* const cookies_raw = spectator.handshake.headers.cookie;
 		if (cookies_raw === undefined) throw "Cookie undefined";
 		const user_id: string = cookie.parse(cookies_raw).friend_id;
 		if (user_id === undefined) throw "No friend_id defined";
@@ -202,7 +207,7 @@ export class GameService {
 			return obj.match.player1.id === user_id || obj.match.player2.id === user_id;
 		});
 		if (room === undefined) return null;
-		return room;
+		return room; */
 	}
 
 	/* == PRIVATE =============================================================================== */

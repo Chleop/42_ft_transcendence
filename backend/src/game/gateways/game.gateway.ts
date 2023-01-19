@@ -1,6 +1,6 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { GameService } from "../game.service";
+import { GameService } from "../service/game.service";
 import { GameRoom } from "../room";
 import { PaddleDto } from "../dto";
 import { ResultsObject, Ball, ScoreUpdate } from "../objects";
