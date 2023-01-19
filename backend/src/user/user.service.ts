@@ -227,8 +227,9 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Get an user from the database. Both of the requesting and the requested user
-	 * 			must be active, and have at least one common channel, be friends, or be the same.
+	 * @brief	Get an user from the database.
+	 * 			Both of the requesting and the requested user must be active,
+	 * 			and have at least one common channel, be friends, or be the same.
 	 *
 	 * @param	requesting_user_id The id of the user requesting the user.
 	 * @param	requested_user_id The id of the user to get.
@@ -308,39 +309,101 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Get a user's avatar from the database.
+	 * @brief	Get an user's avatar from the database.
+	 * 			Both of the requesting and the requested user must be active,
+	 * 			and have at least one common channel, be friends, or be the same.
 	 *
-	 * @param	id The id of the user to get the avatar from.
+	 * @param	requesting_user_id The id of the user requesting the user's avatar.
+	 * @param	requested_id The id of the user to get the avatar from.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserNotFoundError
+	 * 			- UserNotLinkedError
 	 *
 	 * @return	A promise containing the wanted avatar.
 	 */
-	public async get_ones_avatar(id: string): Promise<StreamableFile> {
-		type t_fields = {
+	public async get_ones_avatar(
+		requesting_user_id: string,
+		requested_user_id: string,
+	): Promise<StreamableFile> {
+		type t_requesting_user_fields = {
+			channels: {
+				id: string;
+			}[];
+		};
+		type t_requested_user_fields = {
 			avatar: string;
+			channels: {
+				id: string;
+			}[];
+			friends: {
+				id: string;
+			}[];
 		};
 
-		console.log("Searching user...");
-		const user: t_fields | null = await this._prisma.user.findUnique({
+		console.log("Searching for requesting user...");
+		const requesting_user: t_requesting_user_fields | null = await this._prisma.user.findUnique(
+			{
+				select: {
+					channels: {
+						select: {
+							id: true,
+						},
+					},
+				},
+				where: {
+					idAndState: {
+						id: requesting_user_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			},
+		);
+
+		if (!requesting_user) {
+			throw new UserNotFoundError(requesting_user_id);
+		}
+
+		console.log("Searching for requested user...");
+		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
 			select: {
 				avatar: true,
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+				friends: {
+					select: {
+						id: true,
+					},
+				},
 			},
 			where: {
 				idAndState: {
-					id: id,
+					id: requested_user_id,
 					state: StateType.ACTIVE,
 				},
 			},
 		});
 
-		if (!user) {
-			throw new UserNotFoundError(id);
+		if (!requested_user) {
+			throw new UserNotFoundError(requested_user_id);
 		}
 
-		console.log("User found");
-		return new StreamableFile(createReadStream(join(process.cwd(), user.avatar)));
+		console.log(
+			"Checking for both users to be linked through a channel, a friendship, or to be the same...",
+		);
+		if (
+			requesting_user_id !== requested_user_id &&
+			!this._are_friends(requesting_user_id, requested_user.friends) &&
+			!this._have_common_channel(requesting_user.channels, requested_user.channels)
+		) {
+			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
+		}
+
+		console.log("Returning wanted avatar...");
+		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.avatar)));
 	}
 
 	/**

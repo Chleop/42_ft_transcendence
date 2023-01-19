@@ -122,15 +122,28 @@ export class UserController {
 	}
 
 	@Get(":id/avatar")
-	async get_ones_avatar(@Param("id") id: string): Promise<StreamableFile> {
+	@UseGuards(JwtGuard)
+	async get_ones_avatar(
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+		@Param("id") id: string,
+	): Promise<StreamableFile> {
 		let sfile: StreamableFile;
 
 		try {
-			sfile = await this._user_service.get_ones_avatar(id);
+			sfile = await this._user_service.get_ones_avatar(request.user.sub, id);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
+			}
+			if (error instanceof UserNotLinkedError) {
+				console.log(error.message);
+				throw new ForbiddenException(error.message);
 			}
 			console.log("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
