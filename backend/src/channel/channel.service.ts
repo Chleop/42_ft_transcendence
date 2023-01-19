@@ -178,7 +178,6 @@ export class ChannelService {
 	 * @param	limit The maximum number of messages to get.
 	 *
 	 * @error	The following errors may be thrown :
-	 * 			- ChannelNotFoundError
 	 * 			- ChannelMessageNotFoundError
 	 *
 	 * @return	A promise containing the wanted messages.
@@ -206,14 +205,6 @@ export class ChannelService {
 
 		if (!message || message.channelId !== id) {
 			console.log("Reference message not found");
-			if (
-				!(await this._prisma.channel.count({
-					where: { id: id },
-				}))
-			) {
-				console.log("Specified channel does not exist");
-				throw new ChannelNotFoundError(id);
-			}
 			throw new ChannelMessageNotFoundError(message_id);
 		}
 
@@ -242,7 +233,6 @@ export class ChannelService {
 	 * @param	limit The maximum number of messages to get.
 	 *
 	 * @error	The following errors may be thrown :
-	 * 			- ChannelNotFoundError
 	 * 			- ChannelMessageNotFoundError
 	 *
 	 * @return	A promise containing the wanted messages.
@@ -270,14 +260,6 @@ export class ChannelService {
 
 		if (!message || message.channelId !== id) {
 			console.log("Reference message not found");
-			if (
-				!(await this._prisma.channel.count({
-					where: { id: id },
-				}))
-			) {
-				console.log("Specified channel does not exist");
-				throw new ChannelNotFoundError(id);
-			}
 			throw new ChannelMessageNotFoundError(message_id);
 		}
 
