@@ -1,6 +1,11 @@
 import { t_relations } from "src/user/alias";
 import { UserUpdateDto } from "src/user/dto";
-import { UnknownError, UserFieldUnaivalableError, UserNotFoundError } from "src/user/error";
+import {
+	UnknownError,
+	UserFieldUnaivalableError,
+	UserNotFoundError,
+	UserNotLinkedError,
+} from "src/user/error";
 import { UserService } from "src/user/user.service";
 import {
 	BadRequestException,
@@ -72,7 +77,7 @@ export class UserController {
 		let user: User & t_relations;
 
 		try {
-			user = await this._user_service.get_one(request.user.sub);
+			user = await this._user_service.get_one(request.user.sub, request.user.sub);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
@@ -86,15 +91,28 @@ export class UserController {
 	}
 
 	@Get(":id")
-	async get_one(@Param("id") id: string): Promise<User & t_relations> {
+	@UseGuards(JwtGuard)
+	async get_one(
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+		@Param("id") id: string,
+	): Promise<User & t_relations> {
 		let user: User & t_relations;
 
 		try {
-			user = await this._user_service.get_one(id);
+			user = await this._user_service.get_one(request.user.sub, id);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
+			}
+			if (error instanceof UserNotLinkedError) {
+				console.log(error.message);
+				throw new ForbiddenException(error.message);
 			}
 			console.log("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();

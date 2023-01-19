@@ -4,6 +4,7 @@ import {
 	UnknownError,
 	UserFieldUnaivalableError,
 	UserNotFoundError,
+	UserNotLinkedError,
 	UserRelationNotFoundError,
 } from "src/user/error";
 import { ChannelService } from "src/channel/channel.service";
@@ -22,6 +23,54 @@ export class UserService {
 	constructor() {
 		this._channel = new ChannelService();
 		this._prisma = new PrismaService();
+	}
+
+	/**
+	 * @brief	Check whether two users are friends.
+	 *
+	 * @param	id The id of the first user.
+	 * @param	friends The friends of the second user.
+	 *
+	 * @return	Either true if the two users are friends, or false if not.
+	 */
+	private _are_friends(
+		id: string,
+		friends: {
+			id: string;
+		}[],
+	): boolean {
+		for (let friend of friends) {
+			if (friend.id === id) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * @brief	Check whether two arrays of channels share at least one common channel.
+	 *
+	 * @param	channels0 The first array of channels.
+	 * @param	channels1 The second array of channels.
+	 *
+	 * @return	Either true if both arrays share at least one common channel, or false if not.
+	 */
+	private _have_common_channel(
+		channels0: {
+			id: string;
+		}[],
+		channels1: {
+			id: string;
+		}[],
+	): boolean {
+		for (let channel0 of channels0) {
+			for (let channel1 of channels1) {
+				if (channel0.id === channel1.id) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -178,18 +227,51 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Get a user from the database.
+	 * @brief	Get an user from the database. Both of the requesting and the requested user
+	 * 			must be active, and have at least one common channel, be friends, or be the same.
 	 *
-	 * @param	id The id of the user to get.
+	 * @param	requesting_user_id The id of the user requesting the user.
+	 * @param	requested_user_id The id of the user to get.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserNotFoundError
+	 * 			- UserNotLinkedError
 	 *
 	 * @return	A promise containing the wanted user.
 	 */
-	public async get_one(id: string): Promise<User & t_relations> {
-		console.log("Searching user...");
-		const user: (User & t_relations) | null = await this._prisma.user.findUnique({
+	public async get_one(
+		requesting_user_id: string,
+		requested_user_id: string,
+	): Promise<User & t_relations> {
+		type t_fields = {
+			channels: {
+				id: string;
+			}[];
+		};
+
+		console.log("Searching for requesting user...");
+		const requesting_user: t_fields | null = await this._prisma.user.findUnique({
+			select: {
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requesting_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!requesting_user) {
+			throw new UserNotFoundError(requesting_user_id);
+		}
+
+		console.log("Searching for requested user...");
+		const requested_user: (User & t_relations) | null = await this._prisma.user.findUnique({
 			include: {
 				skin: true,
 				channels: true,
@@ -200,18 +282,29 @@ export class UserService {
 			},
 			where: {
 				idAndState: {
-					id: id,
+					id: requested_user_id,
 					state: StateType.ACTIVE,
 				},
 			},
 		});
 
-		if (!user) {
-			throw new UserNotFoundError(id);
+		if (!requested_user) {
+			throw new UserNotFoundError(requested_user_id);
+		}
+
+		console.log(
+			"Checking for both users to be linked through a channel, a friendship, or to be the same...",
+		);
+		if (
+			requesting_user_id !== requested_user_id &&
+			!this._are_friends(requesting_user_id, requested_user.friends) &&
+			!this._have_common_channel(requesting_user.channels, requested_user.channels)
+		) {
+			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
 		}
 
 		console.log("User found");
-		return user;
+		return requested_user;
 	}
 
 	/**
