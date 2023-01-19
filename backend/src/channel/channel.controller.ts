@@ -97,13 +97,16 @@ export class ChannelController {
 		try {
 			await this._channel_service.delete_one(request.user.sub, channel_id);
 		} catch (error) {
-			if (
-				error instanceof ChannelNotFoundError ||
-				error instanceof ChannelNotJoinedError ||
-				error instanceof ChannelNotOwnedError
-			) {
+			if (error instanceof ChannelNotFoundError) {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
+			}
+			if (
+				error instanceof ChannelNotOwnedError ||
+				error instanceof ChannelNotJoinedError
+			) {
+				console.log(error.message);
+				throw new ForbiddenException(error.message);
 			}
 			if (error instanceof UnknownError) {
 				console.log(error.message);
@@ -138,11 +141,14 @@ export class ChannelController {
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
-				error instanceof ChannelNotJoinedError ||
 				error instanceof ChannelMessageNotFoundError
 			) {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelNotJoinedError) {
+				console.log(error.message);
+				throw new ForbiddenException(error.message);
 			}
 			console.log("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
