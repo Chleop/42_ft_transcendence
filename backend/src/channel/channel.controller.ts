@@ -11,14 +11,16 @@ import {
 	Patch,
 	Post,
 	Query,
+	Req,
+	UseGuards,
 	UsePipes,
 	ValidationPipe,
 } from "@nestjs/common";
 import {
 	ChannelCreateDto,
 	ChannelJoinDto,
-	ChannelLeaveDto,
 	ChannelMessageGetDto,
+	ChannelMessageSendDto,
 } from "src/channel/dto";
 import { Channel, ChannelMessage } from "@prisma/client";
 import {
@@ -27,8 +29,10 @@ import {
 	ChannelInvitationIncorrectError,
 	ChannelInvitationUnexpectedError,
 	ChannelMessageNotFoundError,
+	ChannelMessageTooLongError,
 	ChannelNotFoundError,
 	ChannelNotJoinedError,
+	ChannelNotOwnedError,
 	ChannelPasswordIncorrectError,
 	ChannelPasswordMissingError,
 	ChannelPasswordNotAllowedError,
@@ -36,7 +40,9 @@ import {
 	ChannelRelationNotFoundError,
 	UnknownError,
 } from "src/channel/error";
+import { JwtGuard } from "src/auth/guards";
 
+@UseGuards(JwtGuard)
 @Controller("channel")
 export class ChannelController {
 	private _channel_service: ChannelService;
@@ -47,11 +53,19 @@ export class ChannelController {
 
 	@Post()
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async create_one(@Body() dto: ChannelCreateDto): Promise<Channel> {
+	async create_one(
+		@Req() request: { user: { sub: string } },
+		@Body() dto: ChannelCreateDto,
+	): Promise<Channel> {
 		let channel: Channel;
 
 		try {
-			channel = await this._channel_service.create_one(dto);
+			channel = await this._channel_service.create_one(
+				request.user.sub,
+				dto.name,
+				dto.is_private,
+				dto.password,
+			);
 		} catch (error) {
 			if (
 				error instanceof ChannelPasswordNotAllowedError ||
@@ -76,13 +90,23 @@ export class ChannelController {
 	}
 
 	@Delete(":id")
-	async delete_one(@Param("id") id: string): Promise<void> {
+	async delete_one(
+		@Req() request: { user: { sub: string } },
+		@Param("id") channel_id: string,
+	): Promise<void> {
 		try {
-			await this._channel_service.delete_one(id);
+			await this._channel_service.delete_one(request.user.sub, channel_id);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError) {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
+			}
+			if (
+				error instanceof ChannelNotOwnedError ||
+				error instanceof ChannelNotJoinedError
+			) {
+				console.log(error.message);
+				throw new ForbiddenException(error.message);
 			}
 			if (error instanceof UnknownError) {
 				console.log(error.message);
@@ -93,9 +117,10 @@ export class ChannelController {
 		}
 	}
 
-	@Get(":id/message")
+	@Get(":id/messages")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async get_ones_messages(
+		@Req() request: { user: { sub: string } },
 		@Param("id") id: string,
 		@Query() dto: ChannelMessageGetDto,
 	): Promise<ChannelMessage[]> {
@@ -106,7 +131,13 @@ export class ChannelController {
 		let messages: ChannelMessage[];
 
 		try {
-			messages = await this._channel_service.get_ones_messages(id, dto);
+			messages = await this._channel_service.get_ones_messages(
+				request.user.sub,
+				id,
+				dto.limit,
+				dto.before,
+				dto.after,
+			);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
@@ -114,6 +145,10 @@ export class ChannelController {
 			) {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelNotJoinedError) {
+				console.log(error.message);
+				throw new ForbiddenException(error.message);
 			}
 			console.log("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
@@ -124,11 +159,20 @@ export class ChannelController {
 
 	@Patch(":id/join")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async join_one(@Param("id") id: string, @Body() dto: ChannelJoinDto): Promise<Channel> {
+	async join_one(
+		@Req() request: { user: { sub: string } },
+		@Param("id") id: string,
+		@Body() dto: ChannelJoinDto,
+	): Promise<Channel> {
 		let channel: Channel;
 
 		try {
-			channel = await this._channel_service.join_one(id, dto);
+			channel = await this._channel_service.join_one(
+				request.user.sub,
+				id,
+				dto.password,
+				dto.inviting_user_id,
+			);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
@@ -156,13 +200,37 @@ export class ChannelController {
 
 	@Patch(":id/leave")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async leave_one(@Param("id") id: string, @Body() dto: ChannelLeaveDto): Promise<void> {
+	async leave_one(
+		@Req() request: { user: { sub: string } },
+		@Param("id") id: string,
+	): Promise<void> {
 		try {
-			await this._channel_service.leave_one(id, dto);
+			await this._channel_service.leave_one(id, request.user.sub);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
+			}
+		}
+	}
+
+	@Post(":id/message")
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	async send_message_to_one(
+		@Req() request: { user: { sub: string } },
+		@Param("id") id: string,
+		@Body() dto: ChannelMessageSendDto,
+	): Promise<void> {
+		try {
+			await this._channel_service.send_message_to_one(id, request.user.sub, dto.message);
+		} catch (error) {
+			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelMessageTooLongError) {
+				console.log(error.message);
+				throw new ForbiddenException(error.message);
 			}
 		}
 	}

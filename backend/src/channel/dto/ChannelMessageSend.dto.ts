@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsString } from "class-validator";
 
-export class UserCreateDto {
+export class ChannelMessageSendDto {
 	@IsNotEmpty()
 	@IsString()
-	public name: string = "";
+	public message: string = "";
 }
