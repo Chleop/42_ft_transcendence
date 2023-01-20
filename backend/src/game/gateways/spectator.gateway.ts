@@ -1,6 +1,6 @@
 import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { GameService } from "../service";
+import { GameService, SpectateService } from "../service";
 import { GameRoom } from "../room";
 import { SpectatedRoom } from "../objects";
 import * as Constants from "../constants/constants";
@@ -15,11 +15,13 @@ export class SpectatorGateway {
 	@WebSocketServer()
 	public readonly server: Server;
 	private readonly game_service: GameService;
-	private rooms: SpectatedRoom[];
+	// private rooms: SpectatedRoom[];
+	private readonly spectate_service: SpectateService;
 
-	constructor(game_service: GameService) {
+	constructor(game_service: GameService, spectate_service: SpectateService) {
 		this.server = new Server();
 		this.game_service = game_service;
+		this.spectate_service = spectate_service;
 	}
 
 	public handleConnection(client: Socket): void {
@@ -27,52 +29,45 @@ export class SpectatorGateway {
 		// For now:
 		//		client.handshake.headers.socket_id
 
+		console.log(`Client '${client.id}' joined`);
 		const room: GameRoom | null = this.game_service.findUserGame(client);
-		if (room === null) {
-			client.disconnect(true);
-		} else {
+		if (room instanceof GameRoom) {
 			client.join(room.match.name);
-			this.startSpectating(room);
+			return this.startStreaming(client, room);
 		}
-		this.game_service.display();
 	}
 
 	public handleDisconnect(client: Socket): void {
-		// if room exists with name
-		// remove room and timer
-
 		const room: GameRoom | null = this.game_service.findUserGame(client);
-		if (room === null) {
-			return;
-		} else {
-			const spectated_room: SpectatedRoom | undefined = this.rooms.find((obj) => {
-				return room.match.name === obj.name;
-			});
-			if (spectated_room === undefined) {
-				return;
-			} else {
-				--spectated_room.number_spectator;
-				if (spectated_room.isEmpty()) {
-					this.stopStreaming(spectated_room.name);
-				}
+		if (room instanceof GameRoom) {
+			const spectated_room: SpectatedRoom | null = this.spectate_service.getRoom(
+				room.match.name,
+			);
+			if (spectated_room instanceof SpectatedRoom) {
+				spectated_room.removeSpectator(client);
+				if (spectated_room.isEmpty())
+					this.stopStreaming(this, spectated_room.game_room.match.name);
 			}
 		}
+		console.log(`Client '${client.id}' left`);
 	}
 
 	// ------------------------------
 
-	private startSpectating(room: GameRoom): void {
-		const spectated_room: SpectatedRoom | undefined = this.rooms.find((obj) => {
-			return obj.name === room.match.name;
-		});
-		if (spectated_room === undefined) {
+	private startStreaming(client: Socket, room: GameRoom): void {
+		const spectated_room: SpectatedRoom | null = this.spectate_service.getRoom(room.match.name);
+		if (spectated_room === null) {
+			console.log(`Creating room ${room.match.name}`);
+			// Create a new spec room if it doesn't exist
 			const new_room: SpectatedRoom = new SpectatedRoom(
-				room.match.name,
+				room,
 				setInterval(this.updateGame, Constants.ping, this, room),
 			);
-			this.rooms.push(new_room);
+			new_room.addSpectator(client);
+			this.spectate_service.add(new_room);
 		} else {
-			++spectated_room.number_spectator;
+			console.log(`${room.match.name} exists`);
+			// The room exists
 		}
 	}
 
@@ -81,24 +76,24 @@ export class SpectatorGateway {
 			me.server.emit("updateBallSpectator", room.getBall());
 		} catch (e) {
 			if (e === null) {
-				me.stopStreaming(room.match.name);
+				// Game is done
+				me.stopStreaming(me, room.match.name);
 				return;
 			}
 			throw e;
 		}
 	}
 
-	private stopStreaming(room: string | number): void {
-		let room_index: number;
-		if (typeof room === "number") {
-			room_index = room;
-		} else {
-			room_index = this.rooms.findIndex((obj) => {
-				obj.name === room;
-			});
+	private stopStreaming(me: SpectatorGateway, room_name: string): void {
+		const room: SpectatedRoom | null = me.spectate_service.getRoom(room_name);
+		if (room === null) return;
+		me.kickEveryone(room);
+		me.spectate_service.destroyRoom(room_name);
+	}
+
+	private kickEveryone(room: SpectatedRoom): void {
+		for (const client of room.spectators) {
+			client.disconnect(true);
 		}
-		if (room_index < 0) return;
-		clearInterval(this.rooms[room_index].ping_id);
-		this.rooms.splice(room_index, 1);
 	}
 }

@@ -128,7 +128,6 @@ export class GameGateway {
 			client.disconnect(true);
 			console.log(e);
 		}
-		this.game_service.display();
 	}
 
 	/* Handle disconnection from server */
@@ -178,6 +177,7 @@ export class GameGateway {
 
 		// TODO: save timeout and reset it when needed
 		setTimeout(this.startGame, 3000, this, room);
+		this.game_service.display();
 	}
 
 	/* -- UPDATING TOOLS ------------------------------------------------------ */

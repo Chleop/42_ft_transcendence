@@ -23,7 +23,7 @@ export class GameRoom {
 		this.match = match;
 		this.players_ping_id = null;
 		this.game = new Gameplay();
-		this.is_ongoing = false;
+		this.is_ongoing = true;
 		console.log("Room created:", this.match.name);
 	}
 
@@ -32,7 +32,7 @@ export class GameRoom {
 	/* -- GAME MANAGEMENT ----------------------------------------------------- */
 	/* Call this function once the game actually starts */
 	public startGame(): Ball {
-		this.is_ongoing = true;
+		// this.is_ongoing = true;
 		return this.game.initializeGame();
 	}
 
