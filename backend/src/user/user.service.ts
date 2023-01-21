@@ -29,79 +29,6 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Make an user block an other user, preventing the blocking user of :
-	 * 			- being challenged by the blocked user
-	 * 			- being invited to a channel by the blocked user
-	 * 			- seeing the blocked user's messages
-	 *
-	 * @param	dto The dto containing the data to block an user.
-	 *
-	 * @error	The following errors may be thrown :
-	 * 			- UserNotFoundError
-	 * 			- UserSelfBlockError
-	 * 			- UserAlreadyBlockedError
-	 */
-	public async block_one(blocked_user_id: string, blocking_user_id: string): Promise<void> {
-		console.log("Checking if blocking user exists...");
-		if (
-			!(await this._prisma.user.count({
-				where: {
-					id: blocking_user_id,
-				},
-			}))
-		) {
-			throw new UserNotFoundError();
-		}
-
-		console.log("Checking if blocked user exists...");
-		if (
-			!(await this._prisma.user.count({
-				where: {
-					id: blocked_user_id,
-				},
-			}))
-		) {
-			throw new UserNotFoundError();
-		}
-
-		console.log("Checking for self-blocking...");
-		if (blocked_user_id === blocking_user_id) {
-			throw new UserSelfBlockError();
-		}
-
-		console.log("Checking for already blocked...");
-		if (
-			await this._prisma.user.count({
-				where: {
-					id: blocking_user_id,
-					blocked: {
-						some: {
-							id: blocked_user_id,
-						},
-					},
-				},
-			})
-		) {
-			throw new UserAlreadyBlockedError();
-		}
-
-		console.log("Blocking user...");
-		await this._prisma.user.update({
-			where: {
-				id: blocking_user_id,
-			},
-			data: {
-				blocked: {
-					connect: {
-						id: blocked_user_id,
-					},
-				},
-			},
-		});
-		console.log("User blocked");
-	}
-
-	/**
 	 * @brief	Check whether two users are friends.
 	 *
 	 * @param	id The id of the first user.
@@ -147,6 +74,99 @@ export class UserService {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * @brief	Make an user block an other user, preventing the blocking user of :
+	 * 			- being challenged by the blocked user
+	 * 			- being invited to a channel by the blocked user
+	 * 			- seeing the blocked user's messages
+	 *
+	 * @param	blocking_user_id The id of the user blocking the other user.
+	 * @param	blocked_user_id The id of the user being blocked.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserSelfBlockError
+	 * 			- UserAlreadyBlockedError
+	 */
+	public async block_one(blocking_user_id: string, blocked_user_id: string): Promise<void> {
+		type t_blocking_user_fields = {
+			blocked: {
+				id: string;
+			}[];
+		};
+		type t_blocked_user_fields = {
+			id: string;
+		};
+
+		console.log("Searching for blocking user...");
+		const blocking_user: t_blocking_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				blocked: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: blocking_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!blocking_user) {
+			throw new UserNotFoundError();
+		}
+
+		console.log("Searching for blocked user...");
+		const blocked_user: t_blocked_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				id: true,
+			},
+			where: {
+				idAndState: {
+					id: blocked_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!blocked_user) {
+			throw new UserNotFoundError();
+		}
+
+		console.log("Checking for self-blocking...");
+		if (blocked_user_id === blocking_user_id) {
+			throw new UserSelfBlockError();
+		}
+
+		console.log("Checking for already blocked...");
+		for (const blocked_user of blocking_user.blocked) {
+			if (blocked_user.id === blocked_user_id) {
+				throw new UserAlreadyBlockedError();
+			}
+		}
+
+		console.log("Blocking user...");
+		await this._prisma.user.update({
+			data: {
+				blocked: {
+					connect: {
+						id: blocked_user_id,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: blocking_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		console.log("User blocked");
 	}
 
 	/**
@@ -523,33 +543,61 @@ export class UserService {
 	/**
 	 * @brief	Make an user unblock an other user, ending the restrictions imposed by the block.
 	 *
-	 * @param	dto The dto containing the data to unblock an user.
+	 * @param	unblocking_user_id The id of the user unblocking the other user.
+	 * @param	unblocked_user_id The id of the user being unblocked.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserNotFoundError
 	 * 			- SelfUnblockError
 	 * 			- NotBlockedError
 	 */
-	public async unblock_one(unblocked_user_id: string, unblocking_user_id: string): Promise<void> {
-		console.log("Checking for unblocking user's existence...");
-		if (
-			!(await this._prisma.user.count({
-				where: {
-					id: unblocking_user_id,
+	public async unblock_one(unblocking_user_id: string, unblocked_user_id: string): Promise<void> {
+		type t_unblocking_user_fields = {
+			blocked: {
+				id: string;
+			}[];
+		};
+		type t_unblocked_user_fields = {
+			id: string;
+		};
+
+		console.log("Searching for unblocking user...");
+		const unblocking_user: t_unblocking_user_fields | null = await this._prisma.user.findUnique(
+			{
+				select: {
+					blocked: {
+						select: {
+							id: true,
+						},
+					},
 				},
-			}))
-		) {
+				where: {
+					idAndState: {
+						id: unblocking_user_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			},
+		);
+
+		if (!unblocking_user) {
 			throw new UserNotFoundError();
 		}
 
-		console.log("Checking for unblocked user's existence...");
-		if (
-			!(await this._prisma.user.count({
-				where: {
+		console.log("Searching for unblocked user...");
+		const unblocked_user: t_unblocked_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				id: true,
+			},
+			where: {
+				idAndState: {
 					id: unblocked_user_id,
+					state: StateType.ACTIVE,
 				},
-			}))
-		) {
+			},
+		});
+
+		if (!unblocked_user) {
 			throw new UserNotFoundError();
 		}
 
@@ -559,31 +607,30 @@ export class UserService {
 		}
 
 		console.log("Checking for not blocked...");
-		if (
-			!(await this._prisma.user.count({
-				where: {
-					id: unblocking_user_id,
-					blocked: {
-						some: {
-							id: unblocked_user_id,
-						},
-					},
-				},
-			}))
-		) {
+		let found: boolean = false;
+		for (const blocked_user of unblocking_user.blocked) {
+			if (blocked_user.id === unblocked_user_id) {
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
 			throw new UserNotBlockedError();
 		}
 
 		console.log("Unblocking user...");
 		await this._prisma.user.update({
-			where: {
-				id: unblocking_user_id,
-			},
 			data: {
 				blocked: {
 					disconnect: {
 						id: unblocked_user_id,
 					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: unblocking_user_id,
+					state: StateType.ACTIVE,
 				},
 			},
 		});
@@ -639,8 +686,6 @@ export class UserService {
 		if (!user) {
 			throw new UserNotFoundError();
 		}
-
-		console.log("User found");
 
 		if (name !== undefined) user.name = name;
 		if (email !== undefined) user.email = email;

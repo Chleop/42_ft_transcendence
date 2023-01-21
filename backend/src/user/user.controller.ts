@@ -22,7 +22,6 @@ import {
 	Param,
 	Patch,
 	Put,
-	Query,
 	Req,
 	StreamableFile,
 	UploadedFile,
@@ -44,14 +43,18 @@ export class UserController {
 		this._user_service = new UserService();
 	}
 
-	@Patch(":blocked_user_id/block")
-	// TODO: Remove the `blocking_user_id` query when the authentification is implemented
+	@Patch(":id/block")
 	async block_one(
-		@Param("blocked_user_id") blocked_user_id: string,
-		@Query("blocking_user_id") blocking_user_id: string,
+		@Param("id") id: string,
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
 	): Promise<void> {
 		try {
-			await this._user_service.block_one(blocked_user_id, blocking_user_id);
+			await this._user_service.block_one(request.user.sub, id);
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||
@@ -62,6 +65,7 @@ export class UserController {
 				throw new BadRequestException(error.message);
 			}
 			console.log("Unknown error type, this should not happen");
+			console.log(error);
 			throw new InternalServerErrorException();
 		}
 	}
@@ -176,14 +180,18 @@ export class UserController {
 		return sfile;
 	}
 
-	@Patch(":unblocked_user_id/unblock")
-	// TODO: Remove the `unblocking_user_id` query when the authentification is implemented
+	@Patch(":id/unblock")
 	async unblock_one(
-		@Param("unblocked_user_id") unblocked_user_id: string,
-		@Query("unblocking_user_id") unblocking_user_id: string,
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+		@Param("id") id: string,
 	): Promise<void> {
 		try {
-			await this._user_service.unblock_one(unblocked_user_id, unblocking_user_id);
+			await this._user_service.unblock_one(request.user.sub, id);
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||
