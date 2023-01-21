@@ -3,11 +3,14 @@ import { UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
+	UserAlreadyFriendError,
+	UserAlreadySentFriendRequestError,
 	UserFieldUnaivalableError,
 	UserNotBlockedError,
 	UserNotFoundError,
 	UserNotLinkedError,
 	UserSelfBlockError,
+	UserSelfFriendRequestError,
 	UserSelfUnblockError,
 } from "src/user/error";
 import { UserService } from "src/user/user.service";
@@ -178,6 +181,34 @@ export class UserController {
 		}
 
 		return sfile;
+	}
+
+	@Patch(":id/friend_request")
+	async send_friend_request_to_one(
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+		@Param("id") id: string,
+	): Promise<void> {
+		console.log(request.user.sub);
+		try {
+			await this._user_service.send_friend_request_to_one(request.user.sub, id);
+		} catch (error) {
+			if (
+				error instanceof UserNotFoundError ||
+				error instanceof UserSelfFriendRequestError ||
+				error instanceof UserAlreadyFriendError ||
+				error instanceof UserAlreadySentFriendRequestError
+			) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
 	}
 
 	@Patch(":id/unblock")

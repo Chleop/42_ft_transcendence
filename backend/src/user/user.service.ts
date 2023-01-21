@@ -2,12 +2,15 @@ import { t_relations } from "src/user/alias";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
+	UserAlreadyFriendError,
+	UserAlreadySentFriendRequestError,
 	UserFieldUnaivalableError,
 	UserNotBlockedError,
 	UserNotFoundError,
 	UserNotLinkedError,
 	UserRelationNotFoundError,
 	UserSelfBlockError,
+	UserSelfFriendRequestError,
 	UserSelfUnblockError,
 } from "src/user/error";
 import { ChannelService } from "src/channel/channel.service";
@@ -29,21 +32,21 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Check whether two users are friends.
+	 * @brief	Check whether an user id is contained in an array of users.
 	 *
-	 * @param	id The id of the first user.
-	 * @param	friends The friends of the second user.
+	 * @param	id The user id to search.
+	 * @param	users The users array to search in.
 	 *
-	 * @return	Either true if the two users are friends, or false if not.
+	 * @return	Either true if the given id is contained in the given array, or false if not.
 	 */
-	private _are_friends(
+	private _is_user_id_in_users_array(
 		id: string,
-		friends: {
+		users: {
 			id: string;
 		}[],
 	): boolean {
-		for (let friend of friends) {
-			if (friend.id === id) {
+		for (let user of users) {
+			if (user.id === id) {
 				return true;
 			}
 		}
@@ -74,6 +77,68 @@ export class UserService {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * @brief	Make two users become friends, allowing them to :
+	 * 			- see each other's status
+	 * 			- see each other's channels
+	 * 			- see each other's friends
+	 * 			- see each other's games history
+	 * 			- challenge each other without passing by a channel
+	 * 			- spectating each other's games without passing by a channel
+	 * 			- invite each other to a channel without passing by a channel
+	 * 			It is assumed that the two users exist and are not already friends.
+	 * 			Also remove every related pendingFriendRequest.
+	 *
+	 * @param	user_id0 The id of the first user.
+	 * @param	user_id1 The id of the second user.
+	 *
+	 * @return	An empty promise.
+	 */
+	private async _make_two_become_friends(user_id0: string, user_id1: string): Promise<void> {
+		console.log("Making two users become friends...");
+		await this._prisma.user.update({
+			data: {
+				friends: {
+					connect: {
+						id: user_id1,
+					},
+				},
+				pendingFriendRequests: {
+					disconnect: {
+						id: user_id1,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: user_id0,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		await this._prisma.user.update({
+			data: {
+				friends: {
+					connect: {
+						id: user_id0,
+					},
+				},
+				pendingFriendRequests: {
+					disconnect: {
+						id: user_id0,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: user_id1,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		console.log("Two users are now friends.");
 	}
 
 	/**
@@ -138,7 +203,7 @@ export class UserService {
 			throw new UserNotFoundError();
 		}
 
-		console.log("Checking for self-blocking...");
+		console.log("Checking for self blocking...");
 		if (blocked_user_id === blocking_user_id) {
 			throw new UserSelfBlockError();
 		}
@@ -397,7 +462,7 @@ export class UserService {
 		);
 		if (
 			requesting_user_id !== requested_user_id &&
-			!this._are_friends(requesting_user_id, requested_user.friends) &&
+			!this._is_user_id_in_users_array(requesting_user_id, requested_user.friends) &&
 			!this._have_common_channel(requesting_user.channels, requested_user.channels)
 		) {
 			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
@@ -495,7 +560,7 @@ export class UserService {
 		);
 		if (
 			requesting_user_id !== requested_user_id &&
-			!this._are_friends(requesting_user_id, requested_user.friends) &&
+			!this._is_user_id_in_users_array(requesting_user_id, requested_user.friends) &&
 			!this._have_common_channel(requesting_user.channels, requested_user.channels)
 		) {
 			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
@@ -541,6 +606,133 @@ export class UserService {
 	}
 
 	/**
+	 * @brief	Make an user send a friend request to an other user.
+	 * 			Both of the users must be active, and not be the same.
+	 * 			Sending a friend request to an user that has already sent a friend request
+	 * 			to the sending user will make them become friends.
+	 *
+	 * @param	sending_user_id The id of the user sending the friend request.
+	 * @param	receiving_user_id The id of the user receiving the friend request.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- SelfFriendRequestError
+	 * 			- AlreadyFriendsError
+	 * 			- AlreadySentFriendRequestError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async send_friend_request_to_one(
+		sending_user_id: string,
+		receiving_user_id: string,
+	): Promise<void> {
+		type t_sending_user_fields = {
+			pendingFriendRequests: {
+				id: string;
+			}[];
+		};
+		type t_receiving_user_fields = {
+			friends: {
+				id: string;
+			}[];
+			pendingFriendRequests: {
+				id: string;
+			}[];
+		};
+
+		console.log("Searching for sending user...");
+		const sending_user: t_sending_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				pendingFriendRequests: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: sending_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!sending_user) {
+			throw new UserNotFoundError(sending_user_id);
+		}
+
+		console.log("Searching for receiving user...");
+		const receiving_user: t_receiving_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				id: true,
+				friends: {
+					select: {
+						id: true,
+					},
+				},
+				pendingFriendRequests: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: receiving_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!receiving_user) {
+			throw new UserNotFoundError(receiving_user_id);
+		}
+
+		console.log("Checking for self friend requesting...");
+		if (sending_user_id === receiving_user_id) {
+			throw new UserSelfFriendRequestError();
+		}
+
+		console.log("Checking for already friends...");
+		if (this._is_user_id_in_users_array(sending_user_id, receiving_user.friends)) {
+			throw new UserAlreadyFriendError();
+		}
+
+		console.log("Checking for already sent friend request...");
+		if (
+			this._is_user_id_in_users_array(sending_user_id, receiving_user.pendingFriendRequests)
+		) {
+			throw new UserAlreadySentFriendRequestError();
+		}
+
+		console.log("Sending friend request...");
+		await this._prisma.user.update({
+			data: {
+				pendingFriendRequests: {
+					connect: {
+						id: sending_user_id,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: receiving_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		console.log("Checking for reciprocal friend request...");
+		if (
+			this._is_user_id_in_users_array(receiving_user_id, sending_user.pendingFriendRequests)
+		) {
+			return this._make_two_become_friends(sending_user_id, receiving_user_id);
+		} else {
+			console.log("No reciprocal friend request found");
+		}
+	}
+
+	/**
 	 * @brief	Make an user unblock an other user, ending the restrictions imposed by the block.
 	 *
 	 * @param	unblocking_user_id The id of the user unblocking the other user.
@@ -551,6 +743,7 @@ export class UserService {
 	 * 			- SelfUnblockError
 	 * 			- NotBlockedError
 	 */
+
 	public async unblock_one(unblocking_user_id: string, unblocked_user_id: string): Promise<void> {
 		type t_unblocking_user_fields = {
 			blocked: {
@@ -601,7 +794,7 @@ export class UserService {
 			throw new UserNotFoundError();
 		}
 
-		console.log("Checking for self-unblocking...");
+		console.log("Checking for self unblocking...");
 		if (unblocked_user_id === unblocking_user_id) {
 			throw new UserSelfUnblockError();
 		}

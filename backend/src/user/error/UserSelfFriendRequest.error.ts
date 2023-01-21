@@ -1,10 +1,10 @@
-export class UserAlreadyBlockedError implements Error {
+export class UserSelfFriendRequestError implements Error {
 	private _name: string;
 	private _message: string;
 
 	constructor() {
-		this._name = "UserAlreadyBlockedError";
-		this._message = "User is already blocked";
+		this._name = "UserSelfFriendRequestError";
+		this._message = "User cannot friend request themself";
 	}
 
 	public get name(): string {

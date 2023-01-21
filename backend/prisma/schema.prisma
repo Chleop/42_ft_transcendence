@@ -27,7 +27,7 @@ model User {
   gamesPlayed             Game[]    @relation("gamesplayed")
   gamesWon                Game[]    @relation("gameswon")
   friends                 User[]    @relation("friendship")
-  pendingFriendsRequests  User[]    @relation("pending friendship")
+  pendingFriendRequests   User[]    @relation("pending friendship")
   blocked                 User[]    @relation("blocked")
   channelOwned            Channel[] @relation("chanowner")
   // les champs ci-dessous sont neccessaires pour les relations mais
