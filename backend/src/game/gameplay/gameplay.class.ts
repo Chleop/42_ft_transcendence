@@ -87,6 +87,7 @@ export class Gameplay {
 	}
 
 	/* -- UTILS --------------------------------------------------------------- */
+
 	public getScores(): Score {
 		return this.scores;
 	}
@@ -97,6 +98,10 @@ export class Gameplay {
 
 	public getResults(guilty: number): ResultsObject {
 		return new ResultsObject(this.scores, guilty);
+	}
+
+	public getBall(): Ball {
+		return this.ball;
 	}
 
 	/* == PRIVATE =============================================================================== */
