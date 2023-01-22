@@ -55,10 +55,10 @@ export const Client = (function() {
 
     // Verify that the user is connected and if so, create a client to start interacting with the
     // backend.
-    let token = get_cookie("token");
+    let token = get_cookie("access_token");
     if (!token) {
         // The user is not connected.
-        // document.location.pathname = "/42login";
+        // document.location.pathname = "/auth/42/login";
         // throw "used not connected";
         token = "my awesome token";
     }

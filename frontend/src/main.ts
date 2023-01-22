@@ -1,4 +1,4 @@
-import { History } from "./strawberry/history";
+import { History } from "./strawberry";
 import { RouteData, Router } from "./strawberry/router";
 import { MainMenuScene } from "./main_menu/main_menu";
 

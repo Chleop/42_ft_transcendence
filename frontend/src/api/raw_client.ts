@@ -212,7 +212,7 @@ export class RawHTTPClient {
             method: "POST",
             success_status: 201,
             accept: "application/json",
-            url: `channel/${channel}/message`,
+            url: `channel/${channel}/messages`,
             body: {
                 content_type: "text/plain",
                 data: content,
