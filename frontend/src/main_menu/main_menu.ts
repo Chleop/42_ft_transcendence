@@ -1,6 +1,6 @@
 import { ChatElement } from "./chat";
 import { Scene } from "../strawberry/scene";
-import { PrivateUser, GameSocket } from "../api";
+import { GameSocket, Client, Users } from "../api";
 import { History } from "../strawberry/history";
 import { GameScene, RemotePlayer, LocalPlayer } from "../game";
 
@@ -92,29 +92,9 @@ export class MainMenuScene extends Scene {
         this.chat_element = new ChatElement();
         this.container.appendChild(this.chat_element.html);
 
-        // TODO:
-        //  Ensure that this logic uses a cached client + update when receiving
-        //  new events through websockets.
-        //client.me().then(me => {
-        {
-            const me: PrivateUser = /* await client.me() */ {
-                avatar: "4a1041e5-1392-48cb-b89e-c5e3c1eadddc",
-                channels: [
-                    {
-                        has_password: false,
-                        id: "",
-                        name: "Test"
-                    },
-                    {
-                        has_password: false,
-                        id: "",
-                        name: "Test2"
-                    }
-                ],
-                id: "3ccb95c1-b1c6-4ee2-b84a-b048700ef59c",
-                name: "nmathieu",
-            };
-
+        Users.me().then(me => {
+            console.info(`connected as '${me.name}'`);
+            
             // Initialize the stuff that's related to the user.
             let first: boolean = true;
             for (const channel of me.channels) {
@@ -127,7 +107,7 @@ export class MainMenuScene extends Scene {
                     this.chat_element.set_selected_channel(element);
                 }
             }
-        };
+        });
 
         this.game_socket = null;
     }

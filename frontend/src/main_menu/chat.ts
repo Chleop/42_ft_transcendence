@@ -1,6 +1,4 @@
-import { Channel, ChannelId, Message } from "../api/channel";
-import { UserId } from "../api/user";
-import { RawHTTPClient } from "../api/raw_client";
+import { Channel, ChannelId, Message, UserId, Client, Users } from "../api";
 
 /**
  * A message that has been instanciated in the DOM.
@@ -17,13 +15,15 @@ class MessageElementInternal {
     public constructor(continuing: boolean, message: Message) {
         const avatar = document.createElement("avatar");
         avatar.classList.add("message-avatar");
-        avatar.style.backgroundImage = `/avatar/${message.author_avatar}`;
+        Client.user_avatar(message.senderId).then(url => {
+            avatar.style.backgroundImage = `url(\"${url}\")`;
+        });
         const author = document.createElement("button");
         author.classList.add("message-author");
-        author.innerText = message.author_name;
+        Users.get(message.senderId).then(user => author.innerText = user.name);
         const time = document.createElement("div");
         time.classList.add("message-time");
-        time.innerText = "121"; // TODO: Use real message time.
+        time.innerText = new Date(message.dateTime).toLocaleString();
         const header = document.createElement("div");
         header.classList.add("message-header");
         header.appendChild(author);
@@ -239,6 +239,13 @@ export class ChatElement {
 
         this.channel_tabs.appendChild(element.tab);
 
+        // Try to get the twenty last messages of the channel.
+        Client.last_messages(channel.id, 20).then(messages => {
+            for (const m of messages) {
+                this.add_message(element, m);
+            }
+        });
+
         return element;
     }
 
@@ -249,13 +256,13 @@ export class ChatElement {
         const channel_ = channel as ChannelElementInternal;
 
         let continuing = false;
-        if (channel_.last_message_author && channel_.last_message_author === message.author_id) {
+        if (channel_.last_message_author && channel_.last_message_author === message.senderId) {
             continuing = true;
         }
 
         // If the last child is the same author, add the `message-continuing` class.
         if (!continuing) {
-            channel_.last_message_author = message.author_id;
+            channel_.last_message_author = message.senderId;
         }
 
         const element = new MessageElementInternal(continuing, message);
@@ -280,14 +287,15 @@ export class ChatElement {
         const content = this.message_input.value;
         this.message_input.value = "";
 
+        await Client.send_message(this.selected_channel.channel_id, content);
         // TODO:
-        //  Use the API for real here.
-        let message: Message = /* await client.send_message(this.selected_channel.channel_id, content); */ {
-            author_avatar: "",
-            author_id: "Nils",
-            author_name: "Nils",
+        //  Until #87 is resolved.
+        const message = <Message>{
+            channelId: this.selected_channel.channel_id,
             content,
+            dateTime: new Date().toISOString(),
             id: "",
+            senderId: (await Users.me()).id,
         };
 
         this.add_message(this.selected_channel, message);
