@@ -1,4 +1,4 @@
-import { GameRoom } from "../room";
+import { GameRoom } from ".";
 import { Socket } from "socket.io";
 
 export class SpectatedRoom {

@@ -1,8 +1,8 @@
 import { Socket } from "socket.io";
-import { GameRoom } from "../room";
+import { GameRoom } from "../rooms";
 import { AntiCheat, Client, Match } from "../aliases";
 import { PaddleDto } from "../dto";
-import { ResultsObject } from "../objects";
+import { Results } from "../objects";
 import { Injectable } from "@nestjs/common";
 // import { PrismaService } from "../prisma/prisma.service";
 // import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
@@ -45,7 +45,7 @@ export class GameService {
 	}
 
 	// TODO save score to db
-	public saveScore(room: GameRoom, results: ResultsObject | null): Match {
+	public saveScore(room: GameRoom, results: Results | null): Match {
 		const match: Match = room.match;
 		try {
 			if (results) console.log("Scores:", results);
@@ -57,7 +57,7 @@ export class GameService {
 		return match;
 	}
 
-	// public async registerGameHistory(room: GameRoom, results: ResultsObject): Promise<Match> {
+	// public async registerGameHistory(room: GameRoom, results: Results): Promise<Match> {
 	// 	const match: Match = room.match;
 	// 	try {
 	// 		/*const user = */await this.prisma.game.create({

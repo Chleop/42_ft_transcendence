@@ -1,8 +1,7 @@
 import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { GameService, SpectateService } from "../service";
-import { GameRoom } from "../room";
-import { SpectatedRoom } from "../objects";
+import { GameService, SpectateService } from "../services";
+import { GameRoom, SpectatedRoom } from "../rooms";
 import * as Constants from "../constants/constants";
 
 @WebSocketGateway({
@@ -73,7 +72,8 @@ export class SpectatorGateway {
 
 	private updateGame(me: SpectatorGateway, room: GameRoom): void {
 		try {
-			me.server.emit("updateBallSpectator", room.getBall());
+			// me.server.emit("updateBallSpectator", room.getBall());
+			me.server.emit("updatePaddles", room.getSpectatorUpdate());
 		} catch (e) {
 			if (e === null) {
 				// Game is done
