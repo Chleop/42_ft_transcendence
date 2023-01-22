@@ -1,17 +1,42 @@
 import { ChatElement } from "./chat";
-import { Scene } from "../strawberry/scene";
-import { GameSocket, Client, Users } from "../api";
-import { History } from "../strawberry/history";
-import { GameScene, RemotePlayer, LocalPlayer } from "../game";
+import { Overlay, Scene, State, History } from "../strawberry";
+import { GameSocket, Users } from "../api";
+import { Game, RemotePlayer, LocalPlayer } from "../game";
+
+class ProfileOverlay extends Overlay {
+    private html: HTMLDivElement;
+
+    public constructor(parent_state: State) {
+        super(parent_state);
+
+        this.html = document.createElement("div");
+        this.html.id = "profile"
+        this.html.onclick = () => History.go_back();
+        const container = document.createElement("div");
+        container.id = "profile-container";
+        container.innerText = "Hello, World!";
+        this.html.appendChild(container);
+    }
+
+    public get root_html_element(): HTMLElement {
+        return this.html;
+    }
+
+    public get location(): string {
+        return "/profile";
+    }
+}
 
 /**
  * The scene that contains the main menu.
  */
-export class MainMenuScene extends Scene {
+class MainMenuScene extends Scene {
     /**
      * The state of the chat.
      */
     private chat_element: ChatElement;
+
+    private profile_overlay: ProfileOverlay;
 
     /**
      * The root HTML element of the main menu.
@@ -73,7 +98,8 @@ export class MainMenuScene extends Scene {
                     console.log("Match found!");
 
                     const s = <GameSocket>this.game_socket;
-                    History.push_state(new GameScene(s, new LocalPlayer(s), new RemotePlayer(s)));
+                    Game.start(s, new LocalPlayer(s), new RemotePlayer(s));
+                    History.push_state(Game);
                     this.game_socket = null;
                     find_game_span.innerText = "Find Game";
                 };
@@ -87,14 +113,18 @@ export class MainMenuScene extends Scene {
         const profile_span = document.createElement("div");
         profile_span.innerText = "Profile";
         profile.appendChild(profile_span);
+        profile.onclick = () => History.push_state(this.profile_overlay);
         this.container.appendChild(profile);
 
         this.chat_element = new ChatElement();
         this.container.appendChild(this.chat_element.html);
 
+        this.profile_overlay = new ProfileOverlay(this);
+        this.container.appendChild(this.profile_overlay.root_html_element);
+
         Users.me().then(me => {
             console.info(`connected as '${me.name}'`);
-            
+
             // Initialize the stuff that's related to the user.
             let first: boolean = true;
             for (const channel of me.channels) {
@@ -120,3 +150,5 @@ export class MainMenuScene extends Scene {
         return this.container;
     }
 }
+
+export const MainMenu = new MainMenuScene();

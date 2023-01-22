@@ -81,7 +81,11 @@ export class GameSocket {
      * Creates a new GameSocket.
      */
     public constructor() {
-        this.socket = io("/game");
+        this.socket = io("/game", {
+            extraHeaders: {
+                socket_id: 'xyz',
+            }
+        });
 
         this.socket.on("connect", () => this.on_connected());
         this.socket.on("disconnect", () => this.on_disconnected());
