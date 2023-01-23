@@ -27,7 +27,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
 	// works, we're guaranteed that we're receiving a valid token
 	// that we have previously signed and issued to a valid user.
 	async validate(payload: t_payload): Promise<User> {
-		const user = await this._user.get_one(payload.sub);
+		let user: User;
+		if (payload.sub !== undefined)
+			user = await this._user.get_one(payload.sub, payload.sub);
+		else
+			throw new Error("Unvalid payload sent from JWT signing");
 		return user;
 	}
 }
