@@ -99,7 +99,6 @@ export class AuthService {
 		}
 	}
 
-	
 	public async confirm_email(@Req() req: any, user_id: string, email: string, code: number) {
 		if (this._confirmation_code === code) {
 			if (req.user.twoFactAuth === false) {
