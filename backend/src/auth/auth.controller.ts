@@ -17,6 +17,7 @@ type t_access_token = { access_token: string | undefined };
 @Controller("auth")
 export class AuthController {
 	private _authService: AuthService;
+	public	_email_to_be_validated: string;
 
 	constructor(authService: AuthService) {
 		this._authService = authService;
@@ -33,9 +34,10 @@ export class AuthController {
 	async signin(@Req() request: any) {
 		let token: t_access_token;
 		try {
-			// if (request.user.twoFactAuth === true) {
-			// }
-			token = await this._authService.createAccessToken(request.user.login);
+			if (request.user.twoFactAuth === true) {
+				this._authService.send_confirmation_email(this._email_to_be_validated);
+			}
+			token = await this._authService.create_access_token(request.user.login);
 			return token;
 		} catch (error) {
 			console.info(error);
@@ -50,8 +52,17 @@ export class AuthController {
 	@UseGuards(JwtGuard)
 	@Post("42/2FAActivate")
 	async activateTwoFactAuth(@Body("email") email: string) {
-		console.log("email = " + email);
-		this._authService.sendConfirmationEmail(email);
+		this._email_to_be_validated = email;
+		this._authService.send_confirmation_email(this._email_to_be_validated);
+		// TODO : retirer le return ok
+		return "ok!";
+	}
+
+	@Post("42/2FAValidate")
+	@UseGuards(JwtGuard)
+	async validateTwoFactAuth(@Req() request: any, @Body("code") code: number) {
+		this._authService.confirm_email(request, request.user.sub, this._email_to_be_validated, code);
+		// TODO : retirer le return ok
 		return "ok!";
 	}
 }
