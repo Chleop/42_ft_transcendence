@@ -99,6 +99,7 @@ export class AuthService {
 		}
 	}
 
+	
 	public async confirm_email(@Req() req: any, user_id: string, email: string, code: number) {
 		if (this._confirmation_code === code) {
 			if (req.user.twoFactAuth === false) {
@@ -113,11 +114,11 @@ export class AuthService {
 	}
 
 	public async add_email_to_db(user_id: string, email: string) {
-			this._user.update_one(user_id, { email: email });
+			this._user.update_one(user_id, undefined, email);
 	}
 
 	public async activate_2FA(user_id: string) {
-		this._user.update_one(user_id, { two_fact_auth: true });
+		this._user.update_one(user_id, undefined, undefined, true);
 	}
 
 	public async send_thankyou_email(receiver: string) {
