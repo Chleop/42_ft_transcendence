@@ -1,50 +1,101 @@
 import { t_relations } from "src/user/alias";
-import { UserCreateDto, UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
 	UserFieldUnaivalableError,
 	UserNotFoundError,
+	UserNotLinkedError,
 	UserRelationNotFoundError,
 } from "src/user/error";
+import { ChannelService } from "src/channel/channel.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, StreamableFile } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-import { User } from "@prisma/client";
+import { StateType, User } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
 
 @Injectable()
 export class UserService {
 	private _prisma: PrismaService;
+	private _channel: ChannelService;
 
 	constructor() {
+		this._channel = new ChannelService();
 		this._prisma = new PrismaService();
+	}
+
+	/**
+	 * @brief	Check whether two users are friends.
+	 *
+	 * @param	id The id of the first user.
+	 * @param	friends The friends of the second user.
+	 *
+	 * @return	Either true if the two users are friends, or false if not.
+	 */
+	private _are_friends(
+		id: string,
+		friends: {
+			id: string;
+		}[],
+	): boolean {
+		for (let friend of friends) {
+			if (friend.id === id) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * @brief	Check whether two arrays of channels share at least one common channel.
+	 *
+	 * @param	channels0 The first array of channels.
+	 * @param	channels1 The second array of channels.
+	 *
+	 * @return	Either true if both arrays share at least one common channel, or false if not.
+	 */
+	private _have_common_channel(
+		channels0: {
+			id: string;
+		}[],
+		channels1: {
+			id: string;
+		}[],
+	): boolean {
+		for (let channel0 of channels0) {
+			for (let channel1 of channels1) {
+				if (channel0.id === channel1.id) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	/**
 	 * @brief	Create a new user in the database.
 	 *
-	 * @param	dto The dto containing the data to create the user.
+	 * @param	login The login of the user to create.
 	 *
-	 * @potential_throws
-	 * - UserRelationNotFoundError
-	 * - UserFieldUnaivalableError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- UserRelationNotFoundError
+	 * 			- UserFieldUnaivalableError
+	 * 			- UnknownError
 	 *
 	 * @return	A promise containing the id of the created user.
 	 */
-	public async create_one(dto: UserCreateDto): Promise<string> {
+	public async create_one(login: string): Promise<string> {
 		type t_fields = {
 			id: string;
 		};
 
 		console.log("Getting default skin...");
 		const skin: t_fields | null = await this._prisma.skin.findUnique({
-			where: {
-				name: "Default",
-			},
 			select: {
 				id: true,
+			},
+			where: {
+				name: "Default",
 			},
 		});
 
@@ -55,21 +106,24 @@ export class UserService {
 		let id: string;
 
 		try {
-			console.log("Creating user...");
-			let name: string = dto.login;
-			let already_existing: number = await this._prisma.user.count({
-				where: { name: name },
-			});
-			while (already_existing) {
-				(name = "_" + name),
-					(already_existing = await this._prisma.user.count({
-						where: { name: name },
-					}));
+			let name: string = login;
+			let suffix: number = 0;
+
+			while (
+				await this._prisma.user.count({
+					where: {
+						name: name,
+					},
+				})
+			) {
+				name = `${login}#${suffix++}`;
 			}
+
+			console.log("Creating user...");
 			id = (
 				await this._prisma.user.create({
 					data: {
-						login: dto.login,
+						login: login,
 						name: name,
 						skinId: skin.id,
 					},
@@ -92,31 +146,80 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Delete a user from the database.
+	 * @brief	Change the account state of an user to DISABLED, before trully deleting them
+	 * 			from the database a certain time later.
 	 *
 	 * @param	id The id of the user to delete.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
-	public async delete_one(id: string): Promise<void> {
+	public async disable_one(id: string): Promise<void> {
+		type t_fields = {
+			id: string;
+			owner: {
+				id: string;
+			} | null;
+			members: {
+				id: string;
+			}[];
+			operators: {
+				id: string;
+			}[];
+		};
+
 		try {
-			console.log("Deleting user...");
-			await this._prisma.user.delete({
+			console.log("Searching channels joined by the user to disable...");
+			const channels: t_fields[] = await this._prisma.channel.findMany({
+				select: {
+					id: true,
+					owner: {
+						select: {
+							id: true,
+						},
+					},
+					members: {
+						select: {
+							id: true,
+						},
+					},
+					operators: {
+						select: {
+							id: true,
+						},
+					},
+				},
 				where: {
-					id: id,
+					ownerId: id,
 				},
 			});
-			console.log("User deleted");
+
+			for (const channel of channels) {
+				await this._channel.leave_one(channel.id, id, channel);
+			}
+
+			console.log("Disabling user...");
+			await this._prisma.user.update({
+				where: {
+					idAndState: {
+						id: id,
+						state: StateType.ACTIVE,
+					},
+				},
+				data: {
+					state: StateType.DISABLED,
+				},
+			});
+			console.log("User disabled");
 		} catch (error) {
-			console.log("Error occured while deleting user");
+			console.log("Error occured while disabling user");
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2025":
-						throw new UserNotFoundError();
+						throw new UserNotFoundError(id);
 				}
 				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
@@ -126,18 +229,52 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Get a user from the database.
+	 * @brief	Get an user from the database.
+	 * 			Both of the requesting and the requested user must be active,
+	 * 			and have at least one common channel, be friends, or be the same.
 	 *
-	 * @param	name The name of the user to get.
+	 * @param	requesting_user_id The id of the user requesting the user.
+	 * @param	requested_user_id The id of the user to get.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserNotLinkedError
 	 *
 	 * @return	A promise containing the wanted user.
 	 */
-	public async get_one(id: string | undefined): Promise<User & t_relations> {
-		console.log("Searching user...");
-		const user: (User & t_relations) | null = await this._prisma.user.findUnique({
+	public async get_one(
+		requesting_user_id: string,
+		requested_user_id: string,
+	): Promise<User & t_relations> {
+		type t_fields = {
+			channels: {
+				id: string;
+			}[];
+		};
+
+		console.log("Searching for requesting user...");
+		const requesting_user: t_fields | null = await this._prisma.user.findUnique({
+			select: {
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requesting_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!requesting_user) {
+			throw new UserNotFoundError(requesting_user_id);
+		}
+
+		console.log("Searching for requested user...");
+		const requested_user: (User & t_relations) | null = await this._prisma.user.findUnique({
 			include: {
 				skin: true,
 				channels: true,
@@ -147,65 +284,188 @@ export class UserService {
 				blocked: true,
 			},
 			where: {
-				id: id,
+				idAndState: {
+					id: requested_user_id,
+					state: StateType.ACTIVE,
+				},
 			},
 		});
 
-		if (!user) {
-			throw new UserNotFoundError();
+		if (!requested_user) {
+			throw new UserNotFoundError(requested_user_id);
+		}
+
+		console.log(
+			"Checking for both users to be linked through a channel, a friendship, or to be the same...",
+		);
+		if (
+			requesting_user_id !== requested_user_id &&
+			!this._are_friends(requesting_user_id, requested_user.friends) &&
+			!this._have_common_channel(requesting_user.channels, requested_user.channels)
+		) {
+			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
 		}
 
 		console.log("User found");
-		return user;
+		return requested_user;
 	}
 
 	/**
-	 * @brief	Get a user's avatar from the database.
+	 * @brief	Get an user's avatar from the database.
+	 * 			Both of the requesting and the requested user must be active,
+	 * 			and have at least one common channel, be friends, or be the same.
 	 *
-	 * @param	id The id of the user to get the avatar from.
+	 * @param	requesting_user_id The id of the user requesting the user's avatar.
+	 * @param	requested_user_id The id of the user to get the avatar from.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserNotLinkedError
 	 *
 	 * @return	A promise containing the wanted avatar.
 	 */
-	public async get_ones_avatar(id: string): Promise<StreamableFile> {
-		type t_fields = {
+	public async get_ones_avatar(
+		requesting_user_id: string,
+		requested_user_id: string,
+	): Promise<StreamableFile> {
+		type t_requesting_user_fields = {
+			channels: {
+				id: string;
+			}[];
+		};
+		type t_requested_user_fields = {
 			avatar: string;
+			channels: {
+				id: string;
+			}[];
+			friends: {
+				id: string;
+			}[];
 		};
 
+		console.log("Searching for requesting user...");
+		const requesting_user: t_requesting_user_fields | null = await this._prisma.user.findUnique(
+			{
+				select: {
+					channels: {
+						select: {
+							id: true,
+						},
+					},
+				},
+				where: {
+					idAndState: {
+						id: requesting_user_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			},
+		);
+
+		if (!requesting_user) {
+			throw new UserNotFoundError(requesting_user_id);
+		}
+
+		console.log("Searching for requested user...");
+		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				avatar: true,
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+				friends: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requested_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!requested_user) {
+			throw new UserNotFoundError(requested_user_id);
+		}
+
+		console.log(
+			"Checking for both users to be linked through a channel, a friendship, or to be the same...",
+		);
+		if (
+			requesting_user_id !== requested_user_id &&
+			!this._are_friends(requesting_user_id, requested_user.friends) &&
+			!this._have_common_channel(requesting_user.channels, requested_user.channels)
+		) {
+			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
+		}
+
+		console.log("Returning wanted avatar...");
+		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.avatar)));
+	}
+
+	/**
+	 * @brief	Get user id from its login.
+	 *
+	 * @param	login The login of the user to get.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 *
+	 * @return	A promise containing the wanted user id.
+	 */
+	public async get_ones_id_by_login(login: string): Promise<string> {
+		type t_fields = {
+			id: string;
+		};
 		console.log("Searching user...");
 		const user: t_fields | null = await this._prisma.user.findUnique({
 			select: {
-				avatar: true,
+				id: true,
 			},
 			where: {
-				id: id,
+				loginAndState: {
+					login: login,
+					state: StateType.ACTIVE,
+				},
 			},
 		});
 
 		if (!user) {
-			throw new UserNotFoundError();
+			throw new UserNotFoundError(login);
 		}
 
 		console.log("User found");
-		return new StreamableFile(createReadStream(join(process.cwd(), user.avatar)));
+		return user.id;
 	}
 
 	/**
 	 * @brief	Update a user in the database.
 	 *
 	 * @param	id The id of the user to update.
-	 * @param	dto The dto containing the fields to update.
+	 * @param	name The new name of the user.
+	 * @param	email The new email of the user.
+	 * @param	two_fact_auth The new two factor authentication state of the user.
+	 * @param	skin_id The new skin id of the user.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
-	 * - UserFieldUnaivalableError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserFieldUnaivalableError
+	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
-	public async update_one(id: string, dto: UserUpdateDto): Promise<void> {
+	public async update_one(
+		id: string,
+		name?: string,
+		email?: string,
+		two_fact_auth?: boolean,
+		skin_id?: string,
+	): Promise<void> {
 		type t_fields = {
 			name: string;
 			email: string | null;
@@ -215,14 +475,17 @@ export class UserService {
 
 		console.log("Searching user...");
 		const user: t_fields | null = await this._prisma.user.findUnique({
-			where: {
-				id: id,
-			},
 			select: {
 				name: true,
 				email: true,
 				twoFactAuth: true,
 				skinId: true,
+			},
+			where: {
+				idAndState: {
+					id: id,
+					state: StateType.ACTIVE,
+				},
 			},
 		});
 
@@ -232,18 +495,21 @@ export class UserService {
 
 		console.log("User found");
 
-		if (dto.name !== undefined) user.name = dto.name;
-		if (dto.email !== undefined) user.email = dto.email;
-		if (dto.two_fact_auth !== undefined) user.twoFactAuth = dto.two_fact_auth;
-		if (dto.skin_id !== undefined) user.skinId = dto.skin_id;
+		if (name !== undefined) user.name = name;
+		if (email !== undefined) user.email = email;
+		if (two_fact_auth !== undefined) user.twoFactAuth = two_fact_auth;
+		if (skin_id !== undefined) user.skinId = skin_id;
 
 		try {
 			console.log("Updating user...");
 			await this._prisma.user.update({
-				where: {
-					id: id,
-				},
 				data: user,
+				where: {
+					idAndState: {
+						id: id,
+						state: StateType.ACTIVE,
+					},
+				},
 			});
 			console.log("User updated");
 		} catch (error) {
@@ -266,9 +532,9 @@ export class UserService {
 	 * @param	id The id of the user to update the avatar from.
 	 * @param	file The file containing the new avatar.
 	 *
-	 * @potential_throws
-	 * - UserNotFoundError
-	 * - UnknownError
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
@@ -279,19 +545,20 @@ export class UserService {
 
 		console.log("Searching user...");
 		const user: t_fields | null = await this._prisma.user.findUnique({
-			where: {
-				id: id,
-			},
 			select: {
 				avatar: true,
+			},
+			where: {
+				idAndState: {
+					id: id,
+					state: StateType.ACTIVE,
+				},
 			},
 		});
 
 		if (!user) {
-			throw new UserNotFoundError();
+			throw new UserNotFoundError(id);
 		}
-
-		console.log("User found");
 
 		console.log("Updating user's avatar...");
 		if (user.avatar === "resource/avatar/default.jpg") {
@@ -301,10 +568,13 @@ export class UserService {
 			try {
 				console.log("Updating user...");
 				await this._prisma.user.update({
-					where: {
-						id: id,
-					},
 					data: user,
+					where: {
+						idAndState: {
+							id: id,
+							state: StateType.ACTIVE,
+						},
+					},
 				});
 				console.log("User updated");
 			} catch (error) {
@@ -327,31 +597,5 @@ export class UserService {
 		}
 
 		console.log("User's avatar updated");
-	}
-
-	/**
-	 * @brief	Get user id from its login.
-	 *
-	 * @param	login The login of the user to get.
-	 *
-	 * @potential_throws
-	 * - UserNotFoundError
-	 *
-	 * @return	A promise containing the wanted user id.
-	 */
-	public async get_user_id_by_login(login: string | undefined): Promise<string | undefined> {
-		console.log("Searching user...");
-		const user: User | null = await this._prisma.user.findFirst({
-			where: {
-				login: login,
-			},
-		});
-
-		if (!user) {
-			throw new UserNotFoundError();
-		}
-
-		console.log("User found");
-		return user.id;
 	}
 }

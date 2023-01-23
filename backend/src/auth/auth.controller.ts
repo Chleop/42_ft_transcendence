@@ -7,8 +7,10 @@ import {
 	Req,
 	Post,
 	Body,
+	Res,
 } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { Response } from "express";
 import { AuthService } from "./auth.service";
 import { FtOauthGuard, JwtGuard } from "./guards";
 
@@ -31,21 +33,21 @@ export class AuthController {
 
 	@Get("42/callback")
 	@UseGuards(FtOauthGuard)
-	async signin(@Req() request: any) {
+	async signin(@Req() request: any, @Res() response: Response) {
 		let token: t_access_token;
 		try {
 			if (request.user.twoFactAuth === true) {
 				this._authService.send_confirmation_email(this._email_to_be_validated);
 			}
 			token = await this._authService.create_access_token(request.user.login);
-			return token;
+			response.cookie("access_token", token.access_token); // REMIND try with httpOnly
+			response.redirect("http://localhost:3000/");
 		} catch (error) {
 			console.info(error);
 			if (error instanceof PrismaClientKnownRequestError) {
 				if (error.code == "P2002")
 					throw new ForbiddenException("One of the provided fields is already taken");
 			} else throw new InternalServerErrorException("An unknown error occured");
-			return undefined;
 		}
 	}
 

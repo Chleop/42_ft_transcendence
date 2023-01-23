@@ -2,7 +2,6 @@
 import { Injectable, Req } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
-import { UserCreateDto } from "src/user/dto";
 import { UserNotFoundError } from "src/user/error";
 import { UserService } from "src/user/user.service";
 import * as nodemailer from "nodemailer";
@@ -47,14 +46,11 @@ export class AuthService {
 		// get the user id (creates user if not already existing)
 		let user_id: string | undefined;
 		try {
-			user_id = await this._user.get_user_id_by_login(login);
+			user_id = await this._user.get_ones_id_by_login(login);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
-				const user_obj: UserCreateDto = {
-					login: login,
-				};
-				user_id = await this._user.create_one(user_obj);
+				user_id = await this._user.create_one(login);
 			} else throw error;
 		}
 

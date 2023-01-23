@@ -1,4 +1,5 @@
 import { NestFactory } from "@nestjs/core";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
@@ -6,7 +7,10 @@ import * as session from "express-session";
 import * as passport from "passport";
 
 async function bootstrap() {
-	const app = await NestFactory.create(AppModule);
+	const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+	// REMIND remove the exclude part when removing the file server.
+	app.setGlobalPrefix("api", { exclude: ["/", "/script.js", "/style.css"] });
 
 	app.useGlobalPipes(
 		new ValidationPipe({

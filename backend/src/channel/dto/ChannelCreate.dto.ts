@@ -12,9 +12,4 @@ export class ChannelCreateDto {
 
 	@IsBoolean()
 	public is_private: boolean = false;
-
-	// TODO: Remove this when the authentification is implemented
-	@IsNotEmpty()
-	@IsString()
-	public user_id: string = "";
 }

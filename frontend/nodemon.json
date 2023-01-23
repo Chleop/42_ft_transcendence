@@ -1,0 +1,6 @@
+{
+  "watch": ["src", "www"],
+  "ext": ".ts .css .html",
+  "ignore": [],
+  "exec": "npx tsc && npx webpack"
+}

@@ -2,9 +2,12 @@ export class UserNotFoundError implements Error {
 	private readonly _name: string;
 	private readonly _message: string;
 
-	constructor() {
+	constructor(details?: string) {
 		this._name = "UserNotFoundError";
 		this._message = "No such user";
+		if (details) {
+			this._message += ` (${details})`;
+		}
 	}
 
 	public get name(): string {
