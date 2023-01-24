@@ -19,7 +19,7 @@ type t_access_token = { access_token: string | undefined };
 @Controller("auth")
 export class AuthController {
 	private _authService: AuthService;
-	public	_email_to_be_validated: string;
+	public _email_to_be_validated: string;
 
 	constructor(authService: AuthService) {
 		this._authService = authService;
@@ -52,7 +52,7 @@ export class AuthController {
 	}
 
 	@UseGuards(JwtGuard)
-	@Post("42/2FAActivate")
+	@Get("42/2FAActivate")
 	async activateTwoFactAuth(@Body("email") email: string) {
 		this._email_to_be_validated = email;
 		this._authService.send_confirmation_email(this._email_to_be_validated);
@@ -62,8 +62,13 @@ export class AuthController {
 
 	@Post("42/2FAValidate")
 	@UseGuards(JwtGuard)
-	async validateTwoFactAuth(@Req() request: any, @Body("code") code: number) {
-		this._authService.confirm_email(request, request.user.sub, this._email_to_be_validated, code);
+	async validateTwoFactAuth(@Req() request: any, @Body("code") code: string) {
+		this._authService.confirm_email(
+			request,
+			request.user.id,
+			this._email_to_be_validated,
+			Number(code),
+		);
 		// TODO : retirer le return ok
 		return "ok!";
 	}

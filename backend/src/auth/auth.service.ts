@@ -28,6 +28,9 @@ export class AuthService {
 		const pass: string | undefined = this._config.get<string>("NO_REPLY_EMAIL_PASS");
 		if (pass === undefined) throw new Error("NO_REPLY_EMAIL_PASS is undefined");
 
+		// TODO: delete the following line
+		this._confirmation_code = 12345;
+
 		this._sender = this._config.get<string>("NO_REPLY_EMAIL");
 		if (this._sender === undefined) throw new Error("NO_REPLY_EMAIL is undefined");
 		// create reusable transporter object using the default SMTP transport
@@ -61,7 +64,7 @@ export class AuthService {
 		return token_obj;
 	}
 
-	public async sign_token(payload: t_payload): Promise<t_access_token> {
+	private async sign_token(payload: t_payload): Promise<t_access_token> {
 		// get the secret from the .env file
 		const our_secret: string | undefined = this._config.get<string>("JWT_SECRET");
 		if (our_secret === undefined) throw new Error("JWT_SECRET is undefined");
@@ -81,15 +84,20 @@ export class AuthService {
 	public async send_confirmation_email(receiver: string) {
 		try {
 			console.log("Sending email ...");
-		// create the confirmation code
+			// create a new confirmation code
+			// TODO: link the code to the user (twoFactSecret dans la bdd ?)
+			// TODO: make the code expire every 10 min
 			this._confirmation_code = Math.floor(10000 + Math.random() * 90000);
-		
-		// send the confirmation email
+
+			// send the confirmation email
 			let info = await this._transporter.sendMail({
 				from: "Transcendence team <" + this._sender + ">",
 				to: receiver,
 				subject: "Confirmation email ✔",
-				html: "<b>Please enter the following code to our Transcendence application : " + this._confirmation_code + " </b>",
+				html:
+					"<b>Please enter the following code to our Transcendence application : " +
+					this._confirmation_code +
+					" </b>",
 			});
 			console.log("Email sent: %s", info.messageId);
 		} catch (error) {
@@ -102,25 +110,24 @@ export class AuthService {
 	public async confirm_email(@Req() req: any, user_id: string, email: string, code: number) {
 		if (this._confirmation_code === code) {
 			if (req.user.twoFactAuth === false) {
-				this.activate_2FA(user_id);
-				this.add_email_to_db(user_id, email);
-				this.send_thankyou_email(email);
+				await this.activate_2FA(user_id);
+				await this.add_email_to_db(user_id, email);
+				await this.send_thankyou_email(email);
 			}
-		}
-		else {
+		} else {
 			throw new Error("Invalid code");
 		}
 	}
 
-	public async add_email_to_db(user_id: string, email: string) {
-			this._user.update_one(user_id, undefined, email);
+	private async activate_2FA(user_id: string) {
+		await this._user.update_one(user_id, undefined, undefined, true);
 	}
 
-	public async activate_2FA(user_id: string) {
-		this._user.update_one(user_id, undefined, undefined, true);
+	private async add_email_to_db(user_id: string, email: string) {
+		await this._user.update_one(user_id, undefined, email);
 	}
 
-	public async send_thankyou_email(receiver: string) {
+	private async send_thankyou_email(receiver: string) {
 		try {
 			console.log("Sending email ...");
 			let info = await this._transporter.sendMail({
