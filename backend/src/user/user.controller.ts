@@ -3,16 +3,14 @@ import { UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
-	UserAlreadyFriendError,
-	UserAlreadySentFriendRequestError,
 	UserFieldUnaivalableError,
 	UserNotBlockedError,
 	UserNotFoundError,
 	UserNotLinkedError,
 	UserSelfBlockError,
-	UserSelfFriendRequestError,
 	UserSelfUnblockError,
 } from "src/user/error";
+import { JwtGuard } from "src/auth/guards";
 import { UserService } from "src/user/user.service";
 import {
 	BadRequestException,
@@ -35,7 +33,6 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { User } from "@prisma/client";
-import { JwtGuard } from "src/auth/guards";
 
 @Controller("user")
 @UseGuards(JwtGuard)
@@ -183,34 +180,6 @@ export class UserController {
 		return sfile;
 	}
 
-	@Patch(":id/friend_request")
-	async send_friend_request_to_one(
-		@Req()
-		request: {
-			user: {
-				sub: string;
-			};
-		},
-		@Param("id") id: string,
-	): Promise<void> {
-		console.log(request.user.sub);
-		try {
-			await this._user_service.send_friend_request_to_one(request.user.sub, id);
-		} catch (error) {
-			if (
-				error instanceof UserNotFoundError ||
-				error instanceof UserSelfFriendRequestError ||
-				error instanceof UserAlreadyFriendError ||
-				error instanceof UserAlreadySentFriendRequestError
-			) {
-				console.log(error.message);
-				throw new BadRequestException(error.message);
-			}
-			console.log("Unknown error type, this should not happen");
-			throw new InternalServerErrorException();
-		}
-	}
-
 	@Patch(":id/unblock")
 	async unblock_one(
 		@Req()
@@ -238,7 +207,7 @@ export class UserController {
 	}
 
 	@Patch("@me")
-	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 	async update_me(
 		@Req()
 		request: {

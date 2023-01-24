@@ -1,10 +1,10 @@
-export class UserSelfFriendRequestError implements Error {
+export class FriendRequestAlreadySentError implements Error {
 	private _name: string;
 	private _message: string;
 
 	constructor() {
-		this._name = "UserSelfFriendRequestError";
-		this._message = "User cannot friend request themself";
+		this._name = "FriendRequestAlreadySentError";
+		this._message = "Friend request already sent";
 	}
 
 	public get name(): string {
