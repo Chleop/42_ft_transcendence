@@ -7,9 +7,6 @@ import { ChannelModule } from "src/channel/channel.module";
 import { PassportModule } from "@nestjs/passport";
 import { GameModule } from "src/game/game.module";
 
-// TODO: Delete this when file server is set up.
-import { FileModule } from "./file.module";
-
 @Module({
 	imports: [
 		ChannelModule,
@@ -21,9 +18,6 @@ import { FileModule } from "./file.module";
 		JwtModule,
 		PassportModule.register({ session: true }),
 		GameModule,
-
-		// TODO: Remove this.
-		FileModule,
 	],
 })
 export class AppModule {}
