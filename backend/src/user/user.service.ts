@@ -31,7 +31,7 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Make an user block an other user, preventing the blocking user of :
+	 * @brief	Make a user block an other user, preventing the blocking user of :
 	 * 			- being challenged by the blocked user
 	 * 			- being invited to a channel by the blocked user
 	 * 			- seeing the blocked user's messages
@@ -273,7 +273,7 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Change the account state of an user to DISABLED, before trully deleting them
+	 * @brief	Change the account state of a user to DISABLED, before trully deleting them
 	 * 			from the database a certain time later.
 	 *
 	 * @param	id The id of the user to delete.
@@ -356,7 +356,7 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Get an user from the database.
+	 * @brief	Get a user from the database.
 	 * 			Both of the requesting and the requested user must be active,
 	 * 			and have at least one common channel, be friends, or be the same.
 	 *
@@ -445,7 +445,7 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Get an user's avatar from the database.
+	 * @brief	Get a user's avatar from the database.
 	 * 			Both of the requesting and the requested user must be active,
 	 * 			and have at least one common channel, be friends, or be the same.
 	 *
@@ -583,7 +583,7 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Make an user unblock another user, ending the restrictions imposed by the block.
+	 * @brief	Make a user unblock another user, ending the restrictions imposed by the block.
 	 *
 	 * @param	unblocking_user_id The id of the user unblocking the other user.
 	 * @param	unblocked_user_id The id of the user being unblocked.
@@ -682,7 +682,7 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Make an user unfriend another user, removing their friendship in both directions.
+	 * @brief	Make a user unfriend another user, removing their friendship in both directions.
 	 *
 	 * @param	unfriending_user_id The id of the user unfriending the other user.
 	 * @param	unfriended_user_id The id of the user being unfriended.

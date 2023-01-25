@@ -19,7 +19,7 @@ export class FriendRequestService {
 	}
 
 	/**
-	 * @brief	Make an user accept a pending friend request from another user.
+	 * @brief	Make a user accept a pending friend request from another user.
 	 * 			Both of the users must be active, and not be the same.
 	 * 			Once both of the users become friends, they become able to :
 	 * 			- see each other's status
@@ -174,7 +174,7 @@ export class FriendRequestService {
 	}
 
 	/**
-	 * @brief	Make an user reject a pending friend request from another user.
+	 * @brief	Make a user reject a pending friend request from another user.
 	 * 			Both of the users must be active, and not be the same.
 	 *
 	 * @param	rejecting_user_id The id of the user rejecting the friend request.
@@ -286,7 +286,7 @@ export class FriendRequestService {
 	}
 
 	/**
-	 * @brief	Make an user send a friend request to an other user.
+	 * @brief	Make a user send a friend request to an other user.
 	 * 			Both of the users must be active, and not be the same.
 	 * 			If the sending user has already a pending friend request from the receiving user,
 	 * 			it will accept it instead of sending a new one.
