@@ -51,15 +51,34 @@ export class UserService {
 			blocked: {
 				id: string;
 			}[];
+			friends: {
+				id: string;
+			}[];
+			pendingFriendRequests: {
+				id: string;
+			}[];
 		};
 		type t_blocked_user_fields = {
 			id: string;
+			pendingFriendRequests: {
+				id: string;
+			}[];
 		};
 
 		console.log("Searching for blocking user...");
 		const blocking_user: t_blocking_user_fields | null = await this._prisma.user.findUnique({
 			select: {
 				blocked: {
+					select: {
+						id: true,
+					},
+				},
+				friends: {
+					select: {
+						id: true,
+					},
+				},
+				pendingFriendRequests: {
 					select: {
 						id: true,
 					},
@@ -81,6 +100,11 @@ export class UserService {
 		const blocked_user: t_blocked_user_fields | null = await this._prisma.user.findUnique({
 			select: {
 				id: true,
+				pendingFriendRequests: {
+					select: {
+						id: true,
+					},
+				},
 			},
 			where: {
 				idAndState: {
@@ -104,6 +128,56 @@ export class UserService {
 			if (blocked_user.id === blocked_user_id) {
 				throw new UserAlreadyBlockedError();
 			}
+		}
+
+		console.log("Checking for friendship to remove...");
+		if (blocking_user.friends.some((friend) => friend.id === blocked_user_id)) {
+			await this.unfriend_two(blocking_user_id, blocked_user_id, blocking_user, blocked_user);
+		}
+
+		console.log("Checking for pending friend request to remove...");
+		if (
+			blocking_user.pendingFriendRequests.some(
+				(friend_request) => friend_request.id === blocked_user_id,
+			)
+		) {
+			console.log("Removing pending friend request...");
+			await this._prisma.user.update({
+				data: {
+					pendingFriendRequests: {
+						disconnect: {
+							id: blocked_user_id,
+						},
+					},
+				},
+				where: {
+					idAndState: {
+						id: blocking_user_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			});
+		}
+		if (
+			blocked_user.pendingFriendRequests.some(
+				(friend_request) => friend_request.id === blocking_user_id,
+			)
+		) {
+			await this._prisma.user.update({
+				data: {
+					pendingFriendRequests: {
+						disconnect: {
+							id: blocking_user_id,
+						},
+					},
+				},
+				where: {
+					idAndState: {
+						id: blocked_user_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			});
 		}
 
 		console.log("Blocking user...");
@@ -612,6 +686,8 @@ export class UserService {
 	 *
 	 * @param	unfriending_user_id The id of the user unfriending the other user.
 	 * @param	unfriended_user_id The id of the user being unfriended.
+	 * @param	unfriending_user The user unfriending the other user. (optional)
+	 * @param	unfriended_user The user being unfriended. (optional)
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserNotFoundError
@@ -623,19 +699,18 @@ export class UserService {
 	public async unfriend_two(
 		unfriending_user_id: string,
 		unfriended_user_id: string,
-	): Promise<void> {
-		type t_unfriending_user_fields = {
+		unfriending_user?: {
 			friends: {
 				id: string;
 			}[];
-		};
-		type t_unfriended_user_fields = {
+		} | null,
+		unfriended_user?: {
 			id: string;
-		};
-
-		console.log("Searching for unfriending user...");
-		const unfriending_user: t_unfriending_user_fields | null =
-			await this._prisma.user.findUnique({
+		} | null,
+	): Promise<void> {
+		if (!unfriending_user) {
+			console.log("Searching for unfriending user...");
+			unfriending_user = await this._prisma.user.findUnique({
 				select: {
 					friends: {
 						select: {
@@ -651,13 +726,14 @@ export class UserService {
 				},
 			});
 
-		if (!unfriending_user) {
-			throw new UserNotFoundError();
+			if (!unfriending_user) {
+				throw new UserNotFoundError();
+			}
 		}
 
-		console.log("Searching for unfriended user...");
-		const unfriended_user: t_unfriended_user_fields | null = await this._prisma.user.findUnique(
-			{
+		if (!unfriended_user) {
+			console.log("Searching for unfriended user...");
+			unfriended_user = await this._prisma.user.findUnique({
 				select: {
 					id: true,
 				},
@@ -667,11 +743,11 @@ export class UserService {
 						state: StateType.ACTIVE,
 					},
 				},
-			},
-		);
+			});
 
-		if (!unfriended_user) {
-			throw new UserNotFoundError();
+			if (!unfriended_user) {
+				throw new UserNotFoundError();
+			}
 		}
 
 		console.log("Checking for self unfriending...");
