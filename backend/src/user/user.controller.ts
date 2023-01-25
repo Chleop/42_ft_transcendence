@@ -1,4 +1,4 @@
-import { t_relations } from "src/user/alias";
+import { t_get_one_fields } from "src/user/alias";
 import { UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
@@ -34,7 +34,6 @@ import {
 	ValidationPipe,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { User } from "@prisma/client";
 
 @Controller("user")
 @UseGuards(JwtGuard)
@@ -105,8 +104,8 @@ export class UserController {
 				sub: string;
 			};
 		},
-	): Promise<User & t_relations> {
-		let user: User & t_relations;
+	): Promise<t_get_one_fields> {
+		let user: t_get_one_fields;
 
 		try {
 			user = await this._user_service.get_one(request.user.sub, request.user.sub);
@@ -131,8 +130,8 @@ export class UserController {
 			};
 		},
 		@Param("id") id: string,
-	): Promise<User & t_relations> {
-		let user: User & t_relations;
+	): Promise<t_get_one_fields> {
+		let user: t_get_one_fields;
 
 		try {
 			user = await this._user_service.get_one(request.user.sub, id);
