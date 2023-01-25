@@ -1,12 +1,12 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { GameService } from "./game.service";
-import { GameRoom } from "./room";
-import { PaddleDto } from "./dto";
-import { ResultsObject, Ball, ScoreUpdate /* , GameUpdate */ } from "./objects";
-import { AntiCheat, OpponentUpdate, Client, Match } from "./aliases";
+import { GameService } from "../services/game.service";
+import { GameRoom } from "../rooms";
+import { PaddleDto } from "../dto";
+import { Results, Ball, ScoreUpdate } from "../objects";
+import { AntiCheat, OpponentUpdate, Client, Match } from "../aliases";
 
-import * as Constants from "./constants/constants";
+import * as Constants from "../constants/constants";
 
 /* Track timeouts */
 // type TimeoutId = {
@@ -106,9 +106,9 @@ export class GameGateway {
 	public readonly server: Server;
 	private readonly game_service: GameService;
 
-	constructor() {
+	constructor(game_service: GameService) {
 		this.server = new Server();
-		this.game_service = new GameService();
+		this.game_service = game_service;
 	}
 
 	/* == PRIVATE =============================================================================== */
@@ -128,7 +128,6 @@ export class GameGateway {
 			client.disconnect(true);
 			console.log(e);
 		}
-		this.game_service.display();
 	}
 
 	/* Handle disconnection from server */
@@ -178,6 +177,7 @@ export class GameGateway {
 
 		// TODO: save timeout and reset it when needed
 		setTimeout(this.startGame, 3000, this, room);
+		this.game_service.display();
 	}
 
 	/* -- UPDATING TOOLS ------------------------------------------------------ */
@@ -189,12 +189,15 @@ export class GameGateway {
 		// Send the initial ball { pos, v0 }
 		room.match.player1.socket.emit("gameStart", initial_game_state);
 		room.match.player2.socket.emit("gameStart", initial_game_state);
-		room.setPingId(setInterval(me.sendGameUpdates, Constants.ping, me, room));
+		room.setPlayerPingId(setInterval(me.sendGameUpdates, Constants.ping, me, room));
 	}
 
 	/* This will send a GameUpdate every 16ms to both clients in a game */
-	private /*async*/ sendGameUpdates(me: GameGateway, room: GameRoom): void {
-		//Promise<void> {
+	private async sendGameUpdates(
+		me: GameGateway,
+		room: GameRoom,
+	): //void {
+	Promise<void> {
 		try {
 			const update: Ball | ScoreUpdate = room.updateGame();
 			if (update instanceof Ball) {
@@ -205,12 +208,12 @@ export class GameGateway {
 				room.match.player2.socket.emit("updateScore", update.invert());
 			}
 		} catch (e) {
-			if (e instanceof ResultsObject) {
+			if (e instanceof Results) {
 				/* Save results and destroy game */
 				const update: ScoreUpdate = room.getFinalScore();
 				room.match.player1.socket.emit("updateScore", update);
 				room.match.player2.socket.emit("updateScore", update.invert());
-				const match: Match = me.game_service.saveScore(room, e); //await me.game_service.saveScore(room, e);
+				const match: Match = await me.game_service.saveScore(room, e);
 				// me.game_service.destroyRoom(room);
 				return me.disconnectRoom(match);
 			} else {

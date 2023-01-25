@@ -1,11 +1,12 @@
 import { Socket } from "socket.io";
-import { GameRoom } from "./room";
-import { AntiCheat, Client, Match } from "./aliases";
-import { PaddleDto } from "./dto";
-import { ResultsObject } from "./objects";
-// import { PrismaService } from "../prisma/prisma.service";
-// import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-// import { BadRequestException, ConflictException } from "@nestjs/common";
+import { GameRoom } from "../rooms";
+import { AntiCheat, Client, Match } from "../aliases";
+import { PaddleDto } from "../dto";
+import { Results } from "../objects";
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "src/prisma/prisma.service";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { BadRequestException, ConflictException } from "@nestjs/common";
 
 /* TODO: implement better MM */
 
@@ -17,14 +18,16 @@ type Handshake = {
 
 /* Matchmaking class */
 /* Manage rooms, save scores in database */
+@Injectable()
 export class GameService {
-	// private prisma: PrismaService;
+	private prisma: PrismaService;
 	private game_rooms: GameRoom[];
 	private handshakes: Handshake[];
+	// TODO: extend queue
 	private queue: Client | null;
 
-	constructor() {
-		// this.prisma = new PrismaService();
+	constructor(prisma: PrismaService) {
+		this.prisma = prisma;
 		this.game_rooms = [];
 		this.handshakes = [];
 		this.queue = null;
@@ -42,7 +45,7 @@ export class GameService {
 	}
 
 	// TODO save score to db
-	public saveScore(room: GameRoom, results: ResultsObject | null): Match {
+	public saveScore(room: GameRoom, results: Results | null): Match {
 		const match: Match = room.match;
 		try {
 			if (results) console.log("Scores:", results);
@@ -54,40 +57,40 @@ export class GameService {
 		return match;
 	}
 
-	// public async registerGameHistory(room: GameRoom, results: ResultsObject): Promise<Match> {
-	// 	const match: Match = room.match;
-	// 	try {
-	// 		/*const user = */await this.prisma.game.create({
-	// 			data: {
-	// 				players: {
-	// 					connect: [{ id: match.player1.id }, { id: match.player2.id }],
-	// 				},
-	// 				winner: {
-	// 					connect: {
-	// 						id: results.player1.winner ? match.player1.id : match.player2.id,
-	// 					},
-	// 				},
-	// 				scores: [results.player1.score, results.player2.score],
-	// 				datetime: results.dateTime,
-	// 			},
-	// 		});
-	// 	} catch (error) {
-	// 		if (error instanceof PrismaClientKnownRequestError) {
-	// 			switch (error.code) {
-	// 				case "P2002":
-	// 					throw new ConflictException("One of the provided fields is unavailable");
-	// 				case "P2025":
-	// 					throw new BadRequestException(
-	// 						"One of the relations you tried to connect to does not exist",
-	// 					);
-	// 			}
-	// 			console.log(error.code);
-	// 		}
-	// 		throw error;
-	// 	}
-	// 	this.destroyRoom(room);
-	// 	return match;
-	// }
+	public async registerGameHistory(room: GameRoom, results: Results): Promise<Match> {
+		const match: Match = room.match;
+		try {
+			/*const user = */ await this.prisma.game.create({
+				data: {
+					players: {
+						connect: [{ id: match.player1.id }, { id: match.player2.id }],
+					},
+					winner: {
+						connect: {
+							id: results.player1.winner ? match.player1.id : match.player2.id,
+						},
+					},
+					scores: [results.player1.score, results.player2.score],
+					dateTime: results.date,
+				},
+			});
+		} catch (error) {
+			if (error instanceof PrismaClientKnownRequestError) {
+				switch (error.code) {
+					case "P2002":
+						throw new ConflictException("One of the provided fields is unavailable");
+					case "P2025":
+						throw new BadRequestException(
+							"One of the relations you tried to connect to does not exist",
+						);
+				}
+				console.log(error.code);
+			}
+			throw error;
+		}
+		this.destroyRoom(room);
+		return match;
+	}
 
 	/* -- MATCHMAKING --------------------------------------------------------- */
 	public queueUp(user: Client): Match | null {
@@ -155,12 +158,12 @@ export class GameService {
 			const new_index: number = this.game_rooms.indexOf(index);
 			if (new_index < 0) return;
 			console.log(`Destroying room ${index.match.name}`);
-			index.destroyPing();
+			index.destroyPlayerPing();
 			this.game_rooms.splice(new_index, 1);
 		} else {
 			if (index < 0) return;
 			console.log(`Destroying room ${this.game_rooms[index].match.name}`);
-			this.game_rooms[index].destroyPing();
+			this.game_rooms[index].destroyPlayerPing();
 			this.game_rooms.splice(index, 1);
 		}
 	}
@@ -183,9 +186,21 @@ export class GameService {
 
 	public display(): void {
 		console.log({
+			queue: this.queue?.id,
+			headers: this.queue?.socket.handshake,
 			handshakes: this.handshakes,
 			rooms: this.game_rooms,
 		});
+	}
+
+	public findUserGame(spectator: Socket): GameRoom | null {
+		const user_id: string | string[] | undefined = spectator.handshake.headers.socket_id;
+		if (typeof user_id !== "string") return null; //throw "Room not properly specified";
+		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
+			return obj.match.player1.id === user_id || obj.match.player2.id === user_id;
+		});
+		if (room === undefined) return null;
+		return room;
 	}
 
 	/* == PRIVATE =============================================================================== */

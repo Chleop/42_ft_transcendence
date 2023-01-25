@@ -1,9 +1,10 @@
-import { Socket } from "socket.io";
+import { Socket } from 'socket.io';
 
 export type Client = {
 	// Client associated socket
-	socket: Socket;
+	socket: Socket,
 
 	// Jwt token stored
-	id: string;
+	id: string
 };
+
