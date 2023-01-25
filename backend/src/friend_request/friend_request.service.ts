@@ -422,7 +422,7 @@ export class FriendRequestService {
 				(friend): boolean => friend.id === receiving_user_id,
 			)
 		) {
-			return this.accept_one(
+			return await this.accept_one(
 				sending_user_id,
 				receiving_user_id,
 				sending_user,
