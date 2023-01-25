@@ -795,7 +795,7 @@ export class ChannelService {
 	 *
 	 * @param	channel_id The id of the channel to send the message to.
 	 * @param	user_id The id of the user sending the message.
-	 * @param	message The message to send in the channel.
+	 * @param	content The message to send in the channel.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
@@ -807,16 +807,23 @@ export class ChannelService {
 	public async send_message_to_one(
 		channel_id: string,
 		user_id: string,
-		message: string,
-	): Promise<void> {
-		type t_fields = {
+		content: string,
+	): Promise<{
+		id: string;
+		dateTime: Date;
+	}> {
+		type t_channel_fields = {
 			members: {
 				id: string;
 			}[];
 		};
+		type t_message_fields = {
+			id: string;
+			dateTime: Date;
+		};
 
 		console.log("Searching for the channel to send the message to...");
-		const channel: t_fields | null = await this._prisma.channel.findUnique({
+		const channel: t_channel_fields | null = await this._prisma.channel.findUnique({
 			select: {
 				members: {
 					select: {
@@ -850,14 +857,14 @@ export class ChannelService {
 		}
 
 		console.log("Checking for message length...");
-		if (message.length > g_channel_message_length_limit) {
+		if (content.length > g_channel_message_length_limit) {
 			throw new ChannelMessageTooLongError(
-				`message length: ${message.length} ; limit: ${g_channel_message_length_limit}`,
+				`message length: ${content.length} ; limit: ${g_channel_message_length_limit}`,
 			);
 		}
 
 		console.log("Sending message...");
-		await this._prisma.channelMessage.create({
+		const message: t_message_fields = await this._prisma.channelMessage.create({
 			data: {
 				channel: {
 					connect: {
@@ -869,9 +876,14 @@ export class ChannelService {
 						id: user_id,
 					},
 				},
-				content: message,
+				content: content,
 			},
 		});
 		console.log("Message sent");
+
+		return {
+			id: message.id,
+			dateTime: message.dateTime,
+		};
 	}
 }

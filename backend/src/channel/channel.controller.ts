@@ -101,10 +101,7 @@ export class ChannelController {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
 			}
-			if (
-				error instanceof ChannelNotOwnedError ||
-				error instanceof ChannelNotJoinedError
-			) {
+			if (error instanceof ChannelNotOwnedError || error instanceof ChannelNotJoinedError) {
 				console.log(error.message);
 				throw new ForbiddenException(error.message);
 			}
@@ -220,9 +217,16 @@ export class ChannelController {
 		@Req() request: { user: { sub: string } },
 		@Param("id") id: string,
 		@Body() dto: ChannelMessageSendDto,
-	): Promise<void> {
+	): Promise<{
+		id: string;
+		dateTime: Date;
+	}> {
 		try {
-			await this._channel_service.send_message_to_one(id, request.user.sub, dto.message);
+			return await this._channel_service.send_message_to_one(
+				id,
+				request.user.sub,
+				dto.message,
+			);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
 				console.log(error.message);
@@ -232,6 +236,8 @@ export class ChannelController {
 				console.log(error.message);
 				throw new ForbiddenException(error.message);
 			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
 		}
 	}
 }
