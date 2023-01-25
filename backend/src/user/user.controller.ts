@@ -6,9 +6,11 @@ import {
 	UserFieldUnaivalableError,
 	UserNotBlockedError,
 	UserNotFoundError,
+	UserNotFriendError,
 	UserNotLinkedError,
 	UserSelfBlockError,
 	UserSelfUnblockError,
+	UserSelfUnfriendError,
 } from "src/user/error";
 import { JwtGuard } from "src/auth/guards";
 import { UserService } from "src/user/user.service";
@@ -197,6 +199,32 @@ export class UserController {
 				error instanceof UserNotFoundError ||
 				error instanceof UserSelfUnblockError ||
 				error instanceof UserNotBlockedError
+			) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+	}
+
+	@Patch(":id/unfriend")
+	async unfriend_one(
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+		@Param("id") id: string,
+	): Promise<void> {
+		try {
+			await this._user_service.unfriend_two(request.user.sub, id);
+		} catch (error) {
+			if (
+				error instanceof UserNotFoundError ||
+				error instanceof UserSelfUnfriendError ||
+				error instanceof UserNotFriendError
 			) {
 				console.log(error.message);
 				throw new BadRequestException(error.message);

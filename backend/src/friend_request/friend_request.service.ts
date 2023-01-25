@@ -19,7 +19,9 @@ export class FriendRequestService {
 	}
 
 	/**
-	 * @brief	Make two users become friends, allowing them to :
+	 * @brief	Make an user accept a pending friend request from another user.
+	 * 			Both of the users must be active, and not be the same.
+	 * 			Once both of the users become friends, they become able to :
 	 * 			- see each other's status
 	 * 			- see each other's channels
 	 * 			- see each other's friends
@@ -27,62 +29,6 @@ export class FriendRequestService {
 	 * 			- challenge each other without passing by a channel
 	 * 			- spectating each other's games without passing by a channel
 	 * 			- invite each other to a channel without passing by a channel
-	 * 			It is assumed that the two users exist and are not already friends.
-	 * 			Also remove every related pendingFriendRequest.
-	 *
-	 * @param	user_id0 The id of the first user.
-	 * @param	user_id1 The id of the second user.
-	 *
-	 * @return	An empty promise.
-	 */
-	private async _make_two_become_friends(user_id0: string, user_id1: string): Promise<void> {
-		console.log("Making two users become friends...");
-		await this._prisma.user.update({
-			data: {
-				friends: {
-					connect: {
-						id: user_id1,
-					},
-				},
-				pendingFriendRequests: {
-					disconnect: {
-						id: user_id1,
-					},
-				},
-			},
-			where: {
-				idAndState: {
-					id: user_id0,
-					state: StateType.ACTIVE,
-				},
-			},
-		});
-		await this._prisma.user.update({
-			data: {
-				friends: {
-					connect: {
-						id: user_id0,
-					},
-				},
-				pendingFriendRequests: {
-					disconnect: {
-						id: user_id0,
-					},
-				},
-			},
-			where: {
-				idAndState: {
-					id: user_id1,
-					state: StateType.ACTIVE,
-				},
-			},
-		});
-		console.log("Two users are now friends.");
-	}
-
-	/**
-	 * @brief	Make an user accept a pending friend request from another user.
-	 * 			Both of the users must be active, and not be the same.
 	 *
 	 * @param	accepting_user_id The id of the user accepting the friend request.
 	 * @param	accepted_user_id The id of the user that sent the friend request.
@@ -183,8 +129,48 @@ export class FriendRequestService {
 		) {
 			throw new FriendRequestNotFoundError();
 		}
-
-		this._make_two_become_friends(accepting_user_id, accepted_user_id);
+		console.log("Making two users become friends...");
+		await this._prisma.user.update({
+			data: {
+				friends: {
+					connect: {
+						id: accepting_user_id,
+					},
+				},
+				pendingFriendRequests: {
+					disconnect: {
+						id: accepting_user_id,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: accepted_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		await this._prisma.user.update({
+			data: {
+				friends: {
+					connect: {
+						id: accepted_user_id,
+					},
+				},
+				pendingFriendRequests: {
+					disconnect: {
+						id: accepted_user_id,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: accepting_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		console.log("Two users are now friends.");
 	}
 
 	/**

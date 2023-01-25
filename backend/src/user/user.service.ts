@@ -5,10 +5,12 @@ import {
 	UserFieldUnaivalableError,
 	UserNotBlockedError,
 	UserNotFoundError,
+	UserNotFriendError,
 	UserNotLinkedError,
 	UserRelationNotFoundError,
 	UserSelfBlockError,
 	UserSelfUnblockError,
+	UserSelfUnfriendError,
 } from "src/user/error";
 import { ChannelService } from "src/channel/channel.service";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -41,6 +43,8 @@ export class UserService {
 	 * 			- UserNotFoundError
 	 * 			- UserSelfBlockError
 	 * 			- UserAlreadyBlockedError
+	 *
+	 * @return	An empty promise.
 	 */
 	public async block_one(blocking_user_id: string, blocked_user_id: string): Promise<void> {
 		type t_blocking_user_fields = {
@@ -505,7 +509,7 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Make an user unblock an other user, ending the restrictions imposed by the block.
+	 * @brief	Make an user unblock another user, ending the restrictions imposed by the block.
 	 *
 	 * @param	unblocking_user_id The id of the user unblocking the other user.
 	 * @param	unblocked_user_id The id of the user being unblocked.
@@ -514,8 +518,9 @@ export class UserService {
 	 * 			- UserNotFoundError
 	 * 			- SelfUnblockError
 	 * 			- NotBlockedError
+	 *
+	 * @return	An empty promise.
 	 */
-
 	public async unblock_one(unblocking_user_id: string, unblocked_user_id: string): Promise<void> {
 		type t_unblocking_user_fields = {
 			blocked: {
@@ -600,6 +605,123 @@ export class UserService {
 			},
 		});
 		console.log("User unblocked");
+	}
+
+	/**
+	 * @brief	Make an user unfriend another user, removing their friendship in both directions.
+	 *
+	 * @param	unfriending_user_id The id of the user unfriending the other user.
+	 * @param	unfriended_user_id The id of the user being unfriended.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserSelfUnfriendError
+	 * 			- UserNotFriendError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async unfriend_two(
+		unfriending_user_id: string,
+		unfriended_user_id: string,
+	): Promise<void> {
+		type t_unfriending_user_fields = {
+			friends: {
+				id: string;
+			}[];
+		};
+		type t_unfriended_user_fields = {
+			id: string;
+		};
+
+		console.log("Searching for unfriending user...");
+		const unfriending_user: t_unfriending_user_fields | null =
+			await this._prisma.user.findUnique({
+				select: {
+					friends: {
+						select: {
+							id: true,
+						},
+					},
+				},
+				where: {
+					idAndState: {
+						id: unfriending_user_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			});
+
+		if (!unfriending_user) {
+			throw new UserNotFoundError();
+		}
+
+		console.log("Searching for unfriended user...");
+		const unfriended_user: t_unfriended_user_fields | null = await this._prisma.user.findUnique(
+			{
+				select: {
+					id: true,
+				},
+				where: {
+					idAndState: {
+						id: unfriended_user_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			},
+		);
+
+		if (!unfriended_user) {
+			throw new UserNotFoundError();
+		}
+
+		console.log("Checking for self unfriending...");
+		if (unfriended_user_id === unfriending_user_id) {
+			throw new UserSelfUnfriendError();
+		}
+
+		console.log("Checking for not friends...");
+		if (!unfriending_user.friends.some((friend) => friend.id === unfriended_user_id)) {
+			throw new UserNotFriendError();
+		}
+
+		console.log("Unfriending users...");
+		await this._prisma.user.update({
+			data: {
+				friends: {
+					disconnect: {
+						idAndState: {
+							id: unfriended_user_id,
+							state: StateType.ACTIVE,
+						},
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: unfriending_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		await this._prisma.user.update({
+			data: {
+				friends: {
+					disconnect: {
+						idAndState: {
+							id: unfriending_user_id,
+							state: StateType.ACTIVE,
+						},
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: unfriended_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		console.log("Users unfriended");
 	}
 
 	/**
