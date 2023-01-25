@@ -8,7 +8,7 @@ import {
 	FriendRequestSelfRejectError,
 	FriendRequestSelfSendError,
 } from "src/friend_request/error";
-import { UserAlreadyFriendError, UserNotFoundError } from "src/user/error";
+import { UserAlreadyFriendError, UserBlockedError, UserNotFoundError } from "src/user/error";
 
 @Injectable()
 export class FriendRequestService {
@@ -298,6 +298,7 @@ export class FriendRequestService {
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserNotFoundError
+	 * 			- UserBlockedError
 	 * 			- FriendRequestSelfSendError
 	 * 			- UserAlreadyFriendsError
 	 * 			- FriendRequestAlreadySentError
@@ -308,6 +309,9 @@ export class FriendRequestService {
 		sending_user_id: string,
 		receiving_user_id: string,
 		sending_user?: {
+			blocked: {
+				id: string;
+			}[];
 			friends: {
 				id: string;
 			}[];
@@ -316,6 +320,9 @@ export class FriendRequestService {
 			}[];
 		} | null,
 		receiving_user?: {
+			blocked: {
+				id: string;
+			}[];
 			pendingFriendRequests: {
 				id: string;
 			}[];
@@ -325,6 +332,11 @@ export class FriendRequestService {
 			console.log("Searching for sending user...");
 			sending_user = await this._prisma.user.findUnique({
 				select: {
+					blocked: {
+						select: {
+							id: true,
+						},
+					},
 					friends: {
 						select: {
 							id: true,
@@ -353,6 +365,11 @@ export class FriendRequestService {
 			console.log("Searching for receiving user...");
 			receiving_user = await this._prisma.user.findUnique({
 				select: {
+					blocked: {
+						select: {
+							id: true,
+						},
+					},
 					pendingFriendRequests: {
 						select: {
 							id: true,
@@ -370,6 +387,14 @@ export class FriendRequestService {
 			if (!receiving_user) {
 				throw new UserNotFoundError(receiving_user_id);
 			}
+		}
+
+		console.log("Checking for blocked user...");
+		if (
+			sending_user.blocked.some((blocked): boolean => blocked.id === receiving_user_id) ||
+			receiving_user.blocked.some((blocked): boolean => blocked.id === sending_user_id)
+		) {
+			throw new UserBlockedError();
 		}
 
 		console.log("Checking for self friend request sending...");

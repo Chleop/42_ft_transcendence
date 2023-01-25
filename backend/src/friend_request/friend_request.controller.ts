@@ -12,11 +12,12 @@ import {
 } from "src/friend_request/error";
 import { FriendRequestService } from "src/friend_request/friend_request.service";
 import { JwtGuard } from "src/auth/guards";
-import { UserAlreadyFriendError, UserNotFoundError } from "src/user/error";
+import { UserAlreadyFriendError, UserBlockedError, UserNotFoundError } from "src/user/error";
 import {
 	BadRequestException,
 	Body,
 	Controller,
+	ForbiddenException,
 	InternalServerErrorException,
 	Patch,
 	Req,
@@ -112,6 +113,10 @@ export class FriendRequestController {
 			) {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
+			}
+			if (error instanceof UserBlockedError) {
+				console.log(error.message);
+				throw new ForbiddenException(error.message);
 			}
 			console.log("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
