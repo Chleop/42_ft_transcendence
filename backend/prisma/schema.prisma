@@ -22,7 +22,8 @@ model User {
   skin                    Skin      @relation(fields: [skinId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   elo                     Int       @default(0)
   twoFactAuth             Boolean   @default(false)
-  twoFactSecret           String?
+  twoFactSecret           Int?
+  tFSecretCreationDate    DateTime?
   channels                Channel[] @relation("userchannels")
   gamesPlayed             Game[]    @relation("gamesplayed")
   gamesWon                Game[]    @relation("gameswon")
