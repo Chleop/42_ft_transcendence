@@ -83,10 +83,6 @@ export class UserController {
 		try {
 			await this._user_service.disable_one(request.user.sub);
 		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				console.log(error.message);
-				throw new BadRequestException(error.message);
-			}
 			if (error instanceof UnknownError) {
 				console.log(error.message);
 				throw new InternalServerErrorException(error.message);
@@ -110,10 +106,6 @@ export class UserController {
 		try {
 			user = await this._user_service.get_one(request.user.sub, request.user.sub);
 		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				console.log(error.message);
-				throw new BadRequestException(error.message);
-			}
 			console.log("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
@@ -253,10 +245,6 @@ export class UserController {
 				dto.skin_id,
 			);
 		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				console.log(error.message);
-				throw new BadRequestException(error.message);
-			}
 			if (error instanceof UserFieldUnaivalableError) {
 				console.log(error.message);
 				throw new ForbiddenException(error.message);
@@ -284,10 +272,6 @@ export class UserController {
 		try {
 			await this._user_service.update_ones_avatar(request.user.sub, file);
 		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				console.log(error.message);
-				throw new BadRequestException(error.message);
-			}
 			if (error instanceof UnknownError) {
 				console.log(error.message);
 				throw new InternalServerErrorException(error.message);

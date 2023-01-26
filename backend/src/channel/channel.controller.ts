@@ -101,10 +101,7 @@ export class ChannelController {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
 			}
-			if (
-				error instanceof ChannelNotOwnedError ||
-				error instanceof ChannelNotJoinedError
-			) {
+			if (error instanceof ChannelNotOwnedError || error instanceof ChannelNotJoinedError) {
 				console.log(error.message);
 				throw new ForbiddenException(error.message);
 			}
@@ -205,7 +202,7 @@ export class ChannelController {
 		@Param("id") id: string,
 	): Promise<void> {
 		try {
-			await this._channel_service.leave_one(id, request.user.sub);
+			await this._channel_service.leave_one(request.user.sub, id);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
 				console.log(error.message);
@@ -222,7 +219,7 @@ export class ChannelController {
 		@Body() dto: ChannelMessageSendDto,
 	): Promise<void> {
 		try {
-			await this._channel_service.send_message_to_one(id, request.user.sub, dto.message);
+			await this._channel_service.send_message_to_one(request.user.sub, id, dto.message);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
 				console.log(error.message);
