@@ -1,4 +1,4 @@
-import { t_relations } from "src/user/alias";
+import { t_get_one_fields } from "src/user/alias";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
@@ -16,7 +16,7 @@ import { ChannelService } from "src/channel/channel.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, StreamableFile } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-import { StateType, User } from "@prisma/client";
+import { StateType } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
 
@@ -372,7 +372,7 @@ export class UserService {
 	public async get_one(
 		requesting_user_id: string,
 		requested_user_id: string,
-	): Promise<User & t_relations> {
+	): Promise<t_get_one_fields> {
 		type t_requesting_user_fields = {
 			channels: {
 				id: string;
@@ -403,14 +403,50 @@ export class UserService {
 		}
 
 		console.log("Searching for requested user...");
-		const requested_user: (User & t_relations) | null = await this._prisma.user.findUnique({
-			include: {
-				skin: true,
-				channels: true,
-				gamesPlayed: true,
-				gamesWon: true,
-				friends: true,
-				blocked: true,
+		const requested_user: t_get_one_fields | null = await this._prisma.user.findUnique({
+			select: {
+				id: true,
+				login: true,
+				name: true,
+				email: true,
+				skinId: true,
+				elo: true,
+				twoFactAuth: true,
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+				channelsOwned: {
+					select: {
+						id: true,
+					},
+				},
+				gamesPlayed: {
+					select: {
+						id: true,
+					},
+				},
+				gamesWon: {
+					select: {
+						id: true,
+					},
+				},
+				friends: {
+					select: {
+						id: true,
+					},
+				},
+				pendingFriendRequests: {
+					select: {
+						id: true,
+					},
+				},
+				blocked: {
+					select: {
+						id: true,
+					},
+				},
 			},
 			where: {
 				idAndState: {
