@@ -1,4 +1,4 @@
-import { Channel, ChannelId, Message, UserId, Client, Users } from "../api";
+import { Channel, ChannelId, Message, UserId, Client, Users, Gateway } from "../api";
 
 /**
  * A message that has been instanciated in the DOM.
@@ -150,6 +150,9 @@ export class ChatElement {
      */
     private selected_channel: null | ChannelElementInternal;
 
+    /** The channels elements. */
+    private channel_elements: ChannelElementInternal[];
+
     /**
      * Creates a new `ChatContainer` element.
      */
@@ -199,6 +202,14 @@ export class ChatElement {
         send_message_container.appendChild(this.message_input);
 
         this.selected_channel = null;
+        this.channel_elements = [];
+
+        Gateway.on_message = (msg: Message) => {
+            let ch = this.get_channel(msg.channelId);
+            if (ch) {
+                this.add_message(ch, msg);
+            }
+        };
     }
 
     /**
@@ -246,7 +257,13 @@ export class ChatElement {
             }
         });
 
+        this.channel_elements.push(element);
         return element;
+    }
+
+    /** Returns a channel element by ID */
+    public get_channel(channel: ChannelId): undefined | ChannelElement {
+        return this.channel_elements.find(e => e.channel_id == channel);
     }
 
     /**
