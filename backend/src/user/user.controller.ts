@@ -49,13 +49,11 @@ export class UserController {
 		@Param("id") id: string,
 		@Req()
 		request: {
-			user: {
-				sub: string;
-			};
+			user: t_get_one_fields;
 		},
 	): Promise<void> {
 		try {
-			await this._user_service.block_one(request.user.sub, id);
+			await this._user_service.block_one(request.user.id, id);
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||
@@ -75,13 +73,11 @@ export class UserController {
 	async disable_me(
 		@Req()
 		request: {
-			user: {
-				sub: string;
-			};
+			user: t_get_one_fields;
 		},
 	): Promise<void> {
 		try {
-			await this._user_service.disable_one(request.user.sub);
+			await this._user_service.disable_one(request.user.id);
 		} catch (error) {
 			if (error instanceof UnknownError) {
 				console.log(error.message);
@@ -96,15 +92,13 @@ export class UserController {
 	async get_me(
 		@Req()
 		request: {
-			user: {
-				sub: string;
-			};
+			user: t_get_one_fields;
 		},
 	): Promise<t_get_one_fields> {
 		let user: t_get_one_fields;
 
 		try {
-			user = await this._user_service.get_one(request.user.sub, request.user.sub);
+			user = await this._user_service.get_one(request.user.id, request.user.id);
 		} catch (error) {
 			console.log("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
@@ -117,16 +111,14 @@ export class UserController {
 	async get_one(
 		@Req()
 		request: {
-			user: {
-				sub: string;
-			};
+			user: t_get_one_fields;
 		},
 		@Param("id") id: string,
 	): Promise<t_get_one_fields> {
 		let user: t_get_one_fields;
 
 		try {
-			user = await this._user_service.get_one(request.user.sub, id);
+			user = await this._user_service.get_one(request.user.id, id);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
@@ -136,7 +128,7 @@ export class UserController {
 				console.log(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			console.log("Unknown error type, this should not happen" + error);
 			throw new InternalServerErrorException();
 		}
 
@@ -147,16 +139,14 @@ export class UserController {
 	async get_ones_avatar(
 		@Req()
 		request: {
-			user: {
-				sub: string;
-			};
+			user: t_get_one_fields;
 		},
 		@Param("id") id: string,
 	): Promise<StreamableFile> {
 		let sfile: StreamableFile;
 
 		try {
-			sfile = await this._user_service.get_ones_avatar(request.user.sub, id);
+			sfile = await this._user_service.get_ones_avatar(request.user.id, id);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
@@ -177,14 +167,12 @@ export class UserController {
 	async unblock_one(
 		@Req()
 		request: {
-			user: {
-				sub: string;
-			};
+			user: t_get_one_fields;
 		},
 		@Param("id") id: string,
 	): Promise<void> {
 		try {
-			await this._user_service.unblock_one(request.user.sub, id);
+			await this._user_service.unblock_one(request.user.id, id);
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||
@@ -203,14 +191,12 @@ export class UserController {
 	async unfriend_one(
 		@Req()
 		request: {
-			user: {
-				sub: string;
-			};
+			user: t_get_one_fields;
 		},
 		@Param("id") id: string,
 	): Promise<void> {
 		try {
-			await this._user_service.unfriend_two(request.user.sub, id);
+			await this._user_service.unfriend_two(request.user.id, id);
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||
@@ -230,15 +216,13 @@ export class UserController {
 	async update_me(
 		@Req()
 		request: {
-			user: {
-				sub: string;
-			};
+			user: t_get_one_fields;
 		},
 		@Body() dto: UserUpdateDto,
 	): Promise<void> {
 		try {
 			await this._user_service.update_one(
-				request.user.sub,
+				request.user.id,
 				dto.name,
 				dto.email,
 				dto.two_fact_auth,
@@ -263,14 +247,12 @@ export class UserController {
 	async update_ones_avatar(
 		@Req()
 		request: {
-			user: {
-				sub: string;
-			};
+			user: t_get_one_fields;
 		},
 		@UploadedFile() file: Express.Multer.File,
 	): Promise<void> {
 		try {
-			await this._user_service.update_ones_avatar(request.user.sub, file);
+			await this._user_service.update_ones_avatar(request.user.id, file);
 		} catch (error) {
 			if (error instanceof UnknownError) {
 				console.log(error.message);
