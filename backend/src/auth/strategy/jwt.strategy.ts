@@ -1,18 +1,16 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, InternalServerErrorException, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { ConfigService } from "@nestjs/config";
-import { UserService } from "src/user/user.service";
-import { User } from "@prisma/client";
 import { t_get_one_fields } from "src/user/alias";
+import { UserNotFoundError } from "src/user/error";
+import { UserService } from "src/user/user.service";
 
-type t_payload = {
-	sub: string | undefined;
-};
+type t_payload = { sub: string };
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
-	private readonly _user: UserService;
+	private _user: UserService;
 
 	constructor(config: ConfigService) {
 		super({
@@ -27,10 +25,16 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
 	// as its single parameter. Based on the way JWT signing
 	// works, we're guaranteed that we're receiving a valid token
 	// that we have previously signed and issued to a valid user.
-	async validate(payload: t_payload): Promise<t_get_one_fields> {
-		let user: t_get_one_fields;
-		if (payload.sub !== undefined) user = await this._user.get_one(payload.sub, payload.sub);
-		else throw new Error("Unvalid payload sent from JWT signing");
-		return user;
+	public async validate(payload: t_payload): Promise<t_get_one_fields> {
+		try {
+			return await this._user.get_one(payload.sub, payload.sub);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				console.log(error.message);
+				throw new UnauthorizedException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
 	}
 }
