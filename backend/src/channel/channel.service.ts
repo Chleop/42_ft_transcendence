@@ -34,7 +34,7 @@ export class ChannelService {
 
 	/**
 	 * @brief	Delegate the ownership of a channel
-	 * 			to an user chosen arbitrary among those present in this channel.
+	 * 			to a user chosen arbitrary among those present in this channel.
 	 *
 	 * @param	id The id of the channel to delegate the ownership.
 	 * @param	channel The channel to delegate the ownership.
@@ -550,7 +550,7 @@ export class ChannelService {
 	}
 
 	/**
-	 * @brief	Make an user join a channel.
+	 * @brief	Make a user join a channel.
 	 * 			Depending on the channel's type, the user will join the channel in different ways :
 	 * 			- PUBLIC, nothing is requiered.
 	 * 			- PROTECTED, a correct password is required.
@@ -682,7 +682,7 @@ export class ChannelService {
 	}
 
 	/**
-	 * @brief	Make an user leave a channel.
+	 * @brief	Make a user leave a channel.
 	 *
 	 * @param	channel_id The id of the channel to leave.
 	 * @param	user_id The id of the user leaving the channel.
@@ -791,7 +791,7 @@ export class ChannelService {
 	}
 
 	/**
-	 * @brief	Make an user send a message to a channel they are in.
+	 * @brief	Make a user send a message to a channel they are in.
 	 *
 	 * @param	channel_id The id of the channel to send the message to.
 	 * @param	user_id The id of the user sending the message.

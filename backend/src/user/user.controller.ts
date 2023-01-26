@@ -1,11 +1,18 @@
-import { t_relations } from "src/user/alias";
+import { t_get_one_fields } from "src/user/alias";
 import { UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
+	UserAlreadyBlockedError,
 	UserFieldUnaivalableError,
+	UserNotBlockedError,
 	UserNotFoundError,
+	UserNotFriendError,
 	UserNotLinkedError,
+	UserSelfBlockError,
+	UserSelfUnblockError,
+	UserSelfUnfriendError,
 } from "src/user/error";
+import { JwtGuard } from "src/auth/guards";
 import { UserService } from "src/user/user.service";
 import {
 	BadRequestException,
@@ -27,8 +34,6 @@ import {
 	ValidationPipe,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { User } from "@prisma/client";
-import { JwtGuard } from "src/auth/guards";
 
 @Controller("user")
 @UseGuards(JwtGuard)
@@ -37,6 +42,33 @@ export class UserController {
 
 	constructor() {
 		this._user_service = new UserService();
+	}
+
+	@Patch(":id/block")
+	async block_one(
+		@Param("id") id: string,
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+	): Promise<void> {
+		try {
+			await this._user_service.block_one(request.user.sub, id);
+		} catch (error) {
+			if (
+				error instanceof UserNotFoundError ||
+				error instanceof UserSelfBlockError ||
+				error instanceof UserAlreadyBlockedError
+			) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			console.log(error);
+			throw new InternalServerErrorException();
+		}
 	}
 
 	@Delete("@me")
@@ -72,8 +104,8 @@ export class UserController {
 				sub: string;
 			};
 		},
-	): Promise<User & t_relations> {
-		let user: User & t_relations;
+	): Promise<t_get_one_fields> {
+		let user: t_get_one_fields;
 
 		try {
 			user = await this._user_service.get_one(request.user.sub, request.user.sub);
@@ -98,8 +130,8 @@ export class UserController {
 			};
 		},
 		@Param("id") id: string,
-	): Promise<User & t_relations> {
-		let user: User & t_relations;
+	): Promise<t_get_one_fields> {
+		let user: t_get_one_fields;
 
 		try {
 			user = await this._user_service.get_one(request.user.sub, id);
@@ -149,8 +181,60 @@ export class UserController {
 		return sfile;
 	}
 
+	@Patch(":id/unblock")
+	async unblock_one(
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+		@Param("id") id: string,
+	): Promise<void> {
+		try {
+			await this._user_service.unblock_one(request.user.sub, id);
+		} catch (error) {
+			if (
+				error instanceof UserNotFoundError ||
+				error instanceof UserSelfUnblockError ||
+				error instanceof UserNotBlockedError
+			) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+	}
+
+	@Patch(":id/unfriend")
+	async unfriend_one(
+		@Req()
+		request: {
+			user: {
+				sub: string;
+			};
+		},
+		@Param("id") id: string,
+	): Promise<void> {
+		try {
+			await this._user_service.unfriend_two(request.user.sub, id);
+		} catch (error) {
+			if (
+				error instanceof UserNotFoundError ||
+				error instanceof UserSelfUnfriendError ||
+				error instanceof UserNotFriendError
+			) {
+				console.log(error.message);
+				throw new BadRequestException(error.message);
+			}
+			console.log("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+	}
+
 	@Patch("@me")
-	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 	async update_me(
 		@Req()
 		request: {
