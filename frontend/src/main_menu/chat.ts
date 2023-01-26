@@ -72,10 +72,7 @@ class ChannelElementInternal {
      */
     public messages: HTMLDivElement;
 
-    /**
-     * The ID of the author of the last message that was sent in the channel.
-     */
-    public last_message_author: null | UserId;
+    public last_message: Message|null;
 
     /**
      * The ID of the channel.
@@ -99,7 +96,7 @@ class ChannelElementInternal {
 
         this.messages = document.createElement("div");
 
-        this.last_message_author = null;
+        this.last_message = null;
         this.channel_id = channel.id;
 
         this.input = "";
@@ -273,14 +270,13 @@ export class ChatElement {
         const channel_ = channel as ChannelElementInternal;
 
         let continuing = false;
-        if (channel_.last_message_author && channel_.last_message_author === message.senderId) {
-            continuing = true;
+        if (channel_.last_message) {
+            if (channel_.last_message.senderId === message.senderId && Date.parse(message.dateTime) - Date.parse(channel_.last_message.dateTime) < 5 * 60 * 1000)
+                continuing = true;
         }
 
         // If the last child is the same author, add the `message-continuing` class.
-        if (!continuing) {
-            channel_.last_message_author = message.senderId;
-        }
+        channel_.last_message = message;
 
         const element = new MessageElementInternal(continuing, message);
         channel_.messages.appendChild(element.container);
@@ -301,8 +297,12 @@ export class ChatElement {
             return null;
         }
 
-        const content = this.message_input.value;
+        const content = this.message_input.value.trim();
         this.message_input.value = "";
+
+        if (content === "") {
+            return null;
+        }
 
         await Client.send_message(this.selected_channel.channel_id, content);
         // TODO:
@@ -314,8 +314,6 @@ export class ChatElement {
             id: "",
             senderId: (await Users.me()).id,
         };
-
-        this.add_message(this.selected_channel, message);
 
         return message;
     }

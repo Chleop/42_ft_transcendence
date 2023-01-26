@@ -15,7 +15,7 @@ class GatewayClass {
     public on_message: (message: Message) => void = noop;
 
     public constructor() {
-        this.socket = io("/api/gateway");
+        this.socket = io("/gateway");
 
         this.socket.on("message", (message: Message) => this.on_message(message));
     }
