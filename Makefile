@@ -1,5 +1,5 @@
 DOCKERCOMPOSE 	= docker-compose
-COMPOSEFILE 	= -f docker-compose.dev.yml
+COMPOSEFILE 	= -f docker compose.dev.yml
 
 BUILD 			= build
 START 			= start
