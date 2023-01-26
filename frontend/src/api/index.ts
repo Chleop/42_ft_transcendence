@@ -5,4 +5,5 @@ export { Id } from "./id";
 export { RawHTTPClient, UnexpectedStatusCode } from "./raw_client";
 export { PrivateUser, UserId, User } from "./user";
 export { GameSocket, ScoreStateUpdate, BallStateUpdate, PlayerStateUpdate } from "./game";
-export { Users } from "./users"
+export { Users } from "./users";
+export { Gateway } from "./gateway";
