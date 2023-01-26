@@ -1,10 +1,12 @@
 // import { MailerService } from "@nestjs-modules/mailer";
-import { Injectable, Req } from "@nestjs/common";
+import { Injectable, Res } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { UserNotFoundError } from "src/user/error";
 import { UserService } from "src/user/user.service";
 import * as nodemailer from "nodemailer";
+import { User } from "@prisma/client";
+import { PrismaService } from "src/prisma/prisma.service";
 
 type t_access_token = { access_token: string | undefined };
 type t_payload = { sub: string | undefined };
@@ -13,23 +15,21 @@ type t_payload = { sub: string | undefined };
 @Injectable()
 export class AuthService {
 	private readonly _user: UserService;
-	private readonly _config: ConfigService;
 	private _jwt: JwtService;
+	private readonly _config: ConfigService;
+	private readonly _prisma: PrismaService;
 	private readonly _transporter: any;
 	private readonly _sender: string | undefined;
-	private _confirmation_code: number;
 
 	constructor() {
 		this._user = new UserService();
 		this._jwt = new JwtService();
 		this._config = new ConfigService();
+		this._prisma = new PrismaService();
 		const host: string | undefined = this._config.get<string>("NO_REPLY_EMAIL_HOST");
 		if (host === undefined) throw new Error("NO_REPLY_EMAIL_HOST is undefined");
 		const pass: string | undefined = this._config.get<string>("NO_REPLY_EMAIL_PASS");
 		if (pass === undefined) throw new Error("NO_REPLY_EMAIL_PASS is undefined");
-
-		// TODO: delete the following line
-		this._confirmation_code = 12345;
 
 		this._sender = this._config.get<string>("NO_REPLY_EMAIL");
 		if (this._sender === undefined) throw new Error("NO_REPLY_EMAIL is undefined");
@@ -81,25 +81,50 @@ export class AuthService {
 		return ret;
 	}
 
-	public async send_confirmation_email(receiver: string) {
+	public async create_secret(user_id: string) {
+		// TODO: make the code expire every 10 min
+		const code: number = Math.floor(10000 + Math.random() * 90000);
+		// TODO: delete
+		console.log("code = " + code);
+		const currentTime: Date = new Date();
 		try {
-			console.log("Sending email ...");
-			// create a new confirmation code
-			// TODO: link the code to the user (twoFactSecret dans la bdd ?)
-			// TODO: make the code expire every 10 min
-			this._confirmation_code = Math.floor(10000 + Math.random() * 90000);
-
-			// send the confirmation email
-			let info = await this._transporter.sendMail({
-				from: "Transcendence team <" + this._sender + ">",
-				to: receiver,
-				subject: "Confirmation email ✔",
-				html:
-					"<b>Please enter the following code to our Transcendence application : " +
-					this._confirmation_code +
-					" </b>",
+			await this._prisma.user.update({
+				where: { id: user_id },
+				data: { twoFactSecret: code, tFSecretCreationDate: currentTime },
 			});
-			console.log("Email sent: %s", info.messageId);
+		} catch (error) {
+			console.log("ERROR in create_secret: " + error);
+		}
+	}
+
+	public async delete_secret(user_id: string) {
+		try {
+			await this._prisma.user.update({
+				where: { id: user_id },
+				data: { twoFactSecret: null },
+			});
+		} catch (error) {
+			console.log("ERROR in create_secret: " + error);
+		}
+	}
+
+	public async send_confirmation_email(user_id: string, receiver_email: string) {
+		try {
+			const user: User = await this._user.get_one(user_id, user_id);
+			// add email to database
+			await this.add_email_to_db(user.id, receiver_email);
+			// send confirmation email
+			console.log("Sending email ...");
+			// let info = await this._transporter.sendMail({
+			// 	from: "Transcendence team <" + this._sender + ">",
+			// 	to: receiver_email,
+			// 	subject: "Confirmation email ✔",
+			// 	html:
+			// 		"<b>Please enter the following code to our Transcendence application : " +
+			// 		user.twoFactSecret +
+			// 		" </b>",
+			// });
+			// console.log("Email sent: %s", info.messageId);
 		} catch (error) {
 			console.log("envelope" + error.envelope);
 			console.log("messageId" + error.messageId);
@@ -107,16 +132,35 @@ export class AuthService {
 		}
 	}
 
-	public async confirm_email(@Req() req: any, user_id: string, email: string, code: number) {
-		if (this._confirmation_code === code) {
-			if (req.user.twoFactAuth === false) {
-				await this.activate_2FA(user_id);
-				await this.add_email_to_db(user_id, email);
-				await this.send_thankyou_email(email);
+	public async confirm_email(user: User, @Res() res: any, code: number) {
+		let token: t_access_token;
+		if (this.isValid(user, code) === true) {
+			if (user.twoFactAuth === false) {
+				await this.activate_2FA(user.id);
+				if (user.email !== null) await this.send_thankyou_email(user.email);
+			} else {
+				token = await this.create_access_token(user.login);
+				await res.cookie("access_token", token.access_token); // REMIND try with httpOnly
+				await res.redirect("http://localhost:3000/");
 			}
+			await this.delete_secret(user.id);
 		} else {
 			throw new Error("Invalid code");
 		}
+	}
+
+	private isValid(user: User, received_code: number): boolean {
+		if (user.tFSecretCreationDate === null || user.twoFactSecret === null)
+			console.log("tFSecretCreationDate and twoFactSecret are not set!");
+		else {
+			const db_code: number = user.twoFactSecret;
+			const currentTime: Date = new Date();
+			const secretCreationTime: Date = user.tFSecretCreationDate;
+			const secret_lifetime: number =
+				currentTime.getMinutes() - secretCreationTime.getMinutes();
+			if (db_code === received_code && secret_lifetime < 10) return true;
+		}
+		return false;
 	}
 
 	private async activate_2FA(user_id: string) {
@@ -133,8 +177,10 @@ export class AuthService {
 			let info = await this._transporter.sendMail({
 				from: "Transcendence team <" + this._sender + ">",
 				to: receiver,
-				subject: "💝 Thank you 💝",
-				html: "<b>Your authentication has been confirmed !</b>",
+				subject: "🐹  💝  🐹  Thank you  🐹  💝  🐹",
+				html:
+					"<p>Your authentication has been confirmed !</p>" +
+					"<p> 🐹  We love you so much  🐹 </p>",
 			});
 			console.log("Email sent: %s", info.messageId);
 		} catch (error) {

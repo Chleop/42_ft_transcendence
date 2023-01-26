@@ -9,8 +9,10 @@ import {
 	Body,
 	Res,
 } from "@nestjs/common";
+import { User } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { Response } from "express";
+import { UserService } from "src/user/user.service";
 import { AuthService } from "./auth.service";
 import { FtOauthGuard, JwtGuard } from "./guards";
 
@@ -19,10 +21,11 @@ type t_access_token = { access_token: string | undefined };
 @Controller("auth")
 export class AuthController {
 	private _authService: AuthService;
-	public _email_to_be_validated: string;
+	private readonly _user: UserService;
 
-	constructor(authService: AuthService) {
-		this._authService = authService;
+	constructor() {
+		this._authService = new AuthService();
+		this._user = new UserService();
 	}
 
 	@Get("42/login")
@@ -35,13 +38,17 @@ export class AuthController {
 	@UseGuards(FtOauthGuard)
 	async signin(@Req() request: any, @Res() response: Response) {
 		let token: t_access_token;
+		const user_id: string = await this._user.get_ones_id_by_login(request.user.login);
+		const user: User = await this._user.get_one(user_id, user_id);
 		try {
-			if (request.user.twoFactAuth === true) {
-				this._authService.send_confirmation_email(this._email_to_be_validated);
+			if (user.twoFactAuth === true) {
+				if (user.email !== null)
+					this._authService.send_confirmation_email(user.id, user.email);
+			} else {
+				token = await this._authService.create_access_token(user.login);
+				response.cookie("access_token", token.access_token); // REMIND try with httpOnly
+				response.redirect("http://localhost:3000/");
 			}
-			token = await this._authService.create_access_token(request.user.login);
-			response.cookie("access_token", token.access_token); // REMIND try with httpOnly
-			response.redirect("http://localhost:3000/");
 		} catch (error) {
 			console.info(error);
 			if (error instanceof PrismaClientKnownRequestError) {
@@ -53,23 +60,27 @@ export class AuthController {
 
 	@UseGuards(JwtGuard)
 	@Get("42/2FAActivate")
-	async activateTwoFactAuth(@Body("email") email: string) {
-		this._email_to_be_validated = email;
-		this._authService.send_confirmation_email(this._email_to_be_validated);
+	async activateTwoFactAuth(@Req() req: any, @Body("email") email: string) {
+		await this._authService.create_secret(req.user.id);
+		if (email === "cucu") email = "caca";
+		// await this._authService.send_confirmation_email(req.user.id, email);
 		// TODO : retirer le return ok
 		return "ok!";
 	}
 
-	@Post("42/2FAValidate")
 	@UseGuards(JwtGuard)
-	async validateTwoFactAuth(@Req() request: any, @Body("code") code: string) {
-		this._authService.confirm_email(
-			request,
-			request.user.id,
-			this._email_to_be_validated,
-			Number(code),
-		);
-		// TODO : retirer le return ok
-		return "ok!";
+	@Post("42/2FAValidate")
+	async validateTwoFactAuth(
+		@Req() req: any,
+		@Res() res: Response,
+		@Body("code") code: string,
+	): Promise<void> {
+		try {
+			const user: User = await this._user.get_one(req.user.id, req.user.id);
+			this._authService.confirm_email(user, res, Number(code));
+		} catch (error) {
+			console.log("An error occured, throwing ForbiddenException...");
+			throw new ForbiddenException(error);
+		}
 	}
 }
