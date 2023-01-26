@@ -9,9 +9,9 @@ import {
 	Body,
 	Res,
 } from "@nestjs/common";
-import { User } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { Response } from "express";
+import { t_get_one_fields } from "src/user/alias";
 import { UserService } from "src/user/user.service";
 import { AuthService } from "./auth.service";
 import { FtOauthGuard, JwtGuard } from "./guards";
@@ -39,7 +39,7 @@ export class AuthController {
 	async signin(@Req() request: any, @Res() response: Response) {
 		let token: t_access_token;
 		const user_id: string = await this._user.get_ones_id_by_login(request.user.login);
-		const user: User = await this._user.get_one(user_id, user_id);
+		const user: t_get_one_fields = await this._user.get_one(user_id, user_id);
 		try {
 			if (user.twoFactAuth === true) {
 				if (user.email !== null)
@@ -63,7 +63,7 @@ export class AuthController {
 	async activateTwoFactAuth(@Req() req: any, @Body("email") email: string) {
 		await this._authService.create_secret(req.user.id);
 		if (email === "cucu") email = "caca";
-		// await this._authService.send_confirmation_email(req.user.id, email);
+		await this._authService.send_confirmation_email(req.user.id, email);
 		// TODO : retirer le return ok
 		return "ok!";
 	}
@@ -76,7 +76,7 @@ export class AuthController {
 		@Body("code") code: string,
 	): Promise<void> {
 		try {
-			const user: User = await this._user.get_one(req.user.id, req.user.id);
+			const user: t_get_one_fields = await this._user.get_one(req.user.id, req.user.id);
 			this._authService.confirm_email(user, res, Number(code));
 		} catch (error) {
 			console.log("An error occured, throwing ForbiddenException...");

@@ -5,8 +5,8 @@ import { JwtService } from "@nestjs/jwt";
 import { UserNotFoundError } from "src/user/error";
 import { UserService } from "src/user/user.service";
 import * as nodemailer from "nodemailer";
-import { User } from "@prisma/client";
 import { PrismaService } from "src/prisma/prisma.service";
+import { t_get_one_fields } from "src/user/alias";
 
 type t_access_token = { access_token: string | undefined };
 type t_payload = { sub: string | undefined };
@@ -81,7 +81,7 @@ export class AuthService {
 		return ret;
 	}
 
-	public async create_secret(user_id: string) {
+	public async create_secret(user_id: string): Promise<void> {
 		// TODO: make the code expire every 10 min
 		const code: number = Math.floor(10000 + Math.random() * 90000);
 		// TODO: delete
@@ -97,34 +97,41 @@ export class AuthService {
 		}
 	}
 
-	public async delete_secret(user_id: string) {
+	public async delete_secret(user_id: string): Promise<void> {
 		try {
 			await this._prisma.user.update({
 				where: { id: user_id },
-				data: { twoFactSecret: null },
+				data: { twoFactSecret: null, tFSecretCreationDate: null },
 			});
 		} catch (error) {
 			console.log("ERROR in create_secret: " + error);
 		}
 	}
 
-	public async send_confirmation_email(user_id: string, receiver_email: string) {
+	public async send_confirmation_email(user_id: string, receiver_email: string): Promise<void> {
 		try {
-			const user: User = await this._user.get_one(user_id, user_id);
+			const secret: { twoFactSecret: number | null } | null =
+				await this._prisma.user.findUnique({
+					where: { id: user_id },
+					select: { twoFactSecret: true },
+				});
+			const user: t_get_one_fields = await this._user.get_one(user_id, user_id);
 			// add email to database
 			await this.add_email_to_db(user.id, receiver_email);
 			// send confirmation email
-			console.log("Sending email ...");
-			// let info = await this._transporter.sendMail({
-			// 	from: "Transcendence team <" + this._sender + ">",
-			// 	to: receiver_email,
-			// 	subject: "Confirmation email ✔",
-			// 	html:
-			// 		"<b>Please enter the following code to our Transcendence application : " +
-			// 		user.twoFactSecret +
-			// 		" </b>",
-			// });
-			// console.log("Email sent: %s", info.messageId);
+			if (secret !== null && secret.twoFactSecret !== null) {
+				console.log("Sending email ...");
+				let info = await this._transporter.sendMail({
+					from: "Transcendence team <" + this._sender + ">",
+					to: receiver_email,
+					subject: "Confirmation email ✔",
+					html:
+						"<b>Please enter the following code to our Transcendence application : " +
+						secret.twoFactSecret +
+						" </b>",
+				});
+				console.log("Email sent: %s", info.messageId);
+			}
 		} catch (error) {
 			console.log("envelope" + error.envelope);
 			console.log("messageId" + error.messageId);
@@ -132,9 +139,13 @@ export class AuthService {
 		}
 	}
 
-	public async confirm_email(user: User, @Res() res: any, code: number) {
+	public async confirm_email(
+		user: t_get_one_fields,
+		@Res() res: any,
+		code: number,
+	): Promise<void> {
 		let token: t_access_token;
-		if (this.isValid(user, code) === true) {
+		if ((await this.isValid(user, code)) === true) {
 			if (user.twoFactAuth === false) {
 				await this.activate_2FA(user.id);
 				if (user.email !== null) await this.send_thankyou_email(user.email);
@@ -149,13 +160,22 @@ export class AuthService {
 		}
 	}
 
-	private isValid(user: User, received_code: number): boolean {
-		if (user.tFSecretCreationDate === null || user.twoFactSecret === null)
+	private async isValid(user: t_get_one_fields, received_code: number): Promise<boolean> {
+		const secret: { twoFactSecret: number | null; tFSecretCreationDate: Date | null } | null =
+			await this._prisma.user.findUnique({
+				where: { id: user.id },
+				select: { twoFactSecret: true, tFSecretCreationDate: true },
+			});
+		if (
+			secret === null ||
+			secret.tFSecretCreationDate === null ||
+			secret.twoFactSecret === null
+		)
 			console.log("tFSecretCreationDate and twoFactSecret are not set!");
 		else {
-			const db_code: number = user.twoFactSecret;
+			const db_code: number = secret.twoFactSecret;
 			const currentTime: Date = new Date();
-			const secretCreationTime: Date = user.tFSecretCreationDate;
+			const secretCreationTime: Date = secret.tFSecretCreationDate;
 			const secret_lifetime: number =
 				currentTime.getMinutes() - secretCreationTime.getMinutes();
 			if (db_code === received_code && secret_lifetime < 10) return true;
@@ -163,15 +183,15 @@ export class AuthService {
 		return false;
 	}
 
-	private async activate_2FA(user_id: string) {
+	private async activate_2FA(user_id: string): Promise<void> {
 		await this._user.update_one(user_id, undefined, undefined, true);
 	}
 
-	private async add_email_to_db(user_id: string, email: string) {
+	private async add_email_to_db(user_id: string, email: string): Promise<void> {
 		await this._user.update_one(user_id, undefined, email);
 	}
 
-	private async send_thankyou_email(receiver: string) {
+	private async send_thankyou_email(receiver: string): Promise<void> {
 		try {
 			console.log("Sending email ...");
 			let info = await this._transporter.sendMail({
