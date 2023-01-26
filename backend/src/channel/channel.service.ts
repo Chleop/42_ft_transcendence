@@ -802,28 +802,21 @@ export class ChannelService {
 	 * 			- ChannelNotJoinedError
 	 * 			- ChannelMessageTooLongError
 	 *
-	 * @return	An empty promise.
+	 * @return	A promise containing the newly sent message data.
 	 */
 	public async send_message_to_one(
 		channel_id: string,
 		user_id: string,
 		content: string,
-	): Promise<{
-		id: string;
-		dateTime: Date;
-	}> {
-		type t_channel_fields = {
+	): Promise<ChannelMessage> {
+		type t_fields = {
 			members: {
 				id: string;
 			}[];
 		};
-		type t_message_fields = {
-			id: string;
-			dateTime: Date;
-		};
 
 		console.log("Searching for the channel to send the message to...");
-		const channel: t_channel_fields | null = await this._prisma.channel.findUnique({
+		const channel: t_fields | null = await this._prisma.channel.findUnique({
 			select: {
 				members: {
 					select: {
@@ -864,7 +857,7 @@ export class ChannelService {
 		}
 
 		console.log("Sending message...");
-		const message: t_message_fields = await this._prisma.channelMessage.create({
+		const message: ChannelMessage = await this._prisma.channelMessage.create({
 			data: {
 				channel: {
 					connect: {
@@ -881,9 +874,6 @@ export class ChannelService {
 		});
 		console.log("Message sent");
 
-		return {
-			id: message.id,
-			dateTime: message.dateTime,
-		};
+		return message;
 	}
 }

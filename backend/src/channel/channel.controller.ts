@@ -217,10 +217,7 @@ export class ChannelController {
 		@Req() request: { user: { sub: string } },
 		@Param("id") id: string,
 		@Body() dto: ChannelMessageSendDto,
-	): Promise<{
-		id: string;
-		dateTime: Date;
-	}> {
+	): Promise<ChannelMessage> {
 		try {
 			return await this._channel_service.send_message_to_one(
 				id,
