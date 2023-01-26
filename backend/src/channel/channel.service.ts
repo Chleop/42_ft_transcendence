@@ -17,6 +17,7 @@ import {
 	ChannelUnpopulatedError,
 	UnknownError,
 } from "src/channel/error";
+import { Gateway } from "src/gateway";
 import { g_channel_message_length_limit } from "src/channel/limit";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
@@ -27,14 +28,16 @@ import * as argon2 from "argon2";
 @Injectable()
 export class ChannelService {
 	private _prisma: PrismaService;
+	private _gateway: Gateway;
 
 	constructor() {
 		this._prisma = new PrismaService();
+		this._gateway = new Gateway();
 	}
 
 	/**
 	 * @brief	Delegate the ownership of a channel
-	 * 			to an user chosen arbitrary among those present in this channel.
+	 * 			to a user chosen arbitrary among those present in this channel.
 	 *
 	 * @param	id The id of the channel to delegate the ownership.
 	 * @param	channel The channel to delegate the ownership.
@@ -550,7 +553,7 @@ export class ChannelService {
 	}
 
 	/**
-	 * @brief	Make an user join a channel.
+	 * @brief	Make a user join a channel.
 	 * 			Depending on the channel's type, the user will join the channel in different ways :
 	 * 			- PUBLIC, nothing is requiered.
 	 * 			- PROTECTED, a correct password is required.
@@ -682,7 +685,7 @@ export class ChannelService {
 	}
 
 	/**
-	 * @brief	Make an user leave a channel.
+	 * @brief	Make a user leave a channel.
 	 *
 	 * @param	channel_id The id of the channel to leave.
 	 * @param	user_id The id of the user leaving the channel.
@@ -791,7 +794,7 @@ export class ChannelService {
 	}
 
 	/**
-	 * @brief	Make an user send a message to a channel they are in.
+	 * @brief	Make a user send a message to a channel they are in.
 	 *
 	 * @param	channel_id The id of the channel to send the message to.
 	 * @param	user_id The id of the user sending the message.
@@ -857,21 +860,23 @@ export class ChannelService {
 		}
 
 		console.log("Sending message...");
-		await this._prisma.channelMessage.create({
-			data: {
-				channel: {
-					connect: {
-						id: channel_id,
+		this._gateway.broadcast_to_everyone(
+			await this._prisma.channelMessage.create({
+				data: {
+					channel: {
+						connect: {
+							id: channel_id,
+						},
 					},
-				},
-				sender: {
-					connect: {
-						id: user_id,
+					sender: {
+						connect: {
+							id: user_id,
+						},
 					},
+					content: message,
 				},
-				content: message,
-			},
-		});
+			}),
+		);
 		console.log("Message sent");
 	}
 }

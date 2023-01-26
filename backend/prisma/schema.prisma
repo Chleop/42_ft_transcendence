@@ -24,12 +24,12 @@ model User {
   twoFactAuth             Boolean   @default(false)
   twoFactSecret           String?
   channels                Channel[] @relation("userchannels")
+  channelsOwned           Channel[] @relation("chanowner")
   gamesPlayed             Game[]    @relation("gamesplayed")
   gamesWon                Game[]    @relation("gameswon")
   friends                 User[]    @relation("friendship")
-  pendingFriendsRequests  User[]    @relation("pending friendship")
+  pendingFriendRequests   User[]    @relation("pending friendship")
   blocked                 User[]    @relation("blocked")
-  channelOwned            Channel[] @relation("chanowner")
   // les champs ci-dessous sont neccessaires pour les relations mais
   // ne sont pas accessibles par le client Prisma grace a l'attribut 
   // @ignore.

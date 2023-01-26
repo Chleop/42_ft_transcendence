@@ -1,16 +1,22 @@
-import { t_relations } from "src/user/alias";
+import { t_get_one_fields } from "src/user/alias";
 import {
 	UnknownError,
+	UserAlreadyBlockedError,
 	UserFieldUnaivalableError,
+	UserNotBlockedError,
 	UserNotFoundError,
+	UserNotFriendError,
 	UserNotLinkedError,
 	UserRelationNotFoundError,
+	UserSelfBlockError,
+	UserSelfUnblockError,
+	UserSelfUnfriendError,
 } from "src/user/error";
 import { ChannelService } from "src/channel/channel.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, StreamableFile } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-import { StateType, User } from "@prisma/client";
+import { StateType } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
 
@@ -25,51 +31,172 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Check whether two users are friends.
+	 * @brief	Make a user block an other user, preventing the blocking user of :
+	 * 			- being challenged by the blocked user
+	 * 			- being invited to a channel by the blocked user
+	 * 			- seeing the blocked user's messages
 	 *
-	 * @param	id The id of the first user.
-	 * @param	friends The friends of the second user.
+	 * @param	blocking_user_id The id of the user blocking the other user.
+	 * @param	blocked_user_id The id of the user being blocked.
 	 *
-	 * @return	Either true if the two users are friends, or false if not.
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserSelfBlockError
+	 * 			- UserAlreadyBlockedError
+	 *
+	 * @return	An empty promise.
 	 */
-	private _are_friends(
-		id: string,
-		friends: {
+	public async block_one(blocking_user_id: string, blocked_user_id: string): Promise<void> {
+		type t_blocking_user_fields = {
+			blocked: {
+				id: string;
+			}[];
+			friends: {
+				id: string;
+			}[];
+			pendingFriendRequests: {
+				id: string;
+			}[];
+		};
+		type t_blocked_user_fields = {
 			id: string;
-		}[],
-	): boolean {
-		for (let friend of friends) {
-			if (friend.id === id) {
-				return true;
-			}
-		}
-		return false;
-	}
+			pendingFriendRequests: {
+				id: string;
+			}[];
+		};
 
-	/**
-	 * @brief	Check whether two arrays of channels share at least one common channel.
-	 *
-	 * @param	channels0 The first array of channels.
-	 * @param	channels1 The second array of channels.
-	 *
-	 * @return	Either true if both arrays share at least one common channel, or false if not.
-	 */
-	private _have_common_channel(
-		channels0: {
-			id: string;
-		}[],
-		channels1: {
-			id: string;
-		}[],
-	): boolean {
-		for (let channel0 of channels0) {
-			for (let channel1 of channels1) {
-				if (channel0.id === channel1.id) {
-					return true;
-				}
+		console.log("Searching for blocking user...");
+		const blocking_user: t_blocking_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				blocked: {
+					select: {
+						id: true,
+					},
+				},
+				friends: {
+					select: {
+						id: true,
+					},
+				},
+				pendingFriendRequests: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: blocking_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!blocking_user) {
+			throw new UserNotFoundError();
+		}
+
+		console.log("Searching for blocked user...");
+		const blocked_user: t_blocked_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				id: true,
+				pendingFriendRequests: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: blocked_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!blocked_user) {
+			throw new UserNotFoundError();
+		}
+
+		console.log("Checking for self blocking...");
+		if (blocked_user_id === blocking_user_id) {
+			throw new UserSelfBlockError();
+		}
+
+		console.log("Checking for already blocked...");
+		for (const blocked_user of blocking_user.blocked) {
+			if (blocked_user.id === blocked_user_id) {
+				throw new UserAlreadyBlockedError();
 			}
 		}
-		return false;
+
+		console.log("Checking for friendship to remove...");
+		if (blocking_user.friends.some((friend) => friend.id === blocked_user_id)) {
+			await this.unfriend_two(blocking_user_id, blocked_user_id, blocking_user, blocked_user);
+		}
+
+		console.log("Checking for pending friend request to remove...");
+		if (
+			blocking_user.pendingFriendRequests.some(
+				(friend_request) => friend_request.id === blocked_user_id,
+			)
+		) {
+			console.log("Removing pending friend request...");
+			await this._prisma.user.update({
+				data: {
+					pendingFriendRequests: {
+						disconnect: {
+							id: blocked_user_id,
+						},
+					},
+				},
+				where: {
+					idAndState: {
+						id: blocking_user_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			});
+		}
+		if (
+			blocked_user.pendingFriendRequests.some(
+				(friend_request) => friend_request.id === blocking_user_id,
+			)
+		) {
+			await this._prisma.user.update({
+				data: {
+					pendingFriendRequests: {
+						disconnect: {
+							id: blocking_user_id,
+						},
+					},
+				},
+				where: {
+					idAndState: {
+						id: blocked_user_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			});
+		}
+
+		console.log("Blocking user...");
+		await this._prisma.user.update({
+			data: {
+				blocked: {
+					connect: {
+						id: blocked_user_id,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: blocking_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		console.log("User blocked");
 	}
 
 	/**
@@ -146,7 +273,7 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Change the account state of an user to DISABLED, before trully deleting them
+	 * @brief	Change the account state of a user to DISABLED, before trully deleting them
 	 * 			from the database a certain time later.
 	 *
 	 * @param	id The id of the user to delete.
@@ -229,7 +356,7 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Get an user from the database.
+	 * @brief	Get a user from the database.
 	 * 			Both of the requesting and the requested user must be active,
 	 * 			and have at least one common channel, be friends, or be the same.
 	 *
@@ -245,43 +372,81 @@ export class UserService {
 	public async get_one(
 		requesting_user_id: string,
 		requested_user_id: string,
-	): Promise<User & t_relations> {
-		type t_fields = {
+	): Promise<t_get_one_fields> {
+		type t_requesting_user_fields = {
 			channels: {
 				id: string;
 			}[];
 		};
 
 		console.log("Searching for requesting user...");
-		const requesting_user: t_fields | null = await this._prisma.user.findUnique({
-			select: {
-				channels: {
-					select: {
-						id: true,
+		const requesting_user: t_requesting_user_fields | null = await this._prisma.user.findUnique(
+			{
+				select: {
+					channels: {
+						select: {
+							id: true,
+						},
+					},
+				},
+				where: {
+					idAndState: {
+						id: requesting_user_id,
+						state: StateType.ACTIVE,
 					},
 				},
 			},
-			where: {
-				idAndState: {
-					id: requesting_user_id,
-					state: StateType.ACTIVE,
-				},
-			},
-		});
+		);
 
 		if (!requesting_user) {
 			throw new UserNotFoundError(requesting_user_id);
 		}
 
 		console.log("Searching for requested user...");
-		const requested_user: (User & t_relations) | null = await this._prisma.user.findUnique({
-			include: {
-				skin: true,
-				channels: true,
-				gamesPlayed: true,
-				gamesWon: true,
-				friends: true,
-				blocked: true,
+		const requested_user: t_get_one_fields | null = await this._prisma.user.findUnique({
+			select: {
+				id: true,
+				login: true,
+				name: true,
+				email: true,
+				skinId: true,
+				elo: true,
+				twoFactAuth: true,
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+				channelsOwned: {
+					select: {
+						id: true,
+					},
+				},
+				gamesPlayed: {
+					select: {
+						id: true,
+					},
+				},
+				gamesWon: {
+					select: {
+						id: true,
+					},
+				},
+				friends: {
+					select: {
+						id: true,
+					},
+				},
+				pendingFriendRequests: {
+					select: {
+						id: true,
+					},
+				},
+				blocked: {
+					select: {
+						id: true,
+					},
+				},
 			},
 			where: {
 				idAndState: {
@@ -300,8 +465,13 @@ export class UserService {
 		);
 		if (
 			requesting_user_id !== requested_user_id &&
-			!this._are_friends(requesting_user_id, requested_user.friends) &&
-			!this._have_common_channel(requesting_user.channels, requested_user.channels)
+			!requested_user.friends.some((friend) => friend.id === requesting_user_id) &&
+			!requested_user.channels.some((requested_user_channel): boolean =>
+				requesting_user.channels.some(
+					(requesting_user_channel): boolean =>
+						requesting_user_channel.id === requested_user_channel.id,
+				),
+			)
 		) {
 			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
 		}
@@ -311,7 +481,7 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Get an user's avatar from the database.
+	 * @brief	Get a user's avatar from the database.
 	 * 			Both of the requesting and the requested user must be active,
 	 * 			and have at least one common channel, be friends, or be the same.
 	 *
@@ -398,8 +568,13 @@ export class UserService {
 		);
 		if (
 			requesting_user_id !== requested_user_id &&
-			!this._are_friends(requesting_user_id, requested_user.friends) &&
-			!this._have_common_channel(requesting_user.channels, requested_user.channels)
+			!requested_user.friends.some((friend) => friend.id === requesting_user_id) &&
+			!requested_user.channels.some((requested_user_channel): boolean =>
+				requesting_user.channels.some(
+					(requesting_user_channel): boolean =>
+						requesting_user_channel.id === requested_user_channel.id,
+				),
+			)
 		) {
 			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
 		}
@@ -441,6 +616,224 @@ export class UserService {
 
 		console.log("User found");
 		return user.id;
+	}
+
+	/**
+	 * @brief	Make a user unblock another user, ending the restrictions imposed by the block.
+	 *
+	 * @param	unblocking_user_id The id of the user unblocking the other user.
+	 * @param	unblocked_user_id The id of the user being unblocked.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- SelfUnblockError
+	 * 			- NotBlockedError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async unblock_one(unblocking_user_id: string, unblocked_user_id: string): Promise<void> {
+		type t_unblocking_user_fields = {
+			blocked: {
+				id: string;
+			}[];
+		};
+		type t_unblocked_user_fields = {
+			id: string;
+		};
+
+		console.log("Searching for unblocking user...");
+		const unblocking_user: t_unblocking_user_fields | null = await this._prisma.user.findUnique(
+			{
+				select: {
+					blocked: {
+						select: {
+							id: true,
+						},
+					},
+				},
+				where: {
+					idAndState: {
+						id: unblocking_user_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			},
+		);
+
+		if (!unblocking_user) {
+			throw new UserNotFoundError();
+		}
+
+		console.log("Searching for unblocked user...");
+		const unblocked_user: t_unblocked_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				id: true,
+			},
+			where: {
+				idAndState: {
+					id: unblocked_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!unblocked_user) {
+			throw new UserNotFoundError();
+		}
+
+		console.log("Checking for self unblocking...");
+		if (unblocked_user_id === unblocking_user_id) {
+			throw new UserSelfUnblockError();
+		}
+
+		console.log("Checking for not blocked...");
+		let found: boolean = false;
+		for (const blocked_user of unblocking_user.blocked) {
+			if (blocked_user.id === unblocked_user_id) {
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			throw new UserNotBlockedError();
+		}
+
+		console.log("Unblocking user...");
+		await this._prisma.user.update({
+			data: {
+				blocked: {
+					disconnect: {
+						id: unblocked_user_id,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: unblocking_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		console.log("User unblocked");
+	}
+
+	/**
+	 * @brief	Make a user unfriend another user, removing their friendship in both directions.
+	 *
+	 * @param	unfriending_user_id The id of the user unfriending the other user.
+	 * @param	unfriended_user_id The id of the user being unfriended.
+	 * @param	unfriending_user The user unfriending the other user. (optional)
+	 * @param	unfriended_user The user being unfriended. (optional)
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserSelfUnfriendError
+	 * 			- UserNotFriendError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async unfriend_two(
+		unfriending_user_id: string,
+		unfriended_user_id: string,
+		unfriending_user?: {
+			friends: {
+				id: string;
+			}[];
+		} | null,
+		unfriended_user?: {
+			id: string;
+		} | null,
+	): Promise<void> {
+		if (!unfriending_user) {
+			console.log("Searching for unfriending user...");
+			unfriending_user = await this._prisma.user.findUnique({
+				select: {
+					friends: {
+						select: {
+							id: true,
+						},
+					},
+				},
+				where: {
+					idAndState: {
+						id: unfriending_user_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			});
+
+			if (!unfriending_user) {
+				throw new UserNotFoundError();
+			}
+		}
+
+		if (!unfriended_user) {
+			console.log("Searching for unfriended user...");
+			unfriended_user = await this._prisma.user.findUnique({
+				select: {
+					id: true,
+				},
+				where: {
+					idAndState: {
+						id: unfriended_user_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			});
+
+			if (!unfriended_user) {
+				throw new UserNotFoundError();
+			}
+		}
+
+		console.log("Checking for self unfriending...");
+		if (unfriended_user_id === unfriending_user_id) {
+			throw new UserSelfUnfriendError();
+		}
+
+		console.log("Checking for not friends...");
+		if (!unfriending_user.friends.some((friend) => friend.id === unfriended_user_id)) {
+			throw new UserNotFriendError();
+		}
+
+		console.log("Unfriending users...");
+		await this._prisma.user.update({
+			data: {
+				friends: {
+					disconnect: {
+						idAndState: {
+							id: unfriended_user_id,
+							state: StateType.ACTIVE,
+						},
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: unfriending_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		await this._prisma.user.update({
+			data: {
+				friends: {
+					disconnect: {
+						idAndState: {
+							id: unfriending_user_id,
+							state: StateType.ACTIVE,
+						},
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: unfriended_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		console.log("Users unfriended");
 	}
 
 	/**
@@ -492,8 +885,6 @@ export class UserService {
 		if (!user) {
 			throw new UserNotFoundError();
 		}
-
-		console.log("User found");
 
 		if (name !== undefined) user.name = name;
 		if (email !== undefined) user.email = email;
