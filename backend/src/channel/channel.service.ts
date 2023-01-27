@@ -795,20 +795,20 @@ export class ChannelService {
 	 *
 	 * @param	channel_id The id of the channel to send the message to.
 	 * @param	user_id The id of the user sending the message.
-	 * @param	message The message to send in the channel.
+	 * @param	content The message to send in the channel.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
 	 * 			- ChannelNotJoinedError
 	 * 			- ChannelMessageTooLongError
 	 *
-	 * @return	An empty promise.
+	 * @return	A promise containing the newly sent message data.
 	 */
 	public async send_message_to_one(
 		channel_id: string,
 		user_id: string,
-		message: string,
-	): Promise<void> {
+		content: string,
+	): Promise<ChannelMessage> {
 		type t_fields = {
 			members: {
 				id: string;
@@ -850,14 +850,14 @@ export class ChannelService {
 		}
 
 		console.log("Checking for message length...");
-		if (message.length > g_channel_message_length_limit) {
+		if (content.length > g_channel_message_length_limit) {
 			throw new ChannelMessageTooLongError(
-				`message length: ${message.length} ; limit: ${g_channel_message_length_limit}`,
+				`message length: ${content.length} ; limit: ${g_channel_message_length_limit}`,
 			);
 		}
 
 		console.log("Sending message...");
-		await this._prisma.channelMessage.create({
+		const message: ChannelMessage = await this._prisma.channelMessage.create({
 			data: {
 				channel: {
 					connect: {
@@ -869,9 +869,11 @@ export class ChannelService {
 						id: user_id,
 					},
 				},
-				content: message,
+				content: content,
 			},
 		});
 		console.log("Message sent");
+
+		return message;
 	}
 }
