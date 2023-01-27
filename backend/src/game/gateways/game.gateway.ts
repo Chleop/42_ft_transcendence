@@ -213,7 +213,7 @@ export class GameGateway {
 				const update: ScoreUpdate = room.getFinalScore();
 				room.match.player1.socket.emit("updateScore", update);
 				room.match.player2.socket.emit("updateScore", update.invert());
-				const match: Match = await me.game_service.saveScore(room, e);
+				const match: Match = await me.game_service.registerGameHistory(room, e);
 				// me.game_service.destroyRoom(room);
 				return me.disconnectRoom(match);
 			} else {
