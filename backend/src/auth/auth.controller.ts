@@ -35,7 +35,7 @@ export class AuthController {
 		try {
 			token = await this._authService.createAccessToken(request.user.login);
 			response.cookie("access_token", token.access_token); // REMIND try with httpOnly
-			response.redirect("http://localhost:3000/");
+			response.redirect("http://91.162.172.70:49152/");
 		} catch (error) {
 			console.info(error);
 			if (error instanceof PrismaClientKnownRequestError) {

@@ -10,11 +10,15 @@ function entry_point() {
 
     router.register_route("/", () => History.replace_state(MainMenu));
 
+	console.log("test");
 	const route_result = router.get(window.location.pathname);
 	if (route_result) {
+		console.log(route_result);
 		route_result.meta(route_result.data);
 	} else {
-		// TODO: 404 error
+		console.log("404!");
+		document.body.innerText = "lol c'est nul part.";
+		document.body.style.color = "white";
 	}
 }
 
