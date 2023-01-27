@@ -20,7 +20,7 @@ import {
 import { g_channel_message_length_limit } from "src/channel/limit";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
-import { Channel, ChannelMessage, ChanType } from "@prisma/client";
+import { Channel, ChannelMessage, ChanType, StateType } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import * as argon2 from "argon2";
 
@@ -345,6 +345,8 @@ export class ChannelService {
 
 	/**
 	 * @brief	Create a new channel in the database.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is not DISABLED)
 	 *
 	 * @param	user_id The id of the user who is creating the channel.
 	 * @param	name The name of the channel.
@@ -392,12 +394,18 @@ export class ChannelService {
 					hash: password ? await argon2.hash(password) : null,
 					owner: {
 						connect: {
-							id: user_id,
+							idAndState: {
+								id: user_id,
+								state: StateType.ACTIVE,
+							},
 						},
 					},
 					members: {
 						connect: {
-							id: user_id,
+							idAndState: {
+								id: user_id,
+								state: StateType.ACTIVE,
+							},
 						},
 					},
 				},
@@ -424,6 +432,9 @@ export class ChannelService {
 
 	/**
 	 * @brief	Delete a channel from the database.
+	 * 			Only the owner of the channel is allowed to delete it.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is not DISABLED)
 	 *
 	 * @param	user_id The id of the user who is deleting the channel.
 	 * @param	channel_id The id of the channel to delete.
@@ -494,6 +505,8 @@ export class ChannelService {
 
 	/**
 	 * @brief	Get channel's messages from the database.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is not DISABLED)
 	 *
 	 * @param	user_id The id of the user who is getting the messages.
 	 * @param	channel_id The id of the channel to get the messages from.
@@ -524,10 +537,14 @@ export class ChannelService {
 		const channel: t_fields | null = await this._prisma.channel.findUnique({
 			select: {
 				members: {
-					select: { id: true },
+					select: {
+						id: true,
+					},
 				},
 			},
-			where: { id: channel_id },
+			where: {
+				id: channel_id,
+			},
 		});
 
 		if (!channel) {
@@ -556,6 +573,8 @@ export class ChannelService {
 	 * 			- PROTECTED, a correct password is required.
 	 * 			- PRIVATE, an valid invitation is required.
 	 * 			If the channel is ownerless, the user will inherit of the ownership of the channel.
+	 * 			It is assumed that the provided joining user id is valid.
+	 * 			(user exists and is not DISABLED)
 	 *
 	 * @param	joining_user_id The id of the user who is joining the channel.
 	 * @param	channel_id The id of the channel to join.
@@ -658,7 +677,10 @@ export class ChannelService {
 				data: {
 					members: {
 						connect: {
-							id: joining_user_id,
+							idAndState: {
+								id: joining_user_id,
+								state: StateType.ACTIVE,
+							},
 						},
 					},
 				},
@@ -683,9 +705,11 @@ export class ChannelService {
 
 	/**
 	 * @brief	Make a user leave a channel.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is not DISABLED)
 	 *
-	 * @param	channel_id The id of the channel to leave.
 	 * @param	user_id The id of the user leaving the channel.
+	 * @param	channel_id The id of the channel to leave.
 	 * @param	channel The channel to leave.
 	 *
 	 * @error	The following errors may be thrown :
@@ -696,8 +720,8 @@ export class ChannelService {
 	 */
 
 	public async leave_one(
-		channel_id: string,
 		user_id: string,
+		channel_id: string,
 		channel?: {
 			owner: {
 				id: string;
@@ -713,9 +737,6 @@ export class ChannelService {
 		if (!channel) {
 			console.log("Searching for the channel to leave...");
 			channel = await this._prisma.channel.findUnique({
-				where: {
-					id: channel_id,
-				},
 				select: {
 					owner: {
 						select: {
@@ -732,6 +753,9 @@ export class ChannelService {
 							id: true,
 						},
 					},
+				},
+				where: {
+					id: channel_id,
 				},
 			});
 
@@ -792,10 +816,12 @@ export class ChannelService {
 
 	/**
 	 * @brief	Make a user send a message to a channel they are in.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is not DISABLED)
 	 *
-	 * @param	channel_id The id of the channel to send the message to.
 	 * @param	user_id The id of the user sending the message.
-	 * @param	content The message to send in the channel.
+	 * @param	channel_id The id of the channel to send the message to.
+	 * @param	content The message content to send in the channel.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
@@ -805,8 +831,8 @@ export class ChannelService {
 	 * @return	A promise containing the newly sent message data.
 	 */
 	public async send_message_to_one(
-		channel_id: string,
 		user_id: string,
+		channel_id: string,
 		content: string,
 	): Promise<ChannelMessage> {
 		type t_fields = {
