@@ -38,8 +38,7 @@ export class AuthController {
 	@UseGuards(FtOauthGuard)
 	async signin(@Req() request: any, @Res() response: Response) {
 		let token: t_access_token;
-		const user_id: string = await this._user.get_ones_id_by_login(request.user.login);
-		const user: t_get_one_fields = await this._user.get_one(user_id, user_id);
+		const user: t_get_one_fields = await this._user.get_one(request.user.id, request.user.id);
 		try {
 			if (user.twoFactAuth === true) {
 				if (user.email !== null)
@@ -60,12 +59,16 @@ export class AuthController {
 
 	@UseGuards(JwtGuard)
 	@Get("42/2FAActivate")
-	async activateTwoFactAuth(@Req() req: any, @Body("email") email: string) {
-		await this._authService.create_secret(req.user.id);
-		if (email === "cucu") email = "caca";
-		await this._authService.send_confirmation_email(req.user.id, email);
-		// TODO : retirer le return ok
-		return "ok!";
+	async activateTwoFactAuth(@Req() req: any, @Body("email") email: string): Promise<void> {
+		try {
+			await this._authService.add_email_to_db(req.user.id, email);
+			await this._authService.create_and_add_secret_to_db(req.user.id);
+			await this._authService.send_confirmation_email(req.user.id, email);
+		} catch (error) {
+			// TODO: Ameliorer la gestion d'erreurs
+			console.log(error);
+			throw error;
+		}
 	}
 
 	@UseGuards(JwtGuard)
@@ -77,9 +80,8 @@ export class AuthController {
 	): Promise<void> {
 		try {
 			const user: t_get_one_fields = await this._user.get_one(req.user.id, req.user.id);
-			this._authService.confirm_email(user, res, Number(code));
+			await this._authService.confirm_email(user, res, Number(code));
 		} catch (error) {
-			console.log("An error occured, throwing ForbiddenException...");
 			throw new ForbiddenException(error);
 		}
 	}

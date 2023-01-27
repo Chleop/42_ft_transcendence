@@ -81,11 +81,9 @@ export class AuthService {
 		return ret;
 	}
 
-	public async create_secret(user_id: string): Promise<void> {
-		// TODO: make the code expire every 10 min
+	public async create_and_add_secret_to_db(user_id: string): Promise<void> {
+		// TODO: encrypt code
 		const code: number = Math.floor(10000 + Math.random() * 90000);
-		// TODO: delete
-		console.log("code = " + code);
 		const currentTime: Date = new Date();
 		try {
 			await this._prisma.user.update({
@@ -99,10 +97,12 @@ export class AuthService {
 
 	public async delete_secret(user_id: string): Promise<void> {
 		try {
+			console.log("I AM IN DELETE SECRET");
 			await this._prisma.user.update({
 				where: { id: user_id },
 				data: { twoFactSecret: null, tFSecretCreationDate: null },
 			});
+			console.log("I FINISHED DELETING SECRET");
 		} catch (error) {
 			console.log("ERROR in create_secret: " + error);
 		}
@@ -115,9 +115,6 @@ export class AuthService {
 					where: { id: user_id },
 					select: { twoFactSecret: true },
 				});
-			const user: t_get_one_fields = await this._user.get_one(user_id, user_id);
-			// add email to database
-			await this.add_email_to_db(user.id, receiver_email);
 			// send confirmation email
 			if (secret !== null && secret.twoFactSecret !== null) {
 				console.log("Sending email ...");
@@ -147,9 +144,11 @@ export class AuthService {
 		let token: t_access_token;
 		if ((await this.isValid(user, code)) === true) {
 			if (user.twoFactAuth === false) {
+				console.log("user.twoFactAuth === false");
 				await this.activate_2FA(user.id);
 				if (user.email !== null) await this.send_thankyou_email(user.email);
 			} else {
+				console.log("user.twoFactAuth === true");
 				token = await this.create_access_token(user.login);
 				await res.cookie("access_token", token.access_token); // REMIND try with httpOnly
 				await res.redirect("http://localhost:3000/");
@@ -160,34 +159,45 @@ export class AuthService {
 		}
 	}
 
-	private async isValid(user: t_get_one_fields, received_code: number): Promise<boolean> {
+	private async isValid(user: t_get_one_fields, code: number): Promise<boolean> {
+		console.log("In isvalide, code = " + code);
 		const secret: { twoFactSecret: number | null; tFSecretCreationDate: Date | null } | null =
 			await this._prisma.user.findUnique({
 				where: { id: user.id },
 				select: { twoFactSecret: true, tFSecretCreationDate: true },
 			});
 		if (
-			secret === null ||
-			secret.tFSecretCreationDate === null ||
-			secret.twoFactSecret === null
+			secret !== null &&
+			secret.tFSecretCreationDate !== null &&
+			secret.twoFactSecret !== null &&
+			secret.twoFactSecret === code &&
+			this.isExpired(code, secret.twoFactSecret, secret.tFSecretCreationDate) === false
 		)
-			console.log("tFSecretCreationDate and twoFactSecret are not set!");
-		else {
-			const db_code: number = secret.twoFactSecret;
-			const currentTime: Date = new Date();
-			const secretCreationTime: Date = secret.tFSecretCreationDate;
-			const secret_lifetime: number =
-				currentTime.getMinutes() - secretCreationTime.getMinutes();
-			if (db_code === received_code && secret_lifetime < 10) return true;
-		}
+			return true;
+		await this.delete_secret(user.id);
+		// TODO: delete
+		console.log("is valid = false");
 		return false;
+	}
+
+	private isExpired(received_code: number, secret: number, creation_time: Date): boolean {
+		const current_time: Date = new Date();
+		const secret_lifetime: number = current_time.getMinutes() - creation_time.getMinutes();
+		console.log("secret.twoFactSecret = " + secret);
+		console.log("received_code = " + received_code);
+		console.log("secret_lifetime = " + secret_lifetime);
+		if (secret_lifetime <= 5) {
+			// TODO: delete
+			console.log("is valid = true");
+			return false;
+		} else return true;
 	}
 
 	private async activate_2FA(user_id: string): Promise<void> {
 		await this._user.update_one(user_id, undefined, undefined, true);
 	}
 
-	private async add_email_to_db(user_id: string, email: string): Promise<void> {
+	public async add_email_to_db(user_id: string, email: string): Promise<void> {
 		await this._user.update_one(user_id, undefined, email);
 	}
 
