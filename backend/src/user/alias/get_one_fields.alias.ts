@@ -1,30 +1,32 @@
+import { ChanType } from "@prisma/client";
+import { t_channels_fields } from "src/user/alias";
+
 export type t_get_one_fields = {
 	id: string;
-	login: string;
 	name: string;
-	email: string | null;
+	skin_id: string;
+	elo: number;
+	channels: t_channels_fields[];
+	games_played_ids: string[];
+	games_won_ids: string[];
+};
+
+export type t_get_one_fields_tmp = {
+	id: string;
+	name: string;
 	skinId: string;
 	elo: number;
-	twoFactAuth: boolean;
-	channels: {
-		id: string;
-	}[];
-	channelsOwned: {
-		id: string;
-	}[];
-	gamesPlayed: {
-		id: string;
-	}[];
-	gamesWon: {
-		id: string;
-	}[];
-	friends: {
-		id: string;
-	}[];
-	pendingFriendRequests: {
-		id: string;
-	}[];
-	blocked: {
-		id: string;
-	}[];
+	channels: t_channels_fields_tmp[];
+	gamesPlayed: t_games_fields_tmp[];
+	gamesWon: t_games_fields_tmp[];
+};
+
+type t_channels_fields_tmp = {
+	id: string;
+	name: string;
+	chanType: ChanType;
+};
+
+type t_games_fields_tmp = {
+	id: string;
 };

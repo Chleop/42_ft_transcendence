@@ -1,4 +1,11 @@
-import { t_get_one_fields } from "src/user/alias";
+import {
+	t_channels_fields,
+	t_games_played_fields,
+	t_get_me_fields,
+	t_get_me_fields_tmp,
+	t_get_one_fields,
+	t_get_one_fields_tmp,
+} from "src/user/alias";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
@@ -9,6 +16,7 @@ import {
 	UserNotLinkedError,
 	UserRelationNotFoundError,
 	UserSelfBlockError,
+	UserSelfGetError,
 	UserSelfUnblockError,
 	UserSelfUnfriendError,
 } from "src/user/error";
@@ -356,50 +364,19 @@ export class UserService {
 
 	/**
 	 * @brief	Get a user from the database.
-	 * 			Requested user must be active,
-	 * 			and either have at least one common channel with the requesting user,
-	 * 			or be friends with the requesting user, or be the requesting user.
-	 * 			It is assumed that the provided requesting user id is valid.
+	 * 			It is assumed that the provided user id is valid.
 	 * 			(user exists and is not DISABLED)
 	 *
-	 * @param	requesting_user_id The id of the user requesting the user.
-	 * @param	requested_user_id The id of the user to get.
+	 * @param	id The id of the user to get.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserNotFoundError
-	 * 			- UserNotLinkedError
 	 *
 	 * @return	A promise containing the wanted user.
 	 */
-	public async get_one(
-		requesting_user_id: string,
-		requested_user_id: string,
-	): Promise<t_get_one_fields> {
-		type t_requesting_user_fields = {
-			channels: {
-				id: string;
-			}[];
-		};
-
-		console.log("Searching for requesting user...");
-		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
-			select: {
-				channels: {
-					select: {
-						id: true,
-					},
-				},
-			},
-			where: {
-				idAndState: {
-					id: requesting_user_id,
-					state: StateType.ACTIVE,
-				},
-			},
-		})) as t_requesting_user_fields;
-
-		console.log("Searching for requested user...");
-		const requested_user: t_get_one_fields | null = await this._prisma.user.findUnique({
+	public async get_me(id: string): Promise<t_get_me_fields> {
+		console.log("Searching for user...");
+		const user_tmp: t_get_me_fields_tmp | null = await this._prisma.user.findUnique({
 			select: {
 				id: true,
 				login: true,
@@ -411,6 +388,8 @@ export class UserService {
 				channels: {
 					select: {
 						id: true,
+						name: true,
+						chanType: true,
 					},
 				},
 				channelsOwned: {
@@ -421,11 +400,14 @@ export class UserService {
 				gamesPlayed: {
 					select: {
 						id: true,
-					},
-				},
-				gamesWon: {
-					select: {
-						id: true,
+						players: {
+							select: {
+								id: true,
+							},
+						},
+						scores: true,
+						dateTime: true,
+						winnerId: true,
 					},
 				},
 				friends: {
@@ -446,22 +428,175 @@ export class UserService {
 			},
 			where: {
 				idAndState: {
+					id: id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!user_tmp) {
+			throw new UserNotFoundError(id);
+		}
+
+		const user: t_get_me_fields = {
+			id: user_tmp.id,
+			login: user_tmp.login,
+			name: user_tmp.name,
+			email: user_tmp.email,
+			skin_id: user_tmp.skinId,
+			elo: user_tmp.elo,
+			two_fact_auth: user_tmp.twoFactAuth,
+			channels: user_tmp.channels.map((channel): t_channels_fields => {
+				return {
+					id: channel.id,
+					name: channel.name,
+					type: channel.chanType,
+				};
+			}),
+			channels_owned_ids: user_tmp.channelsOwned.map((channel): string => {
+				return channel.id;
+			}),
+			games_played: user_tmp.gamesPlayed.map((game): t_games_played_fields => {
+				return {
+					id: game.id,
+					players_ids: game.players.map((player): string => {
+						return player.id;
+					}) as [string, string],
+					scores: game.scores as [number, number],
+					date_time: game.dateTime,
+					winner_id: game.winnerId,
+				};
+			}),
+			friends_ids: user_tmp.friends.map((friend): string => {
+				return friend.id;
+			}),
+			pending_friends_ids: user_tmp.pendingFriendRequests.map((pending_friend): string => {
+				return pending_friend.id;
+			}),
+			blocked_ids: user_tmp.blocked.map((blocked): string => {
+				return blocked.id;
+			}),
+		};
+
+		console.log("User found");
+		return user;
+	}
+
+	/**
+	 * @brief	Get a user from the database.
+	 * 			Requested user must be active,
+	 * 			and either have at least one common channel with the requesting user,
+	 * 			or be friends with the requesting user.
+	 * 			It is assumed that the provided requesting user id is valid.
+	 * 			(user exists and is not DISABLED)
+	 *
+	 * @param	requesting_user_id The id of the user requesting the user.
+	 * @param	requested_user_id The id of the user to get.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserSelfGetError
+	 * 			- UserNotFoundError
+	 * 			- UserNotLinkedError
+	 *
+	 * @return	A promise containing the wanted user.
+	 */
+	public async get_one(
+		requesting_user_id: string,
+		requested_user_id: string,
+	): Promise<t_get_one_fields> {
+		type t_requesting_user_fields = {
+			channels: {
+				id: string;
+			}[];
+			friends: {
+				id: string;
+			}[];
+		};
+
+		console.log("Checking for self get...");
+		if (requesting_user_id === requested_user_id) {
+			throw new UserSelfGetError();
+		}
+
+		console.log("Searching for requesting user...");
+		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
+			select: {
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+				friends: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requesting_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		})) as t_requesting_user_fields;
+
+		console.log("Searching for requested user...");
+		const requested_user_tmp: t_get_one_fields_tmp | null = await this._prisma.user.findUnique({
+			select: {
+				id: true,
+				login: true,
+				name: true,
+				skinId: true,
+				elo: true,
+				channels: {
+					select: {
+						id: true,
+						name: true,
+						chanType: true,
+					},
+				},
+				gamesPlayed: {
+					select: {
+						id: true,
+					},
+				},
+				gamesWon: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
 					id: requested_user_id,
 					state: StateType.ACTIVE,
 				},
 			},
 		});
 
-		if (!requested_user) {
+		if (!requested_user_tmp) {
 			throw new UserNotFoundError(requested_user_id);
 		}
 
-		console.log(
-			"Checking for both users to be linked through a channel, a friendship, or to be the same...",
-		);
+		const requested_user: t_get_one_fields = {
+			id: requested_user_tmp.id,
+			name: requested_user_tmp.name,
+			skin_id: requested_user_tmp.skinId,
+			elo: requested_user_tmp.elo,
+			channels: requested_user_tmp.channels.map((channel): t_channels_fields => {
+				return {
+					id: channel.id,
+					name: channel.name,
+					type: channel.chanType,
+				};
+			}),
+			games_played_ids: requested_user_tmp.gamesPlayed.map((game): string => game.id),
+			games_won_ids: requested_user_tmp.gamesWon.map((game): string => game.id),
+		};
+
+		console.log("Checking for both users to be linked through a channel or a friendship...");
 		if (
-			requesting_user_id !== requested_user_id &&
-			!requested_user.friends.some((friend) => friend.id === requesting_user_id) &&
+			!requesting_user.friends.some((friend): boolean => friend.id === requested_user_id) &&
 			!requested_user.channels.some((requested_user_channel): boolean =>
 				requesting_user.channels.some(
 					(requesting_user_channel): boolean =>
