@@ -229,13 +229,13 @@ export class RawHTTPClient {
     /**
      * Sends a message to the specified channel.
      */
-    public async send_message(channel: ChannelId, content: string): Promise<void> {
-        await this.make_request({
+    public async send_message(channel: ChannelId, content: string): Promise<Message> {
+        return (await this.make_request({
             method: "POST",
             success_status: 201,
             accept: "application/json",
             url: `/api/channel/${channel}/message`,
             body: new JsonBody({ message: content }),
-        });
+        })).json();
     }
 }

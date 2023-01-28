@@ -1,4 +1,4 @@
-import { Channel, ChannelId, Message, UserId, Client, Users, Gateway } from "../api";
+import { Channel, ChannelId, Message, UserId, Client, Users, Gateway, MessageId } from "../api";
 
 /**
  * A message that has been instanciated in the DOM.
@@ -150,6 +150,9 @@ export class ChatElement {
     /** The channels elements. */
     private channel_elements: ChannelElementInternal[];
 
+    /** The ID of a message to ignore. */
+    private message_to_ignore: MessageId|null;
+
     /**
      * Creates a new `ChatContainer` element.
      */
@@ -200,10 +203,16 @@ export class ChatElement {
 
         this.selected_channel = null;
         this.channel_elements = [];
+        this.message_to_ignore = null;
+
+        Gateway.on_connected = () => {
+            console.log("Connected to the gateway!");
+        };
 
         Gateway.on_message = (msg: Message) => {
+            console.log("Received message: ", msg.content);
             let ch = this.get_channel(msg.channelId);
-            if (ch) {
+            if (ch && this.message_to_ignore !== msg.id) {
                 this.add_message(ch, msg);
             }
         };
@@ -304,16 +313,8 @@ export class ChatElement {
             return null;
         }
 
-        await Client.send_message(this.selected_channel.channel_id, content);
-        // TODO:
-        //  Until #87 is resolved.
-        const message = <Message>{
-            channelId: this.selected_channel.channel_id,
-            content,
-            dateTime: new Date().toISOString(),
-            id: "",
-            senderId: (await Users.me()).id,
-        };
+        const message = await Client.send_message(this.selected_channel.channel_id, content);
+        this.add_message(this.selected_channel, message);
 
         return message;
     }
