@@ -41,6 +41,7 @@ import {
 	UnknownError,
 } from "src/channel/error";
 import { JwtGuard } from "src/auth/guards";
+import { t_get_one_fields } from "src/user/alias";
 
 @UseGuards(JwtGuard)
 @Controller("channel")
@@ -54,14 +55,14 @@ export class ChannelController {
 	@Post()
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async create_one(
-		@Req() request: { user: { sub: string } },
+		@Req() request: { user: t_get_one_fields },
 		@Body() dto: ChannelCreateDto,
 	): Promise<Channel> {
 		let channel: Channel;
 
 		try {
 			channel = await this._channel_service.create_one(
-				request.user.sub,
+				request.user.id,
 				dto.name,
 				dto.is_private,
 				dto.password,
@@ -91,11 +92,11 @@ export class ChannelController {
 
 	@Delete(":id")
 	async delete_one(
-		@Req() request: { user: { sub: string } },
+		@Req() request: { user: t_get_one_fields },
 		@Param("id") channel_id: string,
 	): Promise<void> {
 		try {
-			await this._channel_service.delete_one(request.user.sub, channel_id);
+			await this._channel_service.delete_one(request.user.id, channel_id);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError) {
 				console.log(error.message);
@@ -117,7 +118,7 @@ export class ChannelController {
 	@Get(":id/messages")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async get_ones_messages(
-		@Req() request: { user: { sub: string } },
+		@Req() request: { user: t_get_one_fields },
 		@Param("id") id: string,
 		@Query() dto: ChannelMessageGetDto,
 	): Promise<ChannelMessage[]> {
@@ -129,7 +130,7 @@ export class ChannelController {
 
 		try {
 			messages = await this._channel_service.get_ones_messages(
-				request.user.sub,
+				request.user.id,
 				id,
 				dto.limit,
 				dto.before,
@@ -157,7 +158,7 @@ export class ChannelController {
 	@Patch(":id/join")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async join_one(
-		@Req() request: { user: { sub: string } },
+		@Req() request: { user: t_get_one_fields },
 		@Param("id") id: string,
 		@Body() dto: ChannelJoinDto,
 	): Promise<Channel> {
@@ -165,7 +166,7 @@ export class ChannelController {
 
 		try {
 			channel = await this._channel_service.join_one(
-				request.user.sub,
+				request.user.id,
 				id,
 				dto.password,
 				dto.inviting_user_id,
@@ -198,11 +199,11 @@ export class ChannelController {
 	@Patch(":id/leave")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async leave_one(
-		@Req() request: { user: { sub: string } },
+		@Req() request: { user: t_get_one_fields },
 		@Param("id") id: string,
 	): Promise<void> {
 		try {
-			await this._channel_service.leave_one(id, request.user.sub);
+			await this._channel_service.leave_one(request.user.id, id);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
 				console.log(error.message);
@@ -214,14 +215,14 @@ export class ChannelController {
 	@Post(":id/message")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async send_message_to_one(
-		@Req() request: { user: { sub: string } },
+		@Req() request: { user: t_get_one_fields },
 		@Param("id") id: string,
 		@Body() dto: ChannelMessageSendDto,
 	): Promise<ChannelMessage> {
 		try {
 			return await this._channel_service.send_message_to_one(
+				request.user.id,
 				id,
-				request.user.sub,
 				dto.message,
 			);
 		} catch (error) {
