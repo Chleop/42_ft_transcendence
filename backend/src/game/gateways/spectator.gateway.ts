@@ -5,8 +5,7 @@ import {
 	WebSocketGateway,
 	WebSocketServer,
 } from "@nestjs/websockets";
-import { Server } from "socket.io";
-import { Client } from "../aliases";
+import { Server, Socket } from "socket.io";
 import { GameService, SpectateService } from "../services";
 import { GameRoom, SpectatedRoom } from "../rooms";
 import * as Constants from "../constants/constants";
@@ -40,12 +39,12 @@ export class SpectatorGateway implements OnGatewayConnection, OnGatewayDisconnec
 
 	/* Connection Handler ------------------------------------------------------ */
 
-	public handleConnection(client: Client): void {
+	public handleConnection(client: Socket): void {
 		// Find game to spectate: Cookie? Header?
 		// For now:
 		//		client.handshake.headers.socket_id
 
-		console.log(`Client '${client.id}' joined`);
+		console.log(`Socket '${client.id}' joined`);
 		const room: GameRoom | null = this.game_service.findUserGame(client);
 		if (room instanceof GameRoom) {
 			client.join(room.match.name);
@@ -53,7 +52,7 @@ export class SpectatorGateway implements OnGatewayConnection, OnGatewayDisconnec
 		}
 	}
 
-	public handleDisconnect(client: Client): void {
+	public handleDisconnect(client: Socket): void {
 		const room: GameRoom | null = this.game_service.findUserGame(client);
 		if (room instanceof GameRoom) {
 			const spectated_room: SpectatedRoom | null = this.spectate_service.getRoom(
@@ -65,12 +64,12 @@ export class SpectatorGateway implements OnGatewayConnection, OnGatewayDisconnec
 					this.stopStreaming(this, spectated_room.game_room.match.name);
 			}
 		}
-		console.log(`Client '${client.id}' left`);
+		console.log(`Socket '${client.id}' left`);
 	}
 
 	/* PRIVATE ================================================================= */
 
-	private startStreaming(client: Client, room: GameRoom): void {
+	private startStreaming(client: Socket, room: GameRoom): void {
 		const spectated_room: SpectatedRoom | null = this.spectate_service.getRoom(room.match.name);
 		if (spectated_room === null) {
 			console.log(`Creating room ${room.match.name}`);

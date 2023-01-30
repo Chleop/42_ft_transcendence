@@ -6,12 +6,12 @@ import {
 	OnGatewayDisconnect,
 	OnGatewayInit,
 } from "@nestjs/websockets";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { GameService } from "../services/game.service";
 import { GameRoom } from "../rooms";
 import { PaddleDto } from "../dto";
 import { Results, Ball, ScoreUpdate } from "../objects";
-import { AntiCheat, OpponentUpdate, Client, Match } from "../aliases";
+import { AntiCheat, OpponentUpdate, Match } from "../aliases";
 
 import * as Constants from "../constants/constants";
 import { BadRequestException, ConflictException } from "@nestjs/common";
@@ -102,7 +102,7 @@ From the server:
 
 /* Gateway to events comming from `http://localhost:3000/game` */
 @WebSocketGateway({
-	namespace: "/game",
+	namespace: "game",
 })
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
 	@WebSocketServer()
@@ -127,13 +127,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	/**
 	 * Handler for gateway connection
 	 */
-	public handleConnection(client: Client): void {
+	public handleConnection(client: Socket): void {
 		console.log(`[${client.id} connected]`);
 		// client.emit("connected", "Welcome");
 		try {
 			//TODO: Check if they are not spectator: middleware->`/spectator`?
 			//TODO: handle authkey
-			const user: Client = this.game_service.getUser(client); // authkey
+			const user: Socket = this.game_service.getUser(client); // authkey
 			const match: Match | null = this.game_service.queueUp(user);
 			if (match !== null) this.matchmake(match);
 		} catch (e) {
@@ -145,7 +145,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	/**
 	 * Handler for gateway disconnection
 	 */
-	public handleDisconnect(client: Client): void {
+	public handleDisconnect(client: Socket): void {
 		const match: Match | null = this.game_service.unQueue(client);
 		if (match !== null) {
 			this.disconnectRoom(match);
@@ -159,7 +159,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	/* Handle paddle updates for the game */
 	// @UseGuards(JwtGuard)
 	@SubscribeMessage("update")
-	public updateEnemy(client: Client, dto: PaddleDto): void {
+	public updateEnemy(client: Socket, dto: PaddleDto): void {
 		try {
 			// TODO: Check paddledto accuracy
 			const anticheat: AntiCheat = this.game_service.updateOpponent(client, dto);
@@ -176,7 +176,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
 	/* TEMPORARY: to stop the interval thingy */
 	@SubscribeMessage("stop")
-	public stopGame(client: Client): void {
+	public stopGame(client: Socket): void {
 		client.disconnect(true);
 	}
 

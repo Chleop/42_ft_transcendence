@@ -3,8 +3,7 @@ import { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.int
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { IoAdapter } from "@nestjs/platform-socket.io";
-import { ServerOptions } from "socket.io";
-import { Client } from "./game/aliases";
+import { Server, ServerOptions, Socket } from "socket.io";
 
 /**
  * Allows gateway to have dynamic ports (imported from env)
@@ -23,7 +22,7 @@ export class SocketIOAdapter extends IoAdapter {
 		this.config_service; // same
 	}
 
-	public override createIOServer(port: number, options?: ServerOptions): void {
+	public override createIOServer(port: number, options?: ServerOptions): Server {
 		/* TODO for later */
 		// const port_str : string |undefined= this.config_service.get('CLIENT_PORT')
 		// if (port_str=== undefined)
@@ -37,20 +36,24 @@ export class SocketIOAdapter extends IoAdapter {
 			],
 		};
 
+		const jwt_service: JwtService = this.app.get(JwtService);
+
 		// we need to return this, even though the signature says it returns void
-		return super.createIOServer(port, { ...options, cors });
+		const server: Server = super.createIOServer(port, { ...options, cors });
+		server.of("game").use(createTokenMiddleware(jwt_service));
+		return server;
 	}
 }
 
 const createTokenMiddleware =
-	(jwt_service: JwtService) => (client: Client, next: (error?: any) => void) => {
+	(jwt_service: JwtService) => (client: Socket, next: (error?: any) => void) => {
 		const token: string | undefined = client.handshake.headers.authorization;
 
 		if (token === undefined) throw new ForbiddenException("No token provided");
 		console.log(`Validating token: ${token}`);
 		try {
 			const payload: { sub: string } = jwt_service.verify(token);
-			client.user_id = payload.sub;
+			client.data.user_id = payload.sub;
 			next();
 		} catch {
 			next(new ForbiddenException("No token provided"));
