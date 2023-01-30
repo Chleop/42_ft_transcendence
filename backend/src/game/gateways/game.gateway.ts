@@ -1,5 +1,12 @@
-import { WebSocketGateway, WebSocketServer, SubscribeMessage } from "@nestjs/websockets";
-import { Server, Socket } from "socket.io";
+import {
+	WebSocketGateway,
+	WebSocketServer,
+	SubscribeMessage,
+	OnGatewayConnection,
+	OnGatewayDisconnect,
+	OnGatewayInit,
+} from "@nestjs/websockets";
+import { Server } from "socket.io";
 import { GameService } from "../services/game.service";
 import { GameRoom } from "../rooms";
 import { PaddleDto } from "../dto";
@@ -54,8 +61,8 @@ From the client:
 		temporary, this is meant to test the setInterval stuff
 
 From the server:
-	- `connected`
-		sent to the client as an acknowledgement of their initial connection.
+	// - `connected`
+	// 	sent to the client as an acknowledgement of their initial connection.
 
 	- `matchFound`
 		once two clients are matched, they are sent this event.
@@ -96,31 +103,37 @@ From the server:
 /* Gateway to events comming from `http://localhost:3000/game` */
 @WebSocketGateway({
 	namespace: "/game",
-	cors: {
-		origin: ["http://localhost:3000"],
-	},
 })
-export class GameGateway {
+export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
 	@WebSocketServer()
 	public readonly server: Server;
 	private readonly game_service: GameService;
+
+	/* CONSTRUCTOR ============================================================= */
 
 	constructor(game_service: GameService) {
 		this.server = new Server();
 		this.game_service = game_service;
 	}
 
-	/* == PRIVATE =============================================================================== */
+	/* PUBLIC ================================================================== */
 
-	/* -- CONNECTION ---------------------------------------------------------- */
-	/* Handle connection to server */
-	public handleConnection(client: Socket): void {
+	public afterInit(): void {
+		console.log("Game gateway initialized");
+	}
+
+	/* Connection handlers ----------------------------------------------------- */
+
+	/**
+	 * Handler for gateway connection
+	 */
+	public handleConnection(client: Client): void {
 		console.log(`[${client.id} connected]`);
-		client.emit("connected", "Welcome");
+		// client.emit("connected", "Welcome");
 		try {
 			//TODO: Check if they are not spectator: middleware->`/spectator`?
 			//TODO: handle authkey
-			const user: Client = this.game_service.getUser(client, "abc"); // authkey
+			const user: Client = this.game_service.getUser(client); // authkey
 			const match: Match | null = this.game_service.queueUp(user);
 			if (match !== null) this.matchmake(match);
 		} catch (e) {
@@ -129,8 +142,10 @@ export class GameGateway {
 		}
 	}
 
-	/* Handle disconnection from server */
-	public handleDisconnect(client: Socket): void {
+	/**
+	 * Handler for gateway disconnection
+	 */
+	public handleDisconnect(client: Client): void {
 		const match: Match | null = this.game_service.unQueue(client);
 		if (match !== null) {
 			this.disconnectRoom(match);
@@ -139,11 +154,12 @@ export class GameGateway {
 		this.game_service.display();
 	}
 
-	/* -- EVENT HANDLERS ------------------------------------------------------ */
+	/* Event handlers ---------------------------------------------------------- */
 
 	/* Handle paddle updates for the game */
+	// @UseGuards(JwtGuard)
 	@SubscribeMessage("update")
-	public updateEnemy(client: Socket, dto: PaddleDto): void {
+	public updateEnemy(client: Client, dto: PaddleDto): void {
 		try {
 			// TODO: Check paddledto accuracy
 			const anticheat: AntiCheat = this.game_service.updateOpponent(client, dto);
@@ -160,17 +176,19 @@ export class GameGateway {
 
 	/* TEMPORARY: to stop the interval thingy */
 	@SubscribeMessage("stop")
-	public stopGame(client: Socket): void {
+	public stopGame(client: Client): void {
 		client.disconnect(true);
 	}
+
+	/* PRIVATE ================================================================= */
 
 	/* -- MATCHMAKING --------------------------------------------------------- */
 	/* Waits for the 2 players to accept the match */
 	private matchmake(match: Match): void {
 		const p1_decoded: UserData = this.game_service.decode(match.player1.id);
 		const p2_decoded: UserData = this.game_service.decode(match.player2.id);
-		match.player1.socket.emit("matchFound", p2_decoded);
-		match.player2.socket.emit("matchFound", p1_decoded);
+		match.player1.emit("matchFound", p2_decoded);
+		match.player2.emit("matchFound", p1_decoded);
 
 		const room: GameRoom = this.game_service.createRoom(match);
 
@@ -186,8 +204,8 @@ export class GameGateway {
 
 		console.log(room);
 		// Send the initial ball { pos, v0 }
-		room.match.player1.socket.emit("gameStart", initial_game_state);
-		room.match.player2.socket.emit("gameStart", initial_game_state);
+		room.match.player1.emit("gameStart", initial_game_state);
+		room.match.player2.emit("gameStart", initial_game_state);
 		room.setPlayerPingId(setInterval(me.sendGameUpdates, Constants.ping, me, room));
 	}
 
@@ -200,18 +218,18 @@ export class GameGateway {
 		try {
 			const update: Ball | ScoreUpdate = room.updateGame();
 			if (update instanceof Ball) {
-				room.match.player1.socket.emit("updateBall", update);
-				room.match.player2.socket.emit("updateBall", update.invert());
+				room.match.player1.emit("updateBall", update);
+				room.match.player2.emit("updateBall", update.invert());
 			} else if (update instanceof ScoreUpdate) {
-				room.match.player1.socket.emit("updateScore", update);
-				room.match.player2.socket.emit("updateScore", update.invert());
+				room.match.player1.emit("updateScore", update);
+				room.match.player2.emit("updateScore", update.invert());
 			}
 		} catch (e) {
 			if (e instanceof Results) {
 				/* Save results and destroy game */
 				const update: ScoreUpdate = room.getFinalScore();
-				room.match.player1.socket.emit("updateScore", update);
-				room.match.player2.socket.emit("updateScore", update.invert());
+				room.match.player1.emit("updateScore", update);
+				room.match.player2.emit("updateScore", update.invert());
 				try {
 					const match: Match = await me.game_service.registerGameHistory(room, e);
 					return me.disconnectRoom(match);
@@ -236,7 +254,7 @@ export class GameGateway {
 	/* -- UTILS --------------------------------------------------------------- */
 	//TODO: make it cleaner
 	private disconnectRoom(match: Match): void {
-		match.player1.socket.disconnect(true);
-		match.player2.socket.disconnect(true);
+		match.player1.disconnect(true);
+		match.player2.disconnect(true);
 	}
 }

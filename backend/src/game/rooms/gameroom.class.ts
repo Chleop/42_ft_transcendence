@@ -1,7 +1,6 @@
-import { Socket } from "socket.io";
 import { Gameplay } from "../gameplay";
 import { PaddleDto } from "../dto";
-import { AntiCheat, Score, Match } from "../aliases";
+import { AntiCheat, Score, Match, Client } from "../aliases";
 import { Results, Ball, ScoreUpdate, SpectatorUpdate } from "../objects";
 
 // TODO: make it cleaner
@@ -42,7 +41,7 @@ export class GameRoom {
 	}
 
 	/* Called everytime the sender sent an update */
-	public updatePaddle(client: Socket, dto: PaddleDto): AntiCheat {
+	public updatePaddle(client: Client, dto: PaddleDto): AntiCheat {
 		if (this.game === null) throw "Game hasn't started yet";
 		const cheat_check: CheatCheck = this.game.checkUpdate(this.playerNumber(client), dto);
 		return {
@@ -85,16 +84,14 @@ export class GameRoom {
 	}
 
 	/* -- IDENTIFIERS --------------------------------------------------------- */
-	public isClientInRoom(client: Socket): boolean {
-		return (
-			this.match.player1.socket.id === client.id || this.match.player2.socket.id === client.id
-		);
+	public isClientInRoom(client: Client): boolean {
+		return this.match.player1.user_id === client.id || this.match.player2.user_id === client.id;
 	}
 
 	/* Returns player's number */
-	public playerNumber(client: Socket): number | null {
-		if (this.match.player1.socket.id === client.id) return 1;
-		else if (this.match.player2.socket.id === client.id) return 2;
+	public playerNumber(client: Client): number | null {
+		if (this.match.player1.user_id === client.id) return 1;
+		else if (this.match.player2.user_id === client.id) return 2;
 		return null;
 	}
 
@@ -109,8 +106,8 @@ export class GameRoom {
 
 	/* -- IDENTIFIERS --------------------------------------------------------- */
 	/* Returns client's opponent socket */
-	private whoIsOpponent(client: Socket): Socket {
-		if (this.match.player1.socket.id === client.id) return this.match.player2.socket;
-		else return this.match.player1.socket;
+	private whoIsOpponent(client: Client): Client {
+		if (this.match.player1.user_id === client.id) return this.match.player2;
+		else return this.match.player1;
 	}
 }

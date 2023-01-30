@@ -1,12 +1,13 @@
 import { GameRoom } from ".";
-import { Socket } from "socket.io";
+
+import { Client } from "../aliases";
 
 export class SpectatedRoom {
 	// public name: string;
 	public readonly game_room: GameRoom;
 	public ping_id: NodeJS.Timer;
 	// public number_spectator: number;
-	public spectators: Socket[];
+	public spectators: Client[];
 
 	constructor(room: GameRoom, id: NodeJS.Timer) {
 		// this.name = name;
@@ -16,11 +17,11 @@ export class SpectatedRoom {
 		// this.number_spectator = 1;
 	}
 
-	public addSpectator(client: Socket): void {
+	public addSpectator(client: Client): void {
 		this.spectators.push(client);
 	}
 
-	public removeSpectator(client: Socket): void {
+	public removeSpectator(client: Client): void {
 		const index: number = this.spectators.findIndex((obj) => {
 			return obj.id === client.id;
 		});

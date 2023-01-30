@@ -3,6 +3,7 @@ import { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { SocketIOAdapter } from "./socket-io.adapter";
 import * as session from "express-session";
 import * as passport from "passport";
 
@@ -28,6 +29,7 @@ async function bootstrap() {
 	);
 	app.use(passport.initialize());
 	app.use(passport.session());
+	app.useWebSocketAdapter(new SocketIOAdapter(app, configService));
 
 	await app.listen(3000);
 }

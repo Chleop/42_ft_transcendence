@@ -1,4 +1,3 @@
-import { Socket } from "socket.io";
 import { GameRoom } from "../rooms";
 import { AntiCheat, Client, Match } from "../aliases";
 import { PaddleDto } from "../dto";
@@ -62,11 +61,13 @@ export class GameService {
 			/*const user = */ await this.prisma.game.create({
 				data: {
 					players: {
-						connect: [{ id: match.player1.id }, { id: match.player2.id }],
+						connect: [{ id: match.player1.user_id }, { id: match.player2.user_id }],
 					},
 					winner: {
 						connect: {
-							id: results.player1.winner ? match.player1.id : match.player2.id,
+							id: results.player1.winner
+								? match.player1.user_id
+								: match.player2.user_id,
 						},
 					},
 					scores: [results.player1.score, results.player2.score],
@@ -98,7 +99,7 @@ export class GameService {
 			return null;
 		}
 		const match: Match = {
-			name: this.queue.socket.id + user.socket.id,
+			name: this.queue.user_id + user.user_id,
 			player1: this.queue,
 			player2: user,
 		};
@@ -110,8 +111,8 @@ export class GameService {
 		return match;
 	}
 
-	public unQueue(client: Socket): Match | null {
-		if (this.queue && this.queue.socket.id === client.id) {
+	public unQueue(client: Client): Match | null {
+		if (this.queue && this.queue.user_id === client.user_id) {
 			this.queue = null;
 		} else {
 			// The match wasn't accepted yet
@@ -168,35 +169,40 @@ export class GameService {
 	}
 
 	/* -- GAME UPDATING ------------------------------------------------------- */
-	public updateOpponent(client: Socket, dto: PaddleDto): AntiCheat {
+	public updateOpponent(client: Client, dto: PaddleDto): AntiCheat {
 		const index: number = this.findUserRoomIndex(client);
 		if (index < 0) throw "Paddle update received but not in game";
 		return this.game_rooms[index].updatePaddle(client, dto);
 	}
 
 	/* -- UTILS --------------------------------------------------------------- */
-	public getUser(sock: Socket, authkey: string): Client {
+	// TODO
+	public getUser(sock: Client): Client {
+		const token: string | undefined = sock.handshake.headers.authorization;
+		if (token === undefined) throw "No token was provided";
+		return sock;
+		/* 
 		if (authkey !== "abc") throw "Wrong key";
 		return {
 			socket: sock,
 			id: "xyz", // jwt token
-		};
+		}; */
 	}
 
 	public display(): void {
 		console.log({
-			queue: this.queue?.id,
-			headers: this.queue?.socket.handshake,
+			queue: this.queue?.user_id,
+			headers: this.queue?.handshake,
 			handshakes: this.handshakes,
 			rooms: this.game_rooms,
 		});
 	}
 
-	public findUserGame(spectator: Socket): GameRoom | null {
+	public findUserGame(spectator: Client): GameRoom | null {
 		const user_id: string | string[] | undefined = spectator.handshake.headers.socket_id;
 		if (typeof user_id !== "string") return null; //throw "Room not properly specified";
 		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
-			return obj.match.player1.id === user_id || obj.match.player2.id === user_id;
+			return obj.match.player1.user_id === user_id || obj.match.player2.user_id === user_id;
 		});
 		if (room === undefined) return null;
 		return room;
@@ -205,17 +211,17 @@ export class GameService {
 	/* == PRIVATE =============================================================================== */
 
 	/* -- UTILS --------------------------------------------------------------- */
-	private findUserMatch(client: Socket): Handshake | undefined {
+	private findUserMatch(client: Client): Handshake | undefined {
 		const handshake: Handshake | undefined = this.handshakes.find((obj) => {
 			return (
-				obj.match.player1.socket.id === client.id ||
-				obj.match.player2.socket.id === client.id
+				obj.match.player1.user_id === client.user_id ||
+				obj.match.player2.user_id === client.user_id
 			);
 		});
 		return handshake;
 	}
 
-	private findUserRoomIndex(client: Socket): number {
+	private findUserRoomIndex(client: Client): number {
 		const index: number = this.game_rooms.findIndex((obj) => {
 			return obj.isClientInRoom(client);
 		});

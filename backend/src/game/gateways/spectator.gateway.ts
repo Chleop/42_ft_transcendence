@@ -1,5 +1,12 @@
-import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
-import { Server, Socket } from "socket.io";
+import {
+	OnGatewayConnection,
+	OnGatewayDisconnect,
+	OnGatewayInit,
+	WebSocketGateway,
+	WebSocketServer,
+} from "@nestjs/websockets";
+import { Server } from "socket.io";
+import { Client } from "../aliases";
 import { GameService, SpectateService } from "../services";
 import { GameRoom, SpectatedRoom } from "../rooms";
 import * as Constants from "../constants/constants";
@@ -10,12 +17,14 @@ import * as Constants from "../constants/constants";
 		origin: ["http://localhost:3000"],
 	},
 })
-export class SpectatorGateway {
+export class SpectatorGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
 	@WebSocketServer()
 	public readonly server: Server;
 	private readonly game_service: GameService;
 	// private rooms: SpectatedRoom[];
 	private readonly spectate_service: SpectateService;
+
+	/* CONSTRUCTOR ============================================================= */
 
 	constructor(game_service: GameService, spectate_service: SpectateService) {
 		this.server = new Server();
@@ -23,7 +32,15 @@ export class SpectatorGateway {
 		this.spectate_service = spectate_service;
 	}
 
-	public handleConnection(client: Socket): void {
+	/* PUBLIC ================================================================== */
+
+	public afterInit(): void {
+		console.log("Spectator gateway initialized");
+	}
+
+	/* Connection Handler ------------------------------------------------------ */
+
+	public handleConnection(client: Client): void {
 		// Find game to spectate: Cookie? Header?
 		// For now:
 		//		client.handshake.headers.socket_id
@@ -36,7 +53,7 @@ export class SpectatorGateway {
 		}
 	}
 
-	public handleDisconnect(client: Socket): void {
+	public handleDisconnect(client: Client): void {
 		const room: GameRoom | null = this.game_service.findUserGame(client);
 		if (room instanceof GameRoom) {
 			const spectated_room: SpectatedRoom | null = this.spectate_service.getRoom(
@@ -51,9 +68,9 @@ export class SpectatorGateway {
 		console.log(`Client '${client.id}' left`);
 	}
 
-	// ------------------------------
+	/* PRIVATE ================================================================= */
 
-	private startStreaming(client: Socket, room: GameRoom): void {
+	private startStreaming(client: Client, room: GameRoom): void {
 		const spectated_room: SpectatedRoom | null = this.spectate_service.getRoom(room.match.name);
 		if (spectated_room === null) {
 			console.log(`Creating room ${room.match.name}`);
