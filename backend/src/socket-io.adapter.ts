@@ -40,20 +40,22 @@ export class SocketIOAdapter extends IoAdapter {
 
 		// we need to return this, even though the signature says it returns void
 		const server: Server = super.createIOServer(port, { ...options, cors });
-		server.of("game").use(createTokenMiddleware(jwt_service));
+		server.of("/game").use(createTokenMiddleware(jwt_service));
 		return server;
 	}
 }
 
 const createTokenMiddleware =
 	(jwt_service: JwtService) => (client: Socket, next: (error?: any) => void) => {
-		const token: string | undefined = client.handshake.headers.authorization;
+		const token: string | undefined = client.handshake.auth.token;
 
-		if (token === undefined) throw new ForbiddenException("No token provided");
-		console.log(`Validating token: ${token}`);
 		try {
+			if (token === undefined) {
+				throw new Error();
+			}
+			console.log(`Validating token: ${token}`);
 			const payload: { sub: string } = jwt_service.verify(token);
-			client.data.user_id = payload.sub;
+			client.handshake.auth.token = payload.sub;
 			next();
 		} catch {
 			next(new ForbiddenException("No token provided"));

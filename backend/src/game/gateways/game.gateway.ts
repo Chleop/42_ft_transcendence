@@ -102,7 +102,7 @@ From the server:
 
 /* Gateway to events comming from `http://localhost:3000/game` */
 @WebSocketGateway({
-	namespace: "game",
+	namespace: "/game",
 })
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
 	@WebSocketServer()
