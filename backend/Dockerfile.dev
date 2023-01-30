@@ -10,4 +10,5 @@ RUN apt update \
 
 USER node
 
+EXPOSE 3000
 ENTRYPOINT ["/bin/bash", "/app/script/docker-entrypoint.dev.sh"]
