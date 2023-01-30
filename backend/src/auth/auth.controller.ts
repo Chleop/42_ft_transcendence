@@ -38,7 +38,8 @@ export class AuthController {
 	@UseGuards(FtOauthGuard)
 	async signin(@Req() request: any, @Res() response: Response) {
 		let token: t_access_token;
-		const user: t_get_one_fields = await this._user.get_one(request.user.id, request.user.id);
+		const user_id: string = await this._user.get_ones_id_by_login(request.user.login);
+		const user: t_get_one_fields = await this._user.get_one(user_id, user_id);
 		try {
 			if (user.twoFactAuth === true) {
 				if (user.email !== null)
@@ -71,7 +72,7 @@ export class AuthController {
 		}
 	}
 
-	@UseGuards(JwtGuard)
+	// @UseGuards(JwtGuard)
 	@Post("42/2FAValidate")
 	async validateTwoFactAuth(
 		@Req() req: any,

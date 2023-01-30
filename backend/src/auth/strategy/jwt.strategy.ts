@@ -2,9 +2,10 @@ import { Injectable, InternalServerErrorException, UnauthorizedException } from 
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { ConfigService } from "@nestjs/config";
-import { t_get_one_fields } from "src/user/alias";
+import { t_user_obj } from "src/auth/alias";
 import { UserNotFoundError } from "src/user/error";
 import { UserService } from "src/user/user.service";
+import { t_get_one_fields } from "src/user/alias";
 
 type t_payload = { sub: string };
 
@@ -25,9 +26,18 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
 	// as its single parameter. Based on the way JWT signing
 	// works, we're guaranteed that we're receiving a valid token
 	// that we have previously signed and issued to a valid user.
-	public async validate(payload: t_payload): Promise<t_get_one_fields> {
+	public async validate(payload: t_payload): Promise<t_user_obj> {
 		try {
-			return await this._user.get_one(payload.sub, payload.sub);
+			const user: t_get_one_fields = await this._user.get_one(payload.sub, payload.sub);
+			let user_obj: t_user_obj;
+			user_obj = {
+				id: user.id,
+				login: user.login,
+				name: user.name,
+				email: user.email,
+				twoFactAuth: user.twoFactAuth,
+			};
+			return user_obj;
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				console.log(error.message);

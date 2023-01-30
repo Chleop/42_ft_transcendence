@@ -83,7 +83,7 @@ export class AuthService {
 
 	public async create_and_add_secret_to_db(user_id: string): Promise<void> {
 		// TODO: encrypt code
-		const code: number = Math.floor(10000 + Math.random() * 90000);
+		const code: number = Math.floor(10000 + Math.random() * 9000000000);
 		const currentTime: Date = new Date();
 		try {
 			await this._prisma.user.update({
