@@ -725,7 +725,7 @@ export class UserService {
 		type t_fields = {
 			id: string;
 		};
-		console.log("Searching user...");
+		console.log("Searching for user...");
 		const user: t_fields | null = await this._prisma.user.findUnique({
 			select: {
 				id: true,
@@ -1001,7 +1001,7 @@ export class UserService {
 			skinId: string;
 		};
 
-		console.log("Searching user...");
+		console.log("Searching for user...");
 		const user: t_fields = (await this._prisma.user.findUnique({
 			select: {
 				name: true,
@@ -1066,7 +1066,7 @@ export class UserService {
 			avatar: string;
 		};
 
-		console.log("Searching user...");
+		console.log("Searching for user...");
 		const user: t_fields = (await this._prisma.user.findUnique({
 			select: {
 				avatar: true,
