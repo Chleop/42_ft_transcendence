@@ -1,8 +1,10 @@
-import { INestApplicationContext } from "@nestjs/common";
+import { ForbiddenException, INestApplicationContext } from "@nestjs/common";
 import { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.interface";
 import { ConfigService } from "@nestjs/config";
+import { JwtService } from "@nestjs/jwt";
 import { IoAdapter } from "@nestjs/platform-socket.io";
 import { ServerOptions } from "socket.io";
+import { Client } from "./game/aliases";
 
 /**
  * Allows gateway to have dynamic ports (imported from env)
@@ -39,3 +41,18 @@ export class SocketIOAdapter extends IoAdapter {
 		return super.createIOServer(port, { ...options, cors });
 	}
 }
+
+const createTokenMiddleware =
+	(jwt_service: JwtService) => (client: Client, next: (error?: any) => void) => {
+		const token: string | undefined = client.handshake.headers.authorization;
+
+		if (token === undefined) throw new ForbiddenException("No token provided");
+		console.log(`Validating token: ${token}`);
+		try {
+			const payload: { sub: string } = jwt_service.verify(token);
+			client.user_id = payload.sub;
+			next();
+		} catch {
+			next(new ForbiddenException("No token provided"));
+		}
+	};

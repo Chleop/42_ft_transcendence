@@ -1,5 +1,8 @@
 import { Socket } from "socket.io";
 
+/**
+ * Payload retrieved (JWT)
+ */
 type Id = {
 	user_id: string;
 };
