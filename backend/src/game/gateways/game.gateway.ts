@@ -7,6 +7,7 @@ import { Results, Ball, ScoreUpdate } from "../objects";
 import { AntiCheat, OpponentUpdate, Client, Match } from "../aliases";
 
 import * as Constants from "../constants/constants";
+import { BadRequestException, ConflictException } from "@nestjs/common";
 
 /* Track timeouts */
 // type TimeoutId = {
@@ -84,8 +85,6 @@ From the server:
 		every 20 milliseconds, the two matched client receive the pong ball updated data along with
 		the current score.
 
-
-	TODO: Change updateGame to those events
 	- `updateBall`
 		contains ball update
 
@@ -213,9 +212,18 @@ export class GameGateway {
 				const update: ScoreUpdate = room.getFinalScore();
 				room.match.player1.socket.emit("updateScore", update);
 				room.match.player2.socket.emit("updateScore", update.invert());
-				const match: Match = await me.game_service.registerGameHistory(room, e);
-				// me.game_service.destroyRoom(room);
-				return me.disconnectRoom(match);
+				try {
+					const match: Match = await me.game_service.registerGameHistory(room, e);
+					return me.disconnectRoom(match);
+				} catch (e) {
+					if (e instanceof BadRequestException || e instanceof ConflictException) {
+						console.log(e);
+						me.disconnectRoom(room.match);
+					} else {
+						me.disconnectRoom(room.match);
+						throw e;
+					}
+				}
 			} else {
 				// TODO: handle properly, with error sending
 				// Other error occured, make sure to destroy interval

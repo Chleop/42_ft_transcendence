@@ -48,11 +48,7 @@ export class GameService {
 	public saveScore(room: GameRoom, results: Results | null): Match {
 		const match: Match = room.match;
 		try {
-			if (results) {
-				console.log("Scores:", results);
-				const tmp: Date = new Date(results.date);
-				console.log(tmp);
-			} else console.log(`Game ${results} cut short before it started`);
+			console.log(`Game ${results} cut short before it started`);
 		} catch (e) {
 			console.log(e);
 		}
