@@ -9,7 +9,6 @@ import {
 	UserNotFriendError,
 	UserNotLinkedError,
 	UserSelfBlockError,
-	UserSelfGetError,
 	UserSelfUnblockError,
 	UserSelfUnfriendError,
 } from "src/user/error";
@@ -115,7 +114,7 @@ export class UserController {
 		try {
 			return await this._user_service.get_one(request.user.id, id);
 		} catch (error) {
-			if (error instanceof UserSelfGetError || error instanceof UserNotFoundError) {
+			if (error instanceof UserNotFoundError) {
 				console.log(error.message);
 				throw new BadRequestException(error.message);
 			}

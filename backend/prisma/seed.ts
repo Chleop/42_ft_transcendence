@@ -189,7 +189,7 @@ async function main() {
 				channelId: general.id,
 			},
 		});
-		await delay(100);
+		await delay(10);
 	}
 
 	await prisma.channelMessage.create({
@@ -199,7 +199,7 @@ async function main() {
 			channelId: general.id,
 		},
 	});
-	await delay(100);
+	await delay(10);
 
 	await prisma.channelMessage.create({
 		data: {
@@ -208,7 +208,7 @@ async function main() {
 			channelId: general.id,
 		},
 	});
-	await delay(100);
+	await delay(10);
 
 	await prisma.channelMessage.create({
 		data: {
@@ -217,7 +217,7 @@ async function main() {
 			channelId: general.id,
 		},
 	});
-	await delay(100);
+	await delay(10);
 
 	await prisma.channelMessage.create({
 		data: {
@@ -226,7 +226,7 @@ async function main() {
 			channelId: random.id,
 		},
 	});
-	await delay(100);
+	await delay(10);
 
 	await prisma.channelMessage.create({
 		data: {
@@ -235,7 +235,7 @@ async function main() {
 			channelId: random.id,
 		},
 	});
-	await delay(100);
+	await delay(10);
 
 	await prisma.channelMessage.create({
 		data: {

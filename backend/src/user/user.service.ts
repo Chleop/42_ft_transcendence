@@ -16,7 +16,6 @@ import {
 	UserNotLinkedError,
 	UserRelationNotFoundError,
 	UserSelfBlockError,
-	UserSelfGetError,
 	UserSelfUnblockError,
 	UserSelfUnfriendError,
 } from "src/user/error";
@@ -486,7 +485,7 @@ export class UserService {
 	 * @brief	Get a user from the database.
 	 * 			Requested user must be active,
 	 * 			and either have at least one common channel with the requesting user,
-	 * 			or be friends with the requesting user.
+	 * 			be friends with the requesting user, or be the requesting user.
 	 * 			It is assumed that the provided requesting user id is valid.
 	 * 			(user exists and is not DISABLED)
 	 *
@@ -494,7 +493,6 @@ export class UserService {
 	 * @param	requested_user_id The id of the user to get.
 	 *
 	 * @error	The following errors may be thrown :
-	 * 			- UserSelfGetError
 	 * 			- UserNotFoundError
 	 * 			- UserNotLinkedError
 	 *
@@ -512,11 +510,6 @@ export class UserService {
 				id: string;
 			}[];
 		};
-
-		console.log("Checking for self get...");
-		if (requesting_user_id === requested_user_id) {
-			throw new UserSelfGetError();
-		}
 
 		console.log("Searching for requesting user...");
 		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
@@ -594,8 +587,9 @@ export class UserService {
 			games_won_ids: requested_user_tmp.gamesWon.map((game): string => game.id),
 		};
 
-		console.log("Checking for both users to be linked through a channel or a friendship...");
+		console.log("Checking for both users to be linked through a channel, a friendship, or to be the same...");
 		if (
+			requesting_user_id !== requested_user_id &&
 			!requesting_user.friends.some((friend): boolean => friend.id === requested_user_id) &&
 			!requested_user.channels.some((requested_user_channel): boolean =>
 				requesting_user.channels.some(
@@ -691,9 +685,7 @@ export class UserService {
 			throw new UserNotFoundError(requested_user_id);
 		}
 
-		console.log(
-			"Checking for both users to be linked through a channel, a friendship, or to be the same...",
-		);
+		console.log("Checking for both users to be linked through a channel, a friendship, or to be the same...");
 		if (
 			requesting_user_id !== requested_user_id &&
 			!requested_user.friends.some((friend) => friend.id === requesting_user_id) &&

@@ -1,15 +1,15 @@
-// import { JwtGuard } from "src/auth/guards";
-// import { UseGuards } from "@nestjs/common";
 import { Server, Socket } from "socket.io";
 import { ChannelMessage } from "@prisma/client";
 import { SubscribeMessage, WebSocketGateway } from "@nestjs/websockets";
+import { JwtStrategy } from "src/auth/strategy";
+import { JwtService } from "@nestjs/jwt";
 
-// @UseGuards(JwtGuard)
 @WebSocketGateway({
 	cors: {
-		origin: ["http://localhost:3000"],
+		origin: ["http://localhost:3000"], // REMIND: is it really the expected value for `origin` property
 	},
 	namespace: "/event",
+	transports: ["polling"]
 })
 export class EventGateway {
 	private _server: Server;
@@ -33,6 +33,10 @@ export class EventGateway {
 
 	public handleConnection(client: Socket): void {
 		console.log(`Client connected to gateway: ${client.id}`);
+		console.log(`It's access_token is: ${client.handshake.headers.authorization}`);
+		if (client.handshake.headers.authorization) {
+			// REMIND: Do stuff here
+		}
 		EventGateway._sockets.add(client);
 
 		console.log("Currently connected users to gateway:");

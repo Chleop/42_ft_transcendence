@@ -22,7 +22,7 @@ class GatewayClass {
 
     public constructor() {
         console.log("initiating a connection with the gateway...");
-        this.socket = io("/gateway");
+        this.socket = io("/event");
 
         this.socket.on("connect", () => this.on_connected());
         this.socket.on("disconnect", () => this.on_disconnected());

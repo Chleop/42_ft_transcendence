@@ -9,6 +9,5 @@ export * from "src/user/error/UserNotFriend.error";
 export * from "src/user/error/UserNotLinked.error";
 export * from "src/user/error/UserRelationNotFound.error";
 export * from "src/user/error/UserSelfBlock.error";
-export * from "src/user/error/UserSelfGet.error";
 export * from "src/user/error/UserSelfUnblock.error";
 export * from "src/user/error/UserSelfUnfriend.error";
