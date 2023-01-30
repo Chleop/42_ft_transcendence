@@ -1,6 +1,4 @@
-import { Channel, ChannelId, Message } from "../api/channel";
-import { UserId } from "../api/user";
-import { RawHTTPClient } from "../api/raw_client";
+import { Channel, ChannelId, Message, UserId, Client, Users, Gateway, MessageId } from "../api";
 
 /**
  * A message that has been instanciated in the DOM.
@@ -17,13 +15,15 @@ class MessageElementInternal {
     public constructor(continuing: boolean, message: Message) {
         const avatar = document.createElement("avatar");
         avatar.classList.add("message-avatar");
-        avatar.style.backgroundImage = `/avatar/${message.author_avatar}`;
+        Client.user_avatar(message.senderId).then(url => {
+            avatar.style.backgroundImage = `url(\"${url}\")`;
+        });
         const author = document.createElement("button");
         author.classList.add("message-author");
-        author.innerText = message.author_name;
+        Users.get(message.senderId).then(user => author.innerText = user.name);
         const time = document.createElement("div");
         time.classList.add("message-time");
-        time.innerText = "121"; // TODO: Use real message time.
+        time.innerText = new Date(message.dateTime).toLocaleString();
         const header = document.createElement("div");
         header.classList.add("message-header");
         header.appendChild(author);
@@ -72,10 +72,7 @@ class ChannelElementInternal {
      */
     public messages: HTMLDivElement;
 
-    /**
-     * The ID of the author of the last message that was sent in the channel.
-     */
-    public last_message_author: null | UserId;
+    public last_message: Message|null;
 
     /**
      * The ID of the channel.
@@ -99,7 +96,7 @@ class ChannelElementInternal {
 
         this.messages = document.createElement("div");
 
-        this.last_message_author = null;
+        this.last_message = null;
         this.channel_id = channel.id;
 
         this.input = "";
@@ -150,6 +147,9 @@ export class ChatElement {
      */
     private selected_channel: null | ChannelElementInternal;
 
+    /** The channels elements. */
+    private channel_elements: ChannelElementInternal[];
+
     /**
      * Creates a new `ChatContainer` element.
      */
@@ -199,6 +199,18 @@ export class ChatElement {
         send_message_container.appendChild(this.message_input);
 
         this.selected_channel = null;
+        this.channel_elements = [];
+
+        Gateway.on_connected = () => {
+            console.log("Connected to the gateway!");
+        };
+
+        Gateway.on_message = (msg: Message) => {
+            let ch = this.get_channel(msg.channelId);
+            if (ch) {
+                this.add_message(ch, msg);
+            }
+        };
     }
 
     /**
@@ -239,7 +251,20 @@ export class ChatElement {
 
         this.channel_tabs.appendChild(element.tab);
 
+        // Try to get the twenty last messages of the channel.
+        Client.last_messages(channel.id, 20).then(messages => {
+            for (const m of messages) {
+                this.add_message(element, m);
+            }
+        });
+
+        this.channel_elements.push(element);
         return element;
+    }
+
+    /** Returns a channel element by ID */
+    public get_channel(channel: ChannelId): undefined | ChannelElement {
+        return this.channel_elements.find(e => e.channel_id == channel);
     }
 
     /**
@@ -249,14 +274,13 @@ export class ChatElement {
         const channel_ = channel as ChannelElementInternal;
 
         let continuing = false;
-        if (channel_.last_message_author && channel_.last_message_author === message.author_id) {
-            continuing = true;
+        if (channel_.last_message) {
+            if (channel_.last_message.senderId === message.senderId && Date.parse(message.dateTime) - Date.parse(channel_.last_message.dateTime) < 5 * 60 * 1000)
+                continuing = true;
         }
 
         // If the last child is the same author, add the `message-continuing` class.
-        if (!continuing) {
-            channel_.last_message_author = message.author_id;
-        }
+        channel_.last_message = message;
 
         const element = new MessageElementInternal(continuing, message);
         channel_.messages.appendChild(element.container);
@@ -277,22 +301,14 @@ export class ChatElement {
             return null;
         }
 
-        const content = this.message_input.value;
+        const content = this.message_input.value.trim();
         this.message_input.value = "";
 
-        // TODO:
-        //  Use the API for real here.
-        let message: Message = /* await client.send_message(this.selected_channel.channel_id, content); */ {
-            author_avatar: "",
-            author_id: "Nils",
-            author_name: "Nils",
-            content,
-            id: "",
-        };
+        if (content === "") {
+            return null;
+        }
 
-        this.add_message(this.selected_channel, message);
-
-        return message;
+        return Client.send_message(this.selected_channel.channel_id, content);
     }
 
     /**

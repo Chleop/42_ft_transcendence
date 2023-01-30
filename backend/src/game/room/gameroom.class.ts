@@ -2,7 +2,7 @@ import { Socket } from "socket.io";
 import { Gameplay } from "../gameplay";
 import { PaddleDto } from "../dto";
 import { AntiCheat, Score, Match } from "../aliases";
-import { ResultsObject, Ball /* ScoreUpdate */ /* GameUpdate */, ScoreUpdate } from "../objects";
+import { ResultsObject, Ball, ScoreUpdate } from "../objects";
 
 // TODO: make it cleaner
 type CheatCheck = {
@@ -15,13 +15,15 @@ type CheatCheck = {
 */
 export class GameRoom {
 	public readonly match: Match;
-	private ping_id: NodeJS.Timer | null;
+	private players_ping_id: NodeJS.Timer | null;
 	private game: Gameplay;
+	private is_ongoing: boolean;
 
 	constructor(match: Match) {
 		this.match = match;
-		this.ping_id = null;
+		this.players_ping_id = null;
 		this.game = new Gameplay();
+		this.is_ongoing = true;
 		console.log("Room created:", this.match.name);
 	}
 
@@ -29,14 +31,13 @@ export class GameRoom {
 
 	/* -- GAME MANAGEMENT ----------------------------------------------------- */
 	/* Call this function once the game actually starts */
-	public startGame(): Ball /* GameUpdate */ {
-		// this.game = new Gameplay();
+	public startGame(): Ball {
+		// this.is_ongoing = true;
 		return this.game.initializeGame();
 	}
 
 	/* Called every 16ms to send ball updates */
-	public updateGame(): Ball | ScoreUpdate /* GameUpdate */ {
-		// if (this.game === null) throw "Game is null";
+	public updateGame(): Ball | ScoreUpdate {
 		return this.game.refresh();
 	}
 
@@ -57,24 +58,40 @@ export class GameRoom {
 	public cutGameShort(guilty: number | null): ResultsObject {
 		if (!this.game) throw null;
 		else if (guilty === null) throw null;
+		this.is_ongoing = false;
 		return this.game.getResults(guilty);
 	}
 
+	/* -- GAME MANAGEMENT ----------------------------------------------------- */
 	public getFinalScore(): ScoreUpdate {
 		return this.game.getFinalScore();
 	}
 
+	public getBall(): Ball {
+		if (!this.is_ongoing) throw null;
+		return this.game.getBall();
+	}
+
 	/* -- INTERVAL UTILS ------------------------------------------------------ */
 	/* Stores the ID of the setInterval function */
-	public setPingId(timer_id: NodeJS.Timer): void {
-		this.ping_id = timer_id;
+	public setPlayerPingId(timer_id: NodeJS.Timer): void {
+		this.players_ping_id = timer_id;
 	}
 
 	/* Destroys associated setInteval instance */
-	public destroyPing(): void {
-		if (this.ping_id === null) return;
-		clearInterval(this.ping_id);
+	public destroyPlayerPing(): void {
+		if (this.players_ping_id === null) return;
+		clearInterval(this.players_ping_id);
 	}
+
+	// public setSpectatorPingId(timer_id: NodeJS.Timer): void {
+	// 	this.spectators_ping_id = timer_id;
+	// }
+
+	// public destroySpectatorPing(): void {
+	// 	if (this.spectators_ping_id === null) return;
+	// 	clearInterval(this.spectators_ping_id);
+	// }
 
 	/* -- IDENTIFIERS --------------------------------------------------------- */
 	public isClientInRoom(client: Socket): boolean {

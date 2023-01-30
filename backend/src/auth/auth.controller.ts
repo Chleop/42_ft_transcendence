@@ -7,6 +7,7 @@ import {
 	Req,
 	Res,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { Response } from "express";
 import { AuthService } from "./auth.service";
@@ -17,9 +18,11 @@ type t_access_token = { access_token: string | undefined };
 @Controller("auth")
 export class AuthController {
 	private _authService: AuthService;
+	private _configService: ConfigService;
 
-	constructor(authService: AuthService) {
+	constructor(authService: AuthService, configService: ConfigService) {
 		this._authService = authService;
+		this._configService = configService;
 	}
 
 	@Get("42/login")
@@ -35,7 +38,7 @@ export class AuthController {
 		try {
 			token = await this._authService.createAccessToken(request.user.login);
 			response.cookie("access_token", token.access_token); // REMIND try with httpOnly
-			response.redirect("http://localhost:3000/");
+			response.redirect(<string>this._configService.get<string>("SITE_URL"));
 		} catch (error) {
 			console.info(error);
 			if (error instanceof PrismaClientKnownRequestError) {

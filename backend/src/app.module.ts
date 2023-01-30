@@ -9,9 +9,6 @@ import { ConfigModule } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 
-// TODO: Delete this when file server is set up.
-import { FileModule } from "./file.module";
-
 @Module({
 	imports: [
 		AuthModule,
@@ -25,9 +22,6 @@ import { FileModule } from "./file.module";
 		JwtModule,
 		PassportModule.register({ session: true }),
 		UserModule,
-
-		// TODO: Remove this.
-		FileModule,
 	],
 })
 export class AppModule {}
