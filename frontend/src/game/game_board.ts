@@ -113,11 +113,16 @@ class GameBoardClass extends Scene {
         // ===============
         const HEART_SIZE: number = 0.2;
         const HEART_GAP: number = 0.05;
+        const BOARD_RATIO: number = Constants.board_width / Constants.board_height;
 
         const r = this.renderer;
         const s = this.ongoing_game.game_state;
 
-        r.set_view_matrix(0.8 * 2 / Constants.board_width, 0, 0, 0.8 * 2 * (this.canvas.width / this.canvas.height) / Constants.board_width);
+        const aspect_ratio = this.canvas.width / this.canvas.height;
+        if (aspect_ratio < BOARD_RATIO)
+            r.set_view_matrix(0.8 * 2 / Constants.board_width, 0, 0, 0.8 * 2 * aspect_ratio / Constants.board_width);
+        else
+            r.set_view_matrix(0.8 * 2 * (1.0 / aspect_ratio) / Constants.board_height, 0, 0, 0.8 * 2 / Constants.board_height);
         r.clear(0, 0, 0);
 
         // When debug information are required, hitboxes are drawn.
