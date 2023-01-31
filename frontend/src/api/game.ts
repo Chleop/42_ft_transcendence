@@ -111,3 +111,54 @@ export class GameSocket {
         this.socket.emit("update", state);
     }
 }
+
+/* Wraps a Socket.IO socket to handle spectator-specific events. */
+export class SpecSocket {
+    /** The inner socket. */
+    private socket: Socket;
+
+    /**
+     * Indicates that the socket has successfully connected to the server.
+     */
+    public on_connected: () => void = noop;
+
+    /**
+     * Indicates that the socket is not currently connected to the server.
+     */
+    public on_disconnected: () => void = noop;
+
+    /**
+     * Indicates that the ball has moved.
+     */
+    public on_ball_update: (state: BallStateUpdate) => void = noop;
+
+    /**
+     * Creates a new GameSocket.
+     */
+    public constructor() {
+        this.socket = io("/game", {
+            extraHeaders: {
+                socket_id: 'xyz',
+            }
+        });
+
+        this.socket.on("connect", () => this.on_connected());
+        this.socket.on("disconnect", () => this.on_disconnected());
+        this.socket.on("updateBallSpectator", st => this.on_ball_update(st));
+    }
+
+    /** Initiates the connection with the server. */
+    public connect() {
+        this.socket.connect();
+    }
+
+    /** Dropes the connection with the server. */
+    public disconnect() {
+        this.socket.disconnect();
+    }
+
+    /** Notify the server of what we are doing. */
+    public update(state: PlayerStateUpdate) {
+        this.socket.emit("update", state);
+    }
+}
