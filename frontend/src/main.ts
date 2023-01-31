@@ -13,7 +13,6 @@ function entry_point() {
 
 	const route_result = router.get(window.location.pathname);
 	if (route_result) {
-		console.log(route_result.data);
 		route_result.meta(route_result.data);
 	} else {
 		document.body.innerText = "lol c'est nul part.";

@@ -1,7 +1,7 @@
 import { ChatElement } from "./chat";
 import { Overlay, Scene, State, History } from "../strawberry";
 import { GameSocket, Users } from "../api";
-import { Game, RemotePlayer, LocalPlayer } from "../game";
+import { GameBoard, PlayingGame } from "../game";
 
 class ProfileOverlay extends Overlay {
     private html: HTMLDivElement;
@@ -98,8 +98,8 @@ class MainMenuScene extends Scene {
                     console.log("Match found!");
 
                     const s = <GameSocket>this.game_socket;
-                    Game.start(s, new LocalPlayer(s), new RemotePlayer(s));
-                    History.push_state(Game);
+                    GameBoard.start_game(new PlayingGame(s));
+                    History.push_state(GameBoard);
                     this.game_socket = null;
                     find_game_span.innerText = "Find Game";
                 };

@@ -90,6 +90,7 @@ export class GameSocket {
         this.socket.on("connect", () => this.on_connected());
         this.socket.on("disconnect", () => this.on_disconnected());
         this.socket.on("matchFound", () => this.on_match_found());
+
         this.socket.on("gameStart", () => this.on_game_start());
         this.socket.on("updateOpponent", (state: PlayerStateUpdate) => this.on_opponent_updated(state));
         this.socket.on("updateBall", (state: BallStateUpdate) => this.on_ball_updated(state));
