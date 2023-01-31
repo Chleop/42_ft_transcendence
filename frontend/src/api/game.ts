@@ -1,4 +1,7 @@
 import { Socket, io } from "socket.io-client";
+import { Client, UserId } from ".";
+
+export class ConnectError {}
 
 /**
  * The payload of the `updateBall` event.
@@ -81,12 +84,18 @@ export class GameSocket {
      * Creates a new GameSocket.
      */
     public constructor() {
+        console.log(Client.access_token);
         this.socket = io("/game", {
-            extraHeaders: {
-                socket_id: 'xyz',
-            }
+            auth: {
+                token: Client.access_token,
+            },
         });
 
+        this.socket.on("connect_error", err => {
+            console.error(err);
+            this.disconnect();
+            throw new ConnectError();
+        });
         this.socket.on("connect", () => this.on_connected());
         this.socket.on("disconnect", () => this.on_disconnected());
         this.socket.on("matchFound", () => this.on_match_found());
@@ -120,9 +129,6 @@ export interface SpectatorStateUpdate {
     player2: PlayerStateUpdate,
 }
 
-/* A unique identifier for spectator rooms. */
-export type SpectatorRoomId = string;
-
 /* Wraps a Socket.IO socket to handle spectator-specific events. */
 export class SpecSocket {
     /** The inner socket. */
@@ -145,15 +151,25 @@ export class SpecSocket {
 
     /**
      * Creates a new GameSocket.
+     *
+     * The spectated room is that of the passed user.
      */
-    public constructor(room_id: SpectatorRoomId) {
+    public constructor(user_id: UserId) {
         this.socket = io("/spectate", {
-            extraHeaders: { socket_id: room_id }
+            auth: {
+                token: Client.access_token,
+                user_id, // hello, this is good.
+            },
         });
 
+        this.socket.on("connect_error", err => {
+            console.error(err);
+            this.disconnect();
+            throw new ConnectError();
+        });
         this.socket.on("connect", () => this.on_connected());
         this.socket.on("disconnect", () => this.on_disconnected());
-        this.socket.on("updatePaddles", st => this.on_update(st));
+        this.socket.on("updateGame", st => this.on_update(st));
     }
 
     /** Initiates the connection with the server. */

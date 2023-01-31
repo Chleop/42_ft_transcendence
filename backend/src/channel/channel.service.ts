@@ -872,7 +872,7 @@ export class ChannelService {
 						id: user_id,
 					},
 				},
-				content,
+				content: content,
 			},
 		});
 		this._gateway.broadcast_to_everyone(message);

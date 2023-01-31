@@ -124,6 +124,7 @@ class MainMenuScene extends Scene {
 
         Users.me().then(me => {
             console.info(`connected as '${me.name}'`);
+            console.log(`user ID: '${me.id}'`);
 
             // Initialize the stuff that's related to the user.
             let first: boolean = true;

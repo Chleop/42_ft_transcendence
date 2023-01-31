@@ -8,6 +8,8 @@ import { SpectatingGame } from "./game/spectating_game";
  * The entry point of the application.
  */
 function entry_point() {
+	History.default_state = MainMenu;
+
 	const router = new Router<(data: RouteData) => void>();
 
     router.register_route("/", () => History.replace_state(MainMenu));

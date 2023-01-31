@@ -1,55 +1,42 @@
-import { Socket } from "socket.io";
 import { GameRoom } from "../rooms";
-import { AntiCheat, Client, Match } from "../aliases";
+import { AntiCheat, Match } from "../aliases";
 import { PaddleDto } from "../dto";
 import { Results } from "../objects";
 import { Injectable } from "@nestjs/common";
-// import { PrismaService } from "../prisma/prisma.service";
-// import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-// import { BadRequestException, ConflictException } from "@nestjs/common";
+import { PrismaService } from "src/prisma/prisma.service";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { BadRequestException, ConflictException } from "@nestjs/common";
+import { Socket } from "socket.io";
 
-/* TODO: implement better MM */
-
-/* Track match made */
-type Handshake = {
-	// The two matched players
-	match: Match;
-};
-
-/* Matchmaking class */
-/* Manage rooms, save scores in database */
+/**
+ * Game rooms manager
+ * Holds the matchmaker (TODO: implement separate matchmaking class)
+ */
 @Injectable()
 export class GameService {
-	// private prisma: PrismaService;
+	private prisma_service: PrismaService;
 	private game_rooms: GameRoom[];
-	private handshakes: Handshake[];
-	// TODO: extend queue
-	private queue: Client | null;
 
-	constructor() {
-		// this.prisma = new PrismaService();
+	private matches: Match[];
+	// TODO: extend queue
+	private queue: Socket | null;
+
+	/* CONSTRUCTOR ============================================================= */
+
+	constructor(prisma: PrismaService) {
+		this.prisma_service = prisma;
 		this.game_rooms = [];
-		this.handshakes = [];
+		this.matches = [];
 		this.queue = null;
 	}
 
-	/* == PUBLIC ================================================================================ */
+	/* PUBLIC ================================================================== */
 
-	/* -- DATABASE LINKING ---------------------------------------------------- */
-	// TODO get user infos in db
-	public decode(jwt: string): { id: string } {
-		// UserData
-		return {
-			id: jwt,
-		};
-	}
-
-	// TODO save score to db
+	// TODO replace
 	public saveScore(room: GameRoom, results: Results | null): Match {
 		const match: Match = room.match;
 		try {
-			if (results) console.log("Scores:", results);
-			else console.log(`Game ${results} cut short before it started`);
+			console.log(`Game ${results} cut short before it started`);
 		} catch (e) {
 			console.log(e);
 		}
@@ -57,69 +44,73 @@ export class GameService {
 		return match;
 	}
 
-	// public async registerGameHistory(room: GameRoom, results: Results): Promise<Match> {
-	// 	const match: Match = room.match;
-	// 	try {
-	// 		/*const user = */await this.prisma.game.create({
-	// 			data: {
-	// 				players: {
-	// 					connect: [{ id: match.player1.id }, { id: match.player2.id }],
-	// 				},
-	// 				winner: {
-	// 					connect: {
-	// 						id: results.player1.winner ? match.player1.id : match.player2.id,
-	// 					},
-	// 				},
-	// 				scores: [results.player1.score, results.player2.score],
-	// 				datetime: results.dateTime,
-	// 			},
-	// 		});
-	// 	} catch (error) {
-	// 		if (error instanceof PrismaClientKnownRequestError) {
-	// 			switch (error.code) {
-	// 				case "P2002":
-	// 					throw new ConflictException("One of the provided fields is unavailable");
-	// 				case "P2025":
-	// 					throw new BadRequestException(
-	// 						"One of the relations you tried to connect to does not exist",
-	// 					);
-	// 			}
-	// 			console.log(error.code);
-	// 		}
-	// 		throw error;
-	// 	}
-	// 	this.destroyRoom(room);
-	// 	return match;
-	// }
+	/**
+	 * Registers finished game to database
+	 */
+	public async registerGameHistory(room: GameRoom, results: Results): Promise<Match> {
+		const match: Match = room.match;
+		try {
+			/*const user = */ await this.prisma_service.game.create({
+				data: {
+					players: {
+						connect: [
+							{ id: match.player1.handshake.auth.token },
+							{ id: match.player2.handshake.auth.token },
+						],
+					},
+					winner: {
+						connect: {
+							id: results.player1.winner
+								? match.player1.handshake.auth.token
+								: match.player2.handshake.auth.token,
+						},
+					},
+					scores: [results.player1.score, results.player2.score],
+					dateTime: new Date(results.date),
+				},
+			});
+		} catch (error) {
+			if (error instanceof PrismaClientKnownRequestError) {
+				switch (error.code) {
+					case "P2002":
+						throw new ConflictException("One of the provided fields is unavailable");
+					case "P2025":
+						throw new BadRequestException(
+							"One of the relations you tried to connect to does not exist",
+						);
+				}
+				console.log(error.code);
+			}
+			throw error;
+		}
+		this.destroyRoom(room);
+		return match;
+	}
 
 	/* -- MATCHMAKING --------------------------------------------------------- */
-	public queueUp(user: Client): Match | null {
+	public queueUp(user: Socket): Match | null {
 		if (this.queue === null) {
 			this.queue = user;
 			return null;
 		}
 		const match: Match = {
-			name: this.queue.socket.id + user.socket.id,
+			name: this.queue.handshake.auth.token + user.handshake.auth.token,
 			player1: this.queue,
 			player2: user,
 		};
 		this.queue = null;
-		this.handshakes.push({
-			match: match,
-			// shook: false,
-		});
+		this.matches.push(match);
 		return match;
 	}
 
 	public unQueue(client: Socket): Match | null {
-		if (this.queue && this.queue.socket.id === client.id) {
+		if (this.queue && this.queue.handshake.auth.token === client.handshake.auth.token) {
 			this.queue = null;
 		} else {
 			// The match wasn't accepted yet
-			const handshake: Handshake | undefined = this.findUserMatch(client);
-			if (handshake !== undefined) {
-				const match: Match = handshake.match;
-				this.ignore(handshake.match);
+			const match: Match | undefined = this.findUserMatch(client);
+			if (match !== undefined) {
+				this.ignore(match);
 				return match;
 			}
 			// The game was ongoing
@@ -145,14 +136,6 @@ export class GameService {
 		return room;
 	}
 
-	public ignore(match: Match): void {
-		const index: number = this.handshakes.findIndex((obj) => {
-			return obj.match.name === match.name;
-		});
-		if (index < 0) throw "Cannot ignore a match not made";
-		this.handshakes.splice(index, 1);
-	}
-
 	public destroyRoom(index: number | GameRoom): void {
 		if (typeof index !== "number") {
 			const new_index: number = this.game_rooms.indexOf(index);
@@ -176,49 +159,53 @@ export class GameService {
 	}
 
 	/* -- UTILS --------------------------------------------------------------- */
-	public getUser(sock: Socket, authkey: string): Client {
-		if (authkey !== "abc") throw "Wrong key";
-		return {
-			socket: sock,
-			id: "xyz", // jwt token
-		};
-	}
-
 	public display(): void {
 		console.log({
-			queue: this.queue?.id,
-			headers: this.queue?.socket.handshake,
-			handshakes: this.handshakes,
+			queue: this.queue?.handshake.auth.token,
+			headers: this.queue?.handshake,
+			matches: this.matches,
 			rooms: this.game_rooms,
 		});
 	}
 
 	public findUserGame(spectator: Socket): GameRoom | null {
-		const user_id: string | string[] | undefined = spectator.handshake.headers.socket_id;
+		const user_id: string|undefined|null|string[] = spectator.handshake.auth.user_id;
+		console.log(`==================================== DATA: ${user_id}`);
 		if (typeof user_id !== "string") return null; //throw "Room not properly specified";
 		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
-			return obj.match.player1.id === user_id || obj.match.player2.id === user_id;
+			return (
+				obj.match.player1.handshake.auth.token === user_id ||
+				obj.match.player2.handshake.auth.token === user_id
+			);
 		});
 		if (room === undefined) return null;
 		return room;
 	}
 
-	/* == PRIVATE =============================================================================== */
+	/* PRIVATE ================================================================= */
 
 	/* -- UTILS --------------------------------------------------------------- */
-	private findUserMatch(client: Socket): Handshake | undefined {
-		const handshake: Handshake | undefined = this.handshakes.find((obj) => {
+	private findUserMatch(client: Socket): Match | undefined {
+		const handshake: Match | undefined = this.matches.find((obj) => {
 			return (
-				obj.match.player1.socket.id === client.id ||
-				obj.match.player2.socket.id === client.id
+				obj.player1.handshake.auth.token === client.handshake.auth.token ||
+				obj.player2.handshake.auth.token === client.handshake.auth.token
 			);
 		});
 		return handshake;
 	}
 
+	private ignore(match: Match): void {
+		const index: number = this.matches.findIndex((obj) => {
+			return obj.name === match.name;
+		});
+		if (index < 0) throw "Cannot ignore a match not made";
+		this.matches.splice(index, 1);
+	}
+
 	private findUserRoomIndex(client: Socket): number {
 		const index: number = this.game_rooms.findIndex((obj) => {
-			return obj.isClientInRoom(client);
+			return obj.isSocketInRoom(client);
 		});
 		return index;
 	}

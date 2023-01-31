@@ -1,5 +1,5 @@
 import { Constants, OngoingGame, Paddle, } from ".";
-import { SpecSocket, SpectatorRoomId, SpectatorStateUpdate } from "../api";
+import { SpecSocket, SpectatorStateUpdate, UserId } from "../api";
 import { History } from "../strawberry";
 
 /** An onging game that we are spectating. */
@@ -18,19 +18,19 @@ export class SpectatingGame extends OngoingGame {
     private socket: SpecSocket;
 
     /**
-     * The ID of the room that we are spectating.
+     * The ID of the user that we are spectating.
      */
-    private room_id: SpectatorRoomId;
+    private user_id: UserId;
 
     /** Becomes `true` when the player left by himself. */
     private has_left: boolean;
 
-    public constructor(room_id: SpectatorRoomId) {
+    public constructor(user_id: UserId) {
         super();
 
-        console.log(`spectating room '${room_id}'`);
+        console.log(`spectating room '${user_id}'`);
 
-        const socket = new SpecSocket(room_id);
+        const socket = new SpecSocket(user_id);
         socket.on_connected = () => console.log(`connected to spectator socket`);
         socket.on_disconnected = () => this.on_disconnected();
         socket.on_update = st => this.on_spec_update(st);
@@ -38,7 +38,7 @@ export class SpectatingGame extends OngoingGame {
         this.game_started = false;
         this.socket = socket;
         this.has_left = false;
-        this.room_id = room_id;
+        this.user_id = user_id;
     }
 
     private on_spec_update(state: SpectatorStateUpdate) {
@@ -53,7 +53,7 @@ export class SpectatingGame extends OngoingGame {
     }
 
     private on_disconnected() {
-        console.log("disconnected!");
+        console.log("disconnected from specatator!");
 
         this.flow = "break";
 
@@ -94,7 +94,7 @@ export class SpectatingGame extends OngoingGame {
     }
 
     public get location(): string {
-        return `/spectate/${this.room_id}`;
+        return `/spectate/${this.user_id}`;
     }
 }
 
