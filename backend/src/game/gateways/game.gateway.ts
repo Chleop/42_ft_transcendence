@@ -1,9 +1,9 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { GameService } from "../service/game.service";
-import { GameRoom } from "../room";
+import { GameService } from "../services/game.service";
+import { GameRoom } from "../rooms";
 import { PaddleDto } from "../dto";
-import { ResultsObject, Ball, ScoreUpdate } from "../objects";
+import { Results, Ball, ScoreUpdate } from "../objects";
 import { AntiCheat, OpponentUpdate, Client, Match } from "../aliases";
 
 import * as Constants from "../constants/constants";
@@ -205,7 +205,7 @@ export class GameGateway {
 				room.match.player2.socket.emit("updateScore", update.invert());
 			}
 		} catch (e) {
-			if (e instanceof ResultsObject) {
+			if (e instanceof Results) {
 				/* Save results and destroy game */
 				const update: ScoreUpdate = room.getFinalScore();
 				room.match.player1.socket.emit("updateScore", update);

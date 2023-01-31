@@ -1,6 +1,6 @@
 import { Score } from "../aliases";
 import { PaddleDto } from "../dto";
-import { Ball, ResultsObject, Paddle, ScoreUpdate } from "../objects";
+import { Ball, Results, Paddle, ScoreUpdate, SpectatorUpdate } from "../objects";
 
 import * as Constants from "../constants/constants";
 
@@ -96,12 +96,12 @@ export class Gameplay {
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, true);
 	}
 
-	public getResults(guilty: number): ResultsObject {
-		return new ResultsObject(this.scores, guilty);
+	public getResults(guilty: number): Results {
+		return new Results(this.scores, guilty);
 	}
 
-	public getBall(): Ball {
-		return this.ball;
+	public getSpectatorUpdate(): SpectatorUpdate {
+		return new SpectatorUpdate(this.ball, this.paddle1, this.paddle2);
 	}
 
 	/* == PRIVATE =============================================================================== */
@@ -111,7 +111,7 @@ export class Gameplay {
 	private oneWon(): ScoreUpdate {
 		++this.scores.player1_score;
 		if (this.scores.player1_score === Constants.max_score) {
-			throw new ResultsObject(this.scores);
+			throw new Results(this.scores);
 		}
 		this.ball = new Ball();
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, true);
@@ -121,7 +121,7 @@ export class Gameplay {
 	private twoWon(): ScoreUpdate {
 		++this.scores.player2_score;
 		if (this.scores.player2_score === Constants.max_score) {
-			throw new ResultsObject(this.scores);
+			throw new Results(this.scores);
 		}
 		this.ball = new Ball();
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, false);

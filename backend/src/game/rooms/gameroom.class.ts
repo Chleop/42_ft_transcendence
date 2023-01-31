@@ -2,7 +2,7 @@ import { Socket } from "socket.io";
 import { Gameplay } from "../gameplay";
 import { PaddleDto } from "../dto";
 import { AntiCheat, Score, Match } from "../aliases";
-import { ResultsObject, Ball, ScoreUpdate } from "../objects";
+import { Results, Ball, ScoreUpdate, SpectatorUpdate } from "../objects";
 
 // TODO: make it cleaner
 type CheatCheck = {
@@ -55,7 +55,7 @@ export class GameRoom {
 	}
 
 	/* Saves the current state of the game */
-	public cutGameShort(guilty: number | null): ResultsObject {
+	public cutGameShort(guilty: number | null): Results {
 		if (!this.game) throw null;
 		else if (guilty === null) throw null;
 		this.is_ongoing = false;
@@ -67,9 +67,9 @@ export class GameRoom {
 		return this.game.getFinalScore();
 	}
 
-	public getBall(): Ball {
+	public getSpectatorUpdate(): SpectatorUpdate {
 		if (!this.is_ongoing) throw null;
-		return this.game.getBall();
+		return this.game.getSpectatorUpdate();
 	}
 
 	/* -- INTERVAL UTILS ------------------------------------------------------ */
@@ -83,15 +83,6 @@ export class GameRoom {
 		if (this.players_ping_id === null) return;
 		clearInterval(this.players_ping_id);
 	}
-
-	// public setSpectatorPingId(timer_id: NodeJS.Timer): void {
-	// 	this.spectators_ping_id = timer_id;
-	// }
-
-	// public destroySpectatorPing(): void {
-	// 	if (this.spectators_ping_id === null) return;
-	// 	clearInterval(this.spectators_ping_id);
-	// }
 
 	/* -- IDENTIFIERS --------------------------------------------------------- */
 	public isClientInRoom(client: Socket): boolean {

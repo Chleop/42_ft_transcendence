@@ -19,7 +19,7 @@ function getCurrentTime(date: Date): string {
 	);
 }
 
-export class ResultsObject {
+export class Results {
 	public readonly player1: PlayerData;
 	public readonly player2: PlayerData;
 	public readonly date: string;
