@@ -112,6 +112,16 @@ export class GameSocket {
     }
 }
 
+/* The information provided by the server when something happens in the game in real-time. */
+export interface SpectatorStateUpdate {
+    ball: BallStateUpdate,
+    player1: PlayerStateUpdate,
+    player2: PlayerStateUpdate,
+}
+
+/* A unique identifier for spectator rooms. */
+export type SpectatorRoomId = string;
+
 /* Wraps a Socket.IO socket to handle spectator-specific events. */
 export class SpecSocket {
     /** The inner socket. */
@@ -130,21 +140,19 @@ export class SpecSocket {
     /**
      * Indicates that the ball has moved.
      */
-    public on_ball_update: (state: BallStateUpdate) => void = noop;
+    public on_update: (state: SpectatorStateUpdate) => void = noop;
 
     /**
      * Creates a new GameSocket.
      */
-    public constructor() {
-        this.socket = io("/game", {
-            extraHeaders: {
-                socket_id: 'xyz',
-            }
+    public constructor(room_id: SpectatorRoomId) {
+        this.socket = io("/spectate", {
+            extraHeaders: { socket_id: room_id }
         });
 
         this.socket.on("connect", () => this.on_connected());
         this.socket.on("disconnect", () => this.on_disconnected());
-        this.socket.on("updateBallSpectator", st => this.on_ball_update(st));
+        this.socket.on("updatePaddles", st => this.on_update(st));
     }
 
     /** Initiates the connection with the server. */
