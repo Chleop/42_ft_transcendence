@@ -24,11 +24,37 @@ export interface PrivateUser {
      */
     name: string;
     /**
-     * The ID of the user's avatar.
-     */
-    avatar: AvatarId;
-    /**
      * The channel that the user is a part of.
      */
     channels: Channel[];
-}
+    /**
+     * An array of all blocked users.
+     */
+    blocked: UserId[]
+    /**
+     * The email address of that user.
+     */
+    email: string,
+    /**
+     * The friends of this user.
+     */
+    friends: UserId[],
+    /**
+     * The 42 login of this user.
+     */
+    login: string,
+};
+
+/**
+ * Stores public information about a user.
+ */
+export interface User {
+    /** 
+     * The ID of the user.
+     */
+    id: UserId,
+    /**
+     * The name of the user.
+     */
+    name: string,
+};

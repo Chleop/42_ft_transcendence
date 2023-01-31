@@ -10,8 +10,7 @@ import * as passport from "passport";
 async function bootstrap() {
 	const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-	// REMIND remove the exclude part when removing the file server.
-	app.setGlobalPrefix("api", { exclude: ["/", "/script.js", "/style.css"] });
+	app.setGlobalPrefix("api");
 
 	app.useGlobalPipes(
 		new ValidationPipe({

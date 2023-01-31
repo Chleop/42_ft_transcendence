@@ -104,7 +104,6 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 			if (e === null) {
 				// Game is done
 				me.stopStreaming(me, room.match.name);
-				// TODO: inform spectators the game is done
 				return;
 			}
 			throw e;

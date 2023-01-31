@@ -15,7 +15,7 @@ export const w_2: number = 8;
 export const h_2: number = 4.5;
 
 /* Limit score for victory */
-export const max_score: number = 3;
+export const max_score: number = 5;
 
 /* Half of paddle size */
 export const paddle_radius: number = 1;

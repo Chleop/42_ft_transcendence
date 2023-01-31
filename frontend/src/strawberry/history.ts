@@ -47,6 +47,8 @@ export const History = (function () {
          */
         private state_stack_index: number;
 
+        public default_state: State|null = null;
+
         /**
          * Creates a new `HistoryClass` instance.
          */
@@ -98,15 +100,19 @@ export const History = (function () {
          */
         public go_back() {
             if (this.state_stack_index == 0)
+            {
+                if (this.default_state)
+                    this.replace_state(this.default_state);
                 return;
+            }
         
-            const prev_state = this.state_stack[this.state_stack_index];
-            const new_state = this.state_stack[this.state_stack_index - 1];
+            // const prev_state = this.state_stack[this.state_stack_index];
+            // const new_state = this.state_stack[this.state_stack_index - 1];
 
-            prev_state.on_left(new_state);
+            // prev_state.on_left(new_state);
             window.history.back();
-            this.state_stack_index -= 1;
-            new_state.on_entered(prev_state);
+            // this.state_stack_index -= 1;
+            // new_state.on_entered(prev_state);
         }
 
         /**

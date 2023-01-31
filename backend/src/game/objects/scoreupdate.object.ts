@@ -7,8 +7,8 @@ export class ScoreUpdate {
 	private is_ongoing: boolean;
 
 	constructor(score_1: number, score_2: number, left: boolean) {
-		this.you = score_1;
-		this.opponent = score_2;
+		this.opponent = score_1;
+		this.you = score_2;
 		if (left) this.just_scored = "you";
 		else this.just_scored = "opponent";
 		if (score_1 === Constants.max_score) this.is_ongoing = false;

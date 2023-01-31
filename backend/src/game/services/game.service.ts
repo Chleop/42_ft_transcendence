@@ -169,12 +169,13 @@ export class GameService {
 	}
 
 	public findUserGame(spectator: Socket): GameRoom | null {
-		const data: string | undefined = spectator.data.user_id;
-		if (typeof data !== "string") return null; //throw "Room not properly specified";
+		const user_id: string|undefined|null|string[] = spectator.handshake.auth.user_id;
+		console.log(`==================================== DATA: ${user_id}`);
+		if (typeof user_id !== "string") return null; //throw "Room not properly specified";
 		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
 			return (
-				obj.match.player1.handshake.auth.token === data ||
-				obj.match.player2.handshake.auth.token === data
+				obj.match.player1.handshake.auth.token === user_id ||
+				obj.match.player2.handshake.auth.token === user_id
 			);
 		});
 		if (room === undefined) return null;

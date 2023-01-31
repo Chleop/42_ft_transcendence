@@ -17,6 +17,7 @@ import {
 	ChannelUnpopulatedError,
 	UnknownError,
 } from "src/channel/error";
+import { Gateway } from "src/gateway";
 import { g_channel_message_length_limit } from "src/channel/limit";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
@@ -27,9 +28,11 @@ import * as argon2 from "argon2";
 @Injectable()
 export class ChannelService {
 	private _prisma: PrismaService;
+	private _gateway: Gateway;
 
 	constructor() {
 		this._prisma = new PrismaService();
+		this._gateway = new Gateway();
 	}
 
 	/**
@@ -872,6 +875,7 @@ export class ChannelService {
 				content: content,
 			},
 		});
+		this._gateway.broadcast_to_everyone(message);
 		console.log("Message sent");
 
 		return message;

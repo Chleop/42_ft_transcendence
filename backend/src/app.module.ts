@@ -7,9 +7,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
-
-// TODO: Delete this when file server is set up.
-import { FileModule } from "./file.module";
+import { Gateway } from "src/gateway";
 
 @Module({
 	imports: [
@@ -21,21 +19,9 @@ import { FileModule } from "./file.module";
 		FriendRequestModule,
 		GameModule,
 		JwtModule,
-		// JwtModule.registerAsync({
-		// 	imports: [ConfigModule],
-		// 	useFactory: async (configService: ConfigService) => ({
-		// 	  secret: configService.get<string>('JWT_SECRET'),
-		// 	  signOptions: {
-		// 		expiresIn: parseInt(configService.get<string>('POLL_DURATION')),
-		// 	  },
-		// 	}),
-		// 	inject: [ConfigService],
-		//   }),
 		PassportModule.register({ session: true }),
 		UserModule,
-
-		// TODO: Remove this.
-		FileModule,
 	],
+	providers: [Gateway],
 })
 export class AppModule {}

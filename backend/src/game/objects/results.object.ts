@@ -25,7 +25,6 @@ export class Results {
 	public readonly date: string;
 
 	constructor(score: Score, guilty?: number) {
-		//player1: PlayerData, player2: PlayerData) {
 		const date: Date = new Date();
 
 		if (guilty === undefined) {

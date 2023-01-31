@@ -1,6 +1,6 @@
 import { Body, JsonBody } from "./body"
 import { ChannelId, ChannelJoined, Message, MessageId } from "./channel";
-import { PrivateUser } from "./user";
+import { PrivateUser, User, UserId } from "./user";
 
 /**
  * The server returned a status code which wasn't expected.
@@ -69,14 +69,18 @@ export class RawHTTPClient {
         this.token = token;
     }
 
+    public get access_token(): string {
+        return this.token;
+    }
+
     /**
      * Executes a request using this client. The appropriate `Authorization` header authomatically
      * added, errors are properly dispatched using exceptions.
      */
-    private async make_request(request: Request): Promise<any> {
+    private async make_request(request: Request): Promise<Response> {
         let headers: Record<string, string> = {};
 
-        headers["Authorization"] = this.token;
+        headers["Authorization"] = "Bearer " + this.token;
 
         let body: BodyInit | undefined = undefined;
         if (request.body) {
@@ -104,49 +108,71 @@ export class RawHTTPClient {
             throw new UnexpectedStatusCode(response.status, response.statusText);
         }
 
-        return response.json();
+        return response;
     }
 
     /**
      * Requests information about the current user.
      */
     public async me(): Promise<PrivateUser> {
-        return this.make_request({
+        return (await this.make_request({
             accept: "application/json",
             method: "GET",
-            url: "/user/@me",
+            url: "/api/user/@me",
+        })).json();
+    }
+
+    /**
+     * Generates a local URL for a user's avatar.
+     */
+    public async user_avatar(user: UserId): Promise<string> {
+        const img = await this.make_request({
+            method: "GET",
+            url: `/api/user/${user}/avatar`,
         });
+        return URL.createObjectURL(await img.blob());
+    }
+
+    /**
+     * Gets public information about a user.
+     */
+    public async user(user: UserId): Promise<User> {
+        return (await this.make_request({
+            accept: "application/json",
+            method: "GET",
+            url: "/api/user/" + user,
+        })).json();
     }
 
     /**
      * Requests the creation of a new channel.
      */
     public async create_channel(name: string, priv: boolean, password: string = ""): Promise<ChannelJoined> {
-        return this.make_request({
+        return (await this.make_request({
             accept: "application/json",
             method: "POST",
             success_status: 201,
-            url: "channel",
+            url: "/api/channel",
             body: new JsonBody({
                 name,
                 private: priv,
                 password,
             }),
-        });
+        })).json();
     }
 
     /**
      * Joins a new channel.
      */
     public async join_channel(id: ChannelId, password: string = ""): Promise<ChannelJoined> {
-        return this.make_request({
+        return (await this.make_request({
             accept: "application/json",
             method: "POST",
-            url: `channel/${id}/join`,
+            url: `/api/channel/${id}/join`,
             body: new JsonBody({
                 password
             }),
-        });
+        })).json();
     }
 
     /**
@@ -155,68 +181,65 @@ export class RawHTTPClient {
     public async leave_channel(id: ChannelId) {
         this.make_request({
             method: "POST",
-            url: `channel/${id}/leave`,
+            url: `/api/channel/${id}/leave`,
         });
     }
 
     /**
      * Gets the last messages of the given channel.
      */
-    public async get_last_messages(channel: ChannelId, limit?: number): Promise<Message[]> {
-        let url = `channel/${channel}/message`;
+    public async last_messages(channel: ChannelId, limit?: number): Promise<Message[]> {
+        let url = `/api/channel/${channel}/messages`;
         if (limit)
             url += `?limit=${limit}`;
 
-        return this.make_request({
+        return (await this.make_request({
             method: "GET",
             url,
             accept: "application/json",
-        });
+        })).json();
     }
 
     /**
      * Gets the messages that were sent *before* another message.
      */
-    public async get_messages_before(channel: ChannelId, anchor: MessageId, limit?: number): Promise<Message[]> {
-        let url = `channel/${channel}/message?before=${anchor}`;
+    public async messages_before(channel: ChannelId, anchor: MessageId, limit?: number): Promise<Message[]> {
+        let url = `/api/channel/${channel}/messages?before=${anchor}`;
         if (limit)
             url += `&limit=${limit}`;
 
-        return this.make_request({
+        return (await this.make_request({
             method: "GET",
             url,
             accept: "application/json",
-        });
+        })).json();
     }
 
     /**
      * Gets the messages that were sent *after* another message.
      */
-    public async get_messages_after(channel: ChannelId, anchor: MessageId, limit?: number): Promise<Message[]> {
-        let url = `channel/${channel}/message?after=${anchor}`;
+    public async messages_after(channel: ChannelId, anchor: MessageId, limit?: number): Promise<Message[]> {
+        let url = `/api/channel/${channel}/messages?after=${anchor}`;
         if (limit)
             url += `&limit=${limit}`;
 
-        return this.make_request({
+        return (await this.make_request({
             method: "GET",
             url,
             accept: "application/json",
-        });
+        })).json();
     }
 
     /**
      * Sends a message to the specified channel.
      */
     public async send_message(channel: ChannelId, content: string): Promise<Message> {
-        return this.make_request({
+        return (await this.make_request({
             method: "POST",
             success_status: 201,
             accept: "application/json",
-            url: `channel/${channel}/message`,
-            body: {
-                content_type: "text/plain",
-                data: content,
-            }
-        });
+            url: `/api/channel/${channel}/message`,
+            body: new JsonBody({ message: content }),
+        })).json();
     }
 }

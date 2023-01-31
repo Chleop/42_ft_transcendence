@@ -14,12 +14,9 @@ export class SocketIOAdapter extends IoAdapter {
 	private readonly config_service: ConfigService;
 
 	constructor(app: INestApplicationContext, configService: ConfigService) {
-		console.log("Adapter created");
 		super(app);
 		this.app = app;
 		this.config_service = configService;
-		this.app; // useless, just to avoid stupid error
-		this.config_service; // same
 	}
 
 	/* PUBLIC ================================================================== */
@@ -32,11 +29,14 @@ export class SocketIOAdapter extends IoAdapter {
 	 * allows middleware usage
 	 */
 	public override createIOServer(port: number, options?: ServerOptions): Server {
-		/* TODO for later */
-		// const port_str : string |undefined= this.config_service.get('CLIENT_PORT')
-		// if (port_str=== undefined)
-		// const clientPort: number  = parseInt()
-		const client_port: number = 3000;
+		let client_port: number;
+		const port_str: string | undefined = this.config_service.get("CLIENT_PORT");
+
+		if (port_str === undefined) {
+			client_port = 3000;
+		} else {
+			client_port = parseInt(port_str);
+		}
 
 		const cors: CorsOptions = {
 			origin: [
@@ -46,10 +46,12 @@ export class SocketIOAdapter extends IoAdapter {
 		};
 
 		const jwt_service: JwtService = this.app.get(JwtService);
+		const config_service: ConfigService = this.app.get(ConfigService);
+
 		const server: Server = super.createIOServer(port, { ...options, cors });
 
-		server.of("game").use(websocketMiddleware(jwt_service));
-		server.of("spectate").use(websocketMiddleware(jwt_service));
+		server.of("game").use(websocketMiddleware(jwt_service, config_service));
+		server.of("spectate").use(websocketMiddleware(jwt_service, config_service));
 
 		return server;
 	}
@@ -57,21 +59,26 @@ export class SocketIOAdapter extends IoAdapter {
 
 /**
  * Middleware function
- * Will verify jwt token (located in socket.handshake.auth.token)
+ * Will verify jwt token
  */
 const websocketMiddleware =
-	(jwt_service: JwtService) => (client: Socket, next: (error?: any) => void) => {
+	(jwt_service: JwtService, config_service: ConfigService) =>
+	(client: Socket, next: (error?: any) => void) => {
 		const token: string | undefined = client.handshake.auth.token;
+		const secret: string | undefined = config_service.get<string>("JWT_SECRET");
+
+		if (secret === undefined) throw new Error("JwtSecret undefined"); // should NOT happen
 
 		try {
 			if (token === undefined) {
 				throw new Error("No token provided");
 			}
 			console.log(`Validating token: ${token}`);
-			const payload: { sub: string } = jwt_service.verify(token);
+			const payload: { sub: string } = jwt_service.verify(token, { secret });
 			client.handshake.auth.token = payload.sub;
 			next();
-		} catch {
+		} catch (e) {
+			console.error(e);
 			next(new ForbiddenException("Invalid token"));
 		}
 	};
