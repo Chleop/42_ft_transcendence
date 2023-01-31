@@ -160,8 +160,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
 	/* PRIVATE ================================================================= */
 
-	/* -- MATCHMAKING --------------------------------------------------------- */
-	/* Waits for the 2 players to accept the match */
+	/**
+	 * Updates the two matched players with each others infos
+	 * After 3s, the game will start
+	 */
 	private matchmake(match: Match): void {
 		// const p1_decoded: UserData = this.game_service.decode(match.player1.handshake.auth.token);
 		// const p2_decoded: UserData = this.game_service.decode(match.player2.handshake.auth.token);
@@ -175,24 +177,20 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		this.game_service.display();
 	}
 
-	/* -- UPDATING TOOLS ------------------------------------------------------ */
-	/* The game will start */
+	/**
+	 * Sends initial ball state and starts game state on regular interval
+	 */
 	private startGame(me: GameGateway, room: GameRoom): void {
 		const initial_game_state: Ball = room.startGame();
 
 		console.log(room);
-		// Send the initial ball { pos, v0 }
 		room.match.player1.emit("gameStart", initial_game_state);
 		room.match.player2.emit("gameStart", initial_game_state);
 		room.setPlayerPingId(setInterval(me.sendGameUpdates, Constants.ping, me, room));
 	}
 
 	/* This will send a GameUpdate every 16ms to both clients in a game */
-	private async sendGameUpdates(
-		me: GameGateway,
-		room: GameRoom,
-	): //void {
-	Promise<void> {
+	private async sendGameUpdates(me: GameGateway, room: GameRoom): Promise<void> {
 		try {
 			const update: Ball | ScoreUpdate = room.updateGame();
 			if (update instanceof Ball) {
@@ -229,8 +227,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		}
 	}
 
-	/* -- UTILS --------------------------------------------------------------- */
-	//TODO: make it cleaner
+	/**
+	 * Disconnect players matched
+	 */
 	private disconnectRoom(match: Match): void {
 		match.player1.disconnect(true);
 		match.player2.disconnect(true);

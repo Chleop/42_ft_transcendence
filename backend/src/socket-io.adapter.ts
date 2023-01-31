@@ -65,14 +65,13 @@ const websocketMiddleware =
 
 		try {
 			if (token === undefined) {
-				console.log("No token provided error");
-				throw new Error();
+				throw new Error("No token provided");
 			}
 			console.log(`Validating token: ${token}`);
 			const payload: { sub: string } = jwt_service.verify(token);
 			client.handshake.auth.token = payload.sub;
 			next();
 		} catch {
-			next(new ForbiddenException("No token provided"));
+			next(new ForbiddenException("Invalid token"));
 		}
 	};

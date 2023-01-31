@@ -8,14 +8,15 @@ import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { BadRequestException, ConflictException } from "@nestjs/common";
 import { Socket } from "socket.io";
 
-/* TODO: implement better MM */
-
-/* Matchmaking class */
-/* Manage rooms, save scores in database */
+/**
+ * Game rooms manager
+ * Holds the matchmaker (TODO: implement separate matchmaking class)
+ */
 @Injectable()
 export class GameService {
 	private prisma_service: PrismaService;
 	private game_rooms: GameRoom[];
+
 	private matches: Match[];
 	// TODO: extend queue
 	private queue: Socket | null;
@@ -29,7 +30,7 @@ export class GameService {
 		this.queue = null;
 	}
 
-	/* == PUBLIC ================================================================================ */
+	/* PUBLIC ================================================================== */
 
 	// TODO replace
 	public saveScore(room: GameRoom, results: Results | null): Match {
@@ -43,6 +44,9 @@ export class GameService {
 		return match;
 	}
 
+	/**
+	 * Registers finished game to database
+	 */
 	public async registerGameHistory(room: GameRoom, results: Results): Promise<Match> {
 		const match: Match = room.match;
 		try {
@@ -177,7 +181,7 @@ export class GameService {
 		return room;
 	}
 
-	/* == PRIVATE =============================================================================== */
+	/* PRIVATE ================================================================= */
 
 	/* -- UTILS --------------------------------------------------------------- */
 	private findUserMatch(client: Socket): Match | undefined {

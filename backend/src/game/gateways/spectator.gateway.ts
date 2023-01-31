@@ -45,7 +45,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 * Else, they're disconnected
 	 */
 	public handleConnection(client: Socket): void {
-		console.log(`Socket '${client.id}' joined`);
+		console.log(`Socket '${client.handshake.auth.token}' joined`);
 		const room: GameRoom | null = this.game_service.findUserGame(client);
 		if (room instanceof GameRoom) {
 			client.join(room.match.name);
@@ -71,7 +71,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 					this.stopStreaming(this, spectated_room.game_room.match.name);
 			}
 		}
-		console.log(`Socket '${client.id}' left`);
+		console.log(`Socket '${client.handshake.auth.token}' left`);
 	}
 
 	/* PRIVATE ================================================================= */

@@ -12,6 +12,8 @@ export class Gameplay {
 	private ball: Ball;
 	private last_update: number;
 
+	/* CONSTRUCTOR ============================================================= */
+
 	constructor() {
 		this.scores = {
 			player1_score: 0,
@@ -23,7 +25,7 @@ export class Gameplay {
 		this.last_update = -1;
 	}
 
-	/* == PUBLIC ================================================================================ */
+	/* PUBLIC ================================================================== */
 
 	/* -- UPDATING GAME ------------------------------------------------------- */
 	/* Generate random initial ball velocity vector */
@@ -35,9 +37,10 @@ export class Gameplay {
 	}
 
 	/* Generates a ball update */
-	public refresh(): Ball | ScoreUpdate /* GameUpdate */ {
+	public refresh(): Ball | ScoreUpdate {
 		const now: number = Date.now();
-		const delta_time = (now - this.last_update) * 0.001;
+		const delta_time: number = (now - this.last_update) * 0.001;
+
 		this.last_update = now;
 
 		const ret: number = this.ball.refresh(delta_time);
@@ -104,8 +107,7 @@ export class Gameplay {
 		return new SpectatorUpdate(this.ball, this.paddle1, this.paddle2);
 	}
 
-	/* == PRIVATE =============================================================================== */
-
+	/* PRIVATE ================================================================= */
 	/* -- GAME STATUS UPDATE -------------------------------------------------- */
 	/* Players 1 marked a point, send results OR reinitialize */
 	private oneWon(): ScoreUpdate {
