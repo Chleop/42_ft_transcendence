@@ -11,16 +11,12 @@ import { GameRoom, SpectatedRoom } from "../rooms";
 import * as Constants from "../constants/constants";
 
 @WebSocketGateway({
-	namespace: "/spectate",
-	cors: {
-		origin: ["http://localhost:3000"],
-	},
+	namespace: "spectate",
 })
-export class SpectatorGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
+export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
 	@WebSocketServer()
 	public readonly server: Server;
 	private readonly game_service: GameService;
-	// private rooms: SpectatedRoom[];
 	private readonly spectate_service: SpectateService;
 
 	/* CONSTRUCTOR ============================================================= */
@@ -33,30 +29,41 @@ export class SpectatorGateway implements OnGatewayConnection, OnGatewayDisconnec
 
 	/* PUBLIC ================================================================== */
 
+	/**
+	 * (from OnGatewayInit)
+	 * Called after init :)
+	 */
 	public afterInit(): void {
 		console.log("Spectator gateway initialized");
 	}
 
 	/* Connection Handler ------------------------------------------------------ */
 
+	/**
+	 * (from OnGatewayConnection)
+	 * On connection, clients are immediately moved to the spectating room
+	 * Else, they're disconnected
+	 */
 	public handleConnection(client: Socket): void {
-		// Find game to spectate: Cookie? Header?
-		// For now:
-		//		client.handshake.headers.socket_id
-
 		console.log(`Socket '${client.id}' joined`);
 		const room: GameRoom | null = this.game_service.findUserGame(client);
 		if (room instanceof GameRoom) {
 			client.join(room.match.name);
 			return this.startStreaming(client, room);
 		}
+		client.disconnect(true);
 	}
 
+	/**
+	 * (from OnGatewayDisconnect)
+	 * On disconnection, clients are removed from the spectating room
+	 *
+	 */
 	public handleDisconnect(client: Socket): void {
-		const room: GameRoom | null = this.game_service.findUserGame(client);
-		if (room instanceof GameRoom) {
+		const game_room: GameRoom | null = this.game_service.findUserGame(client);
+		if (game_room instanceof GameRoom) {
 			const spectated_room: SpectatedRoom | null = this.spectate_service.getRoom(
-				room.match.name,
+				game_room.match.name,
 			);
 			if (spectated_room instanceof SpectatedRoom) {
 				spectated_room.removeSpectator(client);
@@ -69,31 +76,35 @@ export class SpectatorGateway implements OnGatewayConnection, OnGatewayDisconnec
 
 	/* PRIVATE ================================================================= */
 
-	private startStreaming(client: Socket, room: GameRoom): void {
-		const spectated_room: SpectatedRoom | null = this.spectate_service.getRoom(room.match.name);
+	private startStreaming(client: Socket, game_room: GameRoom): void {
+		const spectated_room: SpectatedRoom | null = this.spectate_service.getRoom(
+			game_room.match.name,
+		);
 		if (spectated_room === null) {
-			console.log(`Creating room ${room.match.name}`);
 			// Create a new spec room if it doesn't exist
+			console.log(`Creating room ${game_room.match.name}`);
+
 			const new_room: SpectatedRoom = new SpectatedRoom(
-				room,
-				setInterval(this.updateGame, Constants.ping, this, room),
+				game_room,
+				setInterval(this.updateGame, Constants.ping, this, game_room),
 			);
+
 			new_room.addSpectator(client);
 			this.spectate_service.add(new_room);
 		} else {
-			console.log(`${room.match.name} exists`);
+			console.log(`${game_room.match.name} exists`);
 			// The room exists
 		}
 	}
 
 	private updateGame(me: SpectatorGateway, room: GameRoom): void {
 		try {
-			// me.server.emit("updateBallSpectator", room.getBall());
-			me.server.emit("updatePaddles", room.getSpectatorUpdate());
+			me.server.to(room.match.name).emit("updateGame", room.getSpectatorUpdate());
 		} catch (e) {
 			if (e === null) {
 				// Game is done
 				me.stopStreaming(me, room.match.name);
+				// TODO: inform spectators the game is done
 				return;
 			}
 			throw e;
@@ -102,7 +113,9 @@ export class SpectatorGateway implements OnGatewayConnection, OnGatewayDisconnec
 
 	private stopStreaming(me: SpectatorGateway, room_name: string): void {
 		const room: SpectatedRoom | null = me.spectate_service.getRoom(room_name);
+
 		if (room === null) return;
+
 		me.kickEveryone(room);
 		me.spectate_service.destroyRoom(room_name);
 	}

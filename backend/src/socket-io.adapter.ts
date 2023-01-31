@@ -22,6 +22,15 @@ export class SocketIOAdapter extends IoAdapter {
 		this.config_service; // same
 	}
 
+	/* PUBLIC ================================================================== */
+
+	/**
+	 * (from IoAdapter)
+	 * Called from main (when SocketIOAdapter instanciated)
+	 *
+	 * Defines extra indications for the new gateway instanciated,
+	 * allows middleware usage
+	 */
 	public override createIOServer(port: number, options?: ServerOptions): Server {
 		/* TODO for later */
 		// const port_str : string |undefined= this.config_service.get('CLIENT_PORT')
@@ -37,20 +46,26 @@ export class SocketIOAdapter extends IoAdapter {
 		};
 
 		const jwt_service: JwtService = this.app.get(JwtService);
-
-		// we need to return this, even though the signature says it returns void
 		const server: Server = super.createIOServer(port, { ...options, cors });
-		server.of("/game").use(createTokenMiddleware(jwt_service));
+
+		server.of("game").use(websocketMiddleware(jwt_service));
+		server.of("spectate").use(websocketMiddleware(jwt_service));
+
 		return server;
 	}
 }
 
-const createTokenMiddleware =
+/**
+ * Middleware function
+ * Will verify jwt token (located in socket.handshake.auth.token)
+ */
+const websocketMiddleware =
 	(jwt_service: JwtService) => (client: Socket, next: (error?: any) => void) => {
 		const token: string | undefined = client.handshake.auth.token;
 
 		try {
 			if (token === undefined) {
+				console.log("No token provided error");
 				throw new Error();
 			}
 			console.log(`Validating token: ${token}`);

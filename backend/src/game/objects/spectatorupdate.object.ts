@@ -1,5 +1,9 @@
 import { Ball, Paddle } from ".";
 
+/**
+ * Object send to spectator rooms (contains full game data)
+ * -> TODO: Replace by gameplay ? Just smaller object
+ */
 export class SpectatorUpdate {
 	public readonly ball: Ball;
 	public readonly player1: Paddle;

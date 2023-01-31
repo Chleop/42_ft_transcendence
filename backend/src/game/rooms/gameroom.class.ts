@@ -10,9 +10,11 @@ type CheatCheck = {
 	updated_paddle: PaddleDto;
 };
 
-/* Holds info on the gameroom
-	 Once someone leaves the game, the room is completely removed.
-*/
+/**
+ * Ongoing game room handle
+ *
+ * Once someone leaves the game, the room is completely removed.
+ */
 export class GameRoom {
 	public readonly match: Match;
 	private players_ping_id: NodeJS.Timer | null;

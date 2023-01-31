@@ -22,16 +22,6 @@ import { BadRequestException, ConflictException } from "@nestjs/common";
 // 	id: NodeJS.Timer;
 // };
 
-// PLACEHOLDERS ==============
-type UserData = {
-	id: string;
-	// Avatar, etc
-};
-
-/* TODO:
-	 - handle spectators
-*/
-
 /* === EVENT LIST ==================================================================================
 
 From the client:
@@ -61,20 +51,9 @@ From the client:
 		temporary, this is meant to test the setInterval stuff
 
 From the server:
-	// - `connected`
-	// 	sent to the client as an acknowledgement of their initial connection.
-
 	- `matchFound`
 		once two clients are matched, they are sent this event.
 		the gateway will then await for both matched client to send the `ok` event.
-
-	- `timedOut` // deprecated: useless if disconnect
-		if the two clients that were awaited didn't both accept, they get timed out and removed from
-		the queue.
-
-	- `unQueue` // deprecated: useless if disconnect
-		if the client was in the queue or in a game and suddenly disconnects, their opponent is
-		notified via the `unQueue` event and both are properly disconnected.
 
 	- `gameReady`
 		when the two clients matched have accepted the game, they are alerted with this event.
@@ -88,10 +67,6 @@ From the server:
 		when the gateway receives an update from a client, it processes it then sends it to the
 		client's opponent, labeled with this event.
 
-	- `updateGame`
-		every 20 milliseconds, the two matched client receive the pong ball updated data along with
-		the current score.
-
 	- `updateBall`
 		contains ball update
 
@@ -100,9 +75,8 @@ From the server:
 
 ======================================================================== END OF LIST ============ */
 
-/* Gateway to events comming from `http://localhost:3000/game` */
 @WebSocketGateway({
-	namespace: "/game",
+	namespace: "game",
 })
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
 	@WebSocketServer()
@@ -118,6 +92,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
 	/* PUBLIC ================================================================== */
 
+	/**
+	 * (from OnGatewayInit)
+	 * called as gateway is init
+	 */
 	public afterInit(): void {
 		console.log("Game gateway initialized");
 	}
@@ -125,39 +103,39 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	/* Connection handlers ----------------------------------------------------- */
 
 	/**
+	 * (from OnGatewayConnection)
 	 * Handler for gateway connection
+	 *
+	 * Moves client to the queue if not already in game
 	 */
 	public handleConnection(client: Socket): void {
-		console.log(`[${client.id} connected]`);
-		// client.emit("connected", "Welcome");
-		try {
-			//TODO: Check if they are not spectator: middleware->`/spectator`?
-			//TODO: handle authkey
-			const user: Socket = this.game_service.getUser(client); // authkey
-			const match: Match | null = this.game_service.queueUp(user);
-			if (match !== null) this.matchmake(match);
-		} catch (e) {
-			client.disconnect(true);
-			console.log(e);
-		}
+		console.log(`[${client.handshake.auth.token} connected]`);
+		const match: Match | null = this.game_service.queueUp(client);
+		if (match !== null) this.matchmake(match);
 	}
 
 	/**
+	 * (from OnGatewayDisconnect)
 	 * Handler for gateway disconnection
+	 *
+	 * Removes client from queue if in it
+	 * Else removes match
 	 */
 	public handleDisconnect(client: Socket): void {
 		const match: Match | null = this.game_service.unQueue(client);
-		if (match !== null) {
-			this.disconnectRoom(match);
-		}
-		console.log(`[${client.id} disconnected]`);
-		this.game_service.display();
+		if (match !== null) this.disconnectRoom(match);
+		console.log(`[${client.handshake.auth.token} disconnected]`);
+		// this.game_service.display();
 	}
 
 	/* Event handlers ---------------------------------------------------------- */
 
-	/* Handle paddle updates for the game */
-	// @UseGuards(JwtGuard)
+	/**
+	 * On 'update' event
+	 *
+	 * Client sent a paddle update
+	 * Refreshes room paddle position and send it to opponent
+	 */
 	@SubscribeMessage("update")
 	public updateEnemy(client: Socket, dto: PaddleDto): void {
 		try {
@@ -185,10 +163,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	/* -- MATCHMAKING --------------------------------------------------------- */
 	/* Waits for the 2 players to accept the match */
 	private matchmake(match: Match): void {
-		const p1_decoded: UserData = this.game_service.decode(match.player1.id);
-		const p2_decoded: UserData = this.game_service.decode(match.player2.id);
-		match.player1.emit("matchFound", p2_decoded);
-		match.player2.emit("matchFound", p1_decoded);
+		// const p1_decoded: UserData = this.game_service.decode(match.player1.handshake.auth.token);
+		// const p2_decoded: UserData = this.game_service.decode(match.player2.handshake.auth.token);
+		match.player1.emit("matchFound", match.player2.handshake.auth.token);
+		match.player2.emit("matchFound", match.player1.handshake.auth.token);
 
 		const room: GameRoom = this.game_service.createRoom(match);
 
