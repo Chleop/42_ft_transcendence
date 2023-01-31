@@ -36,7 +36,7 @@ class MainMenuScene extends Scene {
      */
     private chat_element: ChatElement;
 
-    private profile_overlay: ProfileOverlay;
+    public profile_overlay: ProfileOverlay;
 
     /**
      * The root HTML element of the main menu.

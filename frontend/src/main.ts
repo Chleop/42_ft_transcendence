@@ -11,6 +11,10 @@ function entry_point() {
 	const router = new Router<(data: RouteData) => void>();
 
     router.register_route("/", () => History.replace_state(MainMenu));
+    router.register_route("/profile", () => {
+		History.replace_state(MainMenu);
+		History.push_state(MainMenu.profile_overlay);
+	});
 	router.register_route("/spectate/:room_id", data => {
 		GameBoard.start_game(new SpectatingGame(data["room_id"]));
 		History.replace_state(GameBoard);
