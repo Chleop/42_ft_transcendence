@@ -3,6 +3,7 @@ import { PaddleDto } from "../dto";
 import { Socket } from "socket.io";
 import { AntiCheat, Score, Match } from "../aliases";
 import { Results, Ball, ScoreUpdate, SpectatorUpdate } from "../objects";
+import { Logger } from "@nestjs/common";
 
 // TODO: make it cleaner
 type CheatCheck = {
@@ -20,13 +21,15 @@ export class GameRoom {
 	private players_ping_id: NodeJS.Timer | null;
 	private game: Gameplay;
 	private is_ongoing: boolean;
+	private readonly _logger: Logger;
 
 	constructor(match: Match) {
 		this.match = match;
 		this.players_ping_id = null;
 		this.game = new Gameplay();
 		this.is_ongoing = true;
-		console.log("Room created:", this.match.name);
+		this._logger = new Logger(GameRoom.name);
+		this._logger.log(`Room created: ${this.match.name}`);
 	}
 
 	/* == PUBLIC ================================================================================ */

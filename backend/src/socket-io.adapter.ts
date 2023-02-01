@@ -1,6 +1,6 @@
 import { t_get_one_fields } from "src/user/alias";
 import { UserService } from "src/user/user.service";
-import { ForbiddenException, INestApplicationContext } from "@nestjs/common";
+import { ForbiddenException, INestApplicationContext, Logger } from "@nestjs/common";
 import { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.interface";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
@@ -16,11 +16,14 @@ type UserData = t_get_one_fields;
 export class SocketIOAdapter extends IoAdapter {
 	private readonly app: INestApplicationContext;
 	private readonly config_service: ConfigService;
+	private readonly _logger: Logger;
 
 	constructor(app: INestApplicationContext, configService: ConfigService) {
 		super(app);
 		this.app = app;
 		this.config_service = configService;
+		this._logger = new Logger(SocketIOAdapter.name);
+		this._logger.debug("Adapter created");
 	}
 
 	/* PUBLIC ================================================================== */
@@ -73,6 +76,7 @@ const websocketMiddleware =
 	async (client: Socket, next: (error?: any) => void) => {
 		const token: string | undefined = client.handshake.auth.token;
 		const secret: string | undefined = config_service.get<string>("JWT_SECRET");
+		const logger: Logger = new Logger("WebsocketMiddleware");
 
 		if (secret === undefined) throw new Error("JwtSecret undefined"); // should NOT happen
 
@@ -80,7 +84,7 @@ const websocketMiddleware =
 			if (token === undefined) {
 				throw new Error("No token provided");
 			}
-			console.log(`Validating token: ${token}`);
+			logger.debug(`Validating token: ${token}`);
 			const payload: { sub: string } = jwt_service.verify(token, { secret });
 			const user: UserData = await user_service.get_one(payload.sub, payload.sub);
 			client.handshake.auth.token = payload.sub;

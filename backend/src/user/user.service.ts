@@ -21,7 +21,7 @@ import {
 } from "src/user/error";
 import { ChannelService } from "src/channel/channel.service";
 import { PrismaService } from "src/prisma/prisma.service";
-import { Injectable, StreamableFile } from "@nestjs/common";
+import { Injectable, Logger, StreamableFile } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { StateType } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
@@ -31,10 +31,12 @@ import { join } from "path";
 export class UserService {
 	private _prisma: PrismaService;
 	private _channel: ChannelService;
+	private readonly _logger: Logger;
 
 	constructor() {
 		this._channel = new ChannelService();
 		this._prisma = new PrismaService();
+		this._logger = new Logger(UserService.name);
 	}
 
 	/**
@@ -74,8 +76,7 @@ export class UserService {
 			}[];
 		};
 
-		console.log("Searching for blocking user...");
-		const blocking_user: t_blocking_user_fields | null = await this._prisma.user.findUnique({
+		const blocking_user: t_blocking_user_fields = (await this._prisma.user.findUnique({
 			select: {
 				blocked: {
 					select: {
@@ -99,13 +100,8 @@ export class UserService {
 					state: StateType.ACTIVE,
 				},
 			},
-		});
+		})) as t_blocking_user_fields;
 
-		if (!blocking_user) {
-			throw new UserNotFoundError();
-		}
-
-		console.log("Searching for blocked user...");
 		const blocked_user: t_blocked_user_fields | null = await this._prisma.user.findUnique({
 			select: {
 				id: true,
@@ -127,30 +123,25 @@ export class UserService {
 			throw new UserNotFoundError();
 		}
 
-		console.log("Checking for self blocking...");
 		if (blocked_user_id === blocking_user_id) {
 			throw new UserSelfBlockError();
 		}
 
-		console.log("Checking for already blocked...");
 		for (const blocked_user of blocking_user.blocked) {
 			if (blocked_user.id === blocked_user_id) {
 				throw new UserAlreadyBlockedError();
 			}
 		}
 
-		console.log("Checking for friendship to remove...");
 		if (blocking_user.friends.some((friend) => friend.id === blocked_user_id)) {
 			await this.unfriend_two(blocking_user_id, blocked_user_id, blocking_user, blocked_user);
 		}
 
-		console.log("Checking for pending friend request to remove...");
 		if (
 			blocking_user.pendingFriendRequests.some(
 				(friend_request) => friend_request.id === blocked_user_id,
 			)
 		) {
-			console.log("Removing pending friend request...");
 			await this._prisma.user.update({
 				data: {
 					pendingFriendRequests: {
@@ -189,7 +180,6 @@ export class UserService {
 			});
 		}
 
-		console.log("Blocking user...");
 		await this._prisma.user.update({
 			data: {
 				blocked: {
@@ -205,7 +195,7 @@ export class UserService {
 				},
 			},
 		});
-		console.log("User blocked");
+		this._logger.log(`User ${blocking_user_id} blocked user ${blocked_user_id}`);
 	}
 
 	/**
@@ -225,7 +215,6 @@ export class UserService {
 			id: string;
 		};
 
-		console.log("Getting default skin...");
 		const skin: t_fields | null = await this._prisma.skin.findUnique({
 			select: {
 				id: true,
@@ -255,7 +244,6 @@ export class UserService {
 				name = `${login}#${suffix++}`;
 			}
 
-			console.log("Creating user...");
 			id = (
 				await this._prisma.user.create({
 					data: {
@@ -265,15 +253,15 @@ export class UserService {
 					},
 				})
 			).id;
-			console.log("User created");
+			this._logger.log(`User ${id} created`);
 		} catch (error) {
-			console.log("Error occured while creating user");
+			this._logger.error(`Error while creating user ${login}`);
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2002":
 						throw new UserFieldUnaivalableError();
 				}
-				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
+				this._logger.error(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
 			throw new UnknownError();
 		}
@@ -294,6 +282,8 @@ export class UserService {
 	 *
 	 * @return	An empty promise.
 	 */
+	// REMIND: rename into disable_me (?)
+	// TODO: remove the UnknownError from potential errors
 	public async disable_one(id: string): Promise<void> {
 		type t_fields = {
 			id: string;
@@ -309,7 +299,6 @@ export class UserService {
 		};
 
 		try {
-			console.log("Searching channels joined by the user to disable...");
 			const channels: t_fields[] = await this._prisma.channel.findMany({
 				select: {
 					id: true,
@@ -338,7 +327,6 @@ export class UserService {
 				await this._channel.leave_one(channel.id, id, channel);
 			}
 
-			console.log("Disabling user...");
 			await this._prisma.user.update({
 				where: {
 					idAndState: {
@@ -350,11 +338,11 @@ export class UserService {
 					state: StateType.DISABLED,
 				},
 			});
-			console.log("User disabled");
+			this._logger.log(`User ${id} disabled`);
 		} catch (error) {
-			console.log("Error occured while disabling user");
+			this._logger.error(`Error while disabling user ${id}`);
 			if (error instanceof PrismaClientKnownRequestError) {
-				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
+				this._logger.error(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
 
 			throw new UnknownError();
@@ -373,8 +361,8 @@ export class UserService {
 	 *
 	 * @return	A promise containing the wanted user.
 	 */
+	// TODO: remove the UserNotFoundError from potential errors
 	public async get_me(id: string): Promise<t_get_me_fields> {
-		console.log("Searching for user...");
 		const user_tmp: t_get_me_fields_tmp | null = await this._prisma.user.findUnique({
 			select: {
 				id: true,
@@ -477,7 +465,7 @@ export class UserService {
 			}),
 		};
 
-		console.log("User found");
+		this._logger.log(`User ${id} was successfully retrieved from the database.`);
 		return user;
 	}
 
@@ -511,7 +499,6 @@ export class UserService {
 			}[];
 		};
 
-		console.log("Searching for requesting user...");
 		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
 			select: {
 				channels: {
@@ -533,7 +520,6 @@ export class UserService {
 			},
 		})) as t_requesting_user_fields;
 
-		console.log("Searching for requested user...");
 		const requested_user_tmp: t_get_one_fields_tmp | null = await this._prisma.user.findUnique({
 			select: {
 				id: true,
@@ -587,7 +573,6 @@ export class UserService {
 			games_won_ids: requested_user_tmp.gamesWon.map((game): string => game.id),
 		};
 
-		console.log("Checking for both users to be linked through a channel, a friendship, or to be the same...");
 		if (
 			requesting_user_id !== requested_user_id &&
 			!requesting_user.friends.some((friend): boolean => friend.id === requested_user_id) &&
@@ -601,7 +586,7 @@ export class UserService {
 			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
 		}
 
-		console.log("User found");
+		this._logger.log(`User ${requested_user_id} was successfully retrieved from the database.`);
 		return requested_user;
 	}
 
@@ -641,7 +626,6 @@ export class UserService {
 			}[];
 		};
 
-		console.log("Searching for requesting user...");
 		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
 			select: {
 				channels: {
@@ -658,7 +642,6 @@ export class UserService {
 			},
 		})) as t_requesting_user_fields;
 
-		console.log("Searching for requested user...");
 		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
 			select: {
 				avatar: true,
@@ -685,7 +668,6 @@ export class UserService {
 			throw new UserNotFoundError(requested_user_id);
 		}
 
-		console.log("Checking for both users to be linked through a channel, a friendship, or to be the same...");
 		if (
 			requesting_user_id !== requested_user_id &&
 			!requested_user.friends.some((friend) => friend.id === requesting_user_id) &&
@@ -699,7 +681,6 @@ export class UserService {
 			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
 		}
 
-		console.log("Returning wanted avatar...");
 		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.avatar)));
 	}
 
@@ -717,7 +698,6 @@ export class UserService {
 		type t_fields = {
 			id: string;
 		};
-		console.log("Searching for user...");
 		const user: t_fields | null = await this._prisma.user.findUnique({
 			select: {
 				id: true,
@@ -734,7 +714,6 @@ export class UserService {
 			throw new UserNotFoundError(login);
 		}
 
-		console.log("User found");
 		return user.id;
 	}
 
@@ -765,7 +744,6 @@ export class UserService {
 			id: string;
 		};
 
-		console.log("Searching for unblocking user...");
 		const unblocking_user: t_unblocking_user_fields = (await this._prisma.user.findUnique({
 			select: {
 				blocked: {
@@ -782,7 +760,6 @@ export class UserService {
 			},
 		})) as t_unblocking_user_fields;
 
-		console.log("Searching for unblocked user...");
 		const unblocked_user: t_unblocked_user_fields | null = await this._prisma.user.findUnique({
 			select: {
 				id: true,
@@ -799,12 +776,10 @@ export class UserService {
 			throw new UserNotFoundError();
 		}
 
-		console.log("Checking for self unblocking...");
 		if (unblocked_user_id === unblocking_user_id) {
 			throw new UserSelfUnblockError();
 		}
 
-		console.log("Checking for not blocked...");
 		let found: boolean = false;
 		for (const blocked_user of unblocking_user.blocked) {
 			if (blocked_user.id === unblocked_user_id) {
@@ -816,7 +791,6 @@ export class UserService {
 			throw new UserNotBlockedError();
 		}
 
-		console.log("Unblocking user...");
 		await this._prisma.user.update({
 			data: {
 				blocked: {
@@ -832,7 +806,9 @@ export class UserService {
 				},
 			},
 		});
-		console.log("User unblocked");
+		this._logger.log(
+			`User ${unblocked_user_id} has been unblocked by user ${unblocking_user_id}`,
+		);
 	}
 
 	/**
@@ -867,7 +843,6 @@ export class UserService {
 		} | null,
 	): Promise<void> {
 		if (!unfriending_user) {
-			console.log("Searching for unfriending user...");
 			unfriending_user = (await this._prisma.user.findUnique({
 				select: {
 					friends: {
@@ -894,7 +869,6 @@ export class UserService {
 		}
 
 		if (!unfriended_user) {
-			console.log("Searching for unfriended user...");
 			unfriended_user = await this._prisma.user.findUnique({
 				select: {
 					id: true,
@@ -912,17 +886,14 @@ export class UserService {
 			}
 		}
 
-		console.log("Checking for self unfriending...");
 		if (unfriended_user_id === unfriending_user_id) {
 			throw new UserSelfUnfriendError();
 		}
 
-		console.log("Checking for not friends...");
 		if (!unfriending_user.friends.some((friend) => friend.id === unfriended_user_id)) {
 			throw new UserNotFriendError();
 		}
 
-		console.log("Unfriending users...");
 		await this._prisma.user.update({
 			data: {
 				friends: {
@@ -959,7 +930,9 @@ export class UserService {
 				},
 			},
 		});
-		console.log("Users unfriended");
+		this._logger.log(
+			`User ${unfriended_user_id} has been unfriended by user ${unfriending_user_id}`,
+		);
 	}
 
 	/**
@@ -979,6 +952,7 @@ export class UserService {
 	 *
 	 * @return	An empty promise.
 	 */
+	// REMIND: rename into update_me (?)
 	public async update_one(
 		id: string,
 		name?: string,
@@ -993,7 +967,6 @@ export class UserService {
 			skinId: string;
 		};
 
-		console.log("Searching for user...");
 		const user: t_fields = (await this._prisma.user.findUnique({
 			select: {
 				name: true,
@@ -1015,7 +988,6 @@ export class UserService {
 		if (skin_id !== undefined) user.skinId = skin_id;
 
 		try {
-			console.log("Updating user...");
 			await this._prisma.user.update({
 				data: user,
 				where: {
@@ -1025,15 +997,14 @@ export class UserService {
 					},
 				},
 			});
-			console.log("User updated");
 		} catch (error) {
-			console.log("Error occured while updating user");
+			this._logger.error(`Error occured while updating user ${id}`);
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2002":
 						throw new UserFieldUnaivalableError();
 				}
-				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
+				this._logger.error(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
 
 			throw new UnknownError();
@@ -1058,7 +1029,6 @@ export class UserService {
 			avatar: string;
 		};
 
-		console.log("Searching for user...");
 		const user: t_fields = (await this._prisma.user.findUnique({
 			select: {
 				avatar: true,
@@ -1071,46 +1041,26 @@ export class UserService {
 			},
 		})) as t_fields;
 
-		if (!user) {
-			throw new UserNotFoundError(id);
-		}
-
-		console.log("Updating user's avatar...");
 		if (user.avatar === "resource/avatar/default.jpg") {
-			console.log("User's avatar is default, creating new one");
-			user.avatar = `resource/avatar/${id}.jpg`;
-
-			try {
-				console.log("Updating user...");
-				await this._prisma.user.update({
-					data: user,
-					where: {
-						idAndState: {
-							id: id,
-							state: StateType.ACTIVE,
-						},
+			await this._prisma.user.update({
+				data: {
+					avatar: `resource/avatar/${id}.jpg`,
+				},
+				where: {
+					idAndState: {
+						id: id,
+						state: StateType.ACTIVE,
 					},
-				});
-				console.log("User updated");
-			} catch (error) {
-				console.log("Error occured while updating user's avatar");
-				if (error instanceof PrismaClientKnownRequestError) {
-					console.log(`PrismaClientKnownRequestError code was ${error.code}`);
-				}
-
-				throw new UnknownError();
-			}
+				},
+			});
 		}
 		try {
-			console.log("Updating avatar's file...");
 			createWriteStream(join(process.cwd(), user.avatar)).write(file.buffer);
-			console.log("Avatar's file updated");
 		} catch (error) {
 			if (error instanceof Error)
-				console.log(`Error occured while writing avatar to disk: ${error.message}`);
+				this._logger.error(`Error occured while writing avatar to disk: ${error.message}`);
 			throw new UnknownError();
 		}
-
-		console.log("User's avatar updated");
+		this._logger.log(`Updated user ${id}'s avatar`);
 	}
 }

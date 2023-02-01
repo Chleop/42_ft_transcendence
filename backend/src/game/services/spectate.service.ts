@@ -1,11 +1,13 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { SpectatedRoom } from "../rooms";
 
 @Injectable()
 export class SpectateService {
+	private readonly _logger: Logger;
 	private rooms: SpectatedRoom[];
 
 	constructor() {
+		this._logger = new Logger(SpectateService.name);
 		this.rooms = [];
 	}
 
@@ -16,7 +18,7 @@ export class SpectateService {
 	public destroyRoom(room_name: string): void {
 		const index: number = this.getRoomIndex(room_name);
 		if (index < 0) return;
-		console.log(`Room ${this.rooms[index].getName()} destroyed`);
+		this._logger.log(`Room ${this.rooms[index].getName()} destroyed`);
 		clearInterval(this.rooms[index].ping_id);
 		this.rooms.splice(index, 1);
 	}

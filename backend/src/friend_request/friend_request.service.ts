@@ -1,5 +1,5 @@
 import { PrismaService } from "src/prisma/prisma.service";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { StateType } from "@prisma/client";
 import {
 	FriendRequestAlreadySentError,
@@ -13,9 +13,11 @@ import { UserAlreadyFriendError, UserBlockedError, UserNotFoundError } from "src
 @Injectable()
 export class FriendRequestService {
 	private _prisma: PrismaService;
+	private readonly _logger: Logger;
 
 	constructor() {
 		this._prisma = new PrismaService();
+		this._logger = new Logger(FriendRequestService.name);
 	}
 
 	/**
@@ -63,7 +65,6 @@ export class FriendRequestService {
 		} | null,
 	): Promise<void> {
 		if (!accepting_user) {
-			console.log("Searching for accepting user...");
 			accepting_user = (await this._prisma.user.findUnique({
 				select: {
 					friends: {
@@ -94,7 +95,6 @@ export class FriendRequestService {
 		}
 
 		if (!accepted_user) {
-			console.log("Searching for accepted user...");
 			accepted_user = await this._prisma.user.findUnique({
 				select: {
 					pendingFriendRequests: {
@@ -116,17 +116,14 @@ export class FriendRequestService {
 			}
 		}
 
-		console.log("Checking for self friend request accepting...");
 		if (accepting_user_id === accepted_user_id) {
 			throw new FriendRequestSelfAcceptError();
 		}
 
-		console.log("Checking for already friends...");
 		if (accepting_user.friends.some((friend): boolean => friend.id === accepted_user_id)) {
 			throw new UserAlreadyFriendError();
 		}
 
-		console.log("Checking for pending friend request...");
 		if (
 			!accepting_user.pendingFriendRequests.some(
 				(pending_friend): boolean => pending_friend.id === accepted_user_id,
@@ -134,7 +131,6 @@ export class FriendRequestService {
 		) {
 			throw new FriendRequestNotFoundError();
 		}
-		console.log("Making two users become friends...");
 		await this._prisma.user.update({
 			data: {
 				friends: {
@@ -175,7 +171,9 @@ export class FriendRequestService {
 				},
 			},
 		});
-		console.log("Two users are now friends.");
+		this._logger.log(
+			`User ${accepting_user_id} accepted friend request from user ${accepted_user_id}.`,
+		);
 	}
 
 	/**
@@ -211,7 +209,6 @@ export class FriendRequestService {
 		} | null,
 	): Promise<void> {
 		if (!rejecting_user) {
-			console.log("Searching for rejecting user...");
 			rejecting_user = (await this._prisma.user.findUnique({
 				select: {
 					pendingFriendRequests: {
@@ -234,7 +231,6 @@ export class FriendRequestService {
 		}
 
 		if (!rejected_user) {
-			console.log("Searching for rejected user...");
 			rejected_user = await this._prisma.user.findUnique({
 				select: {
 					pendingFriendRequests: {
@@ -256,12 +252,10 @@ export class FriendRequestService {
 			}
 		}
 
-		console.log("Checking for self friend request rejecting...");
 		if (rejecting_user_id === rejected_user_id) {
 			throw new FriendRequestSelfRejectError();
 		}
 
-		console.log("Checking for pending friend request...");
 		if (
 			!rejecting_user.pendingFriendRequests.some(
 				(pending_friend): boolean => pending_friend.id === rejected_user_id,
@@ -270,7 +264,6 @@ export class FriendRequestService {
 			throw new FriendRequestNotFoundError();
 		}
 
-		console.log("Rejecting friend request...");
 		await this._prisma.user.update({
 			data: {
 				pendingFriendRequests: {
@@ -289,7 +282,9 @@ export class FriendRequestService {
 				},
 			},
 		});
-		console.log("Friend request rejected.");
+		this._logger.log(
+			`User ${rejecting_user_id} rejected friend request from user ${rejected_user_id}.`,
+		);
 	}
 
 	/**
@@ -338,7 +333,6 @@ export class FriendRequestService {
 		} | null,
 	): Promise<void> {
 		if (!sending_user) {
-			console.log("Searching for sending user...");
 			sending_user = (await this._prisma.user.findUnique({
 				select: {
 					blocked: {
@@ -377,7 +371,6 @@ export class FriendRequestService {
 		}
 
 		if (!receiving_user) {
-			console.log("Searching for receiving user...");
 			receiving_user = await this._prisma.user.findUnique({
 				select: {
 					blocked: {
@@ -404,7 +397,6 @@ export class FriendRequestService {
 			}
 		}
 
-		console.log("Checking for blocked user...");
 		if (
 			sending_user.blocked.some((blocked): boolean => blocked.id === receiving_user_id) ||
 			receiving_user.blocked.some((blocked): boolean => blocked.id === sending_user_id)
@@ -412,17 +404,14 @@ export class FriendRequestService {
 			throw new UserBlockedError();
 		}
 
-		console.log("Checking for self friend request sending...");
 		if (sending_user_id === receiving_user_id) {
 			throw new FriendRequestSelfSendError();
 		}
 
-		console.log("Checking for already friends...");
 		if (sending_user.friends.some((friend): boolean => friend.id === receiving_user_id)) {
 			throw new UserAlreadyFriendError();
 		}
 
-		console.log("Checking for already sent friend request...");
 		if (
 			receiving_user.pendingFriendRequests.some(
 				(friend): boolean => friend.id === sending_user_id,
@@ -431,7 +420,6 @@ export class FriendRequestService {
 			throw new FriendRequestAlreadySentError();
 		}
 
-		console.log("Checking for reciprocal friend request...");
 		if (
 			sending_user.pendingFriendRequests.some(
 				(friend): boolean => friend.id === receiving_user_id,
@@ -444,7 +432,6 @@ export class FriendRequestService {
 				receiving_user,
 			);
 		} else {
-			console.log("Sending friend request...");
 			await this._prisma.user.update({
 				data: {
 					pendingFriendRequests: {
@@ -460,7 +447,9 @@ export class FriendRequestService {
 					},
 				},
 			});
-			console.log("Friend request sent.");
+			this._logger.log(
+				`Sent friend request from ${sending_user_id} to ${receiving_user_id}.`,
+			);
 		}
 	}
 }
