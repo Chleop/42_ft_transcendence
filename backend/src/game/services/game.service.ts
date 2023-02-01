@@ -14,10 +14,15 @@ import { Socket } from "socket.io";
  */
 @Injectable()
 export class GameService {
+	// REMIND: would it be better to make these properties static ?
 	private readonly _logger: Logger;
+	// REMIND: check if passing `prisma_service` in readonly keep it working well
+	// TODO: in order to harmonise names, we should rename `prisma_service` to `_prisma`
 	private prisma_service: PrismaService;
+	// REMIND: check if passing `game_rooms` in readonly keep it working well
 	private game_rooms: GameRoom[];
 
+	// REMIND: check if passing `matches` in readonly keep it working well
 	private matches: Match[];
 	// TODO: extend queue
 	private queue: Socket | null;

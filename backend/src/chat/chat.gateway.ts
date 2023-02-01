@@ -7,6 +7,7 @@ import {
 	WebSocketGateway,
 	WsResponse,
 } from "@nestjs/websockets";
+import { Logger } from "@nestjs/common";
 
 @WebSocketGateway({
 	cors: {
@@ -17,37 +18,32 @@ import {
 })
 export class ChatGateway {
 	private _server: Server;
-	private static _sockets: Set<Socket> = new Set<Socket>();
+	private static _user_sockets: Map<string, Socket> = new Map<string, Socket>();
+	private static _logger: Logger = new Logger(ChatGateway.name);
 
 	constructor() {
 		this._server = new Server();
 
 		// REMIND: This is a workaround for the fact that the server is not used yet.
-		if (this._server) {
-		}
+		this._server;
 	}
 
 	public broadcast_to_everyone(message: ChannelMessage): void {
-		console.log("Broadcasting message to everyone...");
-		for (const socket of ChatGateway._sockets) {
-			console.log(`Sending message to: ${socket.id}...`);
-			socket.emit("message", message);
+		ChatGateway._logger.debug(`Broadcasting message to everyone...`);
+		for (const pair of ChatGateway._user_sockets) {
+			ChatGateway._logger.debug(`Sending message to user: ${pair[0]}...`);
+			pair[1].emit("message", message);
 		}
 	}
 
 	public handleConnection(client: Socket): void {
 		console.log(`Client connected to gateway: ${client.data.user.name}`);
-		ChatGateway._sockets.add(client);
+		ChatGateway._user_sockets.set(client.data.user.id, client);
 	}
 
 	public handleDisconnect(client: Socket): void {
 		console.log(`Client disconnected from gateway: ${client.data.user.name}`);
-		ChatGateway._sockets.delete(client);
-
-		console.log("Currently connected users to gateway:");
-		for (const socket of ChatGateway._sockets) {
-			console.log(`\t${socket.id}`);
-		}
+		ChatGateway._user_sockets.delete(client.data.user.id);
 	}
 
 	@SubscribeMessage("event_test")

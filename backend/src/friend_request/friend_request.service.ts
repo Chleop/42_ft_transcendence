@@ -12,6 +12,8 @@ import { UserAlreadyFriendError, UserBlockedError, UserNotFoundError } from "src
 
 @Injectable()
 export class FriendRequestService {
+	// REMIND: would it be better to make these properties static ?
+	// REMIND: check if passing `_prisma` in readonly keep it working well
 	private _prisma: PrismaService;
 	private readonly _logger: Logger;
 

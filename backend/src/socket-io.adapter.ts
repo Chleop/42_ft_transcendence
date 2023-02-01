@@ -87,6 +87,8 @@ const websocketMiddleware =
 			logger.debug(`Validating token: ${token}`);
 			const payload: { sub: string } = jwt_service.verify(token, { secret });
 			const user: UserData = await user_service.get_one(payload.sub, payload.sub);
+			// TODO: remove this assignation, it's useless
+			// as far as the user id is already contained in the retreived user
 			client.handshake.auth.token = payload.sub;
 			client.data.user = user;
 			next();

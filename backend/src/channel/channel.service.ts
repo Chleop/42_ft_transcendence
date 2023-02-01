@@ -27,7 +27,10 @@ import * as argon2 from "argon2";
 
 @Injectable()
 export class ChannelService {
+	// REMIND: would it be better to make these properties static ?
+	// REMIND: check if passing `_prisma` in readonly keep it working well
 	private _prisma: PrismaService;
+	// REMIND: check if passing `_gateway` in readonly keep it working well
 	private _gateway: ChatGateway;
 	private readonly _logger: Logger;
 
