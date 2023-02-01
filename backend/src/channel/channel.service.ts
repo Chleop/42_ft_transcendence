@@ -17,7 +17,7 @@ import {
 	ChannelUnpopulatedError,
 	UnknownError,
 } from "src/channel/error";
-import { EventGateway } from "src/event/event.gateway";
+import { ChatGateway } from "src/chat/chat.gateway";
 import { g_channel_message_length_limit } from "src/channel/limit";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
@@ -28,11 +28,11 @@ import * as argon2 from "argon2";
 @Injectable()
 export class ChannelService {
 	private _prisma: PrismaService;
-	private _gateway: EventGateway;
+	private _gateway: ChatGateway;
 
 	constructor() {
 		this._prisma = new PrismaService();
-		this._gateway = new EventGateway();
+		this._gateway = new ChatGateway();
 	}
 
 	/**

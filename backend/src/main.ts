@@ -1,10 +1,11 @@
+import { AppModule } from "src/app.module";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
-import { AppModule } from "./app.module";
-import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { ValidationPipe } from "@nestjs/common";
 import * as session from "express-session";
 import * as passport from "passport";
+import { SocketIOAdapter } from "src/socket-io.adapter";
 
 async function bootstrap() {
 	const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -13,6 +14,7 @@ async function bootstrap() {
 
 	app.useGlobalPipes(
 		new ValidationPipe({
+			// REMIND: Shouldn't we use `transform: true`?
 			whitelist: true,
 		}),
 	);
@@ -27,6 +29,7 @@ async function bootstrap() {
 	);
 	app.use(passport.initialize());
 	app.use(passport.session());
+	app.useWebSocketAdapter(new SocketIOAdapter(app, configService));
 
 	await app.listen(3000);
 }
