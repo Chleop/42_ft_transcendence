@@ -1,8 +1,6 @@
-import { Injectable } from "@nestjs/common";
 import { SpectatedRoom } from "../rooms";
 
-@Injectable()
-export class SpectateService {
+export class SpectatedRooms {
 	private rooms: SpectatedRoom[];
 
 	constructor() {

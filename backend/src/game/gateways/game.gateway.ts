@@ -104,8 +104,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 */
 	public handleConnection(client: Socket): void {
 		console.log(`[${client.handshake.auth.token} connected]`);
-		const match: Match | null = this.game_service.queueUp(client);
-		if (match !== null) this.matchmake(match);
+		const game_room: GameRoom | null = this.game_service.queueUp(client);
+		if (game_room !== null) this.matchmake(game_room);
 	}
 
 	/**
@@ -116,8 +116,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Else removes match.
 	 * Also removes timer if it hasn't fired yet.
 	 */
-	public handleDisconnect(client: Socket): void {
-		const match: Match | null = this.game_service.unQueue(client);
+	public async handleDisconnect(client: Socket): Promise<void> {
+		const match: Match | null = await this.game_service.unQueue(client);
 		if (match !== null) {
 			const index: number = this.timeouts.findIndex((obj) => {
 				return obj.match === match.name;
@@ -159,17 +159,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 *
 	 * After 3s, the game will start.
 	 */
-	private matchmake(match: Match): void {
-		match.player1.emit("matchFound", match.player2.data.user);
-		match.player2.emit("matchFound", match.player1.data.user);
+	private matchmake(game_room: GameRoom): void {
+		game_room.match.player1.emit("matchFound", game_room.match.player2.data.user);
+		game_room.match.player2.emit("matchFound", game_room.match.player1.data.user);
 
-		const room: GameRoom = this.game_service.createRoom(match);
+		// const room: GameRoom = this.game_service.createRoom(match);
 
 		this.timeouts.push({
-			match: room.match.name,
-			timer: setTimeout(this.startGame, 3000, this, room),
+			match: game_room.match.name,
+			timer: setTimeout(this.startGame, 3000, this, game_room),
 		});
-		this.game_service.display();
+		// this.game_service.display();
 	}
 
 	/**

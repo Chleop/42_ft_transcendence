@@ -52,9 +52,8 @@ export class GameRoom {
 	}
 
 	/* Saves the current state of the game */
-	public cutGameShort(guilty: number | null): Results {
+	public cutGameShort(guilty: number): Results {
 		if (!this.game) throw null;
-		else if (guilty === null) throw null;
 		this.is_ongoing = false;
 		this.has_updated_score = false;
 		return this.game.getResults(guilty);

@@ -1,10 +1,8 @@
 import { Module } from "@nestjs/common";
-import { GameService, SpectateService } from "./services";
+import { GameService } from "./services";
 import { GameGateway, SpectatorGateway } from "./gateways";
 
-//TODO: Middleware
-/* Will handle information exchanges between back and front */
 @Module({
-	providers: [GameGateway, SpectatorGateway, GameService, SpectateService],
+	providers: [GameGateway, SpectatorGateway, GameService],
 })
 export class GameModule {}
