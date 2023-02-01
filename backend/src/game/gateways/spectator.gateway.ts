@@ -9,6 +9,7 @@ import { Server, Socket } from "socket.io";
 import { GameService, SpectateService } from "../services";
 import { GameRoom, SpectatedRoom } from "../rooms";
 import * as Constants from "../constants/constants";
+import { Logger } from "@nestjs/common";
 
 @WebSocketGateway({
 	namespace: "spectate",
@@ -18,6 +19,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	public readonly server: Server;
 	private readonly game_service: GameService;
 	private readonly spectate_service: SpectateService;
+	private readonly _logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
 
@@ -25,6 +27,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		this.server = new Server();
 		this.game_service = game_service;
 		this.spectate_service = spectate_service;
+		this._logger = new Logger(SpectatorGateway.name);
 	}
 
 	/* PUBLIC ================================================================== */
@@ -34,7 +37,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 * Called after init :)
 	 */
 	public afterInit(): void {
-		console.log("Spectator gateway initialized");
+		this._logger.log("Spectator gateway initialized");
 	}
 
 	/* Connection Handler ------------------------------------------------------ */
@@ -45,7 +48,9 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 * Else, they're disconnected
 	 */
 	public handleConnection(client: Socket): void {
-		console.log(`\n\n\n========================> Socket '${client.handshake.auth.token}' joined`);
+		this._logger.log(
+			`\n\n\n========================> Socket '${client.handshake.auth.token}' joined`,
+		);
 		const room: GameRoom | null = this.game_service.findUserGame(client);
 		if (room instanceof GameRoom) {
 			client.join(room.match.name);
@@ -71,7 +76,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 					this.stopStreaming(this, spectated_room.game_room.match.name);
 			}
 		}
-		console.log(`Socket '${client.handshake.auth.token}' left`);
+		this._logger.log(`Socket '${client.handshake.auth.token}' left`);
 	}
 
 	/* PRIVATE ================================================================= */
@@ -82,7 +87,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		);
 		if (spectated_room === null) {
 			// Create a new spec room if it doesn't exist
-			console.log(`Creating room ${game_room.match.name}`);
+			this._logger.log(`Creating room ${game_room.match.name}`);
 
 			const new_room: SpectatedRoom = new SpectatedRoom(
 				game_room,
@@ -92,7 +97,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 			new_room.addSpectator(client);
 			this.spectate_service.add(new_room);
 		} else {
-			console.log(`${game_room.match.name} exists`);
+			this._logger.debug(`Room ${game_room.match.name} exists`);
 			// The room exists
 		}
 	}
@@ -103,7 +108,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		} catch (e) {
 			if (e === null) {
 				// Game is done
-				console.log("====================================================");
+				this._logger.debug("====================================================");
 				me.stopStreaming(me, room.match.name);
 				// TODO: inform spectators the game is done
 				return;

@@ -2,7 +2,7 @@ import { GameRoom } from "../rooms";
 import { AntiCheat, Match } from "../aliases";
 import { PaddleDto } from "../dto";
 import { Results } from "../objects";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { BadRequestException, ConflictException } from "@nestjs/common";
@@ -14,6 +14,7 @@ import { Socket } from "socket.io";
  */
 @Injectable()
 export class GameService {
+	private readonly _logger: Logger;
 	private prisma_service: PrismaService;
 	private game_rooms: GameRoom[];
 
@@ -24,6 +25,7 @@ export class GameService {
 	/* CONSTRUCTOR ============================================================= */
 
 	constructor(prisma: PrismaService) {
+		this._logger = new Logger(GameService.name);
 		this.prisma_service = prisma;
 		this.game_rooms = [];
 		this.matches = [];
@@ -36,9 +38,9 @@ export class GameService {
 	public saveScore(room: GameRoom, results: Results | null): Match {
 		const match: Match = room.match;
 		try {
-			console.log(`Game ${results} cut short before it started`);
+			this._logger.log(`Game ${results} cut short before it started`);
 		} catch (e) {
-			console.log(e);
+			this._logger.error(e);
 		}
 		this.destroyRoom(room);
 		return match;
@@ -79,7 +81,7 @@ export class GameService {
 							"One of the relations you tried to connect to does not exist",
 						);
 				}
-				console.log(error.code);
+				this._logger.error(error);
 			}
 			throw error;
 		}
@@ -116,7 +118,7 @@ export class GameService {
 			// The game was ongoing
 			const index: number = this.findUserRoomIndex(client);
 			if (!(index < 0)) {
-				console.log("Kicked from room");
+				this._logger.log(`Kicked from room ${this.game_rooms[index].match.name}`);
 				const room: GameRoom = this.game_rooms[index];
 				const match: Match = this.saveScore(
 					room,
@@ -140,12 +142,12 @@ export class GameService {
 		if (typeof index !== "number") {
 			const new_index: number = this.game_rooms.indexOf(index);
 			if (new_index < 0) return;
-			console.log(`Destroying room ${index.match.name}`);
+			this._logger.verbose(`Destroying room ${index.match.name}`);
 			index.destroyPlayerPing();
 			this.game_rooms.splice(new_index, 1);
 		} else {
 			if (index < 0) return;
-			console.log(`Destroying room ${this.game_rooms[index].match.name}`);
+			this._logger.verbose(`Destroying room ${this.game_rooms[index].match.name}`);
 			this.game_rooms[index].destroyPlayerPing();
 			this.game_rooms.splice(index, 1);
 		}
@@ -160,7 +162,7 @@ export class GameService {
 
 	/* -- UTILS --------------------------------------------------------------- */
 	public display(): void {
-		console.log({
+		this._logger.log({
 			queue: this.queue?.handshake.auth.token,
 			headers: this.queue?.handshake,
 			matches: this.matches,
@@ -169,8 +171,8 @@ export class GameService {
 	}
 
 	public findUserGame(spectator: Socket): GameRoom | null {
-		const user_id: string|undefined|null|string[] = spectator.handshake.auth.user_id;
-		console.log(`==================================== DATA: ${user_id}`);
+		const user_id: string | undefined | null | string[] = spectator.handshake.auth.user_id;
+		this._logger.debug(`==================================== DATA: ${user_id}`);
 		if (typeof user_id !== "string") return null; //throw "Room not properly specified";
 		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
 			return (

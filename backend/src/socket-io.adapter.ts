@@ -1,4 +1,4 @@
-import { ForbiddenException, INestApplicationContext } from "@nestjs/common";
+import { ForbiddenException, INestApplicationContext, Logger } from "@nestjs/common";
 import { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.interface";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
@@ -12,14 +12,16 @@ import { Server, ServerOptions, Socket } from "socket.io";
 export class SocketIOAdapter extends IoAdapter {
 	private readonly app: INestApplicationContext;
 	private readonly config_service: ConfigService;
+	private readonly _logger: Logger;
 
 	constructor(app: INestApplicationContext, configService: ConfigService) {
-		console.log("Adapter created");
 		super(app);
 		this.app = app;
 		this.config_service = configService;
 		this.app; // useless, just to avoid stupid error
 		this.config_service; // same
+		this._logger = new Logger(SocketIOAdapter.name);
+		this._logger.debug("Adapter created");
 	}
 
 	/* PUBLIC ================================================================== */
@@ -42,7 +44,7 @@ export class SocketIOAdapter extends IoAdapter {
 			origin: [
 				// `http://localhost:${client_port}`,
 				// new RegExp(`/^http:\/\/192\.168\.1\.([1-9]|[1-9]\d):${client_port}$/`),
-				"*"
+				"*",
 			],
 		};
 
@@ -62,9 +64,11 @@ export class SocketIOAdapter extends IoAdapter {
  * Will verify jwt token (located in socket.handshake.auth.token)
  */
 const websocketMiddleware =
-	(jwt_service: JwtService, cfg_service: ConfigService) => (client: Socket, next: (error?: any) => void) => {
+	(jwt_service: JwtService, cfg_service: ConfigService) =>
+	(client: Socket, next: (error?: any) => void) => {
 		const token: string | undefined = client.handshake.auth.token;
-		const secret: string|undefined = cfg_service.get<string>("JWT_SECRET");
+		const secret: string | undefined = cfg_service.get<string>("JWT_SECRET");
+		const logger: Logger = new Logger("WebsocketMiddleware");
 
 		if (!secret)
 			throw "lol il faut mettre la variable d'environnemnet `JWT_SECRET` sinon on peut pas vérifier les token";
@@ -73,7 +77,7 @@ const websocketMiddleware =
 			if (token === undefined) {
 				throw new Error("No token provided");
 			}
-			console.log(`Validating token: ${token}`);
+			logger.debug(`Validating token: ${token}`);
 			const payload: { sub: string } = jwt_service.verify(token, { secret });
 			client.handshake.auth.token = payload.sub;
 			next();

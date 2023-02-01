@@ -1,5 +1,5 @@
 import { JwtGuard } from "src/auth/guards";
-import { UseGuards } from "@nestjs/common";
+import { UseGuards, Logger } from "@nestjs/common";
 import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { ChannelMessage } from "@prisma/client";
@@ -15,38 +15,40 @@ export class Gateway {
 	@WebSocketServer()
 	private _server: Server;
 	private static _sockets: Set<Socket> = new Set<Socket>();
+	private readonly _logger: Logger;
 
 	constructor() {
 		this._server = new Server();
+		this._logger = new Logger(Gateway.name);
 
 		if (this._server) {
 		}
 	}
 
 	public handleConnection(client: Socket): void {
-		console.log(`Client connected to gateway: ${client.id}`);
+		this._logger.log(`Client connected to gateway: ${client.id}`);
 		Gateway._sockets.add(client);
 
-		console.log("Currently connected users to gateway:");
+		this._logger.verbose("Currently connected users to gateway:");
 		for (const socket of Gateway._sockets) {
-			console.log(`\t${socket.id}`);
+			this._logger.verbose(`\t${socket.id}`);
 		}
 	}
 
 	public handleDisconnect(client: Socket): void {
-		console.log(`Client disconnected from gateway: ${client.id}`);
+		this._logger.log(`Client disconnected from gateway: ${client.id}`);
 		Gateway._sockets.delete(client);
 
-		console.log("Currently connected users to gateway:");
+		this._logger.verbose("Currently connected users to gateway:");
 		for (const socket of Gateway._sockets) {
-			console.log(`\t${socket.id}`);
+			this._logger.verbose(`\t${socket.id}`);
 		}
 	}
 
 	public broadcast_to_everyone(message: ChannelMessage): void {
-		console.log("Broadcasting message to everyone...");
+		this._logger.verbose(`Broadcasting message "${message.content}" to everyone...`);
 		for (const socket of Gateway._sockets) {
-			console.log(`Sending message to: ${socket.id}...`);
+			this._logger.verbose(`Sending message to: ${socket.id}`);
 			socket.emit("message", message);
 		}
 	}

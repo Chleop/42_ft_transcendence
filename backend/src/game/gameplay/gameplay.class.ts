@@ -3,9 +3,11 @@ import { PaddleDto } from "../dto";
 import { Ball, Results, Paddle, ScoreUpdate, SpectatorUpdate } from "../objects";
 
 import * as Constants from "../constants/constants";
+import { Logger } from "@nestjs/common";
 
 /* Track the state of the game, calculates the accuracy of the incomming data */
 export class Gameplay {
+	private readonly _logger: Logger;
 	private scores: Score;
 	private paddle1: Paddle;
 	private paddle2: Paddle;
@@ -15,6 +17,7 @@ export class Gameplay {
 	/* CONSTRUCTOR ============================================================= */
 
 	constructor() {
+		this._logger = new Logger(Gameplay.name);
 		this.scores = {
 			player1_score: 0,
 			player2_score: 0,
@@ -30,8 +33,8 @@ export class Gameplay {
 	/* -- UPDATING GAME ------------------------------------------------------- */
 	/* Generate random initial ball velocity vector */
 	public initializeGame(): Ball {
-		console.log("Initializing:");
-		console.log(this.ball);
+		this._logger.debug("Initializing:");
+		this._logger.debug(this.ball);
 		this.last_update = Date.now();
 		return this.ball;
 	}
