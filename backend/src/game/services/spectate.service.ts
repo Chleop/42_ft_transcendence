@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { SpectatedRoom } from "../objects";
+import { SpectatedRoom } from "../rooms";
 
 @Injectable()
 export class SpectateService {

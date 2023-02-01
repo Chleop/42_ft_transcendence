@@ -74,6 +74,8 @@ class ChannelElementInternal {
 
     public last_message: Message|null;
 
+    public my_last_message: string|null = null;
+
     /**
      * The ID of the channel.
      */
@@ -195,7 +197,16 @@ export class ChatElement {
         this.message_input = document.createElement("input");
         this.message_input.id = "chat-send-message";
         this.message_input.type = "text";
-        this.message_input.onkeydown = ev => { if (ev.key === "Enter") { this.send_message_input(); } };
+        this.message_input.onkeydown = ev => {
+            if (ev.key === "Enter") {
+                this.send_message_input();
+            } else if (ev.key === "ArrowUp") {
+                if (this.selected_channel && this.selected_channel.my_last_message && this.message_input.value === "") {
+                    this.message_input.value = this.selected_channel.my_last_message;
+                    ev.preventDefault();
+                }
+            }
+        };
         send_message_container.appendChild(this.message_input);
 
         this.selected_channel = null;
@@ -308,6 +319,7 @@ export class ChatElement {
             return null;
         }
 
+        this.selected_channel.my_last_message = content; 
         return Client.send_message(this.selected_channel.channel_id, content);
     }
 

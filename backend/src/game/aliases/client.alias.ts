@@ -1,7 +1,9 @@
 import { Socket } from "socket.io";
 
+// DEPRECATED
+
 export type Client = {
-	// Client associated socket
+	// Socket associated socket
 	socket: Socket;
 
 	// Jwt token stored

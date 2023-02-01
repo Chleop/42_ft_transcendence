@@ -1,7 +1,7 @@
-import { Client } from "./";
+import { Socket } from "socket.io";
 
 export type Match = {
 	name: string;
-	player1: Client;
-	player2: Client;
+	player1: Socket;
+	player2: Socket;
 };

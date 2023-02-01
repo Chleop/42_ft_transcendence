@@ -1,8 +1,8 @@
-import { Socket } from "socket.io";
 import { Gameplay } from "../gameplay";
 import { PaddleDto } from "../dto";
+import { Socket } from "socket.io";
 import { AntiCheat, Score, Match } from "../aliases";
-import { ResultsObject, Ball, ScoreUpdate } from "../objects";
+import { Results, Ball, ScoreUpdate, SpectatorUpdate } from "../objects";
 
 // TODO: make it cleaner
 type CheatCheck = {
@@ -10,9 +10,11 @@ type CheatCheck = {
 	updated_paddle: PaddleDto;
 };
 
-/* Holds info on the gameroom
-	 Once someone leaves the game, the room is completely removed.
-*/
+/**
+ * Ongoing game room handle
+ *
+ * Once someone leaves the game, the room is completely removed.
+ */
 export class GameRoom {
 	public readonly match: Match;
 	private players_ping_id: NodeJS.Timer | null;
@@ -55,7 +57,7 @@ export class GameRoom {
 	}
 
 	/* Saves the current state of the game */
-	public cutGameShort(guilty: number | null): ResultsObject {
+	public cutGameShort(guilty: number | null): Results {
 		if (!this.game) throw null;
 		else if (guilty === null) throw null;
 		this.is_ongoing = false;
@@ -67,9 +69,9 @@ export class GameRoom {
 		return this.game.getFinalScore();
 	}
 
-	public getBall(): Ball {
+	public getSpectatorUpdate(): SpectatorUpdate {
 		if (!this.is_ongoing) throw null;
-		return this.game.getBall();
+		return this.game.getSpectatorUpdate();
 	}
 
 	/* -- INTERVAL UTILS ------------------------------------------------------ */
@@ -84,26 +86,18 @@ export class GameRoom {
 		clearInterval(this.players_ping_id);
 	}
 
-	// public setSpectatorPingId(timer_id: NodeJS.Timer): void {
-	// 	this.spectators_ping_id = timer_id;
-	// }
-
-	// public destroySpectatorPing(): void {
-	// 	if (this.spectators_ping_id === null) return;
-	// 	clearInterval(this.spectators_ping_id);
-	// }
-
 	/* -- IDENTIFIERS --------------------------------------------------------- */
-	public isClientInRoom(client: Socket): boolean {
+	public isSocketInRoom(client: Socket): boolean {
 		return (
-			this.match.player1.socket.id === client.id || this.match.player2.socket.id === client.id
+			this.match.player1.handshake.auth.token === client.handshake.auth.token ||
+			this.match.player2.handshake.auth.token === client.handshake.auth.token
 		);
 	}
 
 	/* Returns player's number */
 	public playerNumber(client: Socket): number | null {
-		if (this.match.player1.socket.id === client.id) return 1;
-		else if (this.match.player2.socket.id === client.id) return 2;
+		if (this.match.player1.handshake.auth.token === client.handshake.auth.token) return 1;
+		else if (this.match.player2.handshake.auth.token === client.handshake.auth.token) return 2;
 		return null;
 	}
 
@@ -119,7 +113,8 @@ export class GameRoom {
 	/* -- IDENTIFIERS --------------------------------------------------------- */
 	/* Returns client's opponent socket */
 	private whoIsOpponent(client: Socket): Socket {
-		if (this.match.player1.socket.id === client.id) return this.match.player2.socket;
-		else return this.match.player1.socket;
+		if (this.match.player1.handshake.auth.token === client.handshake.auth.token)
+			return this.match.player2;
+		else return this.match.player1;
 	}
 }
