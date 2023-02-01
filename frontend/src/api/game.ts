@@ -1,4 +1,7 @@
 import { Socket, io } from "socket.io-client";
+import { Client, UserId } from ".";
+
+export class ConnectError {}
 
 /**
  * The payload of the `updateBall` event.
@@ -81,19 +84,92 @@ export class GameSocket {
      * Creates a new GameSocket.
      */
     public constructor() {
+        console.log(Client.access_token);
         this.socket = io("/game", {
-            extraHeaders: {
-                socket_id: 'xyz',
-            }
+            auth: {
+                token: Client.access_token,
+            },
         });
 
+        this.socket.on("connect_error", err => {
+            console.error(err);
+            this.disconnect();
+            throw new ConnectError();
+        });
         this.socket.on("connect", () => this.on_connected());
         this.socket.on("disconnect", () => this.on_disconnected());
         this.socket.on("matchFound", () => this.on_match_found());
+
         this.socket.on("gameStart", () => this.on_game_start());
         this.socket.on("updateOpponent", (state: PlayerStateUpdate) => this.on_opponent_updated(state));
         this.socket.on("updateBall", (state: BallStateUpdate) => this.on_ball_updated(state));
         this.socket.on("updateScore", (state: ScoreStateUpdate) => this.on_score_updated(state));
+    }
+
+    /** Initiates the connection with the server. */
+    public connect() {
+        this.socket.connect();
+    }
+
+    /** Dropes the connection with the server. */
+    public disconnect() {
+        this.socket.disconnect();
+    }
+
+    /** Notify the server of what we are doing. */
+    public update(state: PlayerStateUpdate) {
+        this.socket.emit("update", state);
+    }
+}
+
+/* The information provided by the server when something happens in the game in real-time. */
+export interface SpectatorStateUpdate {
+    ball: BallStateUpdate,
+    player1: PlayerStateUpdate,
+    player2: PlayerStateUpdate,
+}
+
+/* Wraps a Socket.IO socket to handle spectator-specific events. */
+export class SpecSocket {
+    /** The inner socket. */
+    private socket: Socket;
+
+    /**
+     * Indicates that the socket has successfully connected to the server.
+     */
+    public on_connected: () => void = noop;
+
+    /**
+     * Indicates that the socket is not currently connected to the server.
+     */
+    public on_disconnected: () => void = noop;
+
+    /**
+     * Indicates that the ball has moved.
+     */
+    public on_update: (state: SpectatorStateUpdate) => void = noop;
+
+    /**
+     * Creates a new GameSocket.
+     *
+     * The spectated room is that of the passed user.
+     */
+    public constructor(user_id: UserId) {
+        this.socket = io("/spectate", {
+            auth: {
+                token: Client.access_token,
+                user_id, // hello, this is good.
+            },
+        });
+
+        this.socket.on("connect_error", err => {
+            console.error(err);
+            this.disconnect();
+            throw new ConnectError();
+        });
+        this.socket.on("connect", () => this.on_connected());
+        this.socket.on("disconnect", () => this.on_disconnected());
+        this.socket.on("updateGame", st => this.on_update(st));
     }
 
     /** Initiates the connection with the server. */

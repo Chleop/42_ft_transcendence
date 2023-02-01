@@ -1,11 +1,11 @@
 import { AppModule } from "src/app.module";
+import { SocketIOAdapter } from "src/socket-io.adapter";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { ConfigService } from "@nestjs/config";
 import { ValidationPipe } from "@nestjs/common";
 import * as session from "express-session";
 import * as passport from "passport";
-import { SocketIOAdapter } from "src/socket-io.adapter";
 
 async function bootstrap() {
 	const app = await NestFactory.create<NestExpressApplication>(AppModule);

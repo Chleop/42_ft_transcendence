@@ -1,6 +1,6 @@
 import { Score } from "../aliases";
 import { PaddleDto } from "../dto";
-import { Ball, ResultsObject, Paddle, ScoreUpdate } from "../objects";
+import { Ball, Results, Paddle, ScoreUpdate, SpectatorUpdate } from "../objects";
 
 import * as Constants from "../constants/constants";
 
@@ -11,6 +11,8 @@ export class Gameplay {
 	private paddle2: Paddle;
 	private ball: Ball;
 	private last_update: number;
+
+	/* CONSTRUCTOR ============================================================= */
 
 	constructor() {
 		this.scores = {
@@ -23,7 +25,7 @@ export class Gameplay {
 		this.last_update = -1;
 	}
 
-	/* == PUBLIC ================================================================================ */
+	/* PUBLIC ================================================================== */
 
 	/* -- UPDATING GAME ------------------------------------------------------- */
 	/* Generate random initial ball velocity vector */
@@ -35,9 +37,10 @@ export class Gameplay {
 	}
 
 	/* Generates a ball update */
-	public refresh(): Ball | ScoreUpdate /* GameUpdate */ {
+	public refresh(): Ball | ScoreUpdate {
 		const now: number = Date.now();
-		const delta_time = (now - this.last_update) * 0.001;
+		const delta_time: number = (now - this.last_update) * 0.001;
+
 		this.last_update = now;
 
 		const ret: number = this.ball.refresh(delta_time);
@@ -96,22 +99,21 @@ export class Gameplay {
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, true);
 	}
 
-	public getResults(guilty: number): ResultsObject {
-		return new ResultsObject(this.scores, guilty);
+	public getResults(guilty: number): Results {
+		return new Results(this.scores, guilty);
 	}
 
-	public getBall(): Ball {
-		return this.ball;
+	public getSpectatorUpdate(): SpectatorUpdate {
+		return new SpectatorUpdate(this.ball, this.paddle1, this.paddle2);
 	}
 
-	/* == PRIVATE =============================================================================== */
-
+	/* PRIVATE ================================================================= */
 	/* -- GAME STATUS UPDATE -------------------------------------------------- */
 	/* Players 1 marked a point, send results OR reinitialize */
 	private oneWon(): ScoreUpdate {
 		++this.scores.player1_score;
 		if (this.scores.player1_score === Constants.max_score) {
-			throw new ResultsObject(this.scores);
+			throw new Results(this.scores);
 		}
 		this.ball = new Ball();
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, true);
@@ -121,7 +123,7 @@ export class Gameplay {
 	private twoWon(): ScoreUpdate {
 		++this.scores.player2_score;
 		if (this.scores.player2_score === Constants.max_score) {
-			throw new ResultsObject(this.scores);
+			throw new Results(this.scores);
 		}
 		this.ball = new Ball();
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, false);

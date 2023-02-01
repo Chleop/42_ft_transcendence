@@ -69,6 +69,10 @@ export class RawHTTPClient {
         this.token = token;
     }
 
+    public get access_token(): string {
+        return this.token;
+    }
+
     /**
      * Executes a request using this client. The appropriate `Authorization` header authomatically
      * added, errors are properly dispatched using exceptions.
