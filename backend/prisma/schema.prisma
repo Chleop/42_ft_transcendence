@@ -22,7 +22,7 @@ model User {
   skin                    Skin      @relation(fields: [skinId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   elo                     Int       @default(0)
   twoFactAuth             Boolean   @default(false)
-  twoFactSecret           Int?
+  twoFactSecret           String?
   tFSecretCreationDate    DateTime?
   channels                Channel[] @relation("userchannels")
   channelsOwned           Channel[] @relation("chanowner")
@@ -108,5 +108,6 @@ enum ChanType {
 
 enum StateType {
   ACTIVE
+  PENDING
   DISABLED
 }
