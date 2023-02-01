@@ -11,18 +11,20 @@ import { GameService } from "../services/game.service";
 import { GameRoom } from "../rooms";
 import { PaddleDto } from "../dto";
 import { Results, Ball, ScoreUpdate } from "../objects";
-import { AntiCheat, OpponentUpdate, Match } from "../aliases";
-
-import * as Constants from "../constants/constants";
+import { Match, OpponentUpdate } from "../aliases";
 import { BadRequestException, ConflictException } from "@nestjs/common";
 
-/* Track timeouts */
-// type TimeoutId = {
-// 	match: string;
-// 	id: NodeJS.Timer;
-// };
+import * as Constants from "../constants/constants";
 
-/* === EVENT LIST ==================================================================================
+/**
+ * setTimeout tracker
+ */
+type TimeoutId = {
+	match: string;
+	timer: NodeJS.Timer;
+};
+
+/* EVENT LIST ===============================================================
 
 From the client:
 	- `connection`
@@ -35,29 +37,16 @@ From the client:
 		if the client was not in the queue, they are simply disconnected.
 		if they were matched with another client (or in a game), they both are disconnected.
 
-	- `ok`	// deprecated
-		handled by 'matchAccepted'.
-		once the client is matched with another, they'll each have to accept by sending
-		an 'ok' event.
-
 	- `update`
 		handled by 'updateOpponent'.
 		during the game, the client will regularly send their paddle position to the gateway.
 		the gateway will check those values (TODO: anticheat), and, if the data seems accurate,
 		it is sent to their opponent.
 
-	- `stop`
-		will simply disconnect the client.
-		temporary, this is meant to test the setInterval stuff
-
 From the server:
 	- `matchFound`
 		once two clients are matched, they are sent this event.
 		the gateway will then await for both matched client to send the `ok` event.
-
-	- `gameReady`
-		when the two clients matched have accepted the game, they are alerted with this event.
-		each gets sent their opponent id for the front-end (eg. to display each other's profile).
 
 	- `gameStart`
 		3 seconds after the two players get matched, they get sent this event which contains the
@@ -73,7 +62,10 @@ From the server:
 	- `updateScore`
 		updates only once one of the players scores
 
-======================================================================== END OF LIST ============ */
+	- `error`
+		sends error to client
+
+============================================================================= */
 
 @WebSocketGateway({
 	namespace: "game",
@@ -82,19 +74,21 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	@WebSocketServer()
 	public readonly server: Server;
 	private readonly game_service: GameService;
+	private timeouts: TimeoutId[];
 
 	/* CONSTRUCTOR ============================================================= */
 
 	constructor(game_service: GameService) {
 		this.server = new Server();
 		this.game_service = game_service;
+		this.timeouts = [];
 	}
 
 	/* PUBLIC ================================================================== */
 
 	/**
 	 * (from OnGatewayInit)
-	 * called as gateway is init
+	 * called as gateway is init.
 	 */
 	public afterInit(): void {
 		console.log("Game gateway initialized");
@@ -104,9 +98,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
 	/**
 	 * (from OnGatewayConnection)
-	 * Handler for gateway connection
+	 * Handler for gateway connection.
 	 *
-	 * Moves client to the queue if not already in game
+	 * Moves client to the queue if not already in game.
 	 */
 	public handleConnection(client: Socket): void {
 		console.log(`[${client.handshake.auth.token} connected]`);
@@ -116,14 +110,24 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
 	/**
 	 * (from OnGatewayDisconnect)
-	 * Handler for gateway disconnection
+	 * Handler for gateway disconnection.
 	 *
-	 * Removes client from queue if in it
-	 * Else removes match
+	 * Removes client from queue if in it.
+	 * Else removes match.
+	 * Also removes timer if it hasn't fired yet.
 	 */
 	public handleDisconnect(client: Socket): void {
 		const match: Match | null = this.game_service.unQueue(client);
-		if (match !== null) this.disconnectRoom(match);
+		if (match !== null) {
+			const index: number = this.timeouts.findIndex((obj) => {
+				return obj.match === match.name;
+			});
+			if (index >= 0) {
+				clearTimeout(this.timeouts[index].timer);
+				this.timeouts.splice(index, 1);
+			}
+			this.disconnectRoom(match);
+		}
 		console.log(`[${client.handshake.auth.token} disconnected]`);
 		// this.game_service.display();
 	}
@@ -131,54 +135,45 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	/* Event handlers ---------------------------------------------------------- */
 
 	/**
-	 * On 'update' event
+	 * On 'update' event.
 	 *
-	 * Client sent a paddle update
-	 * Refreshes room paddle position and send it to opponent
+	 * Client sent a paddle update.
+	 * Refreshes room paddle position and send it to opponent.
 	 */
 	@SubscribeMessage("update")
 	public updateEnemy(client: Socket, dto: PaddleDto): void {
 		try {
-			// TODO: Check paddledto accuracy
-			const anticheat: AntiCheat = this.game_service.updateOpponent(client, dto);
-			const opponent_update: OpponentUpdate = anticheat.p2;
-			opponent_update.player.emit("updateOpponent", opponent_update.updated_paddle);
-			if (anticheat.p1) {
-				client.emit("antiCheat", anticheat.p1);
-			}
+			client.data.paddle_dto = dto;
+			const update: OpponentUpdate = this.game_service.updateOpponent(client);
+			update.player.emit("updateOpponent", client.data.paddle_dto);
 		} catch (e) {
-			client.emit("stop");
-			e;
+			this.sendError(client, e);
+			client.disconnect();
 		}
-	}
-
-	/* TEMPORARY: to stop the interval thingy */
-	@SubscribeMessage("stop")
-	public stopGame(client: Socket): void {
-		client.disconnect(true);
 	}
 
 	/* PRIVATE ================================================================= */
 
 	/**
-	 * Updates the two matched players with each others infos
-	 * After 3s, the game will start
+	 * Updates the two matched players with each others infos.
+	 *
+	 * After 3s, the game will start.
 	 */
 	private matchmake(match: Match): void {
-		// const p1_decoded: UserData = this.game_service.decode(match.player1.handshake.auth.token);
-		// const p2_decoded: UserData = this.game_service.decode(match.player2.handshake.auth.token);
-		match.player1.emit("matchFound", match.player2.handshake.auth.token);
-		match.player2.emit("matchFound", match.player1.handshake.auth.token);
+		match.player1.emit("matchFound", match.player2.data.user);
+		match.player2.emit("matchFound", match.player1.data.user);
 
 		const room: GameRoom = this.game_service.createRoom(match);
 
-		// TODO: save timeout and reset it when needed
-		setTimeout(this.startGame, 3000, this, room);
+		this.timeouts.push({
+			match: room.match.name,
+			timer: setTimeout(this.startGame, 3000, this, room),
+		});
 		this.game_service.display();
 	}
 
 	/**
-	 * Sends initial ball state and starts game state on regular interval
+	 * Sends initial ball state and initiate interval.
 	 */
 	private startGame(me: GameGateway, room: GameRoom): void {
 		const initial_game_state: Ball = room.startGame();
@@ -187,48 +182,63 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		room.match.player1.emit("gameStart", initial_game_state);
 		room.match.player2.emit("gameStart", initial_game_state);
 		room.setPlayerPingId(setInterval(me.sendGameUpdates, Constants.ping, me, room));
+
+		const index: number = me.timeouts.findIndex((obj) => {
+			return obj.match === room.match.name;
+		});
+		if (index < 0) return;
+		me.timeouts.splice(index, 1);
 	}
 
-	/* This will send a GameUpdate every 16ms to both clients in a game */
+	/**
+	 * Updates game at regular interval.
+	 *
+	 * Sends different updates, depending of the state of the game.
+	 */
 	private async sendGameUpdates(me: GameGateway, room: GameRoom): Promise<void> {
 		try {
-			const update: Ball | ScoreUpdate = room.updateGame();
+			const update: Ball | ScoreUpdate | Results = room.updateGame();
 			if (update instanceof Ball) {
+				/* Simple ball update */
 				room.match.player1.emit("updateBall", update);
 				room.match.player2.emit("updateBall", update.invert());
 			} else if (update instanceof ScoreUpdate) {
+				/* Someone marked a point */
+				room.has_updated_score = false;
 				room.match.player1.emit("updateScore", update);
 				room.match.player2.emit("updateScore", update.invert());
+			} else if (update instanceof Results) {
+				/* The game ended */
+				room.has_updated_score = false;
+				room.is_ongoing = false;
+				const results: ScoreUpdate = room.getFinalScore();
+				room.match.player1.emit("updateScore", results);
+				room.match.player2.emit("updateScore", results.invert());
+				const match: Match = await me.game_service.registerGameHistory(room, update);
+				return me.disconnectRoom(match);
 			}
 		} catch (e) {
-			if (e instanceof Results) {
-				/* Save results and destroy game */
-				const update: ScoreUpdate = room.getFinalScore();
-				room.match.player1.emit("updateScore", update);
-				room.match.player2.emit("updateScore", update.invert());
-				try {
-					const match: Match = await me.game_service.registerGameHistory(room, e);
-					return me.disconnectRoom(match);
-				} catch (e) {
-					if (e instanceof BadRequestException || e instanceof ConflictException) {
-						console.log(e);
-						me.disconnectRoom(room.match);
-					} else {
-						me.disconnectRoom(room.match);
-						throw e;
-					}
-				}
-			} else {
-				// TODO: handle properly, with error sending
-				// Other error occured, make sure to destroy interval
+			if (e instanceof BadRequestException || e instanceof ConflictException) {
+				me.sendError(room.match.player1, e);
+				me.sendError(room.match.player2, e);
+				console.log(e);
 				me.disconnectRoom(room.match);
-				throw e;
+				return;
 			}
+			throw e;
 		}
 	}
 
 	/**
-	 * Disconnect players matched
+	 * Sending error event to client.
+	 */
+	private sendError(client: Socket, err: string | Error): void {
+		if (err instanceof Error) client.emit("error", err);
+		else client.emit("error", new Error(err));
+	}
+
+	/**
+	 * Disconnect players matched.
 	 */
 	private disconnectRoom(match: Match): void {
 		match.player1.disconnect(true);

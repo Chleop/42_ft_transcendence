@@ -24,6 +24,8 @@ export class Results {
 	public readonly player2: PlayerData;
 	public readonly date: string;
 
+	/* CONSTRUCTOR ============================================================= */
+
 	constructor(score: Score, guilty?: number) {
 		const date: Date = new Date();
 

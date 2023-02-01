@@ -4,6 +4,10 @@ import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { IoAdapter } from "@nestjs/platform-socket.io";
 import { Server, ServerOptions, Socket } from "socket.io";
+import { t_get_one_fields } from "./user/alias";
+import { UserService } from "./user/user.service";
+
+type UserData = t_get_one_fields;
 
 /**
  * Allows gateway to have dynamic ports (imported from env)
@@ -47,23 +51,25 @@ export class SocketIOAdapter extends IoAdapter {
 
 		const jwt_service: JwtService = this.app.get(JwtService);
 		const config_service: ConfigService = this.app.get(ConfigService);
+		const user_service: UserService = this.app.get(UserService);
 
 		const server: Server = super.createIOServer(port, { ...options, cors });
 
-		server.of("game").use(websocketMiddleware(jwt_service, config_service));
-		server.of("spectate").use(websocketMiddleware(jwt_service, config_service));
+		server.of("game").use(websocketMiddleware(jwt_service, config_service, user_service));
+		server.of("spectate").use(websocketMiddleware(jwt_service, config_service, user_service));
 
 		return server;
 	}
 }
 
 /**
- * Middleware function
- * Will verify jwt token
+ * Middleware function.
+ *
+ * Will verify jwt token and decode the jwt.
  */
 const websocketMiddleware =
-	(jwt_service: JwtService, config_service: ConfigService) =>
-	(client: Socket, next: (error?: any) => void) => {
+	(jwt_service: JwtService, config_service: ConfigService, user_service: UserService) =>
+	async (client: Socket, next: (error?: any) => void) => {
 		const token: string | undefined = client.handshake.auth.token;
 		const secret: string | undefined = config_service.get<string>("JWT_SECRET");
 
@@ -75,7 +81,9 @@ const websocketMiddleware =
 			}
 			console.log(`Validating token: ${token}`);
 			const payload: { sub: string } = jwt_service.verify(token, { secret });
+			const user: UserData = await user_service.get_one(payload.sub, payload.sub);
 			client.handshake.auth.token = payload.sub;
+			client.data.user = user;
 			next();
 		} catch (e) {
 			console.error(e);

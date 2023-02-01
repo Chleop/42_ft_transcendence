@@ -4,7 +4,9 @@ import { Ball, Results, Paddle, ScoreUpdate, SpectatorUpdate } from "../objects"
 
 import * as Constants from "../constants/constants";
 
-/* Track the state of the game, calculates the accuracy of the incomming data */
+/**
+ * Track the state of the game.
+ */
 export class Gameplay {
 	private scores: Score;
 	private paddle1: Paddle;
@@ -27,17 +29,22 @@ export class Gameplay {
 
 	/* PUBLIC ================================================================== */
 
-	/* -- UPDATING GAME ------------------------------------------------------- */
-	/* Generate random initial ball velocity vector */
+	/**
+	 * Generates ball for game initialization.
+	 */
 	public initializeGame(): Ball {
-		console.log("Initializing:");
-		console.log(this.ball);
+		console.log("Initializing game");
 		this.last_update = Date.now();
 		return this.ball;
 	}
 
-	/* Generates a ball update */
-	public refresh(): Ball | ScoreUpdate {
+	/**
+	 * Refreshes ball position.
+	 *
+	 * If ball goes outside of the scene, a ScoreUpdate is generated.
+	 * If the end of game is reached, a Results is generated.
+	 */
+	public refresh(): Ball | ScoreUpdate | Results {
 		const now: number = Date.now();
 		const delta_time: number = (now - this.last_update) * 0.001;
 
@@ -66,27 +73,16 @@ export class Gameplay {
 		return this.ball;
 	}
 
-	// TODO: Cleanup this function...
-	public checkUpdate(
-		who: number | null,
-		dto: PaddleDto,
-	): {
-		has_cheated: boolean;
-		updated_paddle: PaddleDto;
-	} {
-		let updated_paddle: PaddleDto;
-		if (who === 1) {
-			updated_paddle = this.paddle1.update(dto, Date.now());
-		} else if (who === 2) {
-			updated_paddle = this.paddle2.update(dto, Date.now());
-		} else {
-			throw null;
-		}
-		// Return corrected paddle if anticheat stroke
-		return {
-			has_cheated: false,
-			updated_paddle: updated_paddle,
-		};
+	/**
+	 * Updates paddle in game.
+	 *
+	 * In case the updated paddle doesn't match the expectations,
+	 * the corrected paddle is sent back to sender.
+	 */
+	public checkUpdate(who: number, dto: PaddleDto): PaddleDto {
+		if (who === 1) this.paddle1.update(dto, Date.now());
+		else this.paddle2.update(dto, Date.now());
+		return dto;
 	}
 
 	/* -- UTILS --------------------------------------------------------------- */
@@ -108,22 +104,23 @@ export class Gameplay {
 	}
 
 	/* PRIVATE ================================================================= */
+
 	/* -- GAME STATUS UPDATE -------------------------------------------------- */
 	/* Players 1 marked a point, send results OR reinitialize */
-	private oneWon(): ScoreUpdate {
+	private oneWon(): ScoreUpdate | Results {
 		++this.scores.player1_score;
 		if (this.scores.player1_score === Constants.max_score) {
-			throw new Results(this.scores);
+			return new Results(this.scores);
 		}
 		this.ball = new Ball();
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, true);
 	}
 
 	/* Players 2 marked a point, send results OR reinitialize */
-	private twoWon(): ScoreUpdate {
+	private twoWon(): ScoreUpdate | Results {
 		++this.scores.player2_score;
 		if (this.scores.player2_score === Constants.max_score) {
-			throw new Results(this.scores);
+			return new Results(this.scores);
 		}
 		this.ball = new Ball();
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, false);

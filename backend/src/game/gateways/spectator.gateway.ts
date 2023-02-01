@@ -9,6 +9,8 @@ import { Server, Socket } from "socket.io";
 import { GameService, SpectateService } from "../services";
 import { GameRoom, SpectatedRoom } from "../rooms";
 import * as Constants from "../constants/constants";
+import { SpectatorUpdate } from "../objects";
+import { Score } from "../aliases";
 
 @WebSocketGateway({
 	namespace: "spectate",
@@ -46,12 +48,14 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 */
 	public handleConnection(client: Socket): void {
 		console.log(`Socket '${client.handshake.auth.token}' joined`);
-		const room: GameRoom | null = this.game_service.findUserGame(client);
-		if (room instanceof GameRoom) {
+		try {
+			const room: GameRoom = this.game_service.findUserGame(client);
 			client.join(room.match.name);
 			return this.startStreaming(client, room);
+		} catch (e) {
+			this.sendError(client, e);
+			client.disconnect(true);
 		}
-		client.disconnect(true);
 	}
 
 	/**
@@ -60,16 +64,14 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 *
 	 */
 	public handleDisconnect(client: Socket): void {
-		const game_room: GameRoom | null = this.game_service.findUserGame(client);
-		if (game_room instanceof GameRoom) {
-			const spectated_room: SpectatedRoom | null = this.spectate_service.getRoom(
-				game_room.match.name,
-			);
-			if (spectated_room instanceof SpectatedRoom) {
-				spectated_room.removeSpectator(client);
-				if (spectated_room.isEmpty())
-					this.stopStreaming(this, spectated_room.game_room.match.name);
-			}
+		const game_room: GameRoom = this.game_service.findUserGame(client);
+		const spectated_room: SpectatedRoom | null = this.spectate_service.getRoom(
+			game_room.match.name,
+		);
+		if (spectated_room instanceof SpectatedRoom) {
+			spectated_room.removeSpectator(client);
+			if (spectated_room.isEmpty())
+				this.stopStreaming(this, spectated_room.game_room.match.name);
 		}
 		console.log(`Socket '${client.handshake.auth.token}' left`);
 	}
@@ -92,14 +94,15 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 			new_room.addSpectator(client);
 			this.spectate_service.add(new_room);
 		} else {
-			console.log(`${game_room.match.name} exists`);
 			// The room exists
+			console.log(`${spectated_room.getName()} exists`);
 		}
 	}
 
 	private updateGame(me: SpectatorGateway, room: GameRoom): void {
 		try {
-			me.server.to(room.match.name).emit("updateGame", room.getSpectatorUpdate());
+			const update: SpectatorUpdate | Score = room.getSpectatorUpdate();
+			me.server.to(room.match.name).emit("updateGame", update);
 		} catch (e) {
 			if (e === null) {
 				// Game is done
@@ -119,9 +122,20 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		me.spectate_service.destroyRoom(room_name);
 	}
 
+	/**
+	 * Kick clients of a room
+	 */
 	private kickEveryone(room: SpectatedRoom): void {
 		for (const client of room.spectators) {
-			client.disconnect(true);
+			client.disconnect();
 		}
+	}
+
+	/**
+	 * Sending error event to client
+	 */
+	private sendError(client: Socket, msg: string | Error): void {
+		if (msg instanceof Error) client.emit("error", msg);
+		else client.emit("error", new Error(msg));
 	}
 }

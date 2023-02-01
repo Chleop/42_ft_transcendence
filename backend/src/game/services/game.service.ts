@@ -1,6 +1,5 @@
 import { GameRoom } from "../rooms";
-import { AntiCheat, Match } from "../aliases";
-import { PaddleDto } from "../dto";
+import { Match, OpponentUpdate } from "../aliases";
 import { Results } from "../objects";
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -9,8 +8,10 @@ import { BadRequestException, ConflictException } from "@nestjs/common";
 import { Socket } from "socket.io";
 
 /**
- * Game rooms manager
- * Holds the matchmaker (TODO: implement separate matchmaking class)
+ * Game rooms manager.
+ *
+ * Holds the matchmaker.
+ *  (TODO: implement separate matchmaking class)
  */
 @Injectable()
 export class GameService {
@@ -50,7 +51,7 @@ export class GameService {
 	public async registerGameHistory(room: GameRoom, results: Results): Promise<Match> {
 		const match: Match = room.match;
 		try {
-			/*const user = */ await this.prisma_service.game.create({
+			await this.prisma_service.game.create({
 				data: {
 					players: {
 						connect: [
@@ -79,7 +80,6 @@ export class GameService {
 							"One of the relations you tried to connect to does not exist",
 						);
 				}
-				console.log(error.code);
 			}
 			throw error;
 		}
@@ -152,10 +152,10 @@ export class GameService {
 	}
 
 	/* -- GAME UPDATING ------------------------------------------------------- */
-	public updateOpponent(client: Socket, dto: PaddleDto): AntiCheat {
+	public updateOpponent(client: Socket): OpponentUpdate {
 		const index: number = this.findUserRoomIndex(client);
 		if (index < 0) throw "Paddle update received but not in game";
-		return this.game_rooms[index].updatePaddle(client, dto);
+		return this.game_rooms[index].updatePaddle(client);
 	}
 
 	/* -- UTILS --------------------------------------------------------------- */
@@ -168,17 +168,16 @@ export class GameService {
 		});
 	}
 
-	public findUserGame(spectator: Socket): GameRoom | null {
-		const user_id: string|undefined|null|string[] = spectator.handshake.auth.user_id;
-		console.log(`==================================== DATA: ${user_id}`);
-		if (typeof user_id !== "string") return null; //throw "Room not properly specified";
+	public findUserGame(spectator: Socket): GameRoom {
+		const user_id: string | undefined | null | string[] = spectator.handshake.auth.user_id;
+		if (typeof user_id !== "string") throw "Room not properly specified";
 		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
 			return (
 				obj.match.player1.handshake.auth.token === user_id ||
 				obj.match.player2.handshake.auth.token === user_id
 			);
 		});
-		if (room === undefined) return null;
+		if (room === undefined) throw "Room does not exist";
 		return room;
 	}
 
