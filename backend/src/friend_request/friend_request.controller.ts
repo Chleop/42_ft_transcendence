@@ -24,15 +24,18 @@ import {
 	UseGuards,
 	UsePipes,
 	ValidationPipe,
+	Logger,
 } from "@nestjs/common";
 
 @Controller("friend_request")
 @UseGuards(JwtGuard)
 export class FriendRequestController {
 	private _friend_request_service: FriendRequestService;
+	private readonly _logger: Logger;
 
 	constructor() {
 		this._friend_request_service = new FriendRequestService();
+		this._logger = new Logger(FriendRequestController.name);
 	}
 
 	@Patch("accept")
@@ -55,10 +58,10 @@ export class FriendRequestController {
 				error instanceof UserAlreadyFriendError ||
 				error instanceof FriendRequestNotFoundError
 			) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -82,10 +85,10 @@ export class FriendRequestController {
 				error instanceof FriendRequestSelfRejectError ||
 				error instanceof FriendRequestNotFoundError
 			) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -101,7 +104,6 @@ export class FriendRequestController {
 		},
 		@Body() dto: FriendRequestSendDto,
 	): Promise<void> {
-		console.log(request.user.sub);
 		try {
 			await this._friend_request_service.send_one(request.user.sub, dto.receiving_user_id);
 		} catch (error) {
@@ -111,14 +113,14 @@ export class FriendRequestController {
 				error instanceof UserAlreadyFriendError ||
 				error instanceof FriendRequestAlreadySentError
 			) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
 			if (error instanceof UserBlockedError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}

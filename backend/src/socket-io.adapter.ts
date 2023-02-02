@@ -4,6 +4,10 @@ import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { IoAdapter } from "@nestjs/platform-socket.io";
 import { Server, ServerOptions, Socket } from "socket.io";
+import { t_get_one_fields } from "./user/alias";
+import { UserService } from "./user/user.service";
+
+type UserData = t_get_one_fields;
 
 /**
  * Allows gateway to have dynamic ports (imported from env)
@@ -14,71 +18,73 @@ export class SocketIOAdapter extends IoAdapter {
 	private readonly config_service: ConfigService;
 
 	constructor(app: INestApplicationContext, configService: ConfigService) {
-		console.log("Adapter created");
 		super(app);
 		this.app = app;
 		this.config_service = configService;
-		this.app; // useless, just to avoid stupid error
-		this.config_service; // same
 	}
 
 	/* PUBLIC ================================================================== */
 
 	/**
 	 * (from IoAdapter)
-	 * Called from main (when SocketIOAdapter instanciated)
+	 * Called from main (when SocketIOAdapter instanciated).
 	 *
 	 * Defines extra indications for the new gateway instanciated,
-	 * allows middleware usage
+	 * allows middleware usage.
 	 */
 	public override createIOServer(port: number, options?: ServerOptions): Server {
-		/* TODO for later */
-		// const port_str : string |undefined= this.config_service.get('CLIENT_PORT')
-		// if (port_str=== undefined)
-		// const clientPort: number  = parseInt()
-		// const client_port: number = 3000;
+		let client_port: number;
+		const port_str: string | undefined = this.config_service.get("CLIENT_PORT");
+
+		if (port_str === undefined) {
+			client_port = 3000;
+		} else {
+			client_port = parseInt(port_str);
+		}
 
 		const cors: CorsOptions = {
 			origin: [
-				// `http://localhost:${client_port}`,
-				// new RegExp(`/^http:\/\/192\.168\.1\.([1-9]|[1-9]\d):${client_port}$/`),
-				"*"
+				`http://localhost:${client_port}`,
+				new RegExp(`/^http:\/\/192\.168\.1\.([1-9]|[1-9]\d):${client_port}$/`),
 			],
 		};
 
 		const jwt_service: JwtService = this.app.get(JwtService);
-		const cfg_service: ConfigService = this.app.get(ConfigService);
+		const config_service: ConfigService = this.app.get(ConfigService);
+		const user_service: UserService = this.app.get(UserService);
+
 		const server: Server = super.createIOServer(port, { ...options, cors });
 
-		server.of("game").use(websocketMiddleware(jwt_service, cfg_service));
-		server.of("spectate").use(websocketMiddleware(jwt_service, cfg_service));
+		server.of("game").use(websocketMiddleware(jwt_service, config_service, user_service));
+		server.of("spectate").use(websocketMiddleware(jwt_service, config_service, user_service));
 
 		return server;
 	}
 }
 
 /**
- * Middleware function
- * Will verify jwt token (located in socket.handshake.auth.token)
+ * Middleware function.
+ *
+ * Will verify jwt token and decode the jwt.
  */
 const websocketMiddleware =
-	(jwt_service: JwtService, cfg_service: ConfigService) => (client: Socket, next: (error?: any) => void) => {
+	(jwt_service: JwtService, config_service: ConfigService, user_service: UserService) =>
+	async (client: Socket, next: (error?: any) => void) => {
 		const token: string | undefined = client.handshake.auth.token;
-		const secret: string|undefined = cfg_service.get<string>("JWT_SECRET");
+		const secret: string | undefined = config_service.get<string>("JWT_SECRET");
 
-		if (!secret)
-			throw "lol il faut mettre la variable d'environnemnet `JWT_SECRET` sinon on peut pas vérifier les token";
+		if (secret === undefined) throw new Error("JwtSecret undefined"); // should NOT happen
 
 		try {
 			if (token === undefined) {
 				throw new Error("No token provided");
 			}
-			console.log(`Validating token: ${token}`);
 			const payload: { sub: string } = jwt_service.verify(token, { secret });
+			const user: UserData = await user_service.get_one(payload.sub, payload.sub);
 			client.handshake.auth.token = payload.sub;
+			client.data.user = user;
 			next();
 		} catch (e) {
-			console.error(e);
 			next(new ForbiddenException("Invalid token"));
 		}
 	};
