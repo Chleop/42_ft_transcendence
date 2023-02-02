@@ -39,13 +39,14 @@ export class ChatGateway {
 	 * @param	message The message to broadcast.
 	 */
 	public broadcast_to_room(message: ChannelMessage): void {
+		// REMIND: This way works, but it is not taking advantage of socker-io built-in ways to do it.
 		ChatGateway._logger.debug(`Broadcasting message to room: ${message.channelId}...`);
 		for (const socket of ChatGateway._client_sockets.values()) {
-            if (socket.rooms.has(message.channelId)) {
-                ChatGateway._logger.debug(`Sending message to user: ${socket.data.user.name}`);
-                socket.emit("message", message);
-            }
-        }
+			if (socket.rooms.has(message.channelId)) {
+				ChatGateway._logger.debug(`Sending message to user: ${socket.data.user.name}`);
+				socket.emit("message", message);
+			}
+		}
 	}
 
 	/**
