@@ -1,6 +1,5 @@
-import { GameRoom } from ".";
-
 import { Socket } from "socket.io";
+import { GameRoom } from ".";
 
 export class SpectatedRoom {
 	public readonly game_room: GameRoom;

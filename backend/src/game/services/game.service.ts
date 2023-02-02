@@ -12,7 +12,6 @@ import { Matchmaking } from "../matchmaking";
  * Game rooms manager.
  *
  * Holds the matchmaker.
- *  (TODO: implement separate matchmaking class)
  */
 @Injectable()
 export class GameService {
@@ -106,23 +105,32 @@ export class GameService {
 		return null;
 	}
 
-	public destroyRoom(index: GameRoom): void {
-		const new_index: number = this.game_rooms.indexOf(index);
-		if (new_index < 0) return;
-		console.log(`Destroying room ${index.match.name}`);
-		index.destroyPlayerPing();
-		this.game_rooms.splice(new_index, 1);
+	/**
+	 * Removes game room from list.
+	 */
+	public destroyRoom(room: GameRoom): void {
+		const index: number = this.game_rooms.indexOf(room);
+		if (index < 0) return;
+		console.log(`Destroying room ${room.match.name}`);
+		room.destroyPlayerPing();
+		this.game_rooms.splice(index, 1);
 	}
 
+	/**
+	 * Updates received paddle.
+	 *
+	 * Returns updated paddle and the opponent of the sender.
+	 */
 	public updateOpponent(client: Socket): OpponentUpdate {
 		const index: number = this.findUserRoomIndex(client);
 		if (index < 0) throw "Paddle update received but not in game";
 		return this.game_rooms[index].updatePaddle(client);
 	}
 
-	public findUserGame(spectator: Socket): GameRoom {
-		const user_id: string | undefined | null | string[] = spectator.handshake.auth.user_id;
-		if (typeof user_id !== "string") throw "Room not properly specified";
+	/**
+	 * Returns game room with associated user_id.
+	 */
+	public findUserGame(user_id: string): GameRoom {
 		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
 			return (
 				obj.match.player1.handshake.auth.token === user_id ||
@@ -135,6 +143,9 @@ export class GameService {
 
 	/* PRIVATE ================================================================= */
 
+	/**
+	 * Returns index of room if client is in it.
+	 */
 	private findUserRoomIndex(client: Socket): number {
 		const index: number = this.game_rooms.findIndex((obj) => {
 			return obj.isSocketInRoom(client);

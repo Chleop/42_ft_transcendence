@@ -1,10 +1,12 @@
-import * as Constants from "../constants/constants";
+import { Constants } from "../../constants";
 
 export class Ball {
 	private x: number;
 	private y: number;
 	private vx: number;
 	private vy: number;
+
+	/* CONSTRUCTOR ============================================================= */
 
 	constructor(coords?: { x: number; y: number; vx: number; vy: number }) {
 		if (coords === undefined) {
@@ -21,9 +23,11 @@ export class Ball {
 		}
 	}
 
-	/* == PUBLIC ================================================================================ */
+	/* PUBLIC ================================================================== */
 
-	/* Send refreshed ball value */
+	/**
+	 * Send refreshed ball coordinates.
+	 */
 	public refresh(delta_time: number): number {
 		this.refreshX(delta_time);
 		this.refreshY(delta_time);
@@ -35,7 +39,9 @@ export class Ball {
 		return Constants.BallRefreshResult.nothing;
 	}
 
-	/* Check if ball hits paddle */
+	/**
+	 * Check if the ball hits the paddle.
+	 */
 	public checkPaddleCollision(paddle_y: number): boolean {
 		if (
 			this.y - Constants.ball_radius < paddle_y + Constants.paddle_radius &&
@@ -49,22 +55,36 @@ export class Ball {
 		return false;
 	}
 
+	/* ------------------------------------------------------------------------- */
+
+	/**
+	 * Sends inverted x values.
+	 *
+	 * Allows visual adaptation for player2.
+	 */
 	public invert(): Ball {
 		return new Ball({ x: -this.x, y: this.y, vx: -this.vx, vy: this.vy });
 	}
 
+	/**
+	 * Returns true of the ball is outside of scene.
+	 */
 	public isOutside(): boolean {
 		return this.x < -Constants.w_2 || this.x > Constants.w_2;
 	}
 
-	/* == PRIVATE =============================================================================== */
+	/* PRIVATE ================================================================= */
 
-	/* Refresh on X axis */
+	/**
+	 * Refreshes coordinates on X axis.
+	 */
 	private refreshX(delta_time: number): void {
 		this.x += this.vx * delta_time;
 	}
 
-	/* Refresh on Y axis */
+	/**
+	 * Refreshes coordinates on Y axis.
+	 */
 	private refreshY(delta_time: number): void {
 		const new_y: number = this.y + this.vy * delta_time;
 		if (new_y > Constants.limit_y) {
@@ -78,12 +98,17 @@ export class Ball {
 		this.vy = -this.vy;
 	}
 
+	/**
+	 * Increases ball velocity vector.
+	 */
 	private increaseSpeed(): void {
 		this.vx *= Constants.acceleration;
 		this.vy *= Constants.acceleration;
 	}
 
-	/* Shift ball.vy a little depending on position of ball on paddle */
+	/**
+	 * Shifts velocity vector depending on the ball position on the paddle.
+	 */
 	private shiftBouncing(paddle_y: number): void {
 		const orig_norm: number = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
 

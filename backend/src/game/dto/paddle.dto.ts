@@ -1,11 +1,10 @@
-/* Data received from front-end */
-//TODO: validators?
-export class PaddleDto {
-	// Paddle position
-	public position: number;
+// TODO: Validators?
 
-	// Paddle velocity vector value
+export class PaddleDto {
+	public position: number;
 	public velocity: number;
+
+	/* CONSTRUCTOR ============================================================= */
 
 	constructor(position: number, velocity: number) {
 		this.position = position;

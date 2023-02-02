@@ -21,8 +21,8 @@ export class Matchmaking {
 	/* PUBLIC ================================================================== */
 
 	/**
-	 * If the queue is empty, client takes its place.
-	 * Else, client is matched with queue and a room is created.
+	 * Puts client in the queue if it's empty.
+	 * Else, client is matched with queue and a new game room is returned.
 	 */
 	public queueUp(client: Socket): GameRoom | null {
 		if (!this.queue) {
@@ -40,6 +40,9 @@ export class Matchmaking {
 		}
 	}
 
+	/**
+	 * Removes the person from the queue.
+	 */
 	public unQueue(client: Socket): boolean {
 		if (this.queue?.handshake.auth.token === client.handshake.auth.token) {
 			this.queue = null;

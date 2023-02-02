@@ -1,5 +1,5 @@
 import { Score } from "../aliases";
-import { PlayerData } from "./";
+import { Constants } from "../constants";
 
 function getCurrentTime(date: Date): string {
 	const day: string = ("0" + date.getDate()).slice(-2);
@@ -17,6 +17,24 @@ function getCurrentTime(date: Date): string {
 		":" +
 		date.getSeconds()
 	);
+}
+
+class PlayerData {
+	public readonly id: string;
+	public readonly score: number;
+	public readonly winner: boolean;
+
+	/* CONSTRUCTOR ============================================================= */
+
+	constructor(score: number, winner?: boolean) {
+		this.score = score;
+
+		if (winner !== undefined) this.winner = winner;
+		else {
+			if (score === Constants.max_score) this.winner = true;
+			else this.winner = false;
+		}
+	}
 }
 
 export class Results {

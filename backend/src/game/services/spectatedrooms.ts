@@ -1,16 +1,29 @@
 import { SpectatedRoom } from "../rooms";
 
+/**
+ * Spectated rooms handler.
+ */
 export class SpectatedRooms {
 	private rooms: SpectatedRoom[];
+
+	/* CONSTRUCTOR ============================================================= */
 
 	constructor() {
 		this.rooms = [];
 	}
 
+	/* PUBLIC ================================================================== */
+
+	/**
+	 * Observes a new room.
+	 */
 	public add(new_room: SpectatedRoom): void {
 		this.rooms.push(new_room);
 	}
 
+	/**
+	 * Removes a streaming room.
+	 */
 	public destroyRoom(room_name: string): void {
 		const index: number = this.getRoomIndex(room_name);
 		if (index < 0) return;
@@ -19,6 +32,11 @@ export class SpectatedRooms {
 		this.rooms.splice(index, 1);
 	}
 
+	/* ------------------------------------------------------------------------- */
+
+	/**
+	 * Returns room by name.
+	 */
 	public getRoom(name: string): SpectatedRoom | null {
 		const room: SpectatedRoom | undefined = this.rooms.find((obj) => {
 			return obj.getName() === name;

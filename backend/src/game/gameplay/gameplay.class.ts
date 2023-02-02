@@ -1,8 +1,8 @@
 import { Score } from "../aliases";
 import { PaddleDto } from "../dto";
-import { Ball, Results, Paddle, ScoreUpdate, SpectatorUpdate } from "../objects";
-
-import * as Constants from "../constants/constants";
+import { Ball, Paddle } from "./";
+import { Results, ScoreUpdate, SpectatorUpdate } from "../objects";
+import { Constants } from "../constants";
 
 /**
  * Track the state of the game.
@@ -85,7 +85,7 @@ export class Gameplay {
 		return dto;
 	}
 
-	/* -- UTILS --------------------------------------------------------------- */
+	/* ------------------------------------------------------------------------- */
 
 	public getScores(): Score {
 		return this.scores;
@@ -105,8 +105,11 @@ export class Gameplay {
 
 	/* PRIVATE ================================================================= */
 
-	/* -- GAME STATUS UPDATE -------------------------------------------------- */
-	/* Players 1 marked a point, send results OR reinitialize */
+	/**
+	 * Called if player1 marked a point.
+	 *
+	 * Return value depends on whether the point was decisive or not.
+	 */
 	private oneWon(): ScoreUpdate | Results {
 		++this.scores.player1_score;
 		if (this.scores.player1_score === Constants.max_score) {
@@ -116,7 +119,9 @@ export class Gameplay {
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, true);
 	}
 
-	/* Players 2 marked a point, send results OR reinitialize */
+	/**
+	 * Called if player2 marked a point.
+	 */
 	private twoWon(): ScoreUpdate | Results {
 		++this.scores.player2_score;
 		if (this.scores.player2_score === Constants.max_score) {

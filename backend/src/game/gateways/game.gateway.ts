@@ -10,11 +10,11 @@ import { Server, Socket } from "socket.io";
 import { GameService } from "../services/game.service";
 import { GameRoom } from "../rooms";
 import { PaddleDto } from "../dto";
-import { Results, Ball, ScoreUpdate } from "../objects";
+import { Results, ScoreUpdate } from "../objects";
+import { Ball } from "../gameplay";
 import { Match, OpponentUpdate } from "../aliases";
 import { BadRequestException, ConflictException } from "@nestjs/common";
-
-import * as Constants from "../constants/constants";
+import { Constants } from "../constants";
 
 /**
  * setTimeout tracker
@@ -129,7 +129,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			this.disconnectRoom(match);
 		}
 		console.log(`[${client.handshake.auth.token} disconnected]`);
-		// this.game_service.display();
 	}
 
 	/* Event handlers ---------------------------------------------------------- */
@@ -163,13 +162,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		game_room.match.player1.emit("matchFound", game_room.match.player2.data.user);
 		game_room.match.player2.emit("matchFound", game_room.match.player1.data.user);
 
-		// const room: GameRoom = this.game_service.createRoom(match);
-
 		this.timeouts.push({
 			match: game_room.match.name,
 			timer: setTimeout(this.startGame, 3000, this, game_room),
 		});
-		// this.game_service.display();
 	}
 
 	/**
@@ -211,9 +207,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				/* The game ended */
 				room.has_updated_score = false;
 				room.is_ongoing = false;
-				const results: ScoreUpdate = room.getFinalScore();
-				room.match.player1.emit("updateScore", results);
-				room.match.player2.emit("updateScore", results.invert());
+				const last_score: ScoreUpdate = room.getFinalScore();
+				room.match.player1.emit("updateScore", last_score);
+				room.match.player2.emit("updateScore", last_score.invert());
 				const match: Match = await me.game_service.registerGameHistory(room, update);
 				return me.disconnectRoom(match);
 			}

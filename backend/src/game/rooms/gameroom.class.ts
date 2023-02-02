@@ -1,10 +1,10 @@
-import { Gameplay } from "../gameplay";
 import { Socket } from "socket.io";
+import { Gameplay, Ball } from "../gameplay";
 import { Score, Match, OpponentUpdate } from "../aliases";
-import { Results, Ball, ScoreUpdate, SpectatorUpdate } from "../objects";
+import { Results, ScoreUpdate, SpectatorUpdate } from "../objects";
 
 /**
- * Ongoing game room handle
+ * Ongoing game room handler.
  *
  * Once someone leaves the game, the room is completely removed.
  */
@@ -23,23 +23,35 @@ export class GameRoom {
 		this.game = new Gameplay();
 		this.is_ongoing = true;
 		this.has_updated_score = false;
+
 		console.log("Room created:", this.match.name);
 	}
 
-	/* == PUBLIC ================================================================================ */
+	/* PUBLIC ================================================================== */
 
-	/* -- GAME MANAGEMENT ----------------------------------------------------- */
-	/* Call this function once the game actually starts */
+	/**
+	 * Initiates game.
+	 *
+	 * Returns the initial ball coordinates.
+	 */
 	public startGame(): Ball {
 		return this.game.initializeGame();
 	}
 
-	/* Called every 16ms to send ball updates */
+	/**
+	 * Sends game update.
+	 *
+	 * Returns a ball if nothing noticeable happened,
+	 * a score update if a point was marked,
+	 * and the final results if someone hit the maximum score.
+	 */
 	public updateGame(): Ball | ScoreUpdate | Results {
 		return this.game.refresh();
 	}
 
-	/* Called everytime the sender sent an update */
+	/**
+	 * Updates received paddle.
+	 */
 	public updatePaddle(client: Socket): OpponentUpdate {
 		if (this.game === null) throw "Game hasn't started yet";
 		return {
@@ -51,7 +63,9 @@ export class GameRoom {
 		};
 	}
 
-	/* Saves the current state of the game */
+	/**
+	 * Stops the game early (when someone leaves the game).
+	 */
 	public cutGameShort(guilty: number): Results {
 		if (!this.game) throw null;
 		this.is_ongoing = false;
@@ -59,12 +73,13 @@ export class GameRoom {
 		return this.game.getResults(guilty);
 	}
 
-	/* -- GAME MANAGEMENT ----------------------------------------------------- */
+	/* ------------------------------------------------------------------------- */
 
-	public getFinalScore(): ScoreUpdate {
-		return this.game.getFinalScore();
-	}
-
+	/**
+	 * Sends current game state to spectator.
+	 *
+	 * Can be a score object if someone marked a point.
+	 */
 	public getSpectatorUpdate(): SpectatorUpdate | Score {
 		if (!this.is_ongoing) throw null;
 		if (!this.has_updated_score) {
@@ -74,19 +89,32 @@ export class GameRoom {
 		return this.game.getSpectatorUpdate();
 	}
 
-	/* -- INTERVAL UTILS ------------------------------------------------------ */
-	/* Stores the ID of the setInterval function */
+	public getFinalScore(): ScoreUpdate {
+		return this.game.getFinalScore();
+	}
+
+	/* Ping -------------------------------------------------------------------- */
+
+	/**
+	 * Stores the ID of the setInterval function.
+	 */
 	public setPlayerPingId(timer_id: NodeJS.Timer): void {
 		this.players_ping_id = timer_id;
 	}
 
-	/* Destroys associated setInteval instance */
+	/**
+	 *  Destroys associated setInteval instance.
+	 */
 	public destroyPlayerPing(): void {
 		if (this.players_ping_id === null) return;
 		clearInterval(this.players_ping_id);
 	}
 
-	/* -- IDENTIFIERS --------------------------------------------------------- */
+	/* Other Utils ------------------------------------------------------------- */
+
+	/**
+	 * Returns true if the client is in the room.
+	 */
 	public isSocketInRoom(client: Socket): boolean {
 		return (
 			this.match.player1.handshake.auth.token === client.handshake.auth.token ||
@@ -94,7 +122,9 @@ export class GameRoom {
 		);
 	}
 
-	/* Returns player's number */
+	/**
+	 * Returns player's number.
+	 */
 	public playerNumber(client: Socket): number {
 		if (this.match.player1.handshake.auth.token === client.handshake.auth.token) return 1;
 		else return 2;
@@ -102,8 +132,9 @@ export class GameRoom {
 
 	/* == PRIVATE =============================================================================== */
 
-	/* -- IDENTIFIERS --------------------------------------------------------- */
-	/* Returns client's opponent socket */
+	/**
+	 * Returns client's opponent.
+	 */
 	private whoIsOpponent(client: Socket): Socket {
 		if (this.match.player1.handshake.auth.token === client.handshake.auth.token)
 			return this.match.player2;

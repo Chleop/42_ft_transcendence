@@ -1,4 +1,4 @@
-import * as Constants from "../constants/constants";
+import { Constants } from "../constants";
 
 /**
  * Generated when a party marks a point.
