@@ -40,10 +40,10 @@ import {
 	ChannelRelationNotFoundError,
 	UnknownError,
 } from "src/channel/error";
-import { JwtGuard } from "src/auth/guards";
+import { Jwt2FAGuard } from "src/auth/guards";
 import { t_get_one_fields } from "src/user/alias";
 
-@UseGuards(JwtGuard)
+@UseGuards(Jwt2FAGuard)
 @Controller("channel")
 export class ChannelController {
 	private _channel_service: ChannelService;

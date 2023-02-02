@@ -11,7 +11,7 @@ import {
 	FriendRequestSelfSendError,
 } from "src/friend_request/error";
 import { FriendRequestService } from "src/friend_request/friend_request.service";
-import { JwtGuard } from "src/auth/guards";
+import { Jwt2FAGuard } from "src/auth/guards";
 import { UserAlreadyFriendError, UserBlockedError, UserNotFoundError } from "src/user/error";
 import {
 	BadRequestException,
@@ -28,7 +28,7 @@ import {
 import { t_get_one_fields } from "src/user/alias";
 
 @Controller("friend_request")
-@UseGuards(JwtGuard)
+@UseGuards(Jwt2FAGuard)
 export class FriendRequestController {
 	private _friend_request_service: FriendRequestService;
 
