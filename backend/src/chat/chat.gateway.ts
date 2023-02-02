@@ -71,7 +71,7 @@ export class ChatGateway {
 	 * @param	client The socket that just disconnected.
 	 */
 	public handleDisconnect(client: Socket): void {
-		console.log(`Client disconnected from gateway: ${client.data.user.name}`);
+		ChatGateway._logger.log(`Client disconnected from gateway: ${client.data.user.name}`);
 		for (const room of client.rooms) {
 			client.leave(room);
 		}
