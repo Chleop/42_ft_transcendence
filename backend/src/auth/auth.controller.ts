@@ -8,20 +8,22 @@ import {
 	Post,
 	Body,
 	Res,
+	Logger,
+	BadRequestException,
 } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { Response } from "express";
-import { t_get_one_fields } from "src/user/alias";
 import { UserService } from "src/user/user.service";
 import { AuthService } from "./auth.service";
 import { FtOauthGuard, JwtGuard } from "./guards";
-
-type t_access_token = { access_token: string | undefined };
+import { ExpiredCode, InvalidCode } from "./error";
+import { t_access_token, t_user_auth } from "./alias";
 
 @Controller("auth")
 export class AuthController {
 	private _authService: AuthService;
 	private readonly _user: UserService;
+	private readonly _logger = new Logger(AuthController.name);
 
 	constructor() {
 		this._authService = new AuthService();
@@ -31,59 +33,72 @@ export class AuthController {
 	@Get("42/login")
 	@UseGuards(FtOauthGuard)
 	login() {
+		this._logger.debug("IN CONTROLLER login");
 		//
 	}
 
 	@Get("42/callback")
 	@UseGuards(FtOauthGuard)
 	async signin(@Req() request: any, @Res() response: Response) {
-		let token: t_access_token;
-		const user_id: string = await this._user.get_ones_id_by_login(request.user.login);
-		const user: t_get_one_fields = await this._user.get_one(user_id, user_id);
+		this._logger.debug("IN CONTROLLER signin");
 		try {
+			const token: t_access_token = await this._authService.create_access_token(
+				request.user.login,
+			);
+			const user_id: string = await this._user.get_ones_id_by_login(request.user.login);
+			const user: t_user_auth = await this._authService.get_user_auth(user_id);
+			response.cookie("access_token", token.access_token); // REMIND try with httpOnly
 			if (user.twoFactAuth === true) {
-				if (user.email !== null)
-					this._authService.send_confirmation_email(user.id, user.email);
-			} else {
-				token = await this._authService.create_access_token(user.login);
-				response.cookie("access_token", token.access_token); // REMIND try with httpOnly
-				response.redirect("http://localhost:3000/");
-			}
+				await this._authService.activate_2FA(user_id);
+				response.redirect("http://localhost:3000/api/auth/42/2FARedirect");
+			} else response.redirect("http://localhost:3000/");
 		} catch (error) {
-			console.info(error);
+			this._logger.error(error);
 			if (error instanceof PrismaClientKnownRequestError) {
 				if (error.code == "P2002")
-					throw new ForbiddenException("One of the provided fields is already taken");
+					throw new ForbiddenException(
+						"One of the provided fields is already taken (unique constraint)",
+					);
+			} else throw new InternalServerErrorException("An unknown error occured");
+		}
+	}
+
+	@Get("42/2FARedirect")
+	async two_factor_authentication_redirect(): Promise<void> {}
+
+	@UseGuards(JwtGuard)
+	@Get("42/2FAActivate")
+	async initiate_2FA(@Req() req: any, @Body("email") email: string): Promise<void> {
+		this._logger.debug("IN CONTROLLER initiate_2FA");
+		try {
+			await this._authService.initiate_2FA(req.user.id, email);
+		} catch (error) {
+			this._logger.error(error);
+			if (error instanceof PrismaClientKnownRequestError) {
+				if (error.code == "P2002")
+					throw new ForbiddenException(
+						"One of the provided fields is already taken (unique constraint)",
+					);
 			} else throw new InternalServerErrorException("An unknown error occured");
 		}
 	}
 
 	@UseGuards(JwtGuard)
-	@Get("42/2FAActivate")
-	async activateTwoFactAuth(@Req() req: any, @Body("email") email: string): Promise<void> {
-		try {
-			await this._authService.add_email_to_db(req.user.id, email);
-			await this._authService.create_and_add_secret_to_db(req.user.id);
-			await this._authService.send_confirmation_email(req.user.id, email);
-		} catch (error) {
-			// TODO: Ameliorer la gestion d'erreurs
-			console.log(error);
-			throw error;
-		}
-	}
-
-	// @UseGuards(JwtGuard)
 	@Post("42/2FAValidate")
-	async validateTwoFactAuth(
-		@Req() req: any,
-		@Res() res: Response,
-		@Body("code") code: string,
-	): Promise<void> {
+	async validate_2FA(@Req() req: any, @Body("code") code: string): Promise<void> {
+		this._logger.debug("IN CONTROLLER validate_2FA");
 		try {
-			const user: t_get_one_fields = await this._user.get_one(req.user.id, req.user.id);
-			await this._authService.confirm_email(user, res, Number(code));
+			await this._authService.validate_2FA(req.user.id, code);
 		} catch (error) {
-			throw new ForbiddenException(error);
+			this._logger.error(error);
+			if (error instanceof PrismaClientKnownRequestError) {
+				if (error.code == "P2002")
+					throw new ForbiddenException(
+						"One of the provided fields is already taken (unique constraint)",
+					);
+			} else if (error instanceof InvalidCode || error instanceof ExpiredCode)
+				throw new BadRequestException(error.message);
+			else throw new InternalServerErrorException("An unknown error occured");
 		}
 	}
 }
