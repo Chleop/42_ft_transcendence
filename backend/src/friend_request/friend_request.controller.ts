@@ -26,6 +26,7 @@ import {
 	ValidationPipe,
 	Logger,
 } from "@nestjs/common";
+import { t_get_one_fields } from "src/user/alias";
 
 @Controller("friend_request")
 @UseGuards(JwtGuard)
@@ -43,14 +44,12 @@ export class FriendRequestController {
 	async accept_one(
 		@Req()
 		request: {
-			user: {
-				sub: string;
-			};
+			user: t_get_one_fields;
 		},
 		@Body() dto: FriendRequestAcceptDto,
 	): Promise<void> {
 		try {
-			await this._friend_request_service.accept_one(request.user.sub, dto.accepted_user_id);
+			await this._friend_request_service.accept_one(request.user.id, dto.accepted_user_id);
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||
@@ -71,14 +70,12 @@ export class FriendRequestController {
 	async reject_one(
 		@Req()
 		request: {
-			user: {
-				sub: string;
-			};
+			user: t_get_one_fields;
 		},
 		@Body() dto: FriendRequestRejectDto,
 	): Promise<void> {
 		try {
-			await this._friend_request_service.reject_one(request.user.sub, dto.rejected_user_id);
+			await this._friend_request_service.reject_one(request.user.id, dto.rejected_user_id);
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||
@@ -98,14 +95,12 @@ export class FriendRequestController {
 	async send_one(
 		@Req()
 		request: {
-			user: {
-				sub: string;
-			};
+			user: t_get_one_fields;
 		},
 		@Body() dto: FriendRequestSendDto,
 	): Promise<void> {
 		try {
-			await this._friend_request_service.send_one(request.user.sub, dto.receiving_user_id);
+			await this._friend_request_service.send_one(request.user.id, dto.receiving_user_id);
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||

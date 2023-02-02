@@ -1,4 +1,11 @@
-import { t_get_one_fields } from "src/user/alias";
+import {
+	t_channels_fields,
+	t_games_played_fields,
+	t_get_me_fields,
+	t_get_me_fields_tmp,
+	t_get_one_fields,
+	t_get_one_fields_tmp,
+} from "src/user/alias";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
@@ -37,6 +44,8 @@ export class UserService {
 	 * 			- being challenged by the blocked user
 	 * 			- being invited to a channel by the blocked user
 	 * 			- seeing the blocked user's messages
+	 * 			It is assumed that the provided blocking user id is valid.
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	blocking_user_id The id of the user blocking the other user.
 	 * @param	blocked_user_id The id of the user being blocked.
@@ -67,7 +76,7 @@ export class UserService {
 			}[];
 		};
 
-		const blocking_user: t_blocking_user_fields | null = await this._prisma.user.findUnique({
+		const blocking_user: t_blocking_user_fields = (await this._prisma.user.findUnique({
 			select: {
 				blocked: {
 					select: {
@@ -91,11 +100,7 @@ export class UserService {
 					state: StateType.ACTIVE,
 				},
 			},
-		});
-
-		if (!blocking_user) {
-			throw new UserNotFoundError();
-		}
+		})) as t_blocking_user_fields;
 
 		const blocked_user: t_blocked_user_fields | null = await this._prisma.user.findUnique({
 			select: {
@@ -267,15 +272,18 @@ export class UserService {
 	/**
 	 * @brief	Change the account state of a user to DISABLED, before trully deleting them
 	 * 			from the database a certain time later.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	id The id of the user to delete.
 	 *
 	 * @error	The following errors may be thrown :
-	 * 			- UserNotFoundError
 	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
+	// REMIND: rename into disable_me (?)
+	// TODO: remove the UnknownError from potential errors
 	public async disable_one(id: string): Promise<void> {
 		type t_fields = {
 			id: string;
@@ -334,10 +342,6 @@ export class UserService {
 		} catch (error) {
 			this._logger.error(`Error while disabling user ${id}`);
 			if (error instanceof PrismaClientKnownRequestError) {
-				switch (error.code) {
-					case "P2025":
-						throw new UserNotFoundError(id);
-				}
 				this._logger.error(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
 
@@ -347,51 +351,19 @@ export class UserService {
 
 	/**
 	 * @brief	Get a user from the database.
-	 * 			Both of the requesting and the requested user must be active,
-	 * 			and have at least one common channel, be friends, or be the same.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is ACTIVE)
 	 *
-	 * @param	requesting_user_id The id of the user requesting the user.
-	 * @param	requested_user_id The id of the user to get.
+	 * @param	id The id of the user to get.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserNotFoundError
-	 * 			- UserNotLinkedError
 	 *
 	 * @return	A promise containing the wanted user.
 	 */
-	public async get_one(
-		requesting_user_id: string,
-		requested_user_id: string,
-	): Promise<t_get_one_fields> {
-		type t_requesting_user_fields = {
-			channels: {
-				id: string;
-			}[];
-		};
-
-		const requesting_user: t_requesting_user_fields | null = await this._prisma.user.findUnique(
-			{
-				select: {
-					channels: {
-						select: {
-							id: true,
-						},
-					},
-				},
-				where: {
-					idAndState: {
-						id: requesting_user_id,
-						state: StateType.ACTIVE,
-					},
-				},
-			},
-		);
-
-		if (!requesting_user) {
-			throw new UserNotFoundError(requesting_user_id);
-		}
-
-		const requested_user: t_get_one_fields | null = await this._prisma.user.findUnique({
+	// TODO: remove the UserNotFoundError from potential errors
+	public async get_me(id: string): Promise<t_get_me_fields> {
+		const user_tmp: t_get_me_fields_tmp | null = await this._prisma.user.findUnique({
 			select: {
 				id: true,
 				login: true,
@@ -403,6 +375,8 @@ export class UserService {
 				channels: {
 					select: {
 						id: true,
+						name: true,
+						chanType: true,
 					},
 				},
 				channelsOwned: {
@@ -413,11 +387,14 @@ export class UserService {
 				gamesPlayed: {
 					select: {
 						id: true,
-					},
-				},
-				gamesWon: {
-					select: {
-						id: true,
+						players: {
+							select: {
+								id: true,
+							},
+						},
+						scores: true,
+						dateTime: true,
+						winnerId: true,
 					},
 				},
 				friends: {
@@ -438,19 +415,167 @@ export class UserService {
 			},
 			where: {
 				idAndState: {
+					id: id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!user_tmp) {
+			throw new UserNotFoundError(id);
+		}
+
+		const user: t_get_me_fields = {
+			id: user_tmp.id,
+			login: user_tmp.login,
+			name: user_tmp.name,
+			email: user_tmp.email,
+			skin_id: user_tmp.skinId,
+			elo: user_tmp.elo,
+			two_fact_auth: user_tmp.twoFactAuth,
+			channels: user_tmp.channels.map((channel): t_channels_fields => {
+				return {
+					id: channel.id,
+					name: channel.name,
+					type: channel.chanType,
+				};
+			}),
+			channels_owned_ids: user_tmp.channelsOwned.map((channel): string => {
+				return channel.id;
+			}),
+			games_played: user_tmp.gamesPlayed.map((game): t_games_played_fields => {
+				return {
+					id: game.id,
+					players_ids: game.players.map((player): string => {
+						return player.id;
+					}) as [string, string],
+					scores: game.scores as [number, number],
+					date_time: game.dateTime,
+					winner_id: game.winnerId,
+				};
+			}),
+			friends_ids: user_tmp.friends.map((friend): string => {
+				return friend.id;
+			}),
+			pending_friends_ids: user_tmp.pendingFriendRequests.map((pending_friend): string => {
+				return pending_friend.id;
+			}),
+			blocked_ids: user_tmp.blocked.map((blocked): string => {
+				return blocked.id;
+			}),
+		};
+
+		this._logger.log(`User ${id} was successfully retrieved from the database.`);
+		return user;
+	}
+
+	/**
+	 * @brief	Get a user from the database.
+	 * 			Requested user must be active,
+	 * 			and either have at least one common channel with the requesting user,
+	 * 			be friends with the requesting user, or be the requesting user.
+	 * 			It is assumed that the provided requesting user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	requesting_user_id The id of the user requesting the user.
+	 * @param	requested_user_id The id of the user to get.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserNotLinkedError
+	 *
+	 * @return	A promise containing the wanted user.
+	 */
+	public async get_one(
+		requesting_user_id: string,
+		requested_user_id: string,
+	): Promise<t_get_one_fields> {
+		type t_requesting_user_fields = {
+			channels: {
+				id: string;
+			}[];
+			friends: {
+				id: string;
+			}[];
+		};
+
+		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
+			select: {
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+				friends: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requesting_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		})) as t_requesting_user_fields;
+
+		const requested_user_tmp: t_get_one_fields_tmp | null = await this._prisma.user.findUnique({
+			select: {
+				id: true,
+				login: true,
+				name: true,
+				skinId: true,
+				elo: true,
+				channels: {
+					select: {
+						id: true,
+						name: true,
+						chanType: true,
+					},
+				},
+				gamesPlayed: {
+					select: {
+						id: true,
+					},
+				},
+				gamesWon: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
 					id: requested_user_id,
 					state: StateType.ACTIVE,
 				},
 			},
 		});
 
-		if (!requested_user) {
+		if (!requested_user_tmp) {
 			throw new UserNotFoundError(requested_user_id);
 		}
 
+		const requested_user: t_get_one_fields = {
+			id: requested_user_tmp.id,
+			name: requested_user_tmp.name,
+			skin_id: requested_user_tmp.skinId,
+			elo: requested_user_tmp.elo,
+			channels: requested_user_tmp.channels.map((channel): t_channels_fields => {
+				return {
+					id: channel.id,
+					name: channel.name,
+					type: channel.chanType,
+				};
+			}),
+			games_played_ids: requested_user_tmp.gamesPlayed.map((game): string => game.id),
+			games_won_ids: requested_user_tmp.gamesWon.map((game): string => game.id),
+		};
+
 		if (
 			requesting_user_id !== requested_user_id &&
-			!requested_user.friends.some((friend) => friend.id === requesting_user_id) &&
+			!requesting_user.friends.some((friend): boolean => friend.id === requested_user_id) &&
 			!requested_user.channels.some((requested_user_channel): boolean =>
 				requesting_user.channels.some(
 					(requesting_user_channel): boolean =>
@@ -461,13 +586,17 @@ export class UserService {
 			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
 		}
 
+		this._logger.log(`User ${requested_user_id} was successfully retrieved from the database.`);
 		return requested_user;
 	}
 
 	/**
 	 * @brief	Get a user's avatar from the database.
-	 * 			Both of the requesting and the requested user must be active,
-	 * 			and have at least one common channel, be friends, or be the same.
+	 * 			Requested user must be active,
+	 * 			and either have at least one common channel with the requesting user,
+	 * 			or be friends with the requesting user, or be the requesting user.
+	 * 			It is assumed that the provided requesting user id is valid.
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	requesting_user_id The id of the user requesting the user's avatar.
 	 * @param	requested_user_id The id of the user to get the avatar from.
@@ -497,27 +626,21 @@ export class UserService {
 			}[];
 		};
 
-		const requesting_user: t_requesting_user_fields | null = await this._prisma.user.findUnique(
-			{
-				select: {
-					channels: {
-						select: {
-							id: true,
-						},
-					},
-				},
-				where: {
-					idAndState: {
-						id: requesting_user_id,
-						state: StateType.ACTIVE,
+		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
+			select: {
+				channels: {
+					select: {
+						id: true,
 					},
 				},
 			},
-		);
-
-		if (!requesting_user) {
-			throw new UserNotFoundError(requesting_user_id);
-		}
+			where: {
+				idAndState: {
+					id: requesting_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		})) as t_requesting_user_fields;
 
 		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
 			select: {
@@ -596,6 +719,10 @@ export class UserService {
 
 	/**
 	 * @brief	Make a user unblock another user, ending the restrictions imposed by the block.
+	 * 			Unblocked user must be active, by currently blocked by the unblocking user,
+	 * 			and not be the same as the unblocking user.
+	 * 			It is assumed that the provided unblocking user id is valid.
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	unblocking_user_id The id of the user unblocking the other user.
 	 * @param	unblocked_user_id The id of the user being unblocked.
@@ -617,27 +744,21 @@ export class UserService {
 			id: string;
 		};
 
-		const unblocking_user: t_unblocking_user_fields | null = await this._prisma.user.findUnique(
-			{
-				select: {
-					blocked: {
-						select: {
-							id: true,
-						},
-					},
-				},
-				where: {
-					idAndState: {
-						id: unblocking_user_id,
-						state: StateType.ACTIVE,
+		const unblocking_user: t_unblocking_user_fields = (await this._prisma.user.findUnique({
+			select: {
+				blocked: {
+					select: {
+						id: true,
 					},
 				},
 			},
-		);
-
-		if (!unblocking_user) {
-			throw new UserNotFoundError();
-		}
+			where: {
+				idAndState: {
+					id: unblocking_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		})) as t_unblocking_user_fields;
 
 		const unblocked_user: t_unblocked_user_fields | null = await this._prisma.user.findUnique({
 			select: {
@@ -685,11 +806,17 @@ export class UserService {
 				},
 			},
 		});
-		this._logger.log(`Unblocked user ${unblocked_user_id} from user ${unblocking_user_id}`);
+		this._logger.log(
+			`User ${unblocked_user_id} has been unblocked by user ${unblocking_user_id}`,
+		);
 	}
 
 	/**
 	 * @brief	Make a user unfriend another user, removing their friendship in both directions.
+	 * 			Unfriended user must be active, be friend with the unfriending user,
+	 * 			and not be the same as the unfriending user.
+	 * 			It is assumed that the provided unfriending user id is valid.
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	unfriending_user_id The id of the user unfriending the other user.
 	 * @param	unfriended_user_id The id of the user being unfriended.
@@ -710,13 +837,13 @@ export class UserService {
 			friends: {
 				id: string;
 			}[];
-		} | null,
+		},
 		unfriended_user?: {
 			id: string;
 		} | null,
 	): Promise<void> {
 		if (!unfriending_user) {
-			unfriending_user = await this._prisma.user.findUnique({
+			unfriending_user = (await this._prisma.user.findUnique({
 				select: {
 					friends: {
 						select: {
@@ -730,7 +857,11 @@ export class UserService {
 						state: StateType.ACTIVE,
 					},
 				},
-			});
+			})) as {
+				friends: {
+					id: string;
+				}[];
+			};
 
 			if (!unfriending_user) {
 				throw new UserNotFoundError();
@@ -799,11 +930,15 @@ export class UserService {
 				},
 			},
 		});
-		this._logger.log(`Unfriended user ${unfriended_user_id} from user ${unfriending_user_id}`);
+		this._logger.log(
+			`User ${unfriended_user_id} has been unfriended by user ${unfriending_user_id}`,
+		);
 	}
 
 	/**
 	 * @brief	Update a user in the database.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	id The id of the user to update.
 	 * @param	name The new name of the user.
@@ -812,12 +947,12 @@ export class UserService {
 	 * @param	skin_id The new skin id of the user.
 	 *
 	 * @error	The following errors may be thrown :
-	 * 			- UserNotFoundError
 	 * 			- UserFieldUnaivalableError
 	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
+	// REMIND: rename into update_me (?)
 	public async update_one(
 		id: string,
 		name?: string,
@@ -832,7 +967,7 @@ export class UserService {
 			skinId: string;
 		};
 
-		const user: t_fields | null = await this._prisma.user.findUnique({
+		const user: t_fields = (await this._prisma.user.findUnique({
 			select: {
 				name: true,
 				email: true,
@@ -845,11 +980,7 @@ export class UserService {
 					state: StateType.ACTIVE,
 				},
 			},
-		});
-
-		if (!user) {
-			throw new UserNotFoundError();
-		}
+		})) as t_fields;
 
 		if (name !== undefined) user.name = name;
 		if (email !== undefined) user.email = email;
@@ -882,12 +1013,13 @@ export class UserService {
 
 	/**
 	 * @brief	Update a user's avatar in the database.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	id The id of the user to update the avatar from.
 	 * @param	file The file containing the new avatar.
 	 *
 	 * @error	The following errors may be thrown :
-	 * 			- UserNotFoundError
 	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
@@ -897,7 +1029,7 @@ export class UserService {
 			avatar: string;
 		};
 
-		const user: t_fields | null = await this._prisma.user.findUnique({
+		const user: t_fields = (await this._prisma.user.findUnique({
 			select: {
 				avatar: true,
 			},
@@ -907,33 +1039,20 @@ export class UserService {
 					state: StateType.ACTIVE,
 				},
 			},
-		});
-
-		if (!user) {
-			throw new UserNotFoundError(id);
-		}
+		})) as t_fields;
 
 		if (user.avatar === "resource/avatar/default.jpg") {
-			user.avatar = `resource/avatar/${id}.jpg`;
-
-			try {
-				await this._prisma.user.update({
-					data: user,
-					where: {
-						idAndState: {
-							id: id,
-							state: StateType.ACTIVE,
-						},
+			await this._prisma.user.update({
+				data: {
+					avatar: `resource/avatar/${id}.jpg`,
+				},
+				where: {
+					idAndState: {
+						id: id,
+						state: StateType.ACTIVE,
 					},
-				});
-			} catch (error) {
-				this._logger.error(`Error occured while updating user ${id}'s avatar`);
-				if (error instanceof PrismaClientKnownRequestError) {
-					this._logger.error(`PrismaClientKnownRequestError code was ${error.code}`);
-				}
-
-				throw new UnknownError();
-			}
+				},
+			});
 		}
 		try {
 			createWriteStream(join(process.cwd(), user.avatar)).write(file.buffer);
@@ -942,7 +1061,6 @@ export class UserService {
 				this._logger.error(`Error occured while writing avatar to disk: ${error.message}`);
 			throw new UnknownError();
 		}
-
 		this._logger.log(`Updated user ${id}'s avatar`);
 	}
 }

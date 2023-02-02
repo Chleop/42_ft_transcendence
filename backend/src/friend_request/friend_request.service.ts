@@ -12,6 +12,8 @@ import { UserAlreadyFriendError, UserBlockedError, UserNotFoundError } from "src
 
 @Injectable()
 export class FriendRequestService {
+	// REMIND: would it be better to make these properties static ?
+	// REMIND: check if passing `_prisma` in readonly keep it working well
 	private _prisma: PrismaService;
 	private readonly _logger: Logger;
 
@@ -22,7 +24,7 @@ export class FriendRequestService {
 
 	/**
 	 * @brief	Make a user accept a pending friend request from another user.
-	 * 			Both of the users must be active, and not be the same.
+	 * 			Accepted user must be active and not the same as the accepting user.
 	 * 			Once both of the users become friends, they become able to :
 	 * 			- see each other's status
 	 * 			- see each other's channels
@@ -31,6 +33,8 @@ export class FriendRequestService {
 	 * 			- challenge each other without passing by a channel
 	 * 			- spectating each other's games without passing by a channel
 	 * 			- invite each other to a channel without passing by a channel
+	 * 			It is assumed that the provided accepting user id is valid.
+	 * 			(user exists and is not DISABLED)
 	 *
 	 * @param	accepting_user_id The id of the user accepting the friend request.
 	 * @param	accepted_user_id The id of the user that sent the friend request.
@@ -55,7 +59,7 @@ export class FriendRequestService {
 			pendingFriendRequests: {
 				id: string;
 			}[];
-		} | null,
+		},
 		accepted_user?: {
 			pendingFriendRequests: {
 				id: string;
@@ -63,7 +67,7 @@ export class FriendRequestService {
 		} | null,
 	): Promise<void> {
 		if (!accepting_user) {
-			accepting_user = await this._prisma.user.findUnique({
+			accepting_user = (await this._prisma.user.findUnique({
 				select: {
 					friends: {
 						select: {
@@ -82,11 +86,14 @@ export class FriendRequestService {
 						state: StateType.ACTIVE,
 					},
 				},
-			});
-
-			if (!accepting_user) {
-				throw new UserNotFoundError(accepting_user_id);
-			}
+			})) as {
+				friends: {
+					id: string;
+				}[];
+				pendingFriendRequests: {
+					id: string;
+				}[];
+			};
 		}
 
 		if (!accepted_user) {
@@ -173,7 +180,9 @@ export class FriendRequestService {
 
 	/**
 	 * @brief	Make a user reject a pending friend request from another user.
-	 * 			Both of the users must be active, and not be the same.
+	 * 			Rejected user must be active and not the same as the rejecting user.
+	 * 			It is assumed that the rejecting user id is valid.
+	 * 			(user exists and is not DISABLED)
 	 *
 	 * @param	rejecting_user_id The id of the user rejecting the friend request.
 	 * @param	rejected_user_id The id of the user that sent the friend request.
@@ -194,7 +203,7 @@ export class FriendRequestService {
 			pendingFriendRequests: {
 				id: string;
 			}[];
-		} | null,
+		},
 		rejected_user?: {
 			pendingFriendRequests: {
 				id: string;
@@ -202,7 +211,7 @@ export class FriendRequestService {
 		} | null,
 	): Promise<void> {
 		if (!rejecting_user) {
-			rejecting_user = await this._prisma.user.findUnique({
+			rejecting_user = (await this._prisma.user.findUnique({
 				select: {
 					pendingFriendRequests: {
 						select: {
@@ -216,11 +225,11 @@ export class FriendRequestService {
 						state: StateType.ACTIVE,
 					},
 				},
-			});
-
-			if (!rejecting_user) {
-				throw new UserNotFoundError(rejecting_user_id);
-			}
+			})) as {
+				pendingFriendRequests: {
+					id: string;
+				}[];
+			};
 		}
 
 		if (!rejected_user) {
@@ -282,9 +291,11 @@ export class FriendRequestService {
 
 	/**
 	 * @brief	Make a user send a friend request to an other user.
-	 * 			Both of the users must be active, and not be the same.
+	 * 			Receiving user must be active and not the same as the sendind user.
 	 * 			If the sending user has already a pending friend request from the receiving user,
 	 * 			it will accept it instead of sending a new one.
+	 * 			It is assumed that the sending user id is valid.
+	 * 			(user exists and is not DISABLED)
 	 *
 	 * @param	sending_user_id The id of the user sending the friend request.
 	 * @param	receiving_user_id The id of the user receiving the friend request.
@@ -313,7 +324,7 @@ export class FriendRequestService {
 			pendingFriendRequests: {
 				id: string;
 			}[];
-		} | null,
+		},
 		receiving_user?: {
 			blocked: {
 				id: string;
@@ -324,7 +335,7 @@ export class FriendRequestService {
 		} | null,
 	): Promise<void> {
 		if (!sending_user) {
-			sending_user = await this._prisma.user.findUnique({
+			sending_user = (await this._prisma.user.findUnique({
 				select: {
 					blocked: {
 						select: {
@@ -348,11 +359,17 @@ export class FriendRequestService {
 						state: StateType.ACTIVE,
 					},
 				},
-			});
-
-			if (!sending_user) {
-				throw new UserNotFoundError(sending_user_id);
-			}
+			})) as {
+				blocked: {
+					id: string;
+				}[];
+				friends: {
+					id: string;
+				}[];
+				pendingFriendRequests: {
+					id: string;
+				}[];
+			};
 		}
 
 		if (!receiving_user) {
