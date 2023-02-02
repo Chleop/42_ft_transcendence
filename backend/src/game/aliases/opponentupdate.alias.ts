@@ -2,9 +2,13 @@ import { Socket } from "socket.io";
 import { PaddleDto } from "../dto";
 
 export type OpponentUpdate = {
-	// Opponent socket
+	/**
+	 * Opponent socket instance.
+	 */
 	player: Socket;
 
-	// Paddle of the client
+	/**
+	 * Updated paddle coordinates.
+	 */
 	updated_paddle: PaddleDto;
 };

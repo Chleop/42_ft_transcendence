@@ -30,10 +30,10 @@ export class SocketIOAdapter extends IoAdapter {
 
 	/**
 	 * (from IoAdapter)
-	 * Called from main (when SocketIOAdapter instanciated)
+	 * Called from main (when SocketIOAdapter instanciated).
 	 *
 	 * Defines extra indications for the new gateway instanciated,
-	 * allows middleware usage
+	 * allows middleware usage.
 	 */
 	public override createIOServer(port: number, options?: ServerOptions): Server {
 		let client_port: number;
@@ -76,7 +76,6 @@ const websocketMiddleware =
 	async (client: Socket, next: (error?: any) => void) => {
 		const token: string | undefined = client.handshake.auth.token;
 		const secret: string | undefined = config_service.get<string>("JWT_SECRET");
-		const logger: Logger = new Logger("WebsocketMiddleware");
 
 		if (secret === undefined) throw new Error("JwtSecret undefined"); // should NOT happen
 
@@ -84,7 +83,6 @@ const websocketMiddleware =
 			if (token === undefined) {
 				throw new Error("No token provided");
 			}
-			logger.debug(`Validating token: ${token}`);
 			const payload: { sub: string } = jwt_service.verify(token, { secret });
 			const user: UserData = await user_service.get_one(payload.sub, payload.sub);
 			// TODO: remove this assignation, it's useless
@@ -93,7 +91,6 @@ const websocketMiddleware =
 			client.data.user = user;
 			next();
 		} catch (e) {
-			console.error(e);
 			next(new ForbiddenException("Invalid token"));
 		}
 	};

@@ -1,18 +1,11 @@
-import { Gameplay } from "../gameplay";
-import { PaddleDto } from "../dto";
 import { Socket } from "socket.io";
-import { AntiCheat, Score, Match } from "../aliases";
-import { Results, Ball, ScoreUpdate, SpectatorUpdate } from "../objects";
+import { Gameplay, Ball } from "../gameplay";
+import { Score, Match, OpponentUpdate } from "../aliases";
+import { Results, ScoreUpdate, SpectatorUpdate } from "../objects";
 import { Logger } from "@nestjs/common";
 
-// TODO: make it cleaner
-type CheatCheck = {
-	has_cheated: boolean;
-	updated_paddle: PaddleDto;
-};
-
 /**
- * Ongoing game room handle
+ * Ongoing game room handler.
  *
  * Once someone leaves the game, the room is completely removed.
  */
@@ -20,76 +13,121 @@ export class GameRoom {
 	public readonly match: Match;
 	private players_ping_id: NodeJS.Timer | null;
 	private game: Gameplay;
-	private is_ongoing: boolean;
-	private readonly _logger: Logger;
+	public is_ongoing: boolean;
+	public has_updated_score: boolean;
+	private readonly logger: Logger;
+
+	/* CONSTRUCTOR ============================================================= */
 
 	constructor(match: Match) {
 		this.match = match;
 		this.players_ping_id = null;
 		this.game = new Gameplay();
 		this.is_ongoing = true;
-		this._logger = new Logger(GameRoom.name);
-		this._logger.log(`Room created: ${this.match.name}`);
+		this.has_updated_score = false;
+		this.logger = new Logger(GameRoom.name);
+
+		this.logger.log("Room created:", this.match.name);
 	}
 
-	/* == PUBLIC ================================================================================ */
+	/* PUBLIC ================================================================== */
 
-	/* -- GAME MANAGEMENT ----------------------------------------------------- */
-	/* Call this function once the game actually starts */
+	/**
+	 * Initiates game.
+	 *
+	 * Returns the initial ball coordinates.
+	 */
 	public startGame(): Ball {
-		// this.is_ongoing = true;
 		return this.game.initializeGame();
 	}
 
-	/* Called every 16ms to send ball updates */
-	public updateGame(): Ball | ScoreUpdate {
-		return this.game.refresh();
+	/**
+	 * Sends game update.
+	 *
+	 * Returns a ball if nothing noticeable happened,
+	 * a score update if a point was marked,
+	 * and the final results if someone hit the maximum score.
+	 */
+	public updateGame(): Ball | ScoreUpdate | Results {
+		const update: any = this.game.refresh();
+		if (update instanceof Results) {
+			const winner_nb: number = this.game.getWinner();
+			if (winner_nb === 1) update.setWinner(this.match.player1.data.user.id);
+			else if (winner_nb === 2) update.setWinner(this.match.player2.data.user.id);
+		}
+		return update;
 	}
 
-	/* Called everytime the sender sent an update */
-	public updatePaddle(client: Socket, dto: PaddleDto): AntiCheat {
+	/**
+	 * Updates received paddle.
+	 */
+	public updatePaddle(client: Socket): OpponentUpdate {
 		if (this.game === null) throw "Game hasn't started yet";
-		const cheat_check: CheatCheck = this.game.checkUpdate(this.playerNumber(client), dto);
 		return {
-			p1: cheat_check.has_cheated ? cheat_check.updated_paddle : null,
-			p2: {
-				player: this.whoIsOpponent(client),
-				updated_paddle: cheat_check.updated_paddle,
-			},
+			player: this.whoIsOpponent(client),
+			updated_paddle: this.game.checkUpdate(
+				this.playerNumber(client),
+				client.data.paddle_dto,
+			),
 		};
 	}
 
-	/* Saves the current state of the game */
-	public cutGameShort(guilty: number | null): Results {
+	/**
+	 * Stops the game early (when someone leaves the game).
+	 */
+	public cutGameShort(guilty: number): Results {
 		if (!this.game) throw null;
-		else if (guilty === null) throw null;
 		this.is_ongoing = false;
-		return this.game.getResults(guilty);
+		this.has_updated_score = false;
+		const score: Score = this.game.getScores();
+		let winner: string;
+		if (guilty === 1) winner = this.match.player2.data.user.id;
+		else winner = this.match.player1.data.user.id;
+		return new Results(score, winner);
 	}
 
-	/* -- GAME MANAGEMENT ----------------------------------------------------- */
+	/* ------------------------------------------------------------------------- */
+
+	/**
+	 * Sends current game state to spectator.
+	 *
+	 * Can be a score object if someone marked a point.
+	 */
+	public getSpectatorUpdate(): SpectatorUpdate | Score {
+		if (!this.is_ongoing) throw null;
+		if (!this.has_updated_score) {
+			this.has_updated_score = true;
+			return this.game.getScores();
+		}
+		return this.game.getSpectatorUpdate();
+	}
+
 	public getFinalScore(): ScoreUpdate {
 		return this.game.getFinalScore();
 	}
 
-	public getSpectatorUpdate(): SpectatorUpdate {
-		if (!this.is_ongoing) throw null;
-		return this.game.getSpectatorUpdate();
-	}
+	/* Ping -------------------------------------------------------------------- */
 
-	/* -- INTERVAL UTILS ------------------------------------------------------ */
-	/* Stores the ID of the setInterval function */
+	/**
+	 * Stores the ID of the setInterval function.
+	 */
 	public setPlayerPingId(timer_id: NodeJS.Timer): void {
 		this.players_ping_id = timer_id;
 	}
 
-	/* Destroys associated setInteval instance */
+	/**
+	 *  Destroys associated setInteval instance.
+	 */
 	public destroyPlayerPing(): void {
 		if (this.players_ping_id === null) return;
 		clearInterval(this.players_ping_id);
 	}
 
-	/* -- IDENTIFIERS --------------------------------------------------------- */
+	/* Other Utils ------------------------------------------------------------- */
+
+	/**
+	 * Returns true if the client is in the room.
+	 */
 	public isSocketInRoom(client: Socket): boolean {
 		return (
 			this.match.player1.handshake.auth.token === client.handshake.auth.token ||
@@ -97,24 +135,19 @@ export class GameRoom {
 		);
 	}
 
-	/* Returns player's number */
-	public playerNumber(client: Socket): number | null {
+	/**
+	 * Returns player's number.
+	 */
+	public playerNumber(client: Socket): number {
 		if (this.match.player1.handshake.auth.token === client.handshake.auth.token) return 1;
-		else if (this.match.player2.handshake.auth.token === client.handshake.auth.token) return 2;
-		return null;
-	}
-
-	/* -- UTILS --------------------------------------------------------------- */
-	// TODO: Useless??
-	public getScores(): Score {
-		if (!this.game) throw "Game didn't start yet";
-		return this.game.getScores();
+		else return 2;
 	}
 
 	/* == PRIVATE =============================================================================== */
 
-	/* -- IDENTIFIERS --------------------------------------------------------- */
-	/* Returns client's opponent socket */
+	/**
+	 * Returns client's opponent.
+	 */
 	private whoIsOpponent(client: Socket): Socket {
 		if (this.match.player1.handshake.auth.token === client.handshake.auth.token)
 			return this.match.player2;
