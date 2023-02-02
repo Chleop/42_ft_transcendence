@@ -10,9 +10,9 @@ import { Server, Socket } from "socket.io";
 import { GameService } from "../services/game.service";
 import { GameRoom } from "../rooms";
 import { PaddleDto } from "../dto";
-import { Results, ScoreUpdate } from "../objects";
+import { Results, ScoreUpdate, OpponentUpdate } from "../objects";
 import { Ball } from "../gameplay";
-import { Match, OpponentUpdate } from "../aliases";
+import { Match } from "../aliases";
 import { BadRequestException, ConflictException, Logger } from "@nestjs/common";
 import { Constants } from "../constants";
 
@@ -111,6 +111,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			if (game_room !== null) this.matchmake(game_room);
 		} catch (e) {
 			this.sendError(client, e);
+			this.logger.log(e);
 			client.disconnect();
 		}
 	}
@@ -243,7 +244,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Disconnect players matched.
 	 */
 	private disconnectRoom(match: Match): void {
-		match.player1.disconnect(true);
-		match.player2.disconnect(true);
+		match.player1.disconnect();
+		match.player2.disconnect();
 	}
 }

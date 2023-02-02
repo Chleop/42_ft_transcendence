@@ -8,10 +8,11 @@ import {
 import { Server, Socket } from "socket.io";
 import { GameService, SpectatedRooms } from "../services";
 import { GameRoom, SpectatedRoom } from "../rooms";
-import { SpectatorUpdate } from "../objects";
+import { PlayerInfos, SpectatorUpdate } from "../objects";
 import { Score } from "../aliases";
+import { Logger, StreamableFile } from "@nestjs/common";
+import { UserService } from "src/user/user.service";
 import { Constants } from "../constants";
-import { Logger } from "@nestjs/common";
 
 @WebSocketGateway({
 	namespace: "spectate",
@@ -20,6 +21,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	@WebSocketServer()
 	public readonly server: Server;
 	private readonly game_service: GameService;
+	private readonly user_service: UserService;
 	private readonly spectated_rooms: SpectatedRooms;
 	private readonly logger: Logger;
 
@@ -51,13 +53,31 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 * On connection, clients are immediately moved to the spectating room.
 	 * Else, they're disconnected.
 	 */
-	public handleConnection(client: Socket): void {
+	public async handleConnection(client: Socket): Promise<void> {
 		this.logger.log(`Socket '${client.handshake.auth.token}' joined`);
 		try {
 			const user_id: string | string[] | undefined = client.handshake.auth.user_id;
 			if (typeof user_id !== "string") throw "Room not properly specified";
 			client.data.valid_uid = true;
 			const room: GameRoom = this.game_service.findUserGame(user_id);
+
+			const player1: Socket = room.match.player1;
+			const player2: Socket = room.match.player2;
+
+			const avatar1: StreamableFile = await this.user_service.get_ones_avatar(
+				player1.handshake.auth.token,
+				player1.handshake.auth.token,
+			);
+			const avatar2: StreamableFile = await this.user_service.get_ones_avatar(
+				player2.handshake.auth.token,
+				player2.handshake.auth.token,
+			);
+
+			const player_infos1: PlayerInfos = new PlayerInfos(player1.data.user, avatar1);
+			const player_infos2: PlayerInfos = new PlayerInfos(player2.data.user, avatar2);
+
+			client.emit("roomData", { player1: player_infos1, player2: player_infos2 });
+
 			client.join(room.match.name);
 			return this.startStreaming(client, room);
 		} catch (e) {

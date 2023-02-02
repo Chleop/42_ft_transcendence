@@ -3,8 +3,8 @@ import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { BadRequestException, ConflictException } from "@nestjs/common";
 import { Socket } from "socket.io";
 import { GameRoom } from "../rooms";
-import { Match, OpponentUpdate } from "../aliases";
-import { Results } from "../objects";
+import { Match } from "../aliases";
+import { Results, OpponentUpdate } from "../objects";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Matchmaking } from "../matchmaking";
 

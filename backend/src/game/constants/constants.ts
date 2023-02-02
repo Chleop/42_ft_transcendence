@@ -47,5 +47,5 @@ export enum BallRefreshResult {
 	nothing,
 }
 
-// /* Margin of error for paddle: 20% */
+/* Margin of error for paddle: 20% */
 export const margin: number = 0.2;

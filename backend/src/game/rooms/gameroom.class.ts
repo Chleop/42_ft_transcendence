@@ -1,7 +1,7 @@
 import { Socket } from "socket.io";
 import { Gameplay, Ball } from "../gameplay";
-import { Score, Match, OpponentUpdate } from "../aliases";
-import { Results, ScoreUpdate, SpectatorUpdate } from "../objects";
+import { Score, Match } from "../aliases";
+import { Results, ScoreUpdate, SpectatorUpdate, OpponentUpdate } from "../objects";
 import { Logger } from "@nestjs/common";
 
 /**
