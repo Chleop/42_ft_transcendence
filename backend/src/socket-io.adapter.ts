@@ -27,10 +27,10 @@ export class SocketIOAdapter extends IoAdapter {
 
 	/**
 	 * (from IoAdapter)
-	 * Called from main (when SocketIOAdapter instanciated)
+	 * Called from main (when SocketIOAdapter instanciated).
 	 *
 	 * Defines extra indications for the new gateway instanciated,
-	 * allows middleware usage
+	 * allows middleware usage.
 	 */
 	public override createIOServer(port: number, options?: ServerOptions): Server {
 		let client_port: number;

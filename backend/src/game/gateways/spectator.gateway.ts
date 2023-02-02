@@ -101,19 +101,15 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 			game_room.match.name,
 		);
 		if (spectated_room === null) {
-			// Create a new spec room if it doesn't exist
 			this.logger.log(`Creating room ${game_room.match.name}`);
-
 			const new_room: SpectatedRoom = new SpectatedRoom(
 				game_room,
 				setInterval(this.updateGame, Constants.ping, this, game_room),
 			);
-
 			new_room.addSpectator(client);
 			this.spectated_rooms.add(new_room);
 		} else {
-			// The room exists
-			this.logger.log(`${spectated_room.getName()} exists`);
+			this.logger.log(`${spectated_room.getName()} already exists`);
 		}
 	}
 

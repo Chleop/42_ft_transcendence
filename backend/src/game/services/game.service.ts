@@ -76,6 +76,8 @@ export class GameService {
 	 * Trying to match client with another player.
 	 */
 	public queueUp(client: Socket): GameRoom | null {
+		const index: number = this.findUserRoomIndex(client);
+		if (index >= 0) throw "Player already in game";
 		const new_game_room: GameRoom | null = this.matchmaking.queueUp(client);
 		if (new_game_room === null) return null;
 		this.game_rooms.push(new_game_room);

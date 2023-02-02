@@ -106,8 +106,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 */
 	public handleConnection(client: Socket): void {
 		this.logger.log(`[${client.handshake.auth.token} connected]`);
-		const game_room: GameRoom | null = this.game_service.queueUp(client);
-		if (game_room !== null) this.matchmake(game_room);
+		try {
+			const game_room: GameRoom | null = this.game_service.queueUp(client);
+			if (game_room !== null) this.matchmake(game_room);
+		} catch (e) {
+			this.sendError(client, e);
+			client.disconnect();
+		}
 	}
 
 	/**
