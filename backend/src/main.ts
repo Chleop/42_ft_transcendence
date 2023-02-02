@@ -7,7 +7,9 @@ import * as session from "express-session";
 import * as passport from "passport";
 
 async function bootstrap() {
-	const app = await NestFactory.create<NestExpressApplication>(AppModule);
+	const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+		logger: ["debug", "error", "warn"],
+	});
 
 	// REMIND remove the exclude part when removing the file server.
 	app.setGlobalPrefix("api", { exclude: ["/", "/script.js", "/style.css"] });
