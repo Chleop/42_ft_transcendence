@@ -46,7 +46,7 @@ export type t_games_played_fields = {
 	winner_id: string;
 };
 
-type t_channels_fields_tmp = {
+export type t_channels_fields_tmp = {
 	id: string;
 	name: string;
 	chanType: ChanType;

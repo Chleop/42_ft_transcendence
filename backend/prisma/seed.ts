@@ -104,6 +104,12 @@ async function main() {
 					{
 						name: "general",
 					},
+					{
+						name: "random",
+					},
+					{
+						name: "joke",
+					},
 				],
 			},
 		},

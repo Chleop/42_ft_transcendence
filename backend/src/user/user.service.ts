@@ -45,7 +45,7 @@ export class UserService {
 	 * 			- being invited to a channel by the blocked user
 	 * 			- seeing the blocked user's messages
 	 * 			It is assumed that the provided blocking user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	blocking_user_id The id of the user blocking the other user.
 	 * @param	blocked_user_id The id of the user being blocked.
@@ -273,7 +273,7 @@ export class UserService {
 	 * @brief	Change the account state of a user to DISABLED, before trully deleting them
 	 * 			from the database a certain time later.
 	 * 			It is assumed that the provided user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	id The id of the user to delete.
 	 *
@@ -352,7 +352,7 @@ export class UserService {
 	/**
 	 * @brief	Get a user from the database.
 	 * 			It is assumed that the provided user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	id The id of the user to get.
 	 *
@@ -475,7 +475,7 @@ export class UserService {
 	 * 			and either have at least one common channel with the requesting user,
 	 * 			be friends with the requesting user, or be the requesting user.
 	 * 			It is assumed that the provided requesting user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	requesting_user_id The id of the user requesting the user.
 	 * @param	requested_user_id The id of the user to get.
@@ -596,7 +596,7 @@ export class UserService {
 	 * 			and either have at least one common channel with the requesting user,
 	 * 			or be friends with the requesting user, or be the requesting user.
 	 * 			It is assumed that the provided requesting user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	requesting_user_id The id of the user requesting the user's avatar.
 	 * @param	requested_user_id The id of the user to get the avatar from.
@@ -722,7 +722,7 @@ export class UserService {
 	 * 			Unblocked user must be active, by currently blocked by the unblocking user,
 	 * 			and not be the same as the unblocking user.
 	 * 			It is assumed that the provided unblocking user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	unblocking_user_id The id of the user unblocking the other user.
 	 * @param	unblocked_user_id The id of the user being unblocked.
@@ -816,7 +816,7 @@ export class UserService {
 	 * 			Unfriended user must be active, be friend with the unfriending user,
 	 * 			and not be the same as the unfriending user.
 	 * 			It is assumed that the provided unfriending user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	unfriending_user_id The id of the user unfriending the other user.
 	 * @param	unfriended_user_id The id of the user being unfriended.
@@ -938,7 +938,7 @@ export class UserService {
 	/**
 	 * @brief	Update a user in the database.
 	 * 			It is assumed that the provided user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	id The id of the user to update.
 	 * @param	name The new name of the user.
@@ -1014,7 +1014,7 @@ export class UserService {
 	/**
 	 * @brief	Update a user's avatar in the database.
 	 * 			It is assumed that the provided user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	id The id of the user to update the avatar from.
 	 * @param	file The file containing the new avatar.
