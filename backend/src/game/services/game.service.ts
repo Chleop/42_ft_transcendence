@@ -1,11 +1,11 @@
-import { GameRoom } from "../rooms";
-import { Match, OpponentUpdate } from "../aliases";
-import { Results } from "../objects";
 import { Injectable } from "@nestjs/common";
-import { PrismaService } from "src/prisma/prisma.service";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { BadRequestException, ConflictException } from "@nestjs/common";
 import { Socket } from "socket.io";
+import { GameRoom } from "../rooms";
+import { Match, OpponentUpdate } from "../aliases";
+import { Results } from "../objects";
+import { PrismaService } from "src/prisma/prisma.service";
 import { Matchmaking } from "../matchmaking";
 
 /**
@@ -23,6 +23,7 @@ export class GameService {
 
 	constructor(prisma: PrismaService) {
 		this.prisma_service = prisma;
+		this.matchmaking = new Matchmaking();
 		this.game_rooms = [];
 	}
 

@@ -25,7 +25,7 @@ export class Matchmaking {
 	 * Else, client is matched with queue and a new game room is returned.
 	 */
 	public queueUp(client: Socket): GameRoom | null {
-		if (!this.queue) {
+		if (this.queue === null) {
 			this.queue = client;
 			return null;
 		} else {

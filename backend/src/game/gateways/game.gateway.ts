@@ -104,6 +104,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 */
 	public handleConnection(client: Socket): void {
 		console.log(`[${client.handshake.auth.token} connected]`);
+
+		console.log(client.handshake);
 		const game_room: GameRoom | null = this.game_service.queueUp(client);
 		if (game_room !== null) this.matchmake(game_room);
 	}
