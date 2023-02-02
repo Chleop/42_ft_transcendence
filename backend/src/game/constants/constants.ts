@@ -20,10 +20,14 @@ export const max_score: number = 5;
 /* Half of paddle size */
 export const paddle_radius: number = 1;
 
-/* Shift paddle from wall */
+/**
+ * Paddle distance from wall
+ */
 export const paddle_x: number = 1;
 
-/* Shift paddle from wall */
+/**
+ * Paddle speed
+ */
 export const paddle_speed: number = 4;
 
 /* Maximum x value for ball x on wall */

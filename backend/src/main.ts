@@ -3,14 +3,16 @@ import { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { SocketIOAdapter } from "./socket-io.adapter";
 import * as session from "express-session";
 import * as passport from "passport";
 
 async function bootstrap() {
-	const app = await NestFactory.create<NestExpressApplication>(AppModule);
+	const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+		logger: ["log", "error", "verbose"],
+	});
 
-	// REMIND remove the exclude part when removing the file server.
-	app.setGlobalPrefix("api", { exclude: ["/", "/script.js", "/style.css"] });
+	app.setGlobalPrefix("api");
 
 	app.useGlobalPipes(
 		new ValidationPipe({
@@ -28,6 +30,7 @@ async function bootstrap() {
 	);
 	app.use(passport.initialize());
 	app.use(passport.session());
+	app.useWebSocketAdapter(new SocketIOAdapter(app, configService));
 
 	await app.listen(3000);
 }

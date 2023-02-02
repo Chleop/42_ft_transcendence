@@ -20,21 +20,21 @@ export interface Message {
      */
     id: MessageId;
     /**
-     * The ID of the author's avatar.
-     */
-    author_avatar: string;
-    /**
      * The ID of the author.
      */
-    author_id: UserId;
-    /**
-     * The name of the author.
-     */
-    author_name: string;
+    senderId: UserId;
     /**
      * The content of the message.
      */
     content: string;
+    /**
+     * The ID of the channel.
+     */
+    channelId: ChannelId,
+    /**
+     * The time of the message.
+     */
+    dateTime: string,
 }
 
 /**
