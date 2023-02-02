@@ -40,7 +40,12 @@ export class ChatGateway {
 	 */
 	public broadcast_to_room(message: ChannelMessage): void {
 		ChatGateway._logger.debug(`Broadcasting message to room: ${message.channelId}...`);
-		this._server.to(message.channelId).emit("message", message);
+		for (const socket of ChatGateway._client_sockets.values()) {
+            if (socket.rooms.has(message.channelId)) {
+                ChatGateway._logger.debug(`Sending message to user: ${socket.data.user.name}`);
+                socket.emit("message", message);
+            }
+        }
 	}
 
 	/**

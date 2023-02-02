@@ -177,10 +177,7 @@ async function main() {
 					},
 					{
 						name: "random",
-					},
-					{
-						name: "joke",
-					},
+					}
 				],
 			},
 		},
