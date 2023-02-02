@@ -3,11 +3,13 @@ import { PaddleDto } from "../dto";
 import { Ball, Paddle } from "./";
 import { Results, ScoreUpdate, SpectatorUpdate } from "../objects";
 import { Constants } from "../constants";
+import { Logger } from "@nestjs/common";
 
 /**
  * Track the state of the game.
  */
 export class Gameplay {
+	private readonly logger: Logger;
 	private scores: Score;
 	private paddle1: Paddle;
 	private paddle2: Paddle;
@@ -17,6 +19,7 @@ export class Gameplay {
 	/* CONSTRUCTOR ============================================================= */
 
 	constructor() {
+		this.logger = new Logger(Gameplay.name);
 		this.scores = {
 			player1_score: 0,
 			player2_score: 0,
@@ -33,7 +36,7 @@ export class Gameplay {
 	 * Generates ball for game initialization.
 	 */
 	public initializeGame(): Ball {
-		console.log("Initializing game");
+		this.logger.log("Initializing game");
 		this.last_update = Date.now();
 		return this.ball;
 	}

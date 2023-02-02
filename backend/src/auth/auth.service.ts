@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { UserNotFoundError } from "src/user/error";
@@ -12,11 +12,13 @@ export class AuthService {
 	private readonly _user: UserService;
 	private readonly _config: ConfigService;
 	private _jwt: JwtService;
+	private readonly _logger: Logger;
 
 	constructor() {
 		this._user = new UserService();
 		this._jwt = new JwtService();
 		this._config = new ConfigService();
+		this._logger = new Logger(AuthService.name);
 	}
 
 	public async createAccessToken(login: string): Promise<t_access_token> {
@@ -26,7 +28,7 @@ export class AuthService {
 			userId = await this._user.get_ones_id_by_login(login);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				userId = await this._user.create_one(login);
 			} else throw error;
 		}

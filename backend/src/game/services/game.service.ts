@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { BadRequestException, ConflictException } from "@nestjs/common";
 import { Socket } from "socket.io";
@@ -18,6 +18,7 @@ export class GameService {
 	private prisma_service: PrismaService;
 	private game_rooms: GameRoom[];
 	private matchmaking: Matchmaking;
+	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
 
@@ -25,6 +26,7 @@ export class GameService {
 		this.prisma_service = prisma;
 		this.matchmaking = new Matchmaking();
 		this.game_rooms = [];
+		this.logger = new Logger(GameService.name);
 	}
 
 	/* PUBLIC ================================================================== */
@@ -93,7 +95,7 @@ export class GameService {
 			// Client is not in a gameroom
 			if (index < 0) return null;
 
-			console.log("Kicked from room");
+			this.logger.log("Kicked from room");
 
 			// Client was in an ongoing game
 			const room: GameRoom = this.game_rooms[index];
@@ -112,7 +114,7 @@ export class GameService {
 	public destroyRoom(room: GameRoom): void {
 		const index: number = this.game_rooms.indexOf(room);
 		if (index < 0) return;
-		console.log(`Destroying room ${room.match.name}`);
+		this.logger.log(`Destroying room ${room.match.name}`);
 		room.destroyPlayerPing();
 		this.game_rooms.splice(index, 1);
 	}

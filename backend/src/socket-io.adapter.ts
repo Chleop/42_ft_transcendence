@@ -79,14 +79,12 @@ const websocketMiddleware =
 			if (token === undefined) {
 				throw new Error("No token provided");
 			}
-			console.log(`Validating token: ${token}`);
 			const payload: { sub: string } = jwt_service.verify(token, { secret });
 			const user: UserData = await user_service.get_one(payload.sub, payload.sub);
 			client.handshake.auth.token = payload.sub;
 			client.data.user = user;
 			next();
 		} catch (e) {
-			console.error(e);
 			next(new ForbiddenException("Invalid token"));
 		}
 	};

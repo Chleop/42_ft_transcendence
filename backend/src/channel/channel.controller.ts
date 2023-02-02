@@ -15,6 +15,7 @@ import {
 	UseGuards,
 	UsePipes,
 	ValidationPipe,
+	Logger,
 } from "@nestjs/common";
 import {
 	ChannelCreateDto,
@@ -46,9 +47,11 @@ import { JwtGuard } from "src/auth/guards";
 @Controller("channel")
 export class ChannelController {
 	private _channel_service: ChannelService;
+	private readonly _logger: Logger;
 
 	constructor() {
 		this._channel_service = new ChannelService();
+		this._logger = new Logger(ChannelController.name);
 	}
 
 	@Post()
@@ -71,18 +74,18 @@ export class ChannelController {
 				error instanceof ChannelPasswordNotAllowedError ||
 				error instanceof ChannelRelationNotFoundError
 			) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
 			if (error instanceof ChannelFieldUnavailableError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
 			if (error instanceof UnknownError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new InternalServerErrorException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 
@@ -98,18 +101,18 @@ export class ChannelController {
 			await this._channel_service.delete_one(request.user.sub, channel_id);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
 			if (error instanceof ChannelNotOwnedError || error instanceof ChannelNotJoinedError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
 			if (error instanceof UnknownError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new InternalServerErrorException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -140,14 +143,14 @@ export class ChannelController {
 				error instanceof ChannelNotFoundError ||
 				error instanceof ChannelMessageNotFoundError
 			) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
 			if (error instanceof ChannelNotJoinedError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 
@@ -181,14 +184,14 @@ export class ChannelController {
 				error instanceof ChannelPasswordIncorrectError ||
 				error instanceof ChannelRelationNotFoundError
 			) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
 			if (error instanceof UnknownError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new InternalServerErrorException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 
@@ -205,7 +208,7 @@ export class ChannelController {
 			await this._channel_service.leave_one(id, request.user.sub);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
 		}
@@ -226,14 +229,14 @@ export class ChannelController {
 			);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
 			if (error instanceof ChannelMessageTooLongError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}

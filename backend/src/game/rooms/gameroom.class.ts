@@ -2,6 +2,7 @@ import { Socket } from "socket.io";
 import { Gameplay, Ball } from "../gameplay";
 import { Score, Match, OpponentUpdate } from "../aliases";
 import { Results, ScoreUpdate, SpectatorUpdate } from "../objects";
+import { Logger } from "@nestjs/common";
 
 /**
  * Ongoing game room handler.
@@ -14,6 +15,7 @@ export class GameRoom {
 	private game: Gameplay;
 	public is_ongoing: boolean;
 	public has_updated_score: boolean;
+	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
 
@@ -23,8 +25,9 @@ export class GameRoom {
 		this.game = new Gameplay();
 		this.is_ongoing = true;
 		this.has_updated_score = false;
+		this.logger = new Logger(GameRoom.name);
 
-		console.log("Room created:", this.match.name);
+		this.logger.log("Room created:", this.match.name);
 	}
 
 	/* PUBLIC ================================================================== */

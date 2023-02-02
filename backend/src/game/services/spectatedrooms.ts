@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import { SpectatedRoom } from "../rooms";
 
 /**
@@ -5,10 +6,12 @@ import { SpectatedRoom } from "../rooms";
  */
 export class SpectatedRooms {
 	private rooms: SpectatedRoom[];
+	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
 
 	constructor() {
+		this.logger = new Logger(SpectatedRooms.name);
 		this.rooms = [];
 	}
 
@@ -27,7 +30,7 @@ export class SpectatedRooms {
 	public destroyRoom(room_name: string): void {
 		const index: number = this.getRoomIndex(room_name);
 		if (index < 0) return;
-		console.log(`Room ${this.rooms[index].getName()} destroyed`);
+		this.logger.log(`Room ${this.rooms[index].getName()} destroyed`);
 		clearInterval(this.rooms[index].ping_id);
 		this.rooms.splice(index, 1);
 	}

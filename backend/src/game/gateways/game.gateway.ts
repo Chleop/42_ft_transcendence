@@ -13,7 +13,7 @@ import { PaddleDto } from "../dto";
 import { Results, ScoreUpdate } from "../objects";
 import { Ball } from "../gameplay";
 import { Match, OpponentUpdate } from "../aliases";
-import { BadRequestException, ConflictException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Logger } from "@nestjs/common";
 import { Constants } from "../constants";
 
 /**
@@ -75,6 +75,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	public readonly server: Server;
 	private readonly game_service: GameService;
 	private timeouts: TimeoutId[];
+	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
 
@@ -82,6 +83,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		this.server = new Server();
 		this.game_service = game_service;
 		this.timeouts = [];
+		this.logger = new Logger(GameGateway.name);
 	}
 
 	/* PUBLIC ================================================================== */
@@ -91,7 +93,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * called as gateway is init.
 	 */
 	public afterInit(): void {
-		console.log("Game gateway initialized");
+		this.logger.log("Game gateway initialized");
 	}
 
 	/* Connection handlers ----------------------------------------------------- */
@@ -103,9 +105,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Moves client to the queue if not already in game.
 	 */
 	public handleConnection(client: Socket): void {
-		console.log(`[${client.handshake.auth.token} connected]`);
-
-		console.log(client.handshake);
+		this.logger.log(`[${client.handshake.auth.token} connected]`);
 		const game_room: GameRoom | null = this.game_service.queueUp(client);
 		if (game_room !== null) this.matchmake(game_room);
 	}
@@ -130,7 +130,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			}
 			this.disconnectRoom(match);
 		}
-		console.log(`[${client.handshake.auth.token} disconnected]`);
+		this.logger.log(`[${client.handshake.auth.token} disconnected]`);
 	}
 
 	/* Event handlers ---------------------------------------------------------- */
@@ -176,7 +176,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	private startGame(me: GameGateway, room: GameRoom): void {
 		const initial_game_state: Ball = room.startGame();
 
-		console.log(room);
+		this.logger.debug(room);
 		room.match.player1.emit("gameStart", initial_game_state);
 		room.match.player2.emit("gameStart", initial_game_state);
 		room.setPlayerPingId(setInterval(me.sendGameUpdates, Constants.ping, me, room));
@@ -219,7 +219,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			if (e instanceof BadRequestException || e instanceof ConflictException) {
 				me.sendError(room.match.player1, e);
 				me.sendError(room.match.player2, e);
-				console.log(e);
+				this.logger.log(e);
 				me.disconnectRoom(room.match);
 				return;
 			}
