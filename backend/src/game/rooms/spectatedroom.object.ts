@@ -1,6 +1,11 @@
 import { Socket } from "socket.io";
 import { GameRoom } from ".";
 
+/**
+ * Spectated room handler.
+ *
+ * Stores spectating clients.
+ */
 export class SpectatedRoom {
 	public readonly game_room: GameRoom;
 	public spectators: Socket[];

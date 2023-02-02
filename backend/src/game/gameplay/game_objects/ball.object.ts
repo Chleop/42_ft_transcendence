@@ -1,5 +1,8 @@
 import { Constants } from "../../constants";
 
+/**
+ * Pong ball coordinates.
+ */
 export class Ball {
 	private x: number;
 	private y: number;

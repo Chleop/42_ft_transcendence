@@ -127,7 +127,6 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		} catch (e) {
 			if (e === null) {
 				// Game is done
-				this.logger.debug("====================================================");
 				me.stopStreaming(me, room.match.name);
 				return;
 			}

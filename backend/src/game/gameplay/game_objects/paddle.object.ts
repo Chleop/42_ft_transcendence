@@ -1,5 +1,8 @@
 import { PaddleDto } from "../../dto";
 
+/**
+ * Pong paddle coordinates.
+ */
 export class Paddle {
 	public position: number;
 	public last_update: number;

@@ -49,7 +49,13 @@ export class GameRoom {
 	 * and the final results if someone hit the maximum score.
 	 */
 	public updateGame(): Ball | ScoreUpdate | Results {
-		return this.game.refresh();
+		const update: any = this.game.refresh();
+		if (update instanceof Results) {
+			const winner_nb: number = this.game.getWinner();
+			if (winner_nb === 1) update.setWinner(this.match.player1.data.user.id);
+			else if (winner_nb === 2) update.setWinner(this.match.player2.data.user.id);
+		}
+		return update;
 	}
 
 	/**
@@ -73,7 +79,11 @@ export class GameRoom {
 		if (!this.game) throw null;
 		this.is_ongoing = false;
 		this.has_updated_score = false;
-		return this.game.getResults(guilty);
+		const score: Score = this.game.getScores();
+		let winner: string;
+		if (guilty === 1) winner = this.match.player2.data.user.id;
+		else winner = this.match.player1.data.user.id;
+		return new Results(score, winner);
 	}
 
 	/* ------------------------------------------------------------------------- */

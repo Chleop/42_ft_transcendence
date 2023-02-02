@@ -41,18 +41,16 @@ export class GameService {
 				data: {
 					players: {
 						connect: [
-							{ id: match.player1.handshake.auth.token },
-							{ id: match.player2.handshake.auth.token },
+							{ id: match.player1.data.user.id },
+							{ id: match.player2.data.user.id },
 						],
 					},
 					winner: {
 						connect: {
-							id: results.player1.winner
-								? match.player1.handshake.auth.token
-								: match.player2.handshake.auth.token,
+							id: results.winner,
 						},
 					},
-					scores: [results.player1.score, results.player2.score],
+					scores: [results.score.player1_score, results.score.player2_score],
 					dateTime: new Date(results.date),
 				},
 			});

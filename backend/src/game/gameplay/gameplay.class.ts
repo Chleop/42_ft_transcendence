@@ -6,7 +6,7 @@ import { Constants } from "../constants";
 import { Logger } from "@nestjs/common";
 
 /**
- * Track the state of the game.
+ * Tracks the state of the game.
  */
 export class Gameplay {
 	private readonly logger: Logger;
@@ -15,6 +15,7 @@ export class Gameplay {
 	private paddle2: Paddle;
 	private ball: Ball;
 	private last_update: number;
+	private winner: number;
 
 	/* CONSTRUCTOR ============================================================= */
 
@@ -28,6 +29,7 @@ export class Gameplay {
 		this.paddle2 = new Paddle();
 		this.ball = new Ball();
 		this.last_update = -1;
+		this.winner = 0;
 	}
 
 	/* PUBLIC ================================================================== */
@@ -98,12 +100,12 @@ export class Gameplay {
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, true);
 	}
 
-	public getResults(guilty: number): Results {
-		return new Results(this.scores, guilty);
-	}
-
 	public getSpectatorUpdate(): SpectatorUpdate {
 		return new SpectatorUpdate(this.ball, this.paddle1, this.paddle2);
+	}
+
+	public getWinner(): number {
+		return this.winner;
 	}
 
 	/* PRIVATE ================================================================= */
@@ -116,6 +118,7 @@ export class Gameplay {
 	private oneWon(): ScoreUpdate | Results {
 		++this.scores.player1_score;
 		if (this.scores.player1_score === Constants.max_score) {
+			this.winner = 1;
 			return new Results(this.scores);
 		}
 		this.ball = new Ball();
@@ -128,6 +131,7 @@ export class Gameplay {
 	private twoWon(): ScoreUpdate | Results {
 		++this.scores.player2_score;
 		if (this.scores.player2_score === Constants.max_score) {
+			this.winner = 2;
 			return new Results(this.scores);
 		}
 		this.ball = new Ball();

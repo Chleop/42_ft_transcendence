@@ -1,5 +1,8 @@
 // TODO: Validators?
 
+/**
+ * DTO received from client in 'update' event.
+ */
 export class PaddleDto {
 	public position: number;
 	public velocity: number;

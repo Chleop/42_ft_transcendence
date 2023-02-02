@@ -176,7 +176,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	private startGame(me: GameGateway, room: GameRoom): void {
 		const initial_game_state: Ball = room.startGame();
 
-		this.logger.debug(room);
 		room.match.player1.emit("gameStart", initial_game_state);
 		room.match.player2.emit("gameStart", initial_game_state);
 		room.setPlayerPingId(setInterval(me.sendGameUpdates, Constants.ping, me, room));
