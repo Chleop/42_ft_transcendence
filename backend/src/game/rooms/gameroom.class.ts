@@ -129,17 +129,14 @@ export class GameRoom {
 	 * Returns true if the client is in the room.
 	 */
 	public isSocketInRoom(client: Socket): boolean {
-		return (
-			this.match.player1.handshake.auth.token === client.handshake.auth.token ||
-			this.match.player2.handshake.auth.token === client.handshake.auth.token
-		);
+		return this.match.player1.id === client.id || this.match.player2.id === client.id;
 	}
 
 	/**
 	 * Returns player's number.
 	 */
 	public playerNumber(client: Socket): number {
-		if (this.match.player1.handshake.auth.token === client.handshake.auth.token) return 1;
+		if (this.match.player1.id === client.id) return 1;
 		else return 2;
 	}
 
@@ -149,8 +146,7 @@ export class GameRoom {
 	 * Returns client's opponent.
 	 */
 	private whoIsOpponent(client: Socket): Socket {
-		if (this.match.player1.handshake.auth.token === client.handshake.auth.token)
-			return this.match.player2;
+		if (this.match.player1.id === client.id) return this.match.player2;
 		else return this.match.player1;
 	}
 }

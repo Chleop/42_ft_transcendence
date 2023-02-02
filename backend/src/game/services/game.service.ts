@@ -109,17 +109,6 @@ export class GameService {
 	}
 
 	/**
-	 * Removes game room from list.
-	 */
-	public destroyRoom(room: GameRoom): void {
-		const index: number = this.game_rooms.indexOf(room);
-		if (index < 0) return;
-		this.logger.log(`Destroying room ${room.match.name}`);
-		room.destroyPlayerPing();
-		this.game_rooms.splice(index, 1);
-	}
-
-	/**
 	 * Updates received paddle.
 	 *
 	 * Returns updated paddle and the opponent of the sender.
@@ -135,16 +124,24 @@ export class GameService {
 	 */
 	public findUserGame(user_id: string): GameRoom {
 		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
-			return (
-				obj.match.player1.handshake.auth.token === user_id ||
-				obj.match.player2.handshake.auth.token === user_id
-			);
+			return obj.match.player1.id === user_id || obj.match.player2.id === user_id;
 		});
 		if (room === undefined) throw "Room does not exist";
 		return room;
 	}
 
 	/* PRIVATE ================================================================= */
+
+	/**
+	 * Removes game room from list.
+	 */
+	private destroyRoom(room: GameRoom): void {
+		const index: number = this.game_rooms.indexOf(room);
+		if (index < 0) return;
+		this.logger.log(`Destroying room ${room.match.name}`);
+		room.destroyPlayerPing();
+		this.game_rooms.splice(index, 1);
+	}
 
 	/**
 	 * Returns index of room if client is in it.

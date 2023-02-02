@@ -52,7 +52,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 * Else, they're disconnected.
 	 */
 	public handleConnection(client: Socket): void {
-		this.logger.log(`Socket '${client.handshake.auth.token}' joined`);
+		this.logger.log(`Socket '${client.id}' joined`);
 		try {
 			const user_id: string | string[] | undefined = client.handshake.auth.user_id;
 			if (typeof user_id !== "string") throw "Room not properly specified";
@@ -87,7 +87,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 					this.stopStreaming(this, spectated_room.game_room.match.name);
 			}
 		}
-		this.logger.log(`Socket '${client.handshake.auth.token}' left`);
+		this.logger.log(`Socket '${client.id}' left`);
 	}
 
 	/* PRIVATE ================================================================= */

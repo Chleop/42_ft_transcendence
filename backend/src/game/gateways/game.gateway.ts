@@ -105,7 +105,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Moves client to the queue if not already in game.
 	 */
 	public handleConnection(client: Socket): void {
-		this.logger.log(`[${client.handshake.auth.token} connected]`);
+		this.logger.log(`[${client.id} connected]`);
 		try {
 			const game_room: GameRoom | null = this.game_service.queueUp(client);
 			if (game_room !== null) this.matchmake(game_room);
@@ -135,7 +135,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			}
 			this.disconnectRoom(match);
 		}
-		this.logger.log(`[${client.handshake.auth.token} disconnected]`);
+		this.logger.log(`[${client.id} disconnected]`);
 	}
 
 	/* Event handlers ---------------------------------------------------------- */
@@ -243,7 +243,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Disconnect players matched.
 	 */
 	private disconnectRoom(match: Match): void {
-		match.player1.disconnect(true);
-		match.player2.disconnect(true);
+		match.player1.disconnect();
+		match.player2.disconnect();
 	}
 }
