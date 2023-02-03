@@ -25,26 +25,27 @@ import { CodeDto, EmailDto } from "./dto";
 export class AuthController {
 	private _authService: AuthService;
 	private readonly _user: UserService;
-	private readonly _logger = new Logger(AuthController.name);
+	private readonly _logger: Logger;
 	private readonly _config: ConfigService;
 
 	constructor() {
 		this._authService = new AuthService();
 		this._user = new UserService();
 		this._config = new ConfigService();
+		this._logger = new Logger(AuthController.name);
 	}
 
 	@Get("42/login")
 	@UseGuards(FtOauthGuard)
 	login() {
-		this._logger.debug("IN CONTROLLER login");
+		this._logger.log("IN CONTROLLER login");
 		//
 	}
 
 	@Get("42/callback")
 	@UseGuards(FtOauthGuard)
 	async signin(@Req() request: any, @Res() response: Response) {
-		this._logger.debug("IN CONTROLLER signin");
+		this._logger.log("IN CONTROLLER signin");
 		try {
 			const token: t_access_token = await this._authService.create_access_token(
 				request.user.login,
@@ -73,7 +74,7 @@ export class AuthController {
 	@UseGuards(Jwt2FAGuard)
 	@Get("42/2FAActivate")
 	async activate_2FA(@Req() req: any, @Body() dto: EmailDto): Promise<void> {
-		this._logger.debug("IN CONTROLLER activate_2FA");
+		this._logger.log("IN CONTROLLER activate_2FA");
 		try {
 			await this._authService.activate_2FA(req.user.id, dto.email);
 		} catch (error) {
@@ -85,7 +86,7 @@ export class AuthController {
 	@UseGuards(Jwt2FAGuard)
 	@Post("42/2FADeactivate")
 	async deactivate_2FA(@Req() req: any): Promise<void> {
-		this._logger.debug("IN CONTROLLER deactivate_2FA");
+		this._logger.log("IN CONTROLLER deactivate_2FA");
 		try {
 			await this._authService.deactivate_2FA(req.user.id);
 		} catch (error) {
@@ -97,7 +98,7 @@ export class AuthController {
 	@UseGuards(JwtGuard)
 	@Post("42/2FAValidate")
 	async validate_2FA(@Req() req: any, @Body() dto: CodeDto): Promise<void> {
-		this._logger.debug("IN CONTROLLER validate_2FA");
+		this._logger.log("IN CONTROLLER validate_2FA");
 		try {
 			await this._authService.validate_2FA(req.user.id, dto.code);
 		} catch (error) {

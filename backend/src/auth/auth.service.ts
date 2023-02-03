@@ -33,39 +33,39 @@ export class AuthService {
 		this._jwt = new JwtService();
 		this._config = new ConfigService();
 		this._prisma = new PrismaService();
+		this._logger = new Logger(AuthService.name);
 		this._sender = this.get_sender(this._config);
 		const host: string = this.get_host(this._config);
 		const pass: string = this.get_pass(this._config);
 		this._transporter = this.get_transporter(host, pass);
-		this._logger = new Logger(AuthService.name);
 	}
 
 	/* ************************************************************************** */
 	/*                                 GETTERS                                    */
 	/* ************************************************************************** */
 	private get_sender(config: ConfigService): string {
-		this._logger.debug("IN get_sender");
+		this._logger.log("IN get_sender");
 		let sender = config.get<string>("NO_REPLY_EMAIL");
 		if (sender === undefined) throw new Error("NO_REPLY_EMAIL is undefined");
 		return sender;
 	}
 
 	private get_host(config: ConfigService): string {
-		this._logger.debug("IN get_host");
+		this._logger.log("IN get_host");
 		const host: string | undefined = config.get<string>("NO_REPLY_EMAIL_HOST");
 		if (host === undefined) throw new Error("NO_REPLY_EMAIL_HOST is undefined");
 		return host;
 	}
 
 	private get_pass(config: ConfigService): string {
-		this._logger.debug("IN get_pass");
+		this._logger.log("IN get_pass");
 		const pass: string | undefined = config.get<string>("NO_REPLY_EMAIL_PASS");
 		if (pass === undefined) throw new Error("NO_REPLY_EMAIL_PASS is undefined");
 		return pass;
 	}
 
 	private get_transporter(host: string, pass: string): nodemailer.Transporter {
-		this._logger.debug("IN get_transporter");
+		this._logger.log("IN get_transporter");
 		// create reusable transporter object using the default SMTP transport
 		let transporter = nodemailer.createTransport({
 			host: host,
@@ -86,11 +86,10 @@ export class AuthService {
 	/*                             PUBLIC FUNCTIONS                               */
 	/* ************************************************************************** */
 	public async create_access_token(login: string): Promise<t_access_token> {
-		this._logger.debug("IN create_access_token");
+		this._logger.log("IN create_access_token");
 		// get the user id (creates user if not already existing)
 		let user_id: string | undefined;
 		try {
-			this._logger.debug("login = ", login);
 			user_id = await this._user.get_ones_id_by_login(login);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
@@ -105,7 +104,7 @@ export class AuthService {
 	}
 
 	public async activate_2FA(user_id: string, email: string): Promise<void> {
-		this._logger.debug("IN activate_2FA");
+		this._logger.log("IN activate_2FA");
 		await this.add_email_to_db(user_id, email);
 		await this.trigger_2FA(user_id);
 	}
@@ -115,7 +114,7 @@ export class AuthService {
 	}
 
 	public async trigger_2FA(user_id: string): Promise<void> {
-		this._logger.debug("IN trigger_2FA");
+		this._logger.log("IN trigger_2FA");
 		const user: t_user_auth = await this.get_user_auth(user_id);
 		const email: string | null = user.email;
 		if (email === null) throw new Error("Email was not set in the database");
@@ -126,7 +125,7 @@ export class AuthService {
 	}
 
 	public async validate_2FA(user_id: string, code: string): Promise<void> {
-		this._logger.debug("IN validate_2FA");
+		this._logger.log("IN validate_2FA");
 		const user: t_user_auth = await this.get_user_auth(user_id);
 		await this.validate_code(user_id, code);
 		if (user.twoFactAuth === false) {
@@ -141,7 +140,7 @@ export class AuthService {
 	/*                            PRIVATE FUNCTIONS                               */
 	/* ************************************************************************** */
 	private async sign_token(payload: t_payload): Promise<t_access_token> {
-		this._logger.debug("IN sign_token");
+		this._logger.log("IN sign_token");
 		// get the secret from the .env file
 		const our_secret: string | undefined = this._config.get<string>("JWT_SECRET");
 		if (our_secret === undefined) throw new Error("JWT_SECRET is undefined");
@@ -157,14 +156,15 @@ export class AuthService {
 	}
 
 	private create_code(): string {
-		this._logger.debug("IN create_code");
+		this._logger.log("IN create_code");
 		const code: number = Math.floor(10000 + Math.random() * 900000);
 		const string_code: string = code.toString();
+		this._logger.log("Code is : " + code);
 		return string_code;
 	}
 
 	private async validate_code(user_id: string, code: string): Promise<boolean> {
-		this._logger.debug("IN validate_code");
+		this._logger.log("IN validate_code");
 		const secret: t_secret = await this.get_secret_from_db(user_id);
 		if (!secret.twoFACode || !secret.twoFACreationDate)
 			throw new Error("Code is not set in the database");
@@ -174,7 +174,7 @@ export class AuthService {
 	}
 
 	private is_expired(creation_time: Date): boolean {
-		this._logger.debug("IN is_expired");
+		this._logger.log("IN is_expired");
 		const current_time: Date = new Date();
 		const secret_lifetime: number = current_time.getMinutes() - creation_time.getMinutes();
 		if (secret_lifetime <= 10) return false;
@@ -182,7 +182,7 @@ export class AuthService {
 	}
 
 	private async send_confirmation_email(receiver_email: string, secret: string): Promise<void> {
-		this._logger.debug("IN send_confirmation_email");
+		this._logger.log("IN send_confirmation_email");
 		try {
 			const confirmation_email: t_email = {
 				from: "Transcendence team <" + this._sender + ">",
@@ -201,7 +201,7 @@ export class AuthService {
 	}
 
 	private async send_thankyou_email(receiver: string): Promise<void> {
-		this._logger.debug("IN send_thankyou_email");
+		this._logger.log("IN send_thankyou_email");
 		try {
 			const thankyou_email: t_email = {
 				from: "Transcendence team <" + this._sender + ">",
@@ -222,7 +222,7 @@ export class AuthService {
 	/*                              DATABASE CALLS                                */
 	/* ************************************************************************** */
 	private async get_secret_from_db(user_id: string): Promise<t_secret> {
-		this._logger.debug("IN get_secret_from_db");
+		this._logger.log("IN get_secret_from_db");
 		const secret: t_secret | null = await this._prisma.user.findUnique({
 			where: { id: user_id },
 			select: { twoFACode: true, twoFACreationDate: true },
@@ -232,7 +232,7 @@ export class AuthService {
 	}
 
 	public async get_user_auth(user_id: string): Promise<t_user_auth> {
-		this._logger.debug("IN get_user_auth");
+		this._logger.log("IN get_user_auth");
 		const user: t_user_auth | null = await this._prisma.user.findUnique({
 			select: {
 				id: true,
@@ -249,7 +249,7 @@ export class AuthService {
 	}
 
 	private async add_code_to_db(user_id: string, code: string): Promise<void> {
-		this._logger.debug("IN add_code_to_db");
+		this._logger.log("IN add_code_to_db");
 		const crypted_code = await argon2.hash(code);
 		const currentTime: Date = new Date();
 		try {
@@ -263,12 +263,12 @@ export class AuthService {
 	}
 
 	private async add_email_to_db(user_id: string, email: string): Promise<void> {
-		this._logger.debug("IN add_email_to_db");
+		this._logger.log("IN add_email_to_db");
 		await this._user.update_one(user_id, undefined, email);
 	}
 
 	private async activate_2FA_in_db(user_id: string): Promise<void> {
-		this._logger.debug("IN activate_2FA_in_db");
+		this._logger.log("IN activate_2FA_in_db");
 		await this._prisma.user.update({
 			data: { twoFactAuth: true },
 			where: { id: user_id },
@@ -276,7 +276,7 @@ export class AuthService {
 	}
 
 	private async deactivate_2FA_in_db(user_id: string): Promise<void> {
-		this._logger.debug("IN deactivate_2FA_in_db");
+		this._logger.log("IN deactivate_2FA_in_db");
 		await this._prisma.user.update({
 			data: { twoFactAuth: false },
 			where: { id: user_id },
@@ -284,7 +284,7 @@ export class AuthService {
 	}
 
 	private async delete_secret(user_id: string): Promise<void> {
-		this._logger.debug("IN delete_secret");
+		this._logger.log("IN delete_secret");
 		await this._prisma.user.update({
 			where: { id: user_id },
 			data: { twoFACode: null, twoFACreationDate: null },
@@ -292,7 +292,7 @@ export class AuthService {
 	}
 
 	private async set_status_to_active(user_id: string): Promise<void> {
-		this._logger.debug("IN set_status_to_active");
+		this._logger.log("IN set_status_to_active");
 		await this._prisma.user.update({
 			where: { idAndState: { id: user_id, state: StateType.PENDING } },
 			data: { state: StateType.ACTIVE },
@@ -300,7 +300,7 @@ export class AuthService {
 	}
 
 	private async set_status_to_pending(user_id: string): Promise<void> {
-		this._logger.debug("IN set_status_to_pending");
+		this._logger.log("IN set_status_to_pending");
 		await this._prisma.user.update({
 			where: { idAndState: { id: user_id, state: StateType.ACTIVE } },
 			data: { state: StateType.PENDING },

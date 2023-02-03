@@ -25,12 +25,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
 			secretOrKey: _config.get("JWT_SECRET"),
 		});
 		this._logger = new Logger(AuthController.name);
-		this._logger.debug("IN JwtStrategy constructor");
+		this._logger.log("IN JwtStrategy constructor");
 		this._authService = new AuthService();
 	}
 
 	public async validate(payload: t_payload): Promise<any> {
-		this._logger.debug("IN JwtStrategy validate function");
+		this._logger.log("IN JwtStrategy validate function");
 		try {
 			const user: t_user_auth = await this._authService.get_user_auth(payload.sub);
 			return user;
