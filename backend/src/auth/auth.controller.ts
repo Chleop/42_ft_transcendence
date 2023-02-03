@@ -16,7 +16,7 @@ import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { Response } from "express";
 import { UserService } from "src/user/user.service";
 import { AuthService } from "./auth.service";
-import { FtOauthGuard, Jwt2FAGuard, JwtGuard } from "./guards";
+import { FtOauthGuard, Jwt2FAGuard, JwtPendingStateGuard } from "./guards";
 import { ExpiredCode, InvalidCode } from "./error";
 import { t_access_token, t_user_auth } from "./alias";
 import { CodeDto, EmailDto } from "./dto";
@@ -95,7 +95,7 @@ export class AuthController {
 		}
 	}
 
-	@UseGuards(JwtGuard)
+	@UseGuards(JwtPendingStateGuard)
 	@Post("42/2FAValidate")
 	async validate_2FA(@Req() req: any, @Body() dto: CodeDto): Promise<void> {
 		this._logger.log("IN CONTROLLER validate_2FA");
