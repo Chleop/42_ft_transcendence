@@ -16,14 +16,11 @@ type UserData = t_get_one_fields;
 export class SocketIOAdapter extends IoAdapter {
 	private readonly app: INestApplicationContext;
 	private readonly config_service: ConfigService;
-	private readonly _logger: Logger;
 
 	constructor(app: INestApplicationContext, configService: ConfigService) {
 		super(app);
 		this.app = app;
 		this.config_service = configService;
-		this._logger = new Logger(SocketIOAdapter.name);
-		this._logger.debug("Adapter created");
 	}
 
 	/* PUBLIC ================================================================== */

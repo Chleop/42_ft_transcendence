@@ -18,9 +18,6 @@ export class ChatGateway {
 
 	constructor() {
 		this._server = new Server();
-
-		// REMIND: This is a workaround for the fact that the server is not used yet.
-		this._server;
 	}
 
 	/**
@@ -29,7 +26,6 @@ export class ChatGateway {
 	 * @param	message The message to broadcast.
 	 */
 	public broadcast_to_everyone(message: ChannelMessage): void {
-		ChatGateway._logger.debug(`Broadcasting message to everyone...`);
 		this._server.sockets.emit("message", message);
 	}
 
@@ -40,10 +36,8 @@ export class ChatGateway {
 	 */
 	public broadcast_to_room(message: ChannelMessage): void {
 		// REMIND: This way works, but it is not taking advantage of socker-io built-in ways to do it.
-		ChatGateway._logger.debug(`Broadcasting message to room: ${message.channelId}...`);
 		for (const socket of ChatGateway._client_sockets.values()) {
 			if (socket.rooms.has(message.channelId)) {
-				ChatGateway._logger.debug(`Sending message to user: ${socket.data.user.name}`);
 				socket.emit("message", message);
 			}
 		}
@@ -58,7 +52,9 @@ export class ChatGateway {
 	 * @param	client The socket that just connected.
 	 */
 	public handleConnection(client: Socket): void {
-		ChatGateway._logger.log(`Client connected to gateway: ${client.data.user.name}`);
+		ChatGateway._logger.log(
+			`Client ${client.id} (${client.data.user.login}) connected to chat gateway`,
+		);
 		ChatGateway._client_sockets.set(client.data.user.id, client);
 		for (const channel of client.data.user.channels) {
 			client.join(channel.id);
@@ -71,11 +67,13 @@ export class ChatGateway {
 	 * @param	client The socket that just disconnected.
 	 */
 	public handleDisconnect(client: Socket): void {
-		ChatGateway._logger.log(`Client disconnected from gateway: ${client.data.user.name}`);
 		for (const room of client.rooms) {
 			client.leave(room);
 		}
 		ChatGateway._client_sockets.delete(client.data.user.id);
+		ChatGateway._logger.log(
+			`Client ${client.id} (${client.data.user.login}) disconnected from chat gateway`,
+		);
 	}
 
 	/**
@@ -88,10 +86,12 @@ export class ChatGateway {
 	 * @param	room_id The id of the room to join.
 	 */
 	public make_user_socket_join_room(user_id: string, room_id: string): void {
-		const socket: Socket = ChatGateway._client_sockets.get(user_id) as Socket;
+		const client: Socket = ChatGateway._client_sockets.get(user_id) as Socket;
 
-		ChatGateway._logger.debug(`User ${user_id} is joining socket room: ${room_id}...`);
-		socket.join(room_id);
+		client.join(room_id);
+		ChatGateway._logger.log(
+			`Client ${client.id} (${client.data.user.login}) joined socket room ${room_id}`,
+		);
 	}
 
 	/**
@@ -105,9 +105,11 @@ export class ChatGateway {
 	 * @param	room_id The id of the room to leave.
 	 */
 	public make_user_socket_leave_room(user_id: string, room_id: string): void {
-		const socket: Socket = ChatGateway._client_sockets.get(user_id) as Socket;
+		const client: Socket = ChatGateway._client_sockets.get(user_id) as Socket;
 
-		ChatGateway._logger.debug(`User ${user_id} is leaving socket room: ${room_id}...`);
-		socket.leave(room_id);
+		client.leave(room_id);
+		ChatGateway._logger.log(
+			`Client ${client.id} (${client.data.user.login}) left socket room ${room_id}`,
+		);
 	}
 }
