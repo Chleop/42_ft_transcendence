@@ -27,7 +27,7 @@ class GatewayClass {
 
 		this.socket.on("connect", () => this.on_connected());
 		this.socket.on("disconnect", () => this.on_disconnected());
-		this.socket.on("message", (message: Message) => this.on_message(message));
+		this.socket.on("channel_message", (message: Message) => this.on_message(message));
 	}
 
 	/** Disconnect the socket. */

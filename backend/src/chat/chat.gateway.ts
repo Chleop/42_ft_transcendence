@@ -18,15 +18,8 @@ export class ChatGateway {
 
 	constructor() {
 		this._server = new Server();
-	}
 
-	/**
-	 * @brief	Broadcast a message to all users connected through a socket.
-	 *
-	 * @param	message The message to broadcast.
-	 */
-	public broadcast_to_everyone(message: ChannelMessage): void {
-		this._server.sockets.emit("message", message);
+		this._server; // REMIND: This is a hack to avoid a warning about an unused variable.
 	}
 
 	/**
@@ -38,12 +31,12 @@ export class ChatGateway {
 		// REMIND: This way works, but it is not taking advantage of socker-io built-in ways to do it.
 		for (const socket of ChatGateway._client_sockets.values()) {
 			if (socket.rooms.has(message.channelId)) {
-				socket.emit("message", message);
+				socket.emit("channel_message", message);
 			}
 		}
 	}
 
-	/**
+	/**e
 	 * @brief	Accept a new connection and store the client socket,
 	 * 			mapping it with its corresponding user id.
 	 * 			Make the client socket join the socket rooms
