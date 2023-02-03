@@ -1,6 +1,6 @@
 import { t_get_one_fields } from "src/user/alias";
 import { UserService } from "src/user/user.service";
-import { ForbiddenException, INestApplicationContext, Logger } from "@nestjs/common";
+import { ForbiddenException, INestApplicationContext } from "@nestjs/common";
 import { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.interface";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
