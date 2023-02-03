@@ -104,21 +104,25 @@ export class AuthService {
 		return token_obj;
 	}
 
-	public async initiate_2FA(user_id: string, email: string): Promise<void> {
-		this._logger.debug("IN initiate_2FA");
+	public async activate_2FA(user_id: string, email: string): Promise<void> {
+		this._logger.debug("IN activate_2FA");
 		await this.add_email_to_db(user_id, email);
-		await this.activate_2FA(user_id);
+		await this.trigger_2FA(user_id);
 	}
 
-	public async activate_2FA(user_id: string): Promise<void> {
-		this._logger.debug("IN activate_2FA");
+	public async deactivate_2FA(user_id: string): Promise<void> {
+		await this.deactivate_2FA_in_db(user_id);
+	}
+
+	public async trigger_2FA(user_id: string): Promise<void> {
+		this._logger.debug("IN trigger_2FA");
 		const user: t_user_auth = await this.get_user_auth(user_id);
 		const email: string | null = user.email;
 		if (email === null) throw new Error("Email was not set in the database");
 		const code: string = this.create_code();
 		await this.add_code_to_db(user_id, code);
 		await this.set_status_to_pending(user_id);
-		this.send_confirmation_email(email, code);
+		await this.send_confirmation_email(email, code);
 	}
 
 	public async validate_2FA(user_id: string, code: string): Promise<void> {
@@ -127,7 +131,7 @@ export class AuthService {
 		await this.validate_code(user_id, code);
 		if (user.twoFactAuth === false) {
 			await this.activate_2FA_in_db(user_id);
-			if (user.email !== null) this.send_thankyou_email(user.email);
+			if (user.email !== null) await this.send_thankyou_email(user.email);
 		}
 		await this.delete_secret(user_id);
 		await this.set_status_to_active(user_id);
@@ -177,7 +181,7 @@ export class AuthService {
 		else return true;
 	}
 
-	private send_confirmation_email(receiver_email: string, secret: string): void {
+	private async send_confirmation_email(receiver_email: string, secret: string): Promise<void> {
 		this._logger.debug("IN send_confirmation_email");
 		try {
 			const confirmation_email: t_email = {
@@ -189,26 +193,25 @@ export class AuthService {
 					secret +
 					" </b>",
 			};
-			this._transporter.sendMail(confirmation_email);
+			await this._transporter.sendMail(confirmation_email);
 		} catch (error) {
 			this._logger.error("sendMail() error : " + error);
 			throw new Error("sendMail() error : " + error);
 		}
 	}
 
-	private send_thankyou_email(receiver: string): void {
+	private async send_thankyou_email(receiver: string): Promise<void> {
 		this._logger.debug("IN send_thankyou_email");
 		try {
-			let error: any;
 			const thankyou_email: t_email = {
 				from: "Transcendence team <" + this._sender + ">",
 				to: receiver,
 				subject: "🐹  💝  🐹  Thank you  🐹  💝  🐹",
 				html:
-					"<p>Your authentication has been confirmed !</p>" +
+					"<p>The two fact authorization has been activated!</p>" +
 					"<p> 🐹  We love you so much  🐹 </p>",
 			};
-			this._transporter.sendMail(thankyou_email, error);
+			await this._transporter.sendMail(thankyou_email);
 		} catch (error) {
 			this._logger.error("sendMail() error : " + error);
 			throw new Error("sendMail() error : " + error);
@@ -268,6 +271,14 @@ export class AuthService {
 		this._logger.debug("IN activate_2FA_in_db");
 		await this._prisma.user.update({
 			data: { twoFactAuth: true },
+			where: { id: user_id },
+		});
+	}
+
+	private async deactivate_2FA_in_db(user_id: string): Promise<void> {
+		this._logger.debug("IN deactivate_2FA_in_db");
+		await this._prisma.user.update({
+			data: { twoFactAuth: false },
 			where: { id: user_id },
 		});
 	}
