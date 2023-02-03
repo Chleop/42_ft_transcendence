@@ -7,7 +7,6 @@ import * as nodemailer from "nodemailer";
 import { PrismaService } from "src/prisma/prisma.service";
 import { StateType } from "@prisma/client";
 import { t_access_token, t_email, t_payload, t_secret, t_user_auth } from "src/auth/alias";
-import { AuthController } from "./auth.controller";
 import * as argon2 from "argon2";
 import { ExpiredCode, InvalidCode } from "./error";
 
@@ -24,7 +23,7 @@ export class AuthService {
 	private readonly _prisma: PrismaService;
 	private readonly _transporter: nodemailer.Transporter;
 	private readonly _sender: string;
-	private readonly _logger = new Logger(AuthController.name);
+	private readonly _logger: Logger;
 
 	/* ************************************************************************** */
 	/*                               CONSTRUCTOR                                  */
@@ -38,6 +37,7 @@ export class AuthService {
 		const host: string = this.get_host(this._config);
 		const pass: string = this.get_pass(this._config);
 		this._transporter = this.get_transporter(host, pass);
+		this._logger = new Logger(AuthService.name);
 	}
 
 	/* ************************************************************************** */

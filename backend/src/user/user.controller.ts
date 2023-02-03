@@ -22,6 +22,7 @@ import {
 	ForbiddenException,
 	Get,
 	InternalServerErrorException,
+	Logger,
 	Param,
 	Patch,
 	Put,
@@ -39,9 +40,11 @@ import { FileInterceptor } from "@nestjs/platform-express";
 @UseGuards(Jwt2FAGuard)
 export class UserController {
 	private _user_service: UserService;
+	private readonly _logger: Logger;
 
 	constructor() {
 		this._user_service = new UserService();
+		this._logger = new Logger(UserController.name);
 	}
 
 	@Patch(":id/block")
@@ -60,11 +63,11 @@ export class UserController {
 				error instanceof UserSelfBlockError ||
 				error instanceof UserAlreadyBlockedError
 			) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
-			console.log(error);
+			this._logger.error(error.message);
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -79,11 +82,15 @@ export class UserController {
 		try {
 			await this._user_service.disable_one(request.user.id);
 		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
 			if (error instanceof UnknownError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new InternalServerErrorException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -100,7 +107,11 @@ export class UserController {
 		try {
 			user = await this._user_service.get_one(request.user.id, request.user.id);
 		} catch (error) {
-			console.log("Unknown error type, this should not happen");
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 
@@ -121,14 +132,14 @@ export class UserController {
 			user = await this._user_service.get_one(request.user.id, id);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
 			if (error instanceof UserNotLinkedError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			console.log("Unknown error type, this should not happen" + error);
+			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 
@@ -149,14 +160,14 @@ export class UserController {
 			sfile = await this._user_service.get_ones_avatar(request.user.id, id);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
 			if (error instanceof UserNotLinkedError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 
@@ -179,10 +190,10 @@ export class UserController {
 				error instanceof UserSelfUnblockError ||
 				error instanceof UserNotBlockedError
 			) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -203,10 +214,10 @@ export class UserController {
 				error instanceof UserSelfUnfriendError ||
 				error instanceof UserNotFriendError
 			) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -229,15 +240,19 @@ export class UserController {
 				dto.skin_id,
 			);
 		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
 			if (error instanceof UserFieldUnaivalableError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
 			if (error instanceof UnknownError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new InternalServerErrorException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -254,11 +269,15 @@ export class UserController {
 		try {
 			await this._user_service.update_ones_avatar(request.user.id, file);
 		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
 			if (error instanceof UnknownError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new InternalServerErrorException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}

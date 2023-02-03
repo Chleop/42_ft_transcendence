@@ -24,6 +24,7 @@ import {
 	UseGuards,
 	UsePipes,
 	ValidationPipe,
+	Logger,
 } from "@nestjs/common";
 import { t_get_one_fields } from "src/user/alias";
 
@@ -31,9 +32,11 @@ import { t_get_one_fields } from "src/user/alias";
 @UseGuards(Jwt2FAGuard)
 export class FriendRequestController {
 	private _friend_request_service: FriendRequestService;
+	private readonly _logger: Logger;
 
 	constructor() {
 		this._friend_request_service = new FriendRequestService();
+		this._logger = new Logger(FriendRequestController.name);
 	}
 
 	@Patch("accept")
@@ -54,10 +57,10 @@ export class FriendRequestController {
 				error instanceof UserAlreadyFriendError ||
 				error instanceof FriendRequestNotFoundError
 			) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -79,10 +82,10 @@ export class FriendRequestController {
 				error instanceof FriendRequestSelfRejectError ||
 				error instanceof FriendRequestNotFoundError
 			) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -105,14 +108,14 @@ export class FriendRequestController {
 				error instanceof UserAlreadyFriendError ||
 				error instanceof FriendRequestAlreadySentError
 			) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
 			if (error instanceof UserBlockedError) {
-				console.log(error.message);
+				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			console.log("Unknown error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}

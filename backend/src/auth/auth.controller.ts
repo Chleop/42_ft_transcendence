@@ -11,6 +11,7 @@ import {
 	Logger,
 	BadRequestException,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { Response } from "express";
 import { UserService } from "src/user/user.service";
@@ -25,10 +26,12 @@ export class AuthController {
 	private _authService: AuthService;
 	private readonly _user: UserService;
 	private readonly _logger = new Logger(AuthController.name);
+	private readonly _config: ConfigService;
 
 	constructor() {
 		this._authService = new AuthService();
 		this._user = new UserService();
+		this._config = new ConfigService();
 	}
 
 	@Get("42/login")
@@ -52,7 +55,7 @@ export class AuthController {
 			if (user.twoFactAuth === true) {
 				await this._authService.trigger_2FA(user_id);
 				response.redirect("http://localhost:3000/api/auth/42/2FARedirect");
-			} else response.redirect("http://localhost:3000/");
+			} else response.redirect(<string>this._config.get<string>("SITE_URL"));
 		} catch (error) {
 			this._logger.error(error);
 			if (error instanceof PrismaClientKnownRequestError) {

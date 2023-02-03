@@ -17,9 +17,10 @@ import {
 	ChannelUnpopulatedError,
 	UnknownError,
 } from "src/channel/error";
+import { Gateway } from "src/gateway";
 import { g_channel_message_length_limit } from "src/channel/limit";
 import { PrismaService } from "src/prisma/prisma.service";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { Channel, ChannelMessage, ChanType, StateType } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import * as argon2 from "argon2";
@@ -27,9 +28,13 @@ import * as argon2 from "argon2";
 @Injectable()
 export class ChannelService {
 	private _prisma: PrismaService;
+	private _gateway: Gateway;
+	private readonly _logger: Logger;
 
 	constructor() {
 		this._prisma = new PrismaService();
+		this._gateway = new Gateway();
+		this._logger = new Logger(ChannelService.name);
 	}
 
 	/**
@@ -60,19 +65,16 @@ export class ChannelService {
 			}[];
 		},
 	): Promise<void> {
-		console.log("Checking for missing owner channel...");
 		if (!channel.owner) {
 			throw new ChannelMissingOwnerError(id);
 		}
 
-		console.log("Checking for unpopulated channel...");
 		if (channel.members.length < 2) {
 			throw new ChannelUnpopulatedError(id);
 		}
 
 		for (const operator of channel.operators) {
 			if (operator.id !== channel.owner.id) {
-				console.log("Delegating the ownership to an operator...");
 				await this._prisma.channel.update({
 					where: {
 						id: id,
@@ -85,13 +87,14 @@ export class ChannelService {
 						},
 					},
 				});
-				console.log("Channel's ownership delegated");
+				this._logger.verbose(
+					`Channel ${id} ownership delegated to operator ${operator.id}`,
+				);
 				return;
 			}
 		}
 		for (const member of channel.members) {
 			if (member.id !== channel.owner.id) {
-				console.log("Delegating the ownership to a member...");
 				await this._prisma.channel.update({
 					where: {
 						id: id,
@@ -104,7 +107,7 @@ export class ChannelService {
 						},
 					},
 				});
-				console.log("Channel's ownership delegated");
+				this._logger.verbose(`Channel ${id} ownership delegated to member ${member.id}`);
 				return;
 			}
 		}
@@ -132,7 +135,6 @@ export class ChannelService {
 		} | null,
 	): Promise<void> {
 		if (!channel) {
-			console.log("Searching for the channel to drop the ownership...");
 			channel = await this._prisma.channel.findUnique({
 				where: {
 					id: id,
@@ -151,12 +153,10 @@ export class ChannelService {
 			}
 		}
 
-		console.log("Checking for missing owner channel...");
 		if (!channel.owner) {
 			throw new ChannelMissingOwnerError(id);
 		}
 
-		console.log("Dropping the ownership...");
 		await this._prisma.channel.update({
 			where: {
 				id: id,
@@ -167,7 +167,7 @@ export class ChannelService {
 				},
 			},
 		});
-		console.log("Ownership dropped");
+		this._logger.verbose(`Channel ${id} ownership dropped`);
 	}
 
 	/**
@@ -192,7 +192,6 @@ export class ChannelService {
 			dateTime: Date;
 		};
 
-		console.log("Getting messages after a specific message...");
 		const message: t_fields | null = await this._prisma.channelMessage.findUnique({
 			where: {
 				id: message_id,
@@ -204,7 +203,6 @@ export class ChannelService {
 		});
 
 		if (!message || message.channelId !== id) {
-			console.log("Reference message not found");
 			throw new ChannelMessageNotFoundError(message_id);
 		}
 
@@ -221,7 +219,6 @@ export class ChannelService {
 			take: limit,
 		});
 
-		console.log("Messages found");
 		return messages;
 	}
 
@@ -247,7 +244,6 @@ export class ChannelService {
 			dateTime: Date;
 		};
 
-		console.log("Getting messages before a specific message...");
 		const message: t_fields | null = await this._prisma.channelMessage.findUnique({
 			where: {
 				id: message_id,
@@ -259,7 +255,6 @@ export class ChannelService {
 		});
 
 		if (!message || message.channelId !== id) {
-			console.log("Reference message not found");
 			throw new ChannelMessageNotFoundError(message_id);
 		}
 
@@ -276,7 +271,6 @@ export class ChannelService {
 			take: limit,
 		});
 
-		console.log("Messages found");
 		// Get the most ancient messages first
 		messages.reverse();
 		return messages;
@@ -294,7 +288,6 @@ export class ChannelService {
 		id: string,
 		limit: number,
 	): Promise<ChannelMessage[]> {
-		console.log("Getting most recent messages...");
 		const messages: ChannelMessage[] = await this._prisma.channelMessage.findMany({
 			where: {
 				channelId: id,
@@ -305,7 +298,6 @@ export class ChannelService {
 			take: limit,
 		});
 
-		console.log("Messages found");
 		// Get the most ancient messages first
 		messages.reverse();
 		return messages;
@@ -321,9 +313,7 @@ export class ChannelService {
 	 * @return	A promise containing the updated channel.
 	 */
 	private async _inherit_ones_ownership(channel: Channel, user_id: string): Promise<Channel> {
-		console.log("Checking for ownerless channel...");
 		if (!channel.ownerId) {
-			console.log("Channel is ownerless, making the joining user become the new owner...");
 			channel = await this._prisma.channel.update({
 				where: {
 					id: channel.id,
@@ -336,9 +326,8 @@ export class ChannelService {
 					},
 				},
 			});
-			console.log("Channel owner changed");
+			this._logger.log(`Channel ${channel.id} owner changed to ${user_id}`);
 		} else {
-			console.log("Channel is already owned by someone else");
 		}
 		return channel;
 	}
@@ -370,23 +359,18 @@ export class ChannelService {
 		let type: ChanType;
 		let channel: Channel;
 
-		console.log("Determining channel type...");
 		if (is_private) {
-			console.log("Channel type is PRIVATE");
 			type = ChanType.PRIVATE;
 			if (password) {
 				throw new ChannelPasswordNotAllowedError();
 			}
 		} else if (password) {
-			console.log("Channel type is PROTECTED");
 			type = ChanType.PROTECTED;
 		} else {
-			console.log("Channel type is PUBLIC");
 			type = ChanType.PUBLIC;
 		}
 
 		try {
-			console.log("Creating channel...");
 			channel = await this._prisma.channel.create({
 				data: {
 					name: name,
@@ -410,9 +394,8 @@ export class ChannelService {
 					},
 				},
 			});
-			console.log("Channel created");
+			this._logger.log(`Channel ${channel.id} created`);
 		} catch (error) {
-			console.log("Error occured while creating channel");
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2002":
@@ -420,7 +403,6 @@ export class ChannelService {
 					case "P2025":
 						throw new ChannelRelationNotFoundError("owner|members");
 				}
-				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
 
 			throw new UnknownError();
@@ -474,29 +456,24 @@ export class ChannelService {
 		}
 
 		try {
-			console.log("Deleting channel's messages...");
 			await this._prisma.channelMessage.deleteMany({
 				where: {
 					channelId: channel_id,
 				},
 			});
-			console.log("Channel's messages deleted");
 
-			console.log("Deleting channel...");
 			await this._prisma.channel.delete({
 				where: {
 					id: channel_id,
 				},
 			});
-			console.log("Channel deleted");
+			this._logger.log(`Channel ${channel_id} deleted`);
 		} catch (error) {
-			console.log("Error occured while deleting channel");
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2025":
 						throw new ChannelNotFoundError(channel_id);
 				}
-				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
 
 			throw new UnknownError();
@@ -602,7 +579,6 @@ export class ChannelService {
 	): Promise<Channel> {
 		let channel: Channel | null;
 
-		console.log("Searching for the channel to join...");
 		channel = await this._prisma.channel.findUnique({
 			where: {
 				id: channel_id,
@@ -612,7 +588,6 @@ export class ChannelService {
 			throw new ChannelNotFoundError(channel_id);
 		}
 
-		console.log("Checking for already joined...");
 		if (
 			await this._prisma.channel.count({
 				where: {
@@ -628,13 +603,10 @@ export class ChannelService {
 			throw new ChannelAlreadyJoinedError(channel_id);
 		}
 
-		console.log("Checking channel type...");
 		if (channel.chanType === ChanType.PRIVATE) {
-			console.log("Channel is private");
 			if (password !== undefined) {
 				throw new ChannelPasswordUnexpectedError();
 			}
-			console.log("Checking invitation...");
 			if (
 				inviting_user_id === undefined ||
 				!(await this._prisma.channel.count({
@@ -651,25 +623,21 @@ export class ChannelService {
 				throw new ChannelInvitationIncorrectError();
 			}
 		} else if (channel.chanType === ChanType.PROTECTED) {
-			console.log("Channel is protected");
 			if (inviting_user_id !== undefined) {
 				throw new ChannelInvitationUnexpectedError();
 			}
-			console.log("Checking password...");
 			if (password === undefined) {
 				throw new ChannelPasswordMissingError();
 			} else if (!(await argon2.verify(<string>channel.hash, password))) {
 				throw new ChannelPasswordIncorrectError();
 			}
 		} else {
-			console.log("Channel is public");
 			if (password !== undefined) {
 				throw new ChannelPasswordUnexpectedError();
 			}
 		}
 
 		try {
-			console.log("Joining channel...");
 			channel = await this._prisma.channel.update({
 				where: {
 					id: channel_id,
@@ -685,15 +653,13 @@ export class ChannelService {
 					},
 				},
 			});
-			console.log("Channel joined");
+			this._logger.log(`Channel ${channel_id} joined by ${joining_user_id}`);
 		} catch (error) {
-			console.log("Error occured while joining channel");
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2025":
 						throw new ChannelRelationNotFoundError("members");
 				}
-				console.log(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
 			throw new UnknownError();
 		}
@@ -735,7 +701,6 @@ export class ChannelService {
 		} | null,
 	): Promise<void> {
 		if (!channel) {
-			console.log("Searching for the channel to leave...");
 			channel = await this._prisma.channel.findUnique({
 				select: {
 					owner: {
@@ -764,7 +729,6 @@ export class ChannelService {
 			}
 		}
 
-		console.log("Checking for not joined...");
 		if (
 			!(await this._prisma.channel.count({
 				where: {
@@ -780,7 +744,6 @@ export class ChannelService {
 			throw new ChannelNotJoinedError(channel_id);
 		}
 
-		console.log("Checking for the need to delegate ownership...");
 		if (channel.owner?.id === user_id) {
 			try {
 				await this._delegate_ones_ownership(channel_id, channel);
@@ -790,10 +753,8 @@ export class ChannelService {
 				}
 			}
 		} else {
-			console.log("The leaving user is not the owner");
 		}
 
-		console.log("Leaving channel...");
 		await this._prisma.channel.update({
 			where: {
 				id: channel_id,
@@ -811,7 +772,7 @@ export class ChannelService {
 				},
 			},
 		});
-		console.log("Channel left");
+		this._logger.log(`Channel ${channel_id} left by user ${user_id}`);
 	}
 
 	/**
@@ -821,27 +782,26 @@ export class ChannelService {
 	 *
 	 * @param	user_id The id of the user sending the message.
 	 * @param	channel_id The id of the channel to send the message to.
-	 * @param	message The message to send in the channel.
+	 * @param	content The message content to send in the channel.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
 	 * 			- ChannelNotJoinedError
 	 * 			- ChannelMessageTooLongError
 	 *
-	 * @return	An empty promise.
+	 * @return	A promise containing the newly sent message data.
 	 */
 	public async send_message_to_one(
 		user_id: string,
 		channel_id: string,
-		message: string,
-	): Promise<void> {
+		content: string,
+	): Promise<ChannelMessage> {
 		type t_fields = {
 			members: {
 				id: string;
 			}[];
 		};
 
-		console.log("Searching for the channel to send the message to...");
 		const channel: t_fields | null = await this._prisma.channel.findUnique({
 			select: {
 				members: {
@@ -859,7 +819,6 @@ export class ChannelService {
 			throw new ChannelNotFoundError(channel_id);
 		}
 
-		console.log("Checking for not joined...");
 		if (
 			!(await this._prisma.channel.count({
 				where: {
@@ -875,15 +834,13 @@ export class ChannelService {
 			throw new ChannelNotJoinedError(channel_id);
 		}
 
-		console.log("Checking for message length...");
-		if (message.length > g_channel_message_length_limit) {
+		if (content.length > g_channel_message_length_limit) {
 			throw new ChannelMessageTooLongError(
-				`message length: ${message.length} ; limit: ${g_channel_message_length_limit}`,
+				`message length: ${content.length} ; limit: ${g_channel_message_length_limit}`,
 			);
 		}
 
-		console.log("Sending message...");
-		await this._prisma.channelMessage.create({
+		const message: ChannelMessage = await this._prisma.channelMessage.create({
 			data: {
 				channel: {
 					connect: {
@@ -895,9 +852,12 @@ export class ChannelService {
 						id: user_id,
 					},
 				},
-				content: message,
+				content: content,
 			},
 		});
-		console.log("Message sent");
+		this._gateway.broadcast_to_everyone(message);
+		this._logger.verbose(`Message sent to channel ${channel_id} by user ${user_id}`);
+
+		return message;
 	}
 }

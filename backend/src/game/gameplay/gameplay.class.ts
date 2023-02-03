@@ -1,18 +1,26 @@
 import { Score } from "../aliases";
 import { PaddleDto } from "../dto";
-import { Ball, ResultsObject, Paddle, ScoreUpdate } from "../objects";
+import { Ball, Paddle } from "./";
+import { Results, ScoreUpdate, SpectatorUpdate } from "../objects";
+import { Constants } from "../constants";
+import { Logger } from "@nestjs/common";
 
-import * as Constants from "../constants/constants";
-
-/* Track the state of the game, calculates the accuracy of the incomming data */
+/**
+ * Tracks the state of the game.
+ */
 export class Gameplay {
+	private readonly logger: Logger;
 	private scores: Score;
 	private paddle1: Paddle;
 	private paddle2: Paddle;
 	private ball: Ball;
 	private last_update: number;
+	private winner: number;
+
+	/* CONSTRUCTOR ============================================================= */
 
 	constructor() {
+		this.logger = new Logger(Gameplay.name);
 		this.scores = {
 			player1_score: 0,
 			player2_score: 0,
@@ -21,23 +29,30 @@ export class Gameplay {
 		this.paddle2 = new Paddle();
 		this.ball = new Ball();
 		this.last_update = -1;
+		this.winner = 0;
 	}
 
-	/* == PUBLIC ================================================================================ */
+	/* PUBLIC ================================================================== */
 
-	/* -- UPDATING GAME ------------------------------------------------------- */
-	/* Generate random initial ball velocity vector */
+	/**
+	 * Generates ball for game initialization.
+	 */
 	public initializeGame(): Ball {
-		console.log("Initializing:");
-		console.log(this.ball);
+		this.logger.log("Initializing game");
 		this.last_update = Date.now();
 		return this.ball;
 	}
 
-	/* Generates a ball update */
-	public refresh(): Ball | ScoreUpdate /* GameUpdate */ {
+	/**
+	 * Refreshes ball position.
+	 *
+	 * If ball goes outside of the scene, a ScoreUpdate is generated.
+	 * If the end of game is reached, a Results is generated.
+	 */
+	public refresh(): Ball | ScoreUpdate | Results {
 		const now: number = Date.now();
-		const delta_time = (now - this.last_update) * 0.001;
+		const delta_time: number = (now - this.last_update) * 0.001;
+
 		this.last_update = now;
 
 		const ret: number = this.ball.refresh(delta_time);
@@ -63,30 +78,20 @@ export class Gameplay {
 		return this.ball;
 	}
 
-	// TODO: Cleanup this function...
-	public checkUpdate(
-		who: number | null,
-		dto: PaddleDto,
-	): {
-		has_cheated: boolean;
-		updated_paddle: PaddleDto;
-	} {
-		let updated_paddle: PaddleDto;
-		if (who === 1) {
-			updated_paddle = this.paddle1.update(dto, Date.now());
-		} else if (who === 2) {
-			updated_paddle = this.paddle2.update(dto, Date.now());
-		} else {
-			throw null;
-		}
-		// Return corrected paddle if anticheat stroke
-		return {
-			has_cheated: false,
-			updated_paddle: updated_paddle,
-		};
+	/**
+	 * Updates paddle in game.
+	 *
+	 * In case the updated paddle doesn't match the expectations,
+	 * the corrected paddle is sent back to sender.
+	 */
+	public checkUpdate(who: number, dto: PaddleDto): PaddleDto {
+		if (who === 1) this.paddle1.update(dto, Date.now());
+		else this.paddle2.update(dto, Date.now());
+		return dto;
 	}
 
-	/* -- UTILS --------------------------------------------------------------- */
+	/* ------------------------------------------------------------------------- */
+
 	public getScores(): Score {
 		return this.scores;
 	}
@@ -95,28 +100,39 @@ export class Gameplay {
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, true);
 	}
 
-	public getResults(guilty: number): ResultsObject {
-		return new ResultsObject(this.scores, guilty);
+	public getSpectatorUpdate(): SpectatorUpdate {
+		return new SpectatorUpdate(this.ball, this.paddle1, this.paddle2);
 	}
 
-	/* == PRIVATE =============================================================================== */
+	public getWinner(): number {
+		return this.winner;
+	}
 
-	/* -- GAME STATUS UPDATE -------------------------------------------------- */
-	/* Players 1 marked a point, send results OR reinitialize */
-	private oneWon(): ScoreUpdate {
+	/* PRIVATE ================================================================= */
+
+	/**
+	 * Called if player1 marked a point.
+	 *
+	 * Return value depends on whether the point was decisive or not.
+	 */
+	private oneWon(): ScoreUpdate | Results {
 		++this.scores.player1_score;
 		if (this.scores.player1_score === Constants.max_score) {
-			throw new ResultsObject(this.scores);
+			this.winner = 1;
+			return new Results(this.scores);
 		}
 		this.ball = new Ball();
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, true);
 	}
 
-	/* Players 2 marked a point, send results OR reinitialize */
-	private twoWon(): ScoreUpdate {
+	/**
+	 * Called if player2 marked a point.
+	 */
+	private twoWon(): ScoreUpdate | Results {
 		++this.scores.player2_score;
 		if (this.scores.player2_score === Constants.max_score) {
-			throw new ResultsObject(this.scores);
+			this.winner = 2;
+			return new Results(this.scores);
 		}
 		this.ball = new Ball();
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, false);

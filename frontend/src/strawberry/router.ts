@@ -87,7 +87,7 @@ class RouteDescriptor {
             const segment = segments[i];
             const token = this.tokens[i];
 
-            if (token.type == "field") {
+            if (token.type === "field") {
                 data[token.data] = segment;
             } else {
                 if (segment !== token.data) {
