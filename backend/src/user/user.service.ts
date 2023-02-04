@@ -25,18 +25,25 @@ import { ChannelService } from "src/channel/channel.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, Logger, StreamableFile } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-import { StateType } from "@prisma/client";
+import { DirectMessage, StateType } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
+import { ChatGateway } from "src/chat/chat.gateway";
 
 @Injectable()
 export class UserService {
-	private _prisma: PrismaService;
+	// REMIND: would it be better to make these properties static ?
+	// REMIND: check if passing `_channel` in readonly keep it working well
 	private _channel: ChannelService;
+	// REMIND: check if passing `_gateway` in readonly keep it working well
+	private _gateway: ChatGateway;
+	// REMIND: check if passing `_prisma` in readonly keep it working well
+	private _prisma: PrismaService;
 	private readonly _logger: Logger;
 
 	constructor() {
 		this._channel = new ChannelService();
+		this._gateway = new ChatGateway();
 		this._prisma = new PrismaService();
 		this._logger = new Logger(UserService.name);
 	}
@@ -838,7 +845,7 @@ export class UserService {
 			throw new UserBlockedError(`${receiving_user_id}`);
 		}
 
-		await this._prisma.directMessage.create({
+		const message: DirectMessage = await this._prisma.directMessage.create({
 			data: {
 				sender: {
 					connect: {
@@ -855,7 +862,7 @@ export class UserService {
 		});
 
 		if (!receiving_user.blocked.some((blocked) => blocked.id === sending_user_id)) {
-			// TODO: Use the ChatGateway to send the message to the receiving user.
+			this._gateway.forward_to_user_socket(message);
 		}
 
 		this._logger.log(`User ${sending_user_id} sent a message to user ${receiving_user_id}`);
