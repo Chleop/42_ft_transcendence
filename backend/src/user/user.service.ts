@@ -2,6 +2,7 @@ import { t_get_one_fields } from "src/user/alias";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
+	UserBlockedError,
 	UserFieldUnaivalableError,
 	UserNotBlockedError,
 	UserNotFoundError,
@@ -9,6 +10,7 @@ import {
 	UserNotLinkedError,
 	UserRelationNotFoundError,
 	UserSelfBlockError,
+	UserSelfMessageError,
 	UserSelfUnblockError,
 	UserSelfUnfriendError,
 } from "src/user/error";
@@ -592,8 +594,149 @@ export class UserService {
 	}
 
 	/**
+	 * @brief	Make a user send a direct message to another user.
+	 * 			Receiving user must be active, not be the same as the sending user,
+	 * 			and either have at least one common channel with the sending user,
+	 * 			or be friends with the sending user.
+	 * 			Sending user must not have blocked the receiving user.
+	 * 			If the sending user has been blocked by the receiving user,
+	 * 			the message will be stored in the database,
+	 * 			but it will not be forwarded to the receiving user.
+	 * 			It is assumed that the provided sending user id is valid.
+	 * 			(user exists and is not DISABLED)
+	 *
+	 * @param	sending_user_id The id of the user sending the message.
+	 * @param	receiving_user_id The id of the user receiving the message.
+	 * @param	content The content of the message.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserSelfMessageError
+	 * 			- UserNotLinkedError
+	 * 			- UserBlockedError
+	 */
+	public async send_message_to_one(
+		sending_user_id: string,
+		receiving_user_id: string,
+		content: string,
+	): Promise<void> {
+		type t_sending_user_fields = {
+			blocked: {
+				id: string;
+			}[];
+			channels: {
+				id: string;
+			}[];
+			friends: {
+				id: string;
+			}[];
+		};
+		type t_receiving_user_fields = {
+			blocked: {
+				id: string;
+			}[];
+			channels: {
+				id: string;
+			}[];
+		};
+
+		const sending_user: t_sending_user_fields = (await this._prisma.user.findUnique({
+			select: {
+				blocked: {
+					select: {
+						id: true,
+					},
+				},
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+				friends: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: sending_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		})) as t_sending_user_fields;
+
+		const receiving_user: t_receiving_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				blocked: {
+					select: {
+						id: true,
+					},
+				},
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: receiving_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!receiving_user) {
+			throw new UserNotFoundError(receiving_user_id);
+		}
+
+		if (sending_user_id === receiving_user_id) {
+			throw new UserSelfMessageError();
+		}
+
+		if (
+			!receiving_user.channels.some((receiving_user_channel): boolean =>
+				sending_user.channels.some(
+					(sending_user_channel): boolean =>
+						sending_user_channel.id === receiving_user_channel.id,
+				),
+			) &&
+			!sending_user.friends.some((friend) => friend.id === receiving_user_id)
+		) {
+			throw new UserNotLinkedError(`${sending_user_id} - ${receiving_user_id}`);
+		}
+
+		if (sending_user.blocked.some((blocked) => blocked.id === receiving_user_id)) {
+			throw new UserBlockedError(`${receiving_user_id}`);
+		}
+
+		await this._prisma.directMessage.create({
+			data: {
+				sender: {
+					connect: {
+						id: sending_user_id,
+					},
+				},
+				receiver: {
+					connect: {
+						id: receiving_user_id,
+					},
+				},
+				content,
+			},
+		});
+
+		if (!receiving_user.blocked.some((blocked) => blocked.id === sending_user_id)) {
+			// TODO: Use the ChatGateway to send the message to the receiving user.
+		}
+
+		this._logger.log(`User ${sending_user_id} sent a message to user ${receiving_user_id}`);
+	}
+
+	/**
 	 * @brief	Make a user unblock another user, ending the restrictions imposed by the block.
-	 * 			Unblocked user must be active, by currently blocked by the unblocking user,
+	 * 			Unblocked user must be active, be currently blocked by the unblocking user,
 	 * 			and not be the same as the unblocking user.
 	 * 			It is assumed that the provided unblocking user id is valid.
 	 * 			(user exists and is not DISABLED)
