@@ -212,6 +212,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				room.match.player2.emit("updateScore", update.invert());
 			} else if (update instanceof Results) {
 				/* The game ended */
+				room.destroyPlayerPing();
 				room.has_updated_score = false;
 				room.is_ongoing = false;
 				const last_score: ScoreUpdate = room.getFinalScore();
