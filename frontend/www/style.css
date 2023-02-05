@@ -242,6 +242,7 @@ body {
 }
 
 .message-avatar {
+  position: relative;
   height: 44px;
   width: 44px;
   min-width: 44px;
@@ -286,6 +287,7 @@ body {
 }
 
 .message-author {
+  position: relative;
   font-family: "Noto Sans", sans-serif;
   font-size: 18px;
   background-color: transparent;
@@ -521,4 +523,120 @@ body {
 
 .profile-game-score {
   font-family: "Krona One", sans-serif;
+}
+
+#user-card-screen {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+#user-card {
+  position: absolute;
+  transform: translateX(-100%);
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  width: 300px;
+  border-radius: 20px;
+  z-index: 5;
+}
+
+#user-card-banner {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100px;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  background-size: cover;
+  background-position: center;
+}
+
+#user-card-header {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: end;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding-bottom: 10px;
+}
+
+#user-card-avatar {
+  background-size: cover;
+  background-position: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 10000px;
+  z-index: 10;
+  border: 3px solid white;
+  margin-left: 10px;
+  margin-top: 45px;
+}
+
+#user-card-name {
+  font-family: "Noto Sans", sans-serif;
+  margin-left: 10px;
+  font-size: 24px;
+  color: white;
+  font-weight: bold;
+}
+
+#user-card-status {
+  text-align: center;
+  color: white;
+  font-family: "Noto Sans", sans-serif;
+  font-size: 18px;
+  padding-top: 10px;
+  background-color: rgba(255, 255, 255, 0.2);
+  padding-bottom: 10px;
+  user-select: none;
+}
+
+#user-card-stats {
+  text-align: center;
+  color: white;
+  font-family: "Noto Sans", sans-serif; 
+  font-size: 18px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+#user-card-menu {
+  text-align: center;
+  color: white;
+  font-family: "Noto Sans", sans-serif;
+  font-size: 18px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  display: flex;
+  flex-flow: column nowrap;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  padding-left: 10px;
+  padding-right: 10px;
+  gap: 10px;
+}
+
+.user-card-menu-button {
+  outline: none;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  color: black;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border: none;
+  font-family: "Noto Sans", sans-serif;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.user-card-menu-button:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.user-card-menu-button:active {
+  transform: translateY(1px);
 }
