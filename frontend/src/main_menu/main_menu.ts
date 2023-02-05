@@ -1,6 +1,6 @@
 import { ChatElement } from "./chat";
 import { Overlay, Scene, State, History } from "../strawberry";
-import { Client, GameResult, GameSocket, Users } from "../api";
+import { Client, GameSocket, Users } from "../api";
 import { GameBoard, PlayingGame } from "../game";
 
 class ProfileOverlay extends Overlay {
@@ -25,6 +25,16 @@ class ProfileOverlay extends Overlay {
 
         const avatar = document.createElement("div");
         avatar.id = "profile-avatar";
+        const avatar_input = document.createElement("input");
+        avatar_input.type = "file";
+        avatar_input.accept = "image/*";
+        avatar.onclick = () => avatar_input.click();
+        avatar_input.onchange = () => {
+            if (avatar_input.files && avatar_input.files[0]) {
+                const file = avatar_input.files[0];
+                Client.set_avatar(file);
+            }
+        };
         header.appendChild(avatar);
 
         const header_info = document.createElement("div");

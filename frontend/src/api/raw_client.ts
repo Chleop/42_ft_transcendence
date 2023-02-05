@@ -1,4 +1,4 @@
-import { Body, JsonBody } from "./body"
+import { Body, JsonBody, FileBody } from "./body"
 import { ChannelId, ChannelJoined, Message, MessageId } from "./channel";
 import { PrivateUser, User, UserId } from "./user";
 
@@ -120,6 +120,15 @@ export class RawHTTPClient {
             method: "GET",
             url: "/api/user/@me",
         })).json();
+    }
+
+    /** Sets the user's avatar. */
+    public async set_avatar(file: File): Promise<void> {
+        await this.make_request({
+            method: "PUT",
+            url: "/api/user/@me/avatar",
+            body: new FileBody(file),
+        });
     }
 
     /**

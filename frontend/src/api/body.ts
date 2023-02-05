@@ -37,3 +37,15 @@ export class JsonBody extends Body {
         this.content_type = "application/json";
     }
 }
+
+export class FileBody extends Body {
+    public readonly data: BodyInit;
+    public readonly content_type: string;
+
+    public constructor(file: File) {
+        super();
+
+        this.data = file;
+        this.content_type = file.type;
+    }
+}
