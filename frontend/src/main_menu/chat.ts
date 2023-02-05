@@ -178,6 +178,7 @@ export class ChatElement {
 
         this.messages = document.createElement("div");
         this.messages.id = "chat-messages";
+        this.messages.classList.add("custom-scrollbar");
         this.container.appendChild(this.messages);
 
         const send_message_container = document.createElement("div");

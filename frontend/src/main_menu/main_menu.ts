@@ -11,6 +11,11 @@ class ProfileOverlay extends Overlay {
 
         this.html = document.createElement("div");
         this.html.id = "profile";
+        this.html.onclick = e => {
+            if (e.target === this.html) {
+                History.go_back();
+            }
+        };
 
         const container = document.createElement("div");
         container.id = "profile-container";
@@ -38,12 +43,6 @@ class ProfileOverlay extends Overlay {
         const name = document.createElement("div");
         name.id = "profile-name";
         header_info.appendChild(name);
-
-        const exit_button = document.createElement("button");
-        exit_button.classList.add("circle-button");
-        exit_button.id = "profile-exit-button";
-        exit_button.onclick = () => History.go_back();
-        container.appendChild(exit_button);
 
         const stats = document.createElement("div");
         stats.id = "profile-stats";

@@ -203,6 +203,9 @@ body {
 
   overflow-x: hidden;
   overflow-y: scroll;
+}
+
+.custom-scrollbar {
   scrollbar-width: thin;
 }
 
@@ -475,14 +478,6 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-}
-
-#profile-exit-button {
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  width: 25px;
-  height: 25px;
 }
 
 .profile-game-container {
