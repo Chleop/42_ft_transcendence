@@ -76,50 +76,6 @@ class ProfileOverlay extends Overlay {
             });
             name.innerText = me.name;
 
-            me.games_played = [{
-                date_time: new Date(),
-                id: "test",
-                players_ids: [me.id, me.id],
-                scores: [5, 2],
-                winner_id: me.id,
-            },{
-                date_time: new Date(),
-                id: "test",
-                players_ids: [me.id, me.id],
-                scores: [5, 2],
-                winner_id: me.id,
-            },{
-                date_time: new Date(),
-                id: "test",
-                players_ids: [me.id, me.id],
-                scores: [5, 2],
-                winner_id: me.id,
-            },{
-                date_time: new Date(),
-                id: "test",
-                players_ids: [me.id, me.id],
-                scores: [5, 2],
-                winner_id: me.id,
-            },{
-                date_time: new Date(),
-                id: "test",
-                players_ids: [me.id, me.id],
-                scores: [5, 2],
-                winner_id: me.id,
-            },{
-                date_time: new Date(),
-                id: "test",
-                players_ids: [me.id, me.id],
-                scores: [5, 2],
-                winner_id: me.id,
-            },{
-                date_time: new Date(),
-                id: "test",
-                players_ids: [me.id, me.id],
-                scores: [5, 2],
-                winner_id: me.id,
-            },];
-
             for (const result of me.games_played) {
                 const game_container = document.createElement("li");
                 game_container.classList.add("profile-game-container");
