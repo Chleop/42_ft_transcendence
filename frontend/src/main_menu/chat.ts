@@ -193,7 +193,17 @@ export class ChatElement {
         handle.id = "chat-handle";
         handle.onclick = () => {
             this.container.classList.toggle("chat-hidden");
+            if (this.container.classList.contains("chat-hidden")) {
+                window.localStorage.setItem("chat-hidden", "true");
+            } else {
+                window.localStorage.setItem("chat-hidden", "false");
+            }
         };
+        if (window.localStorage.getItem("chat-hidden") === "true") {
+            setTimeout(() => {
+                this.container.classList.add("chat-hidden");
+            }, 0);
+        }
         this.container.appendChild(handle);
 
         this.message_input = document.createElement("input");

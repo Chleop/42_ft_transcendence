@@ -10,7 +10,7 @@ import * as passport from "passport";
 async function bootstrap() {
 	const app = await NestFactory.create<NestExpressApplication>(AppModule, {
 		logger: [
-			// "log",
+			"log",
 			"debug",
 			"error",
 			"verbose",
