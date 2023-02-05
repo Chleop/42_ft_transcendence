@@ -15,7 +15,7 @@ class MessageElementInternal {
     public constructor(continuing: boolean, message: Message) {
         const avatar = document.createElement("avatar");
         avatar.classList.add("message-avatar");
-        Client.user_avatar(message.senderId).then(url => {
+        Users.get_avatar(message.senderId).then(url => {
             avatar.style.backgroundImage = `url(\"${url}\")`;
         });
         const author = document.createElement("button");
@@ -172,6 +172,7 @@ export class ChatElement {
         chat_nav.appendChild(create_channel_container);
 
         const create_channel_button = document.createElement("button");
+        create_channel_button.classList.add("circle-button");
         create_channel_button.id = "chat-create-channel";
         create_channel_container.appendChild(create_channel_button);
 
@@ -185,6 +186,7 @@ export class ChatElement {
 
         const channel_settings_button = document.createElement("button");
         channel_settings_button.id = "chat-settings-button";
+        channel_settings_button.classList.add("circle-button");
         send_message_container.appendChild(channel_settings_button);
 
         const handle = document.createElement("div");
