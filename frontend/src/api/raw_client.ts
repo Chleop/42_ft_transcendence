@@ -104,6 +104,11 @@ export class RawHTTPClient {
 
         let response = await fetch(request.url, request_init);
 
+        if (response.status == 401) {
+    		document.location.pathname = "/api/auth/42/login";
+            throw "user not connected";
+        }
+
         if (response.status != success_status) {
             // An error seems to have occured server-side.
             throw new UnexpectedStatusCode(response.status, response.statusText);
