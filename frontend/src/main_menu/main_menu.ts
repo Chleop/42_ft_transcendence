@@ -18,15 +18,23 @@ class ProfileOverlay extends Overlay {
 
     const card = document.createElement("div");
     card.id = "profile-card";
+    container.appendChild(card);
 
     const header = document.createElement("div");
     header.id = "profile-header";
+    card.appendChild(header);
 
     const avatar = document.createElement("div");
     avatar.id = "profile-avatar";
+    header.appendChild(avatar);
+
+    const header_info = document.createElement("div");
+    header_info.id = "profile-header-info";
+    header.appendChild(header_info);
 
     const name = document.createElement("div");
     name.id = "profile-name";
+    header_info.appendChild(name);
 
     Users.me().then((me) => {
       Client.user_avatar(me.id).then((url) => {
@@ -34,49 +42,36 @@ class ProfileOverlay extends Overlay {
       });
       name.innerText = me.name;
     });
-    header.appendChild(avatar);
-    header.appendChild(name);
 
-    const edit_button = document.createElement("button");
-    edit_button.id = "profile-edit-button";
-    header.appendChild(edit_button);
-    card.appendChild(header);
+    // const edit_button = document.createElement("button");
+    // edit_button.id = "profile-edit-button";
+    // header.appendChild(edit_button);
 
-    const stats = document.createElement("ul");
+    const stats = document.createElement("div");
     stats.id = "profile-stats";
+    header_info.appendChild(stats);
 
-    const rank = document.createElement("li");
-    rank.innerText = "Rank: Bronze";
+    const rank = document.createElement("div");
+    rank.id = "profile-stats-rank";
+    rank.innerText = "B";
     stats.appendChild(rank);
 
-    const wins = document.createElement("li");
-    wins.style.color = "green";
-    wins.innerText = "Wins: 0";
-    stats.appendChild(wins);
-
-    const losses = document.createElement("li");
-    losses.style.color = "red";
-    losses.innerText = "Losses: 0";
-    stats.appendChild(losses);
-    card.appendChild(stats);
+    const scores = document.createElement("div");
+    scores.id = "profile-stats-scores";
+    scores.innerText = "0 W / 0 L";
+    stats.appendChild(scores);
 
     const game_history = document.createElement("ul");
     game_history.id = "profile-game-history";
-
-    const game_one = document.createElement("li");
-    game_one.innerText = "Game 1";
-    game_history.appendChild(game_one);
-
-    const game_two = document.createElement("li");
-    game_two.innerText = "Game 2";
-    game_history.appendChild(game_two);
-
-    const game_three = document.createElement("li");
-    game_three.innerText = "Game 3";
-    game_history.appendChild(game_three);
+    game_history.classList.add("custom-scrollbar");
     card.appendChild(game_history);
 
-    container.appendChild(card);
+    for (let i = 0; i < 30; ++i) {
+      const game = document.createElement("li");
+      game.innerText = `Game ${i}`;
+      game_history.appendChild(game);
+    }
+
     this.html.appendChild(container);
   }
 

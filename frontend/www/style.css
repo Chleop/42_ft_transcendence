@@ -206,13 +206,13 @@ body {
   scrollbar-width: thin;
 }
 
-#chat-messages::-webkit-scrollbar {
+.custom-scrollbar::-webkit-scrollbar {
   width: 10px;
   margin-left: 4px;
   margin-right: 4px;
 }
 
-#chat-messages::-webkit-scrollbar-thumb {
+.custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.1);
   border-radius: 1000px;
 }
@@ -366,6 +366,7 @@ body {
   position: absolute;
   left: 50%;
   top: 50%;
+  width: 500px;
   transform: translate(-50%, -50%) translateY(20px) scale(80%);
 
   background: rgba(255, 255, 255, 0.2);
@@ -391,8 +392,14 @@ body {
 #profile-header {
   display: flex;
   flex-direction: row;
+  justify-content: center;
+  padding: 10px;
   align-items: center;
-  padding: 20px;
+}
+
+#profile-header-info {
+  display: flex;
+  flex-flow: column nowrap;
 }
 
 #profile-avatar {
@@ -408,7 +415,6 @@ body {
   font-family: "Noto Sans", sans-serif;
   font-size: 30px;
   font-weight: 600;
-  margin-bottom: 10px;
 }
 
 #profile-edit-button {
@@ -429,25 +435,35 @@ body {
 }
 
 #profile-stats {
-  list-style: none;
-  padding: 0px;
-  margin: 0px;
+  font-family: "Noto Sans", sans-serif;
+  font-size: 14px;
+  color: #d8d8d8;
   display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  padding: 0px 20px 20px 20px;
-  font-size: 20px;
+  flex-flow: row nowrap;
+}
+
+#profile-stats-rank {
+  margin-right: 10px;
 }
 
 #profile-game-history {
   list-style: none;
-  padding: 20px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 10px;
+  padding-up: 0px;
   font-size: 20px;
+  display: flex;
+  flex-flow: column nowrap;
   margin: 0px;
+  height: 400px;
+  overflow: scroll;
+  border-top: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 #profile-game-history li {
-  margin-bottom: 10px;
+  font-family: "Noto Sans", sans-serif;
+  margin-top: 10px;
 }
 
 #game-canvas {
