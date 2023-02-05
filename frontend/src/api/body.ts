@@ -9,7 +9,7 @@ export abstract class Body {
     /**
      * The MIME type of the data.
      */
-    public abstract get content_type(): string;
+    public abstract get content_type(): string|undefined;
 }
 
 /**
@@ -40,12 +40,15 @@ export class JsonBody extends Body {
 
 export class FileBody extends Body {
     public readonly data: BodyInit;
-    public readonly content_type: string;
+    public readonly content_type: undefined;
 
     public constructor(file: File) {
         super();
 
-        this.data = file;
-        this.content_type = file.type;
+        const form_data = new FormData();
+        form_data.append("file", file);
+
+        this.data = form_data;
+        this.content_type = undefined;
     }
 }

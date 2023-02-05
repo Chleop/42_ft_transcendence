@@ -85,7 +85,8 @@ export class RawHTTPClient {
         let body: BodyInit | undefined = undefined;
         if (request.body) {
             body = request.body.data;
-            headers["Content-Type"] = request.body.content_type;
+            if (request.body.content_type)
+                headers["Content-Type"] = request.body.content_type;
         }
 
         if (request.accept)
