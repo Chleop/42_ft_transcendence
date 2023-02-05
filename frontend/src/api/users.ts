@@ -33,6 +33,11 @@ export const Users = (function() {
             return user;
         }
 
+        /** Invalidates the provided avatar, effectively removing it from the cache. */
+        public invalidate_avatar(id: UserId) {
+            delete this.avatars[id];
+        }
+
         /**
          * Returns the requested user's avatar.
          *

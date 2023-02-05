@@ -29,12 +29,6 @@ class ProfileOverlay extends Overlay {
         avatar_input.type = "file";
         avatar_input.accept = "image/*";
         avatar.onclick = () => avatar_input.click();
-        avatar_input.onchange = () => {
-            if (avatar_input.files && avatar_input.files[0]) {
-                const file = avatar_input.files[0];
-                Client.set_avatar(file);
-            }
-        };
         header.appendChild(avatar);
 
         const header_info = document.createElement("div");
@@ -60,6 +54,7 @@ class ProfileOverlay extends Overlay {
         rank.innerText = "B";
         stats.appendChild(rank);
 
+        // TODO: compute the number of wins/loses.
         const scores = document.createElement("div");
         scores.id = "profile-stats-scores";
         scores.innerText = "0 W / 0 L";
@@ -75,6 +70,17 @@ class ProfileOverlay extends Overlay {
                 avatar.style.backgroundImage = `url(\"${url}\")`;
             });
             name.innerText = me.name;
+
+            avatar_input.onchange = () => {
+                if (avatar_input.files && avatar_input.files[0]) {
+                    const file = avatar_input.files[0];
+                    Client.set_avatar(file);
+                    Users.invalidate_avatar(me.id);
+                    Users.get_avatar(me.id).then(url => {
+                        avatar.style.backgroundImage = `url(\"${url}\")`;
+                    });
+                }
+            };
 
             for (const result of me.games_played) {
                 const game_container = document.createElement("li");
