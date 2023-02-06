@@ -1,4 +1,4 @@
-import { t_get_one_fields } from "src/user/alias";
+import { t_get_me_fields, t_get_one_fields } from "src/user/alias";
 import { UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
@@ -52,7 +52,7 @@ export class UserController {
 		@Param("id") id: string,
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_get_me_fields;
 		},
 	): Promise<void> {
 		try {
@@ -66,7 +66,6 @@ export class UserController {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			this._logger.error(error.message);
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
@@ -76,16 +75,12 @@ export class UserController {
 	async disable_me(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_get_me_fields;
 		},
 	): Promise<void> {
 		try {
 			await this._user_service.disable_one(request.user.id);
 		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				this._logger.error(error.message);
-				throw new BadRequestException(error.message);
-			}
 			if (error instanceof UnknownError) {
 				this._logger.error(error.message);
 				throw new InternalServerErrorException(error.message);
@@ -99,13 +94,11 @@ export class UserController {
 	async get_me(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_get_me_fields;
 		},
-	): Promise<t_get_one_fields> {
-		let user: t_get_one_fields;
-
+	): Promise<t_get_me_fields> {
 		try {
-			user = await this._user_service.get_one(request.user.id, request.user.id);
+			return await this._user_service.get_me(request.user.id);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				this._logger.error(error.message);
@@ -114,22 +107,18 @@ export class UserController {
 			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-
-		return user;
 	}
 
 	@Get(":id")
 	async get_one(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_get_me_fields;
 		},
 		@Param("id") id: string,
 	): Promise<t_get_one_fields> {
-		let user: t_get_one_fields;
-
 		try {
-			user = await this._user_service.get_one(request.user.id, id);
+			return await this._user_service.get_one(request.user.id, id);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				this._logger.error(error.message);
@@ -142,15 +131,13 @@ export class UserController {
 			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-
-		return user;
 	}
 
 	@Get(":id/avatar")
 	async get_ones_avatar(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_get_me_fields;
 		},
 		@Param("id") id: string,
 	): Promise<StreamableFile> {
@@ -178,7 +165,7 @@ export class UserController {
 	async unblock_one(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_get_me_fields;
 		},
 		@Param("id") id: string,
 	): Promise<void> {
@@ -202,7 +189,7 @@ export class UserController {
 	async unfriend_one(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_get_me_fields;
 		},
 		@Param("id") id: string,
 	): Promise<void> {
@@ -227,7 +214,7 @@ export class UserController {
 	async update_me(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_get_me_fields;
 		},
 		@Body() dto: UserUpdateDto,
 	): Promise<void> {
@@ -240,10 +227,6 @@ export class UserController {
 				dto.skin_id,
 			);
 		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				this._logger.error(error.message);
-				throw new BadRequestException(error.message);
-			}
 			if (error instanceof UserFieldUnaivalableError) {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
@@ -262,17 +245,13 @@ export class UserController {
 	async update_ones_avatar(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_get_me_fields;
 		},
 		@UploadedFile() file: Express.Multer.File,
 	): Promise<void> {
 		try {
 			await this._user_service.update_ones_avatar(request.user.id, file);
 		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				this._logger.error(error.message);
-				throw new BadRequestException(error.message);
-			}
 			if (error instanceof UnknownError) {
 				this._logger.error(error.message);
 				throw new InternalServerErrorException(error.message);
