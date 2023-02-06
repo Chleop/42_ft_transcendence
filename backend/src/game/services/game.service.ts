@@ -114,17 +114,6 @@ export class GameService {
 	}
 
 	/**
-	 * Removes game room from list.
-	 */
-	public destroyRoom(room: GameRoom): void {
-		const index: number = this.game_rooms.indexOf(room);
-		if (index < 0) return;
-		this.logger.verbose(`Destroying room ${room.match.name}`);
-		room.destroyPlayerPing();
-		this.game_rooms.splice(index, 1);
-	}
-
-	/**
 	 * Updates received paddle.
 	 *
 	 * Returns updated paddle and the opponent of the sender.
@@ -150,6 +139,17 @@ export class GameService {
 	}
 
 	/* PRIVATE ================================================================= */
+
+	/**
+	 * Removes game room from list.
+	 */
+	private destroyRoom(room: GameRoom): void {
+		const index: number = this.game_rooms.indexOf(room);
+		if (index < 0) return;
+		this.logger.verbose(`Destroying room ${room.match.name}`);
+		room.destroyPlayerPing();
+		this.game_rooms.splice(index, 1);
+	}
 
 	/**
 	 * Returns index of room if client is in it.
