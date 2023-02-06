@@ -29,7 +29,6 @@ export class Matchmaking {
 			this.queue = client;
 			return null;
 		} else {
-			if (this.queue.id === client.id) throw "Client already in the queue";
 			const match: Match = {
 				name: this.queue.id + client.id,
 				player1: this.queue,

@@ -9,7 +9,7 @@ import * as passport from "passport";
 
 async function bootstrap() {
 	const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-		logger: ["log", "error"],
+		logger: ["log", "error", "verbose"],
 	});
 
 	app.setGlobalPrefix("api");
