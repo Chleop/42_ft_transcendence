@@ -1,10 +1,10 @@
-import { JwtGuard } from "src/auth/guards";
+import { Jwt2FAGuard } from "src/auth/guards";
 import { UseGuards, Logger } from "@nestjs/common";
 import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { ChannelMessage } from "@prisma/client";
 
-@UseGuards(JwtGuard)
+@UseGuards(Jwt2FAGuard)
 @WebSocketGateway({
 	cors: {
 		origin: ["http://localhost:3000"],
