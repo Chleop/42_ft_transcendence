@@ -27,9 +27,10 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 
 	/* CONSTRUCTOR ============================================================= */
 
-	constructor(game_service: GameService) {
+	constructor(game_service: GameService, user_service: UserService) {
 		this.server = new Server();
 		this.game_service = game_service;
+		this.user_service = user_service;
 		this.spectated_rooms = new SpectatedRooms();
 		this.logger = new Logger(SpectatorGateway.name);
 	}
@@ -54,7 +55,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 * Else, they're disconnected.
 	 */
 	public async handleConnection(client: Socket): Promise<void> {
-		this.logger.log(`Socket '${client.handshake.auth.token}' joined`);
+		this.logger.verbose(`['${client.data.user.login}' connected]`);
 		try {
 			const user_id: string | string[] | undefined = client.handshake.auth.user_id;
 			if (typeof user_id !== "string") throw "Room not properly specified";
@@ -107,7 +108,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 					this.stopStreaming(this, spectated_room.game_room.match.name);
 			}
 		}
-		this.logger.log(`Socket '${client.handshake.auth.token}' left`);
+		this.logger.verbose(`['${client.data.user.login}' disconnected]`);
 	}
 
 	/* PRIVATE ================================================================= */
@@ -121,7 +122,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 			game_room.match.name,
 		);
 		if (spectated_room === null) {
-			this.logger.log(`Creating room ${game_room.match.name}`);
+			this.logger.verbose(`Creating room ${game_room.match.name}`);
 			const new_room: SpectatedRoom = new SpectatedRoom(
 				game_room,
 				setInterval(this.updateGame, Constants.ping, this, game_room),
@@ -129,7 +130,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 			new_room.addSpectator(client);
 			this.spectated_rooms.add(new_room);
 		} else {
-			this.logger.log(`${spectated_room.getName()} already exists`);
+			this.logger.verbose(`${spectated_room.getName()} already exists`);
 		}
 	}
 

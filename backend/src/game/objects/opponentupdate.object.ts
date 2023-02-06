@@ -2,8 +2,8 @@ import { Socket } from "socket.io";
 import { PaddleDto } from "../dto";
 
 export class OpponentUpdate {
-	player: Socket;
-	updated_paddle: PaddleDto;
+	public readonly player: Socket;
+	public readonly updated_paddle: PaddleDto;
 
 	/* CONSTRUCTOR ============================================================= */
 

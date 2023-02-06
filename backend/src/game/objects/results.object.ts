@@ -28,15 +28,15 @@ function getCurrentTime(date: Date): string {
  */
 export class Results {
 	public readonly date: string;
-	public readonly score: Score;
+	public readonly scores: Score;
 	public winner: string;
 
 	/* CONSTRUCTOR ============================================================= */
 
-	constructor(score: Score, winner?: string) {
+	constructor(scores: Score, winner?: string) {
 		const date: Date = new Date();
 		this.date = getCurrentTime(date);
-		this.score = score;
+		this.scores = scores;
 		if (winner !== undefined) {
 			this.winner = winner;
 		}

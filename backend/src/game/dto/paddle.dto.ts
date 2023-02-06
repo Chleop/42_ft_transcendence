@@ -4,8 +4,8 @@
  * DTO received from client in 'update' event.
  */
 export class PaddleDto {
-	public position: number;
-	public velocity: number;
+	public readonly position: number;
+	public readonly velocity: number;
 
 	/* CONSTRUCTOR ============================================================= */
 

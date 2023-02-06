@@ -11,13 +11,13 @@ import { Matchmaking } from "../matchmaking";
 /**
  * Game rooms manager.
  *
- * Holds the matchmaker.
+ * Holds the matchmaking unit.
  */
 @Injectable()
 export class GameService {
-	private prisma_service: PrismaService;
+	private readonly prisma_service: PrismaService;
 	private game_rooms: GameRoom[];
-	private matchmaking: Matchmaking;
+	private readonly matchmaking: Matchmaking;
 	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
@@ -50,10 +50,11 @@ export class GameService {
 							id: results.winner,
 						},
 					},
-					scores: [results.score.player1_score, results.score.player2_score],
+					scores: [results.scores.player1_score, results.scores.player2_score],
 					dateTime: new Date(results.date),
 				},
 			});
+			this.logger.verbose(`Saved game '${room.match.name}' to database`);
 		} catch (error) {
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
@@ -65,6 +66,7 @@ export class GameService {
 						);
 				}
 			}
+			this.logger.error(error);
 			throw error;
 		}
 		return match;
@@ -80,6 +82,7 @@ export class GameService {
 		if (index >= 0) throw "Player already in game";
 		const new_game_room: GameRoom | null = this.matchmaking.queueUp(client);
 		if (new_game_room === null) return null;
+		this.logger.verbose(`Room ${new_game_room.match.name} created.`);
 		this.game_rooms.push(new_game_room);
 		return new_game_room;
 	}
@@ -89,17 +92,19 @@ export class GameService {
 	 */
 	public async unQueue(client: Socket): Promise<Match | null> {
 		// Client has passed matchmaking
+		this.logger.verbose(`User ${client.data.user.login} is being unqueued`);
 		if (!this.matchmaking.unQueue(client)) {
 			const index: number = this.findUserRoomIndex(client);
 
 			// Client is not in a gameroom
 			if (index < 0) return null;
 
-			this.logger.log("Kicked from room");
-
 			// Client was in an ongoing game
+
 			const room: GameRoom = this.game_rooms[index];
 			const results: Results = room.cutGameShort(room.playerNumber(client));
+			this.logger.verbose(`Game was cut short: '${room.match.name}'`);
+
 			const match: Match = await this.registerGameHistory(room, results);
 
 			this.destroyRoom(room);
@@ -114,7 +119,7 @@ export class GameService {
 	public destroyRoom(room: GameRoom): void {
 		const index: number = this.game_rooms.indexOf(room);
 		if (index < 0) return;
-		this.logger.log(`Destroying room ${room.match.name}`);
+		this.logger.verbose(`Destroying room ${room.match.name}`);
 		room.destroyPlayerPing();
 		this.game_rooms.splice(index, 1);
 	}
