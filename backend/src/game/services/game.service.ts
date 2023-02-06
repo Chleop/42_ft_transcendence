@@ -16,7 +16,6 @@ import { Matchmaking } from "../matchmaking";
 @Injectable()
 export class GameService {
 	// REMIND: would it be better to make these properties static ?
-	private readonly _logger: Logger;
 	// REMIND: check if passing `prisma_service` in readonly keep it working well
 	// TODO: in order to harmonise names, we should rename `prisma_service` to `_prisma_service`
 	private prisma_service: PrismaService;
@@ -26,6 +25,8 @@ export class GameService {
 	// REMIND: check if passing `matchmaking` in readonly keep it working well
 	// TODO: in order to harmonise names, we should rename `matchmaking` to `_matchmaking`
 	private matchmaking: Matchmaking;
+	// TODO: in order to harmonise names, we should rename `logger` to `_logger`
+	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
 
@@ -33,7 +34,7 @@ export class GameService {
 		this.prisma_service = prisma;
 		this.matchmaking = new Matchmaking();
 		this.game_rooms = [];
-		this._logger = new Logger(GameService.name);
+		this.logger = new Logger(GameService.name);
 	}
 
 	/* PUBLIC ================================================================== */
@@ -102,7 +103,7 @@ export class GameService {
 			// Client is not in a gameroom
 			if (index < 0) return null;
 
-			this._logger.log("Kicked from room");
+			this.logger.log("Kicked from room");
 
 			// Client was in an ongoing game
 			const room: GameRoom = this.game_rooms[index];
@@ -121,7 +122,7 @@ export class GameService {
 	public destroyRoom(room: GameRoom): void {
 		const index: number = this.game_rooms.indexOf(room);
 		if (index < 0) return;
-		this._logger.log(`Destroying room ${room.match.name}`);
+		this.logger.log(`Destroying room ${room.match.name}`);
 		room.destroyPlayerPing();
 		this.game_rooms.splice(index, 1);
 	}

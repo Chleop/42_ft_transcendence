@@ -1,18 +1,20 @@
 import { Server, Socket } from "socket.io";
 import { ChannelMessage } from "@prisma/client";
-import { WebSocketGateway } from "@nestjs/websockets";
+import {
+	OnGatewayConnection,
+	OnGatewayDisconnect,
+	OnGatewayInit,
+	WebSocketGateway,
+	WebSocketServer,
+} from "@nestjs/websockets";
 import { Logger } from "@nestjs/common";
 
 @WebSocketGateway({
-	cors: {
-		// REMIND: is it really the expected value for `origin` property
-		origin: ["http://localhost:3000"],
-	},
-	namespace: "/chat",
-	transports: ["polling", "websocket"],
+	namespace: "chat",
 })
-export class ChatGateway {
-	private _server: Server;
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
+	@WebSocketServer()
+	private readonly _server: Server;
 	private static _client_sockets: Map<string, Socket> = new Map<string, Socket>();
 	private static _logger: Logger = new Logger(ChatGateway.name);
 
@@ -20,6 +22,10 @@ export class ChatGateway {
 		this._server = new Server();
 
 		this._server; // REMIND: This is a hack to avoid a warning about an unused variable.
+	}
+
+	public afterInit(): void {
+		ChatGateway._logger.log("Chat gateway initialized");
 	}
 
 	/**
