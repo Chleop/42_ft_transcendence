@@ -10,9 +10,9 @@ import { Server, Socket } from "socket.io";
 import { GameService } from "../services/game.service";
 import { GameRoom } from "../rooms";
 import { PaddleDto } from "../dto";
-import { Results, ScoreUpdate } from "../objects";
+import { Results, ScoreUpdate, OpponentUpdate } from "../objects";
 import { Ball } from "../gameplay";
-import { Match, OpponentUpdate } from "../aliases";
+import { Match } from "../aliases";
 import { BadRequestException, ConflictException, Logger } from "@nestjs/common";
 import { Constants } from "../constants";
 
@@ -105,12 +105,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Moves client to the queue if not already in game.
 	 */
 	public handleConnection(client: Socket): void {
-		this.logger.log(`[${client.id} connected]`);
+		this.logger.verbose(`[${client.id} connected]`);
 		try {
 			const game_room: GameRoom | null = this.game_service.queueUp(client);
 			if (game_room !== null) this.matchmake(game_room);
 		} catch (e) {
 			this.sendError(client, e);
+			this.logger.error(e);
 			client.disconnect();
 		}
 	}
@@ -135,7 +136,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			}
 			this.disconnectRoom(match);
 		}
-		this.logger.log(`[${client.id} disconnected]`);
+		this.logger.verbose(`[${client.id} disconnected]`);
 	}
 
 	/* Event handlers ---------------------------------------------------------- */
@@ -154,6 +155,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			update.player.emit("updateOpponent", client.data.paddle_dto);
 		} catch (e) {
 			this.sendError(client, e);
+			this.logger.error(e);
 			client.disconnect();
 		}
 	}
@@ -166,6 +168,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * After 3s, the game will start.
 	 */
 	private matchmake(game_room: GameRoom): void {
+		this.logger.verbose("New match was made");
 		game_room.match.player1.emit("matchFound", game_room.match.player2.data.user);
 		game_room.match.player2.emit("matchFound", game_room.match.player1.data.user);
 
@@ -211,6 +214,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				room.match.player2.emit("updateScore", update.invert());
 			} else if (update instanceof Results) {
 				/* The game ended */
+				room.destroyPlayerPing();
 				room.has_updated_score = false;
 				room.is_ongoing = false;
 				const last_score: ScoreUpdate = room.getFinalScore();
@@ -220,10 +224,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				return me.disconnectRoom(match);
 			}
 		} catch (e) {
+			this.logger.error(e);
 			if (e instanceof BadRequestException || e instanceof ConflictException) {
 				me.sendError(room.match.player1, e);
 				me.sendError(room.match.player2, e);
-				this.logger.log(e);
 				me.disconnectRoom(room.match);
 				return;
 			}

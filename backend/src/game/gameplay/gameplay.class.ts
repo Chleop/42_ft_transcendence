@@ -1,15 +1,13 @@
 import { Score } from "../aliases";
 import { PaddleDto } from "../dto";
-import { Ball, Paddle } from "./";
+import { Ball, Paddle, BallRefreshResult } from "./";
 import { Results, ScoreUpdate, SpectatorUpdate } from "../objects";
 import { Constants } from "../constants";
-import { Logger } from "@nestjs/common";
 
 /**
  * Tracks the state of the game.
  */
 export class Gameplay {
-	private readonly logger: Logger;
 	private scores: Score;
 	private paddle1: Paddle;
 	private paddle2: Paddle;
@@ -20,7 +18,6 @@ export class Gameplay {
 	/* CONSTRUCTOR ============================================================= */
 
 	constructor() {
-		this.logger = new Logger(Gameplay.name);
 		this.scores = {
 			player1_score: 0,
 			player2_score: 0,
@@ -38,7 +35,6 @@ export class Gameplay {
 	 * Generates ball for game initialization.
 	 */
 	public initializeGame(): Ball {
-		this.logger.log("Initializing game");
 		this.last_update = Date.now();
 		return this.ball;
 	}
@@ -58,20 +54,20 @@ export class Gameplay {
 		const ret: number = this.ball.refresh(delta_time);
 
 		switch (ret) {
-			case Constants.BallRefreshResult.nothing:
+			case BallRefreshResult.nothing:
 				break;
 
-			case Constants.BallRefreshResult.oneOutside:
+			case BallRefreshResult.oneOutside:
 				if (this.ball.isOutside()) return this.oneWon();
 				break;
-			case Constants.BallRefreshResult.twoOutside:
+			case BallRefreshResult.twoOutside:
 				if (this.ball.isOutside()) return this.twoWon();
 				break;
 
-			case Constants.BallRefreshResult.oneCollide:
+			case BallRefreshResult.oneCollide:
 				this.ball.checkPaddleCollision(this.paddle1.position);
 				break;
-			case Constants.BallRefreshResult.twoCollide:
+			case BallRefreshResult.twoCollide:
 				this.ball.checkPaddleCollision(this.paddle2.position);
 				break;
 		}
