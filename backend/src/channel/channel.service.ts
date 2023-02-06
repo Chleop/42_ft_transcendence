@@ -484,6 +484,20 @@ export class ChannelService {
 	}
 
 	/**
+	 * @brief	Get the list of the available channels.
+	 * 			Channels which are private or which the user is already in are not listed.
+	 *
+	 * @param	user_id The id of the user who is getting the channels.
+	 *
+	 * @return	A promise containing the list of the available channels.
+	 */
+	public async get_all(user_id: string): Promise<Channel[]> {
+		// TODO
+		user_id;
+		return [];
+	}
+
+	/**
 	 * @brief	Get channel's messages from the database.
 	 * 			It is assumed that the provided user id is valid.
 	 * 			(user exists and is ACTIVE)
