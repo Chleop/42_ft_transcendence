@@ -38,14 +38,12 @@ export class AuthController {
 	@Get("42/login")
 	@UseGuards(FtOauthGuard)
 	login() {
-		this._logger.log("IN CONTROLLER login");
 		//
 	}
 
 	@Get("42/callback")
 	@UseGuards(FtOauthGuard)
 	async signin(@Req() request: any, @Res() response: Response) {
-		this._logger.log("IN CONTROLLER signin");
 		try {
 			const token: t_access_token = await this._authService.create_access_token(
 				request.user.login,
@@ -74,7 +72,6 @@ export class AuthController {
 	@UseGuards(Jwt2FAGuard)
 	@Get("42/2FAActivate")
 	async activate_2FA(@Req() req: any, @Body() dto: EmailDto): Promise<void> {
-		this._logger.log("IN CONTROLLER activate_2FA");
 		try {
 			await this._authService.activate_2FA(req.user.id, dto.email);
 		} catch (error) {
@@ -86,7 +83,6 @@ export class AuthController {
 	@UseGuards(Jwt2FAGuard)
 	@Post("42/2FADeactivate")
 	async deactivate_2FA(@Req() req: any): Promise<void> {
-		this._logger.log("IN CONTROLLER deactivate_2FA");
 		try {
 			await this._authService.deactivate_2FA(req.user.id);
 		} catch (error) {
@@ -98,7 +94,6 @@ export class AuthController {
 	@UseGuards(JwtPendingStateGuard)
 	@Post("42/2FAValidate")
 	async validate_2FA(@Req() req: any, @Body() dto: CodeDto): Promise<void> {
-		this._logger.log("IN CONTROLLER validate_2FA");
 		try {
 			await this._authService.validate_2FA(req.user.id, dto.code);
 		} catch (error) {

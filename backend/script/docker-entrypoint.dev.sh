@@ -7,6 +7,4 @@ npm i
 npx prisma migrate deploy
 npx prisma db seed
 
-npx prisma db seed
-
 exec npm run start:dev
