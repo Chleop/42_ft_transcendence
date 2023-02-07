@@ -34,6 +34,7 @@ down:
 
 .PHONY: clean
 clean: down
+	docker volume prune -f
 
 .PHONY: fclean
 fclean:

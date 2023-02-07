@@ -15,9 +15,17 @@ import { Matchmaking } from "../matchmaking";
  */
 @Injectable()
 export class GameService {
+	// REMIND: would it be better to make these properties static ?
+	// REMIND: check if passing `prisma_service` in readonly keep it working well
+	// TODO: in order to harmonise names, we should rename `prisma_service` to `_prisma_service`
 	private prisma_service: PrismaService;
+	// REMIND: check if passing `game_rooms` in readonly keep it working well
 	private game_rooms: GameRoom[];
+
+	// REMIND: check if passing `matchmaking` in readonly keep it working well
+	// TODO: in order to harmonise names, we should rename `matchmaking` to `_matchmaking`
 	private matchmaking: Matchmaking;
+	// TODO: in order to harmonise names, we should rename `logger` to `_logger`
 	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
