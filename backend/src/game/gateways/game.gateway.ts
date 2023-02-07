@@ -24,49 +24,6 @@ type TimeoutId = {
 	timer: NodeJS.Timer;
 };
 
-/* EVENT LIST ===============================================================
-
-From the client:
-	- `connection`
-		implicitly handled by 'handleConnection'.
-		the jwt token must be checked and the client is registed in the matchmaking queue.
-	 	if another client was in the queue, they are matched in 'matchmake'.
-
-	- `disconnect`
-		implicitly handled by 'handleDisconnect'.
-		if the client was not in the queue, they are simply disconnected.
-		if they were matched with another client (or in a game), they both are disconnected.
-
-	- `update`
-		handled by 'updateOpponent'.
-		during the game, the client will regularly send their paddle position to the gateway.
-		the gateway will check those values (TODO: anticheat), and, if the data seems accurate,
-		it is sent to their opponent.
-
-From the server:
-	- `matchFound`
-		once two clients are matched, they are sent this event.
-		the gateway will then await for both matched client to send the `ok` event.
-
-	- `gameStart`
-		3 seconds after the two players get matched, they get sent this event which contains the
-		initial ball position and velocity vector data object.
-
-	- `updateOpponent`
-		when the gateway receives an update from a client, it processes it then sends it to the
-		client's opponent, labeled with this event.
-
-	- `updateBall`
-		contains ball update
-
-	- `updateScore`
-		updates only once one of the players scores
-
-	- `error`
-		sends error to client
-
-============================================================================= */
-
 @WebSocketGateway({
 	namespace: "game",
 })

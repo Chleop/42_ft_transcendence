@@ -88,17 +88,18 @@ export class GameRoom {
 	 *
 	 * Can be a score object if someone marked a point.
 	 */
-	public getSpectatorUpdate(): SpectatorUpdate | Score {
+	public getSpectatorUpdate(): SpectatorUpdate | ScoreUpdate {
 		if (!this.is_ongoing) throw null;
 		if (!this.has_updated_score) {
 			this.has_updated_score = true;
-			return this.game.getScores();
+			return this.game.getScoreUpdate();
+			// return this.game.getScores();
 		}
 		return this.game.getSpectatorUpdate();
 	}
 
 	public getFinalScore(): ScoreUpdate {
-		return this.game.getFinalScore();
+		return this.game.getScoreUpdate();
 	}
 
 	/* Ping -------------------------------------------------------------------- */

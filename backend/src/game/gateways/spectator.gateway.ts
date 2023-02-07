@@ -8,8 +8,7 @@ import {
 import { Server, Socket } from "socket.io";
 import { GameService, SpectatedRooms } from "../services";
 import { GameRoom, SpectatedRoom } from "../rooms";
-import { PlayerInfos, SpectatorUpdate } from "../objects";
-import { Score } from "../aliases";
+import { PlayerInfos, ScoreUpdate, SpectatorUpdate } from "../objects";
 import { Logger, StreamableFile } from "@nestjs/common";
 import { UserService } from "src/user/user.service";
 import { Constants } from "../constants";
@@ -139,14 +138,16 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 */
 	private updateGame(me: SpectatorGateway, room: GameRoom): void {
 		try {
-			const update: SpectatorUpdate | Score = room.getSpectatorUpdate();
+			const update: SpectatorUpdate | ScoreUpdate = room.getSpectatorUpdate();
 			me.server.to(room.match.name).emit("updateGame", update);
 		} catch (e) {
 			if (e === null) {
 				// Game is done
+				me.server.to(room.match.name).emit("endOfGame");
 				me.stopStreaming(me, room.match.name);
 				return;
 			}
+			this.logger.error(e);
 			throw e;
 		}
 	}

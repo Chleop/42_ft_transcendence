@@ -92,7 +92,7 @@ export class Gameplay {
 		return this.scores;
 	}
 
-	public getFinalScore(): ScoreUpdate {
+	public getScoreUpdate(): ScoreUpdate {
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, true);
 	}
 
