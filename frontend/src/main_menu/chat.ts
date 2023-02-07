@@ -128,9 +128,12 @@ class UserCardElement {
         this.card.style.top = `${top}px`;
         this.card.style.left = `${left}px`;
         document.body.appendChild(this.screen);
-        const box2 = this.card.getBoundingClientRect();
-        if (box2.bottom >= window.innerHeight - 20)
-            this.card.style.top = `${window.innerHeight - 20 - box2.height}px`;
+
+        setTimeout(() => {
+            const box2 = this.card.getBoundingClientRect();
+            if (box2.bottom >= window.innerHeight - 20)
+                this.card.style.top = `${window.innerHeight - 20 - box2.height}px`;
+        });
     }
 }
 
