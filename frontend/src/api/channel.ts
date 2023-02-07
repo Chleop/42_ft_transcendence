@@ -67,8 +67,8 @@ export interface Channel {
      * The name of the channel.
      */
     name: string;
-    /**
-     * Whether the channel requires a password.
-     */
-    has_password: boolean;
+    /** The type of this channel. */
+    type: "PUBLIC"|"PROTECTED",
+    /** Member count. */
+    member_count: number,
 }

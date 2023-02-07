@@ -1,5 +1,5 @@
 import { Body, JsonBody, FileBody } from "./body"
-import { ChannelId, ChannelJoined, Message, MessageId } from "./channel";
+import { Channel, ChannelId, ChannelJoined, Message, MessageId } from "./channel";
 import { PrivateUser, User, UserId } from "./user";
 
 /**
@@ -255,6 +255,16 @@ export class RawHTTPClient {
             accept: "application/json",
             url: `/api/channel/${channel}/message`,
             body: new JsonBody({ message: content }),
+        })).json();
+    }
+
+    /** Gets the list of all available channels. */
+    public async get_all_channels(): Promise<Channel[]> {
+        return (await this.make_request({
+            method: "GET",
+            success_status: 200,
+            accept: "application/json",
+            url: `/api/channel/all`,
         })).json();
     }
 }

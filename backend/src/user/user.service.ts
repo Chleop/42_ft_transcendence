@@ -559,6 +559,7 @@ export class UserService {
 
 		const requested_user: t_get_one_fields = {
 			id: requested_user_tmp.id,
+			login: requested_user_tmp.login,
 			name: requested_user_tmp.name,
 			skin_id: requested_user_tmp.skinId,
 			elo: requested_user_tmp.elo,

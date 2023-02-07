@@ -124,6 +124,25 @@ export class ChannelController {
 		}
 	}
 
+	@Get("all")
+	async get_all(
+		@Req()
+		request: {
+			user: t_get_one_fields;
+		},
+	): Promise<Channel[]> {
+		let channels: Channel[];
+
+		try {
+			channels = await this._channel_service.get_all(request.user.id);
+		} catch (error) {
+			this._logger.error("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+
+		return channels;
+	}
+
 	@Get(":id/messages")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async get_ones_messages(
@@ -214,7 +233,10 @@ export class ChannelController {
 	@Patch(":id/leave")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async leave_one(
-		@Req() request: { user: t_get_one_fields },
+		@Req()
+		request: {
+			user: t_get_one_fields;
+		},
 		@Param("id") id: string,
 	): Promise<void> {
 		try {
@@ -230,7 +252,10 @@ export class ChannelController {
 	@Post(":id/message")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async send_message_to_one(
-		@Req() request: { user: t_get_one_fields },
+		@Req()
+		request: {
+			user: t_get_one_fields;
+		},
 		@Param("id") id: string,
 		@Body() dto: ChannelMessageSendDto,
 	): Promise<ChannelMessage> {
