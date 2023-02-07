@@ -1210,4 +1210,154 @@ export class UserService {
 		}
 		this._logger.log(`Updated user ${id}'s avatar`);
 	}
+
+
+	/**
+	 * @brief	Get a user's skin from the database.
+	 * 			Requested user must be active,
+	 * 			and either have at least one common channel with the requesting user,
+	 * 			or be friends with the requesting user, or be the requesting user.
+	 * 			It is assumed that the provided requesting user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	requesting_user_id The id of the user requesting the user's skin.
+	 * @param	requested_user_id The id of the user to get the skin from.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserNotLinkedError
+	 *
+	 * @return	A promise containing the wanted skin.
+	 */
+	public async get_ones_skin(
+		requesting_user_id: string,
+		requested_user_id: string,
+	): Promise<StreamableFile> {
+		type t_requesting_user_fields = {
+			channels: {
+				id: string;
+			}[];
+		};
+		type t_requested_user_fields = {
+			skin: string;
+			channels: {
+				id: string;
+			}[];
+			friends: {
+				id: string;
+			}[];
+		};
+
+		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
+			select: {
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requesting_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		})) as t_requesting_user_fields;
+
+		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				skin: true,
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+				friends: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requested_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+
+		if (!requested_user) {
+			throw new UserNotFoundError(requested_user_id);
+		}
+
+		if (
+			requesting_user_id !== requested_user_id &&
+			!requested_user.friends.some((friend) => friend.id === requesting_user_id) &&
+			!requested_user.channels.some((requested_user_channel): boolean =>
+				requesting_user.channels.some(
+					(requesting_user_channel): boolean =>
+						requesting_user_channel.id === requested_user_channel.id,
+				),
+			)
+		) {
+			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
+		}
+
+		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.skin)));
+	}
+
+		/**
+	 * @brief	Update a user's skin in the database.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	id The id of the user to update the skin from.
+	 * @param	file The file containing the new skin.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UnknownError
+	 *
+	 * @return	An empty promise.
+	 */
+		public async update_ones_skin(id: string, file: Express.Multer.File): Promise<void> {
+			type t_fields = {
+				skin: string;
+			};
+	
+			const user: t_fields = (await this._prisma.user.findUnique({
+				select: {
+					skin: true,
+				},
+				where: {
+					idAndState: {
+						id: id,
+						state: StateType.ACTIVE,
+					},
+				},
+			})) as t_fields;
+	
+			if (user.skin === "resource/skin/default.jpg") {
+				await this._prisma.user.update({
+					data: {
+						skin: `resource/skin/${id}.jpg`,
+					},
+					where: {
+						idAndState: {
+							id: id,
+							state: StateType.ACTIVE,
+						},
+					},
+				});
+			}
+			try {
+				createWriteStream(join(process.cwd(), user.skin)).write(file.buffer);
+			} catch (error) {
+				if (error instanceof Error)
+					this._logger.error(`Error occured while writing skin to disk: ${error.message}`);
+				throw new UnknownError();
+			}
+			this._logger.log(`Updated user ${id}'s skin`);
+		}
+	
 }
+

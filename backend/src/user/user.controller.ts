@@ -289,4 +289,57 @@ export class UserController {
 			throw new InternalServerErrorException();
 		}
 	}
+
+	@Get(":id/skin")
+	async get_ones_skin(
+		@Req()
+		request: {
+			user: t_get_me_fields;
+		},
+		@Param("id") id: string,
+	): Promise<StreamableFile> {
+		let sfile: StreamableFile;
+
+		try {
+			sfile = await this._user_service.get_ones_skin(request.user.id, id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof UserNotLinkedError) {
+				this._logger.error(error.message);
+				throw new ForbiddenException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+
+		return sfile;
+	}
+
+
+	@Put("@me/skin")
+	@UseInterceptors(FileInterceptor("file"))
+	async update_ones_skin(
+		@Req()
+		request: {
+			user: t_get_me_fields;
+		},
+		@UploadedFile() file: Express.Multer.File,
+	): Promise<void> {
+		try {
+			await this._user_service.update_ones_skin(request.user.id, file);
+		} catch (error) {
+			if (error instanceof UnknownError) {
+				this._logger.error(error.message);
+				throw new InternalServerErrorException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+	}
+
+
 }
+
