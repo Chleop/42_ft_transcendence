@@ -264,7 +264,7 @@ export class ChannelController {
 			return await this._channel_service.send_message_to_one(
 				request.user.id,
 				id,
-				dto.message,
+				dto.content,
 			);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
