@@ -10,6 +10,9 @@ class ChannelResultElement {
 
         const header = document.createElement("div");
         header.classList.add("create-channel-result-header");
+        header.onclick = () => {
+            // TODO: join the channel!
+        };
         root.appendChild(header);
 
         const name = document.createElement("div");
@@ -68,18 +71,12 @@ class ChannelListElement {
         this.container.style.left = `${rect.right - 400}px`;
         document.body.appendChild(this.screen);
 
-        // TODO: when I have merged.
-        // Client.get_all_channels().then(channels => {
-        //     for (const chan of channels) {
-        //         this.list.appendChild(new ChannelResultElement(chan).root);
-        //     }
-        // });
-        this.list.appendChild(new ChannelResultElement({
-            id: "esdfdfsdfsdf",
-            member_count: 4,
-            name: "test",
-            type: "PROTECTED",
-        }).root);
+        Client.get_all_channels().then(channels => {
+            console.log(channels);
+            for (const chan of channels) {
+                this.list.appendChild(new ChannelResultElement(chan).root);
+            }
+        });
     }
 }
 
