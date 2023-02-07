@@ -88,9 +88,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		const client: Socket = ChatGateway._client_sockets.get(user_id) as Socket;
 
 		client.join(room_id);
-		ChatGateway._logger.log(
-			`Client ${client.id} (${client.data.user.login}) joined socket room ${room_id}`,
-		);
 	}
 
 	/**
@@ -107,8 +104,5 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		const client: Socket = ChatGateway._client_sockets.get(user_id) as Socket;
 
 		client.leave(room_id);
-		ChatGateway._logger.log(
-			`Client ${client.id} (${client.data.user.login}) left socket room ${room_id}`,
-		);
 	}
 }

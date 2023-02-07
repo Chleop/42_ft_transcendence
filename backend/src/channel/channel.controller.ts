@@ -1,3 +1,4 @@
+import { t_get_all_fields } from "src/channel/alias";
 import { ChannelService } from "src/channel/channel.service";
 import {
 	BadRequestException,
@@ -130,8 +131,8 @@ export class ChannelController {
 		request: {
 			user: t_get_one_fields;
 		},
-	): Promise<Channel[]> {
-		let channels: Channel[];
+	): Promise<t_get_all_fields> {
+		let channels: t_get_all_fields;
 
 		try {
 			channels = await this._channel_service.get_all(request.user.id);
