@@ -1013,10 +1013,6 @@ export class UserService {
 					id: string;
 				}[];
 			};
-
-			if (!unfriending_user) {
-				throw new UserNotFoundError();
-			}
 		}
 
 		if (!unfriended_user) {

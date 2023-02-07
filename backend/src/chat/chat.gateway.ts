@@ -51,9 +51,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * @param	message The message to forward.
 	 */
 	public forward_to_user_socket(message: DirectMessage): void {
-		const socket = ChatGateway._client_sockets.get(message.receiverId);
+		const socket: Socket = ChatGateway._client_sockets.get(message.receiverId) as Socket;
 
-		socket?.emit("direct_message", message);
+		socket.emit("direct_message", message);
 	}
 
 	/**e
