@@ -13,7 +13,7 @@ import {
 	UserSelfUnblockError,
 	UserSelfUnfriendError,
 } from "src/user/error";
-import { JwtGuard } from "src/auth/guards";
+import { Jwt2FAGuard } from "src/auth/guards";
 import { UserService } from "src/user/user.service";
 import {
 	BadRequestException,
@@ -40,7 +40,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { UserMessageSendDto } from "./dto/UserMessageSend.dto";
 
 @Controller("user")
-@UseGuards(JwtGuard)
+@UseGuards(Jwt2FAGuard)
 export class UserController {
 	private _user_service: UserService;
 	private readonly _logger: Logger;

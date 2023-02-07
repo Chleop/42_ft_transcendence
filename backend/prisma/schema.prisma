@@ -22,7 +22,8 @@ model User {
   skin                    Skin      @relation(fields: [skinId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   elo                     Int       @default(0)
   twoFactAuth             Boolean   @default(false)
-  twoFactSecret           String?
+  twoFACode               String?
+  twoFACreationDate       DateTime?
   channels                Channel[] @relation("userchannels")
   channelsOwned           Channel[] @relation("chanowner")
   gamesPlayed             Game[]    @relation("gamesplayed")
@@ -113,5 +114,6 @@ enum ChanType {
 
 enum StateType {
   ACTIVE
+  PENDING
   DISABLED
 }
