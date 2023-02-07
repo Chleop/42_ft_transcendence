@@ -276,8 +276,12 @@ export class UserController {
 		request: {
 			user: t_get_me_fields;
 		},
-		@UploadedFile() file: Express.Multer.File,
+		@UploadedFile() file?: Express.Multer.File,
 	): Promise<void> {
+		if (!file) {
+			this._logger.error("No file provided while updating avatar");
+			throw new BadRequestException("No file provided");
+		}
 		try {
 			await this._user_service.update_ones_avatar(request.user.id, file);
 		} catch (error) {

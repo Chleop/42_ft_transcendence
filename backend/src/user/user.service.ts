@@ -1189,9 +1189,10 @@ export class UserService {
 		})) as t_fields;
 
 		if (user.avatar === "resource/avatar/default.jpg") {
+			user.avatar = `resource/avatar/${id}.jpg`;
 			await this._prisma.user.update({
 				data: {
-					avatar: `resource/avatar/${id}.jpg`,
+					avatar: user.avatar,
 				},
 				where: {
 					idAndState: {
