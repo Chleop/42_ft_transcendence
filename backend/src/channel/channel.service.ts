@@ -17,8 +17,8 @@ import {
 	ChannelUnpopulatedError,
 	UnknownError,
 } from "src/channel/error";
-import { Gateway } from "src/gateway";
 import { g_channel_message_length_limit } from "src/channel/limit";
+import { ChatGateway } from "src/chat/chat.gateway";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, Logger } from "@nestjs/common";
 import { Channel, ChannelMessage, ChanType, StateType } from "@prisma/client";
@@ -27,13 +27,16 @@ import * as argon2 from "argon2";
 
 @Injectable()
 export class ChannelService {
+	// REMIND: would it be better to make these properties static ?
+	// REMIND: check if passing `_prisma` in readonly keep it working well
 	private _prisma: PrismaService;
-	private _gateway: Gateway;
+	// REMIND: check if passing `_gateway` in readonly keep it working well
+	private _gateway: ChatGateway;
 	private readonly _logger: Logger;
 
 	constructor() {
 		this._prisma = new PrismaService();
-		this._gateway = new Gateway();
+		this._gateway = new ChatGateway();
 		this._logger = new Logger(ChannelService.name);
 	}
 
@@ -327,15 +330,15 @@ export class ChannelService {
 				},
 			});
 			this._logger.log(`Channel ${channel.id} owner changed to ${user_id}`);
-		} else {
 		}
+
 		return channel;
 	}
 
 	/**
 	 * @brief	Create a new channel in the database.
 	 * 			It is assumed that the provided user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	user_id The id of the user who is creating the channel.
 	 * @param	name The name of the channel.
@@ -416,7 +419,7 @@ export class ChannelService {
 	 * @brief	Delete a channel from the database.
 	 * 			Only the owner of the channel is allowed to delete it.
 	 * 			It is assumed that the provided user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	user_id The id of the user who is deleting the channel.
 	 * @param	channel_id The id of the channel to delete.
@@ -483,7 +486,7 @@ export class ChannelService {
 	/**
 	 * @brief	Get channel's messages from the database.
 	 * 			It is assumed that the provided user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	user_id The id of the user who is getting the messages.
 	 * @param	channel_id The id of the channel to get the messages from.
@@ -551,7 +554,7 @@ export class ChannelService {
 	 * 			- PRIVATE, an valid invitation is required.
 	 * 			If the channel is ownerless, the user will inherit of the ownership of the channel.
 	 * 			It is assumed that the provided joining user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	joining_user_id The id of the user who is joining the channel.
 	 * @param	channel_id The id of the channel to join.
@@ -664,6 +667,7 @@ export class ChannelService {
 			throw new UnknownError();
 		}
 
+		this._gateway.make_user_socket_join_room(joining_user_id, channel_id);
 		channel = await this._inherit_ones_ownership(channel, joining_user_id);
 		channel.hash = null;
 		return channel;
@@ -672,7 +676,7 @@ export class ChannelService {
 	/**
 	 * @brief	Make a user leave a channel.
 	 * 			It is assumed that the provided user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	user_id The id of the user leaving the channel.
 	 * @param	channel_id The id of the channel to leave.
@@ -752,7 +756,6 @@ export class ChannelService {
 					await this._drop_ones_ownership(channel_id, channel);
 				}
 			}
-		} else {
 		}
 
 		await this._prisma.channel.update({
@@ -773,12 +776,14 @@ export class ChannelService {
 			},
 		});
 		this._logger.log(`Channel ${channel_id} left by user ${user_id}`);
+
+		this._gateway.make_user_socket_leave_room(user_id, channel_id);
 	}
 
 	/**
 	 * @brief	Make a user send a message to a channel they are in.
 	 * 			It is assumed that the provided user id is valid.
-	 * 			(user exists and is not DISABLED)
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	user_id The id of the user sending the message.
 	 * @param	channel_id The id of the channel to send the message to.
@@ -855,7 +860,7 @@ export class ChannelService {
 				content: content,
 			},
 		});
-		this._gateway.broadcast_to_everyone(message);
+		this._gateway.broadcast_to_room(message);
 		this._logger.verbose(`Message sent to channel ${channel_id} by user ${user_id}`);
 
 		return message;

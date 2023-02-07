@@ -1,9 +1,9 @@
+import { AppModule } from "src/app.module";
+import { SocketIOAdapter } from "src/socket-io.adapter";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
-import { AppModule } from "./app.module";
-import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { SocketIOAdapter } from "./socket-io.adapter";
+import { ValidationPipe } from "@nestjs/common";
 import * as session from "express-session";
 import * as passport from "passport";
 
@@ -16,6 +16,7 @@ async function bootstrap() {
 
 	app.useGlobalPipes(
 		new ValidationPipe({
+			// REMIND: Shouldn't we use `transform: true`?
 			whitelist: true,
 		}),
 	);

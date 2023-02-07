@@ -1,4 +1,4 @@
-import { Channel, ChannelId, Message, UserId, Client, Users, Gateway, MessageId } from "../api";
+import { Channel, ChannelId, Message, Client, Users, Gateway } from "../api";
 
 /**
  * A message that has been instanciated in the DOM.
@@ -220,6 +220,8 @@ export class ChatElement {
             let ch = this.get_channel(msg.channelId);
             if (ch) {
                 this.add_message(ch, msg);
+            } else {
+                console.warn(`received a message not meant to me:`, msg);
             }
         };
     }

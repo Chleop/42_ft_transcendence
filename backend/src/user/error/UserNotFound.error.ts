@@ -1,6 +1,6 @@
 export class UserNotFoundError implements Error {
 	private readonly _name: string;
-	private readonly _message: string;
+	private _message: string;
 
 	constructor(details?: string) {
 		this._name = "UserNotFoundError";
@@ -16,5 +16,9 @@ export class UserNotFoundError implements Error {
 
 	public get message(): string {
 		return this._message;
+	}
+
+	public set message(message: string) {
+		this._message = message;
 	}
 }
