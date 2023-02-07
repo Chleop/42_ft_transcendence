@@ -1,5 +1,5 @@
 import { Server, Socket } from "socket.io";
-import { ChannelMessage } from "@prisma/client";
+import { ChannelMessage, DirectMessage } from "@prisma/client";
 import {
 	OnGatewayConnection,
 	OnGatewayDisconnect,
@@ -42,6 +42,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		}
 	}
 
+	/**
+	 * @brief	Forward a message to a specific user through its socket.
+	 * 			It is assumed that the receiving user id which is stored in the message
+	 * 			corresponds to a valid socket.
+	 * 			(connected to the chat gateway)
+	 *
+	 * @param	message The message to forward.
+	 */
+	public forward_to_user_socket(message: DirectMessage): void {
+		const socket: Socket = ChatGateway._client_sockets.get(message.receiverId) as Socket;
+
+		socket.emit("direct_message", message);
+	}
+
 	/**e
 	 * @brief	Accept a new connection and store the client socket,
 	 * 			mapping it with its corresponding user id.
@@ -78,7 +92,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	/**
 	 * @brief	Add a socket to a socket room,
 	 * 			allowing to broadcast messages to a specific subset of users.
-	 * 			It is assumed that the provided user id correspond to a valid socket.
+	 * 			It is assumed that the provided user id corresponds to a valid socket.
 	 * 			(connected and not joined in the wanted room yet)
 	 *
 	 * @param	user_id The id of the user whose socket is to be joined in the room.
@@ -96,7 +110,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	/**
 	 * @brief	Remove a socket from a socket room,
 	 * 			preventing to broadcast messages to a specific subset of users.
-	 * 			It is assumed that the provided user id correspond to a valid socket.
+	 * 			It is assumed that the provided user id corresponds to a valid socket.
 	 * 			(connected and joined in the wanted room)
 	 * 			It is assumed that the provided room id correspond to a valid room.
 	 *

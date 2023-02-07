@@ -214,7 +214,10 @@ export class ChannelController {
 	@Patch(":id/leave")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async leave_one(
-		@Req() request: { user: t_get_one_fields },
+		@Req()
+		request: {
+			user: t_get_one_fields;
+		},
 		@Param("id") id: string,
 	): Promise<void> {
 		try {
@@ -230,7 +233,10 @@ export class ChannelController {
 	@Post(":id/message")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async send_message_to_one(
-		@Req() request: { user: t_get_one_fields },
+		@Req()
+		request: {
+			user: t_get_one_fields;
+		},
 		@Param("id") id: string,
 		@Body() dto: ChannelMessageSendDto,
 	): Promise<ChannelMessage> {
@@ -238,7 +244,7 @@ export class ChannelController {
 			return await this._channel_service.send_message_to_one(
 				request.user.id,
 				id,
-				dto.message,
+				dto.content,
 			);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
