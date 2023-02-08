@@ -176,6 +176,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Sends different updates, depending of the state of the game.
 	 */
 	private async sendGameUpdates(me: GameGateway, room: GameRoom): Promise<void> {
+		if (!room.is_ongoing) return;
 		try {
 			const update: Ball | ScoreUpdate | Results = room.updateGame();
 			if (update instanceof Ball) {
