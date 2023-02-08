@@ -16,7 +16,7 @@ async function bootstrap() {
 
 	app.useGlobalPipes(
 		new ValidationPipe({
-			// REMIND: Shouldn't we use `transform: true`?
+			transform: true,
 			whitelist: true,
 		}),
 	);

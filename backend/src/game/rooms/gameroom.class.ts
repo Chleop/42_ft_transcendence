@@ -2,6 +2,7 @@ import { Socket } from "socket.io";
 import { Gameplay, Ball } from "../gameplay";
 import { Score, Match } from "../aliases";
 import { Results, ScoreUpdate, SpectatorUpdate, OpponentUpdate } from "../objects";
+import { BadEvent } from "../exceptions";
 
 /**
  * Ongoing game room handler.
@@ -57,27 +58,26 @@ export class GameRoom {
 	 * Updates received paddle.
 	 */
 	public updatePaddle(client: Socket): OpponentUpdate {
-		if (this.game === null) throw "Game hasn't started yet";
-		return {
-			player: this.whoIsOpponent(client),
-			updated_paddle: this.game.checkUpdate(
-				this.playerNumber(client),
-				client.data.paddle_dto,
-			),
-		};
+		if (this.game === null) throw new BadEvent("Game hasn't started yet");
+		return new OpponentUpdate(
+			this.whoIsOpponent(client),
+			this.game.checkUpdate(this.playerNumber(client), client.data.paddle_dto),
+		);
 	}
 
 	/**
 	 * Stops the game early (when someone leaves the game).
 	 */
 	public cutGameShort(guilty: number): Results {
-		if (!this.game) throw null;
 		this.is_ongoing = false;
 		this.has_updated_score = false;
 		const score: Score = this.game.getScores();
+
 		let winner: string;
+
 		if (guilty === 1) winner = this.match.player2.data.user.id;
 		else winner = this.match.player1.data.user.id;
+
 		return new Results(score, winner);
 	}
 
@@ -88,17 +88,17 @@ export class GameRoom {
 	 *
 	 * Can be a score object if someone marked a point.
 	 */
-	public getSpectatorUpdate(): SpectatorUpdate | Score {
-		if (!this.is_ongoing) throw null;
+	public getSpectatorUpdate(): SpectatorUpdate | ScoreUpdate | null {
+		if (!this.is_ongoing) return null;
 		if (!this.has_updated_score) {
 			this.has_updated_score = true;
-			return this.game.getScores();
+			return this.game.getScoreUpdate();
 		}
 		return this.game.getSpectatorUpdate();
 	}
 
-	public getFinalScore(): ScoreUpdate {
-		return this.game.getFinalScore();
+	public getScoreUpdate(): ScoreUpdate {
+		return this.game.getScoreUpdate();
 	}
 
 	/* Ping -------------------------------------------------------------------- */
