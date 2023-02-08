@@ -15,7 +15,6 @@ import {
 	UserNotFoundError,
 	UserNotFriendError,
 	UserNotLinkedError,
-	UserRelationNotFoundError,
 	UserSelfBlockError,
 	UserSelfMessageError,
 	UserSelfUnblockError,
@@ -220,24 +219,17 @@ export class UserService {
 	 * @return	A promise containing the id of the created user.
 	 */
 	public async create_one(login: string): Promise<string> {
-		type t_fields = {
-			id: string;
-		};
+		const skin_id: string = (
+			await this._prisma.skin.create({
+				data: {
+					background: "resource/skin/background/default.jpg",
+					ball: "resource/skin/ball/default.jpg",
+					paddle: "resource/skin/paddle/default.jpg",
+				},
+			})
+		).id;
 
-		const skin: t_fields | null = await this._prisma.skin.findUnique({
-			select: {
-				id: true,
-			},
-			where: {
-				name: "Default",
-			},
-		});
-
-		if (!skin) {
-			throw new UserRelationNotFoundError();
-		}
-
-		let id: string;
+		let user_id: string;
 
 		try {
 			let name: string = login;
@@ -253,16 +245,16 @@ export class UserService {
 				name = `${login}#${suffix++}`;
 			}
 
-			id = (
+			user_id = (
 				await this._prisma.user.create({
 					data: {
 						login: login,
 						name: name,
-						skinId: skin.id,
+						skinId: skin_id,
 					},
 				})
 			).id;
-			this._logger.log(`User ${id} created`);
+			this._logger.log(`User ${user_id} created`);
 		} catch (error) {
 			this._logger.error(`Error while creating user ${login}`);
 			if (error instanceof PrismaClientKnownRequestError) {
@@ -275,7 +267,7 @@ export class UserService {
 			throw new UnknownError();
 		}
 
-		return id;
+		return user_id;
 	}
 
 	/**
@@ -1214,9 +1206,8 @@ export class UserService {
 		this._logger.log(`Updated user ${id}'s avatar`);
 	}
 
-
 	/**
-	 * @brief	Get a user's skin from the database.
+	 * @brief	Get a user's background skin from the database.
 	 * 			Requested user must be active,
 	 * 			and either have at least one common channel with the requesting user,
 	 * 			or be friends with the requesting user, or be the requesting user.
@@ -1230,9 +1221,9 @@ export class UserService {
 	 * 			- UserNotFoundError
 	 * 			- UserNotLinkedError
 	 *
-	 * @return	A promise containing the wanted skin.
+	 * @return	A promise containing the wanted background skin.
 	 */
-	public async get_ones_skin(
+	public async get_ones_background(
 		requesting_user_id: string,
 		requested_user_id: string,
 	): Promise<StreamableFile> {
@@ -1242,7 +1233,9 @@ export class UserService {
 			}[];
 		};
 		type t_requested_user_fields = {
-			skin: string;
+			skin: {
+				background: string;
+			};
 			channels: {
 				id: string;
 			}[];
@@ -1250,7 +1243,6 @@ export class UserService {
 				id: string;
 			}[];
 		};
-
 		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
 			select: {
 				channels: {
@@ -1266,10 +1258,13 @@ export class UserService {
 				},
 			},
 		})) as t_requesting_user_fields;
-
 		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
 			select: {
-				skin: true,
+				skin: {
+					select: {
+						background: true,
+					},
+				},
 				channels: {
 					select: {
 						id: true,
@@ -1288,11 +1283,9 @@ export class UserService {
 				},
 			},
 		});
-
 		if (!requested_user) {
 			throw new UserNotFoundError(requested_user_id);
 		}
-
 		if (
 			requesting_user_id !== requested_user_id &&
 			!requested_user.friends.some((friend) => friend.id === requesting_user_id) &&
@@ -1305,9 +1298,200 @@ export class UserService {
 		) {
 			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
 		}
-
-		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.skin)));
+		return new StreamableFile(
+			createReadStream(join(process.cwd(), requested_user.skin.background)),
+		);
 	}
-	
-}
 
+	/**
+	 * @brief	Get a user's ball skin from the database.
+	 * 			Requested user must be active,
+	 * 			and either have at least one common channel with the requesting user,
+	 * 			or be friends with the requesting user, or be the requesting user.
+	 * 			It is assumed that the provided requesting user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	requesting_user_id The id of the user requesting the user's skin.
+	 * @param	requested_user_id The id of the user to get the skin from.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserNotLinkedError
+	 *
+	 * @return	A promise containing the wanted ball skin.
+	 */
+	public async get_ones_ball(
+		requesting_user_id: string,
+		requested_user_id: string,
+	): Promise<StreamableFile> {
+		type t_requesting_user_fields = {
+			channels: {
+				id: string;
+			}[];
+		};
+		type t_requested_user_fields = {
+			skin: {
+				ball: string;
+			};
+			channels: {
+				id: string;
+			}[];
+			friends: {
+				id: string;
+			}[];
+		};
+		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
+			select: {
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requesting_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		})) as t_requesting_user_fields;
+		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				skin: {
+					select: {
+						ball: true,
+					},
+				},
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+				friends: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requested_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		if (!requested_user) {
+			throw new UserNotFoundError(requested_user_id);
+		}
+		if (
+			requesting_user_id !== requested_user_id &&
+			!requested_user.friends.some((friend) => friend.id === requesting_user_id) &&
+			!requested_user.channels.some((requested_user_channel): boolean =>
+				requesting_user.channels.some(
+					(requesting_user_channel): boolean =>
+						requesting_user_channel.id === requested_user_channel.id,
+				),
+			)
+		) {
+			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
+		}
+		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.skin.ball)));
+	}
+
+	/**
+	 * @brief	Get a user's paddle skin from the database.
+	 * 			Requested user must be active,
+	 * 			and either have at least one common channel with the requesting user,
+	 * 			or be friends with the requesting user, or be the requesting user.
+	 * 			It is assumed that the provided requesting user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	requesting_user_id The id of the user requesting the user's skin.
+	 * @param	requested_user_id The id of the user to get the skin from.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 * 			- UserNotLinkedError
+	 *
+	 * @return	A promise containing the wanted paddle skin.
+	 */
+	public async get_ones_paddle(
+		requesting_user_id: string,
+		requested_user_id: string,
+	): Promise<StreamableFile> {
+		type t_requesting_user_fields = {
+			channels: {
+				id: string;
+			}[];
+		};
+		type t_requested_user_fields = {
+			skin: {
+				paddle: string;
+			};
+			channels: {
+				id: string;
+			}[];
+			friends: {
+				id: string;
+			}[];
+		};
+		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
+			select: {
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requesting_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		})) as t_requesting_user_fields;
+		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				skin: {
+					select: {
+						paddle: true,
+					},
+				},
+				channels: {
+					select: {
+						id: true,
+					},
+				},
+				friends: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requested_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		if (!requested_user) {
+			throw new UserNotFoundError(requested_user_id);
+		}
+		if (
+			requesting_user_id !== requested_user_id &&
+			!requested_user.friends.some((friend) => friend.id === requesting_user_id) &&
+			!requested_user.channels.some((requested_user_channel): boolean =>
+				requesting_user.channels.some(
+					(requesting_user_channel): boolean =>
+						requesting_user_channel.id === requested_user_channel.id,
+				),
+			)
+		) {
+			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
+		}
+		return new StreamableFile(
+			createReadStream(join(process.cwd(), requested_user.skin.paddle)),
+		);
+	}
+}

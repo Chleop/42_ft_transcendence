@@ -295,8 +295,8 @@ export class UserController {
 		}
 	}
 
-	@Get(":id/skin")
-	async get_ones_skin(
+	@Get(":id/skin/background")
+	async get_background_skin(
 		@Req()
 		request: {
 			user: t_user_auth;
@@ -304,9 +304,8 @@ export class UserController {
 		@Param("id") id: string,
 	): Promise<StreamableFile> {
 		let sfile: StreamableFile;
-
 		try {
-			sfile = await this._user_service.get_ones_skin(request.user.id, id);
+			sfile = await this._user_service.get_ones_background(request.user.id, id);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				this._logger.error(error.message);
@@ -317,11 +316,66 @@ export class UserController {
 				throw new ForbiddenException(error.message);
 			}
 			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error(error.message);
 			throw new InternalServerErrorException();
 		}
 
 		return sfile;
 	}
 
-}
+	@Get(":id/skin/ball")
+	async get_ball_skin(
+		@Req()
+		request: {
+			user: t_user_auth;
+		},
+		@Param("id") id: string,
+	): Promise<StreamableFile> {
+		let sfile: StreamableFile;
+		try {
+			sfile = await this._user_service.get_ones_ball(request.user.id, id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof UserNotLinkedError) {
+				this._logger.error(error.message);
+				throw new ForbiddenException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error(error.message);
+			throw new InternalServerErrorException();
+		}
 
+		return sfile;
+	}
+
+	@Get(":id/skin/paddle")
+	async get_paddle_skin(
+		@Req()
+		request: {
+			user: t_user_auth;
+		},
+		@Param("id") id: string,
+	): Promise<StreamableFile> {
+		let sfile: StreamableFile;
+		try {
+			sfile = await this._user_service.get_ones_paddle(request.user.id, id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof UserNotLinkedError) {
+				this._logger.error(error.message);
+				throw new ForbiddenException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error(error.message);
+			throw new InternalServerErrorException();
+		}
+
+		return sfile;
+	}
+}
