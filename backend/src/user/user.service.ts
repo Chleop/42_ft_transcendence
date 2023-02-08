@@ -1308,59 +1308,6 @@ export class UserService {
 
 		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.skin)));
 	}
-
-		/**
-	 * @brief	Update a user's skin in the database.
-	 * 			It is assumed that the provided user id is valid.
-	 * 			(user exists and is ACTIVE)
-	 *
-	 * @param	id The id of the user to update the skin from.
-	 * @param	file The file containing the new skin.
-	 *
-	 * @error	The following errors may be thrown :
-	 * 			- UnknownError
-	 *
-	 * @return	An empty promise.
-	 */
-		public async update_ones_skin(id: string, file: Express.Multer.File): Promise<void> {
-			type t_fields = {
-				skin: string;
-			};
-	
-			const user: t_fields = (await this._prisma.user.findUnique({
-				select: {
-					skin: true,
-				},
-				where: {
-					idAndState: {
-						id: id,
-						state: StateType.ACTIVE,
-					},
-				},
-			})) as t_fields;
-	
-			if (user.skin === "resource/skin/default.jpg") {
-				await this._prisma.user.update({
-					data: {
-						skin: `resource/skin/${id}.jpg`,
-					},
-					where: {
-						idAndState: {
-							id: id,
-							state: StateType.ACTIVE,
-						},
-					},
-				});
-			}
-			try {
-				createWriteStream(join(process.cwd(), user.skin)).write(file.buffer);
-			} catch (error) {
-				if (error instanceof Error)
-					this._logger.error(`Error occured while writing skin to disk: ${error.message}`);
-				throw new UnknownError();
-			}
-			this._logger.log(`Updated user ${id}'s skin`);
-		}
 	
 }
 
