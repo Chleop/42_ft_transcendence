@@ -68,8 +68,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			const game_room: GameRoom | null = this.game_service.queueUp(client);
 			if (game_room !== null) this.matchmake(game_room);
 		} catch (e) {
-			this.logger.error(e);
 			if (e instanceof BadEvent) {
+				this.logger.error(e.message);
 				this.sendError(client, e);
 				client.disconnect();
 				return;
@@ -100,8 +100,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				this.disconnectRoom(match);
 			}
 		} catch (e) {
-			this.logger.error(e);
 			if (e instanceof BadRequestException || e instanceof ConflictException) {
+				this.logger.error(e.message);
 				this.sendError(client, e);
 				return;
 			}
@@ -125,8 +125,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			const update: OpponentUpdate = this.game_service.updateOpponent(client);
 			update.player.emit("updateOpponent", client.data.paddle_dto);
 		} catch (e) {
-			this.logger.error(e);
 			if (e instanceof BadEvent) {
+				this.logger.error(e.message);
 				this.sendError(client, e);
 				client.disconnect();
 				return;
@@ -199,8 +199,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				return me.disconnectRoom(match);
 			}
 		} catch (e) {
-			this.logger.error(e);
 			if (e instanceof BadRequestException || e instanceof ConflictException) {
+				this.logger.error(e.message);
 				me.sendError(room.match.player1, e);
 				me.sendError(room.match.player2, e);
 				me.disconnectRoom(room.match);

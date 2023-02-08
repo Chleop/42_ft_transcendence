@@ -63,8 +63,8 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 			const game_room: GameRoom = this.game_service.findUserGame(user_id);
 			return this.startStreaming(client, game_room);
 		} catch (e) {
-			this.logger.error(e);
 			if (e instanceof WrongData) {
+				this.logger.error(e.message);
 				client.data.valid_uid = false;
 				this.sendError(client, e);
 				client.disconnect();
