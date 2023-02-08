@@ -15,6 +15,7 @@ import { Ball } from "../gameplay";
 import { Match } from "../aliases";
 import { BadRequestException, ConflictException, Logger } from "@nestjs/common";
 import { Constants } from "../constants";
+import { BadEvent } from "../exceptions";
 
 /**
  * setTimeout tracker
@@ -67,9 +68,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			const game_room: GameRoom | null = this.game_service.queueUp(client);
 			if (game_room !== null) this.matchmake(game_room);
 		} catch (e) {
-			this.sendError(client, e);
 			this.logger.error(e);
-			client.disconnect();
+			if (e instanceof BadEvent) {
+				this.sendError(client, e);
+				client.disconnect();
+				return;
+			}
+			throw e;
 		}
 	}
 
@@ -82,16 +87,25 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Also removes timer if it hasn't fired yet.
 	 */
 	public async handleDisconnect(client: Socket): Promise<void> {
-		const match: Match | null = await this.game_service.unQueue(client);
-		if (match !== null) {
-			const index: number = this.timeouts.findIndex((obj) => {
-				return obj.match === match.name;
-			});
-			if (index >= 0) {
-				clearTimeout(this.timeouts[index].timer);
-				this.timeouts.splice(index, 1);
+		try {
+			const match: Match | null = await this.game_service.unQueue(client);
+			if (match !== null) {
+				const index: number = this.timeouts.findIndex((obj) => {
+					return obj.match === match.name;
+				});
+				if (index >= 0) {
+					clearTimeout(this.timeouts[index].timer);
+					this.timeouts.splice(index, 1);
+				}
+				this.disconnectRoom(match);
 			}
-			this.disconnectRoom(match);
+		} catch (e) {
+			this.logger.error(e);
+			if (e instanceof BadRequestException || e instanceof ConflictException) {
+				this.sendError(client, e);
+				return;
+			}
+			throw e;
 		}
 		this.logger.verbose(`[${client.data.user.login} disconnected]`);
 	}
@@ -111,9 +125,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			const update: OpponentUpdate = this.game_service.updateOpponent(client);
 			update.player.emit("updateOpponent", client.data.paddle_dto);
 		} catch (e) {
-			this.sendError(client, e);
 			this.logger.error(e);
-			client.disconnect();
+			if (e instanceof BadEvent) {
+				this.sendError(client, e);
+				client.disconnect();
+				return;
+			}
+			throw e;
 		}
 	}
 
@@ -174,7 +192,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				room.destroyPlayerPing();
 				room.has_updated_score = false;
 				room.is_ongoing = false;
-				const last_score: ScoreUpdate = room.getFinalScore();
+				const last_score: ScoreUpdate = room.getScoreUpdate();
 				room.match.player1.emit("updateScore", last_score);
 				room.match.player2.emit("updateScore", last_score.invert());
 				const match: Match = await me.game_service.registerGameHistory(room, update);

@@ -7,6 +7,7 @@ import { Match } from "../aliases";
 import { Results, OpponentUpdate } from "../objects";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Matchmaking } from "../matchmaking";
+import { BadEvent, WrongData } from "../exceptions";
 
 /**
  * Game rooms manager.
@@ -66,7 +67,6 @@ export class GameService {
 						);
 				}
 			}
-			this.logger.error(error);
 			throw error;
 		}
 		return match;
@@ -79,9 +79,12 @@ export class GameService {
 	 */
 	public queueUp(client: Socket): GameRoom | null {
 		const index: number = this.findUserRoomIndex(client);
-		if (index >= 0) throw "Player already in game";
+		if (index >= 0) throw new BadEvent("Player already in game");
 		const new_game_room: GameRoom | null = this.matchmaking.queueUp(client);
-		if (new_game_room === null) return null;
+		if (new_game_room === null) {
+			this.logger.verbose(`${client.data.user.login} was queued up.`);
+			return null;
+		}
 		this.logger.verbose(`Room ${new_game_room.match.name} created.`);
 		this.game_rooms.push(new_game_room);
 		return new_game_room;
@@ -120,7 +123,7 @@ export class GameService {
 	 */
 	public updateOpponent(client: Socket): OpponentUpdate {
 		const index: number = this.findUserRoomIndex(client);
-		if (index < 0) throw "Paddle update received but not in game";
+		if (index < 0) throw new BadEvent("Paddle update received but not in game");
 		return this.game_rooms[index].updatePaddle(client);
 	}
 
@@ -134,7 +137,7 @@ export class GameService {
 				obj.match.player2.handshake.auth.token === user_id
 			);
 		});
-		if (room === undefined) throw "Room does not exist";
+		if (room === undefined) throw new WrongData("Room does not exist");
 		return room;
 	}
 

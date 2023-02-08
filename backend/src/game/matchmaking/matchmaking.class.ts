@@ -1,6 +1,7 @@
 import { Socket } from "socket.io";
 import { Match } from "../aliases";
 import { GameRoom } from "../rooms";
+import { BadEvent } from "../exceptions";
 
 /**
  * Matchmaking handler.
@@ -30,7 +31,7 @@ export class Matchmaking {
 			return null;
 		} else {
 			if (this.queue.data.user.id === client.data.user.id)
-				throw "Client already in the queue";
+				throw new BadEvent("Client already in the queue");
 			const match: Match = {
 				name: this.queue.handshake.auth.token + client.handshake.auth.token,
 				player1: this.queue,
