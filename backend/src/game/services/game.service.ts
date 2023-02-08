@@ -133,7 +133,10 @@ export class GameService {
 	 */
 	public findUserGame(user_id: string): GameRoom {
 		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
-			return obj.match.player1.id === user_id || obj.match.player2.id === user_id;
+			return (
+				obj.match.player1.data.user.id === user_id ||
+				obj.match.player2.data.user.id === user_id
+			);
 		});
 		if (room === undefined) throw new WrongData("Room does not exist");
 		return room;
