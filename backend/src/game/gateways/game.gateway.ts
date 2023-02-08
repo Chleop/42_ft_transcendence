@@ -63,7 +63,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Moves client to the queue if not already in game.
 	 */
 	public handleConnection(client: Socket): void {
-		this.logger.verbose(`[${client.id} connected]`);
+		this.logger.log(`[${client.id} connected]`);
+		this.logger.verbose(`USER ID: ${client.data.user.id}`);
 		try {
 			const game_room: GameRoom | null = this.game_service.queueUp(client);
 			if (game_room !== null) this.matchmake(game_room);
@@ -107,7 +108,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			}
 			throw e;
 		}
-		this.logger.verbose(`[${client.id} disconnected]`);
+		this.logger.log(`[${client.id} disconnected]`);
 	}
 
 	/* Event handlers ---------------------------------------------------------- */
@@ -143,7 +144,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * After 3s, the game will start.
 	 */
 	private matchmake(game_room: GameRoom): void {
-		this.logger.verbose("New match was made");
 		game_room.match.player1.emit("matchFound", game_room.match.player2.data.user);
 		game_room.match.player2.emit("matchFound", game_room.match.player1.data.user);
 
@@ -176,7 +176,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Sends different updates, depending of the state of the game.
 	 */
 	private async sendGameUpdates(me: GameGateway, room: GameRoom): Promise<void> {
-		if (!room.is_ongoing) return;
 		try {
 			const update: Ball | ScoreUpdate | Results = room.updateGame();
 			if (update instanceof Ball) {

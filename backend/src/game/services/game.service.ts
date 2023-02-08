@@ -55,7 +55,7 @@ export class GameService {
 					dateTime: new Date(results.date),
 				},
 			});
-			this.logger.verbose(`Saved game '${room.match.name}' to database`);
+			this.logger.log(`Saved game '${room.match.name}' to database`);
 		} catch (error) {
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
@@ -105,13 +105,14 @@ export class GameService {
 			// Client was in an ongoing game
 
 			const room: GameRoom = this.game_rooms[index];
-			const results: Results = room.cutGameShort(room.playerNumber(client));
-			this.logger.verbose(`Game was cut short: '${room.match.name}'`);
+			if (room.is_ongoing) {
+				const results: Results = room.cutGameShort(room.playerNumber(client));
+				this.logger.verbose(`Game was cut short: '${room.match.name}'`);
+				const match: Match = await this.registerGameHistory(room, results);
 
-			const match: Match = await this.registerGameHistory(room, results);
-
-			this.destroyRoom(room);
-			return match;
+				this.destroyRoom(room);
+				return match;
+			}
 		}
 		return null;
 	}

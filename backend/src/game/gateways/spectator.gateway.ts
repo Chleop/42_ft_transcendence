@@ -6,11 +6,11 @@ import {
 	WebSocketServer,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { GameService, SpectatedRooms } from "../services";
+import { GameService, SpectatorService } from "../services";
 import { GameRoom, SpectatedRoom } from "../rooms";
-import { PlayerInfos, ScoreUpdate, SpectatorUpdate } from "../objects";
-import { Logger, StreamableFile } from "@nestjs/common";
-import { UserService } from "src/user/user.service";
+import { RoomData } from "../aliases";
+import { ScoreUpdate, SpectatorUpdate } from "../objects";
+import { Logger } from "@nestjs/common";
 import { WrongData } from "../exceptions";
 import { Constants } from "../constants";
 
@@ -21,17 +21,15 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	@WebSocketServer()
 	public readonly server: Server;
 	private readonly game_service: GameService;
-	private readonly user_service: UserService;
-	private readonly spectated_rooms: SpectatedRooms;
+	private readonly spectator_service: SpectatorService;
 	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
 
-	constructor(game_service: GameService, user_service: UserService) {
+	constructor(game_service: GameService, spectator_service: SpectatorService) {
 		this.server = new Server();
 		this.game_service = game_service;
-		this.user_service = user_service;
-		this.spectated_rooms = new SpectatedRooms();
+		this.spectator_service = spectator_service;
 		this.logger = new Logger(SpectatorGateway.name);
 	}
 
@@ -55,7 +53,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 * Else, they're disconnected.
 	 */
 	public async handleConnection(client: Socket): Promise<void> {
-		this.logger.verbose(`['${client.id}' connected]`);
+		this.logger.log(`['${client.id}' connected]`);
 		try {
 			const user_id: string | string[] | undefined = client.handshake.auth.user_id;
 			if (typeof user_id !== "string") throw new WrongData("Room not properly specified");
@@ -85,7 +83,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		if (client.data.valid_uid) {
 			const user_id: string = client.handshake.auth.user_id;
 			const game_room: GameRoom = this.game_service.findUserGame(user_id);
-			const spectated_room: SpectatedRoom | null = this.spectated_rooms.getRoom(
+			const spectated_room: SpectatedRoom | null = this.spectator_service.getRoom(
 				game_room.match.name,
 			);
 			if (spectated_room instanceof SpectatedRoom) {
@@ -94,7 +92,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 					this.stopStreaming(this, spectated_room.game_room.match.name);
 			}
 		}
-		this.logger.verbose(`['${client.id}' disconnected]`);
+		this.logger.log(`['${client.id}' disconnected]`);
 	}
 
 	/* PRIVATE ================================================================= */
@@ -106,37 +104,33 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	private async startStreaming(client: Socket, game_room: GameRoom): Promise<void> {
 		client.join(game_room.match.name);
 
-		const spectated_room: SpectatedRoom | null = this.spectated_rooms.getRoom(
+		const spectated_room: SpectatedRoom | null = this.spectator_service.getRoom(
 			game_room.match.name,
 		);
 
 		if (spectated_room === null) {
-			this.logger.verbose(`Creating room ${game_room.match.name}`);
+			this.logger.log(`Creating spectatedRoom: ${game_room.match.name}`);
 			const new_room: SpectatedRoom = new SpectatedRoom(
 				game_room,
 				setInterval(this.updateGame, Constants.ping, this, game_room),
 			);
 			new_room.addSpectator(client);
-			this.spectated_rooms.add(new_room);
+			this.spectator_service.add(new_room);
 		} else {
 			this.logger.verbose(`${spectated_room.getName()} already exists`);
 		}
 
-		const player1: Socket = game_room.match.player1;
-		const player2: Socket = game_room.match.player2;
-		const avatar1: StreamableFile = await this.user_service.get_ones_avatar(
-			player1.handshake.auth.token,
-			player1.handshake.auth.token,
-		);
-		const avatar2: StreamableFile = await this.user_service.get_ones_avatar(
-			player2.handshake.auth.token,
-			player2.handshake.auth.token,
-		);
-
-		const player_infos1: PlayerInfos = new PlayerInfos(player1.data.user, avatar1);
-		const player_infos2: PlayerInfos = new PlayerInfos(player2.data.user, avatar2);
-
-		client.emit("roomData", { player1: player_infos1, player2: player_infos2 });
+		try {
+			const room_data: RoomData = await this.spectator_service.retrieveRoomData(game_room);
+			client.emit("roomData", room_data);
+		} catch (e) {
+			// Error from prisma
+			// if (e instanceof PrismaClientKnownRequestError) {
+			// }
+			this.logger.error(e.message);
+			this.sendError(client, e);
+			client.disconnect();
+		}
 	}
 
 	/**
@@ -156,12 +150,12 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 * Removes the spectated room.
 	 */
 	private stopStreaming(me: SpectatorGateway, room_name: string): void {
-		const room: SpectatedRoom | null = me.spectated_rooms.getRoom(room_name);
+		const room: SpectatedRoom | null = me.spectator_service.getRoom(room_name);
 
 		if (room === null) return;
 
 		me.kickEveryone(room);
-		me.spectated_rooms.destroyRoom(room_name);
+		me.spectator_service.destroyRoom(room_name);
 	}
 
 	/**
