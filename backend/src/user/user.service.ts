@@ -474,7 +474,7 @@ export class UserService {
 			}),
 		};
 
-		this._logger.log(`User ${id} was successfully retrieved from the database.`);
+		this._logger.verbose(`User ${id} was successfully retrieved from the database.`);
 		return user;
 	}
 
@@ -596,7 +596,9 @@ export class UserService {
 			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
 		}
 
-		this._logger.log(`User ${requested_user_id} was successfully retrieved from the database.`);
+		this._logger.verbose(
+			`User ${requested_user_id} was successfully retrieved from the database.`,
+		);
 		return requested_user;
 	}
 
