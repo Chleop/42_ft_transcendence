@@ -38,6 +38,7 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { UserMessageSendDto } from "./dto/UserMessageSend.dto";
+import { t_user_auth } from "src/auth/alias";
 
 @Controller("user")
 @UseGuards(Jwt2FAGuard)
@@ -294,7 +295,7 @@ export class UserController {
 	async get_ones_skin(
 		@Req()
 		request: {
-			user: t_get_me_fields;
+			user: t_user_auth;
 		},
 		@Param("id") id: string,
 	): Promise<StreamableFile> {
@@ -324,13 +325,14 @@ export class UserController {
 	async update_ones_skin(
 		@Req()
 		request: {
-			user: t_get_me_fields;
+			user: t_user_auth;
 		},
 		@UploadedFile() file: Express.Multer.File,
 	): Promise<void> {
 		try {
 			await this._user_service.update_ones_skin(request.user.id, file);
 		} catch (error) {
+			// ajouter un type d'erreur si le param file est vide
 			if (error instanceof UnknownError) {
 				this._logger.error(error.message);
 				throw new InternalServerErrorException(error.message);
