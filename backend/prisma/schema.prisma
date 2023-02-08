@@ -19,7 +19,7 @@ model User {
   state                   StateType @default(ACTIVE)
   stateDate               DateTime  @default(now())
   // par defaut se fait au niveau du signup
-  skin                    Skin      @relation(fields: [skinId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  skin                    Skin      @relation(fields: [skinId], references: [id])
   elo                     Int       @default(0)
   twoFactAuth             Boolean   @default(false)
   twoFACode               String?
@@ -44,7 +44,7 @@ model User {
   mirrorSender                ChannelMessage[] @relation("usermessage") //@ignore
   // les champs ci-dessous sont neccessaires pour les relations
   // mais n'existent pas reellement dans la bdd (foreign keys)
-  skinId          String
+  skinId                  String    @unique
 
   @@unique(fields: [id, state], name: "idAndState")
   @@unique(fields: [login, state], name: "loginAndState")
@@ -100,10 +100,11 @@ model Game {
 }
 
 model Skin {
-  id    String @id @unique @default(cuid())
-  name  String @unique
-  url   String @unique
-  users User[]
+  id          String @id @unique @default(cuid())
+  background  String @default("resource/skin/background/default.jpg")
+  ball        String @default("resource/skin/ball/default.jpg")
+  paddle      String @default("resource/skin/paddle/default.jpg")
+  users       User?
 }
 
 enum ChanType {
