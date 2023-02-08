@@ -5,7 +5,9 @@ import {
 	t_get_me_fields_tmp,
 	t_get_one_fields,
 	t_get_one_fields_tmp,
+	t_user_update_event,
 } from "src/user/alias";
+import { t_user_id } from "src/chat/alias";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
@@ -1146,6 +1148,12 @@ export class UserService {
 					},
 				},
 			});
+
+			const data: t_user_update_event = {
+				id: id,
+				name: name,
+			};
+			await this.broadcast_user_update_to_many(data);
 		} catch (error) {
 			this._logger.error(`Error occured while updating user ${id}`);
 			if (error instanceof PrismaClientKnownRequestError) {
@@ -1206,11 +1214,99 @@ export class UserService {
 		}
 		try {
 			createWriteStream(join(process.cwd(), user.avatar)).write(file.buffer);
+
+			const data: t_user_update_event = {
+				id: id,
+				is_avatar_changed: true,
+			};
+			await this.broadcast_user_update_to_many(data);
 		} catch (error) {
 			if (error instanceof Error)
 				this._logger.error(`Error occured while writing avatar to disk: ${error.message}`);
 			throw new UnknownError();
 		}
 		this._logger.log(`Updated user ${id}'s avatar`);
+	}
+
+	/**
+	 * @brief	Broadcast that a user has updated his profile to all related users.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	data: The id of the user to update + the fields that have been updated.
+	 *
+	 * @error	If no field has been provided, do nothing.
+	 *
+	 * @return	An empty promise.
+	 */
+	public async broadcast_user_update_to_many(data: t_user_update_event): Promise<void> {
+		if (
+			data.name === undefined &&
+			data.status === undefined &&
+			data.spectating === undefined &&
+			data.game_lost === undefined &&
+			data.game_won === undefined &&
+			data.is_avatar_changed === false
+		) {
+			return;
+		}
+
+		let users: t_user_id[] = await this._prisma.user.findMany({
+			select: {
+				id: true,
+			},
+			where: {
+				OR: [
+					{
+						friends: {
+							some: {
+								id: data.id,
+							},
+						},
+					},
+					{
+						channels: {
+							some: {
+								members: {
+									some: {
+										id: data.id,
+									},
+								},
+							},
+						},
+					},
+					{
+						mirrorDirectMessageSender: {
+							some: {
+								receiverId: data.id,
+							},
+						},
+					},
+					{
+						mirrorDirectMessageReceiver: {
+							some: {
+								senderId: data.id,
+							},
+						},
+					},
+					{
+						gamesPlayed: {
+							some: {
+								players: {
+									some: {
+										id: data.id,
+									},
+								},
+							},
+						},
+					},
+				],
+				NOT: {
+					id: data.id,
+				},
+			},
+		});
+
+		this._gateway.broadcast_to_many("user_updated", new Set<t_user_id>(users), data);
 	}
 }

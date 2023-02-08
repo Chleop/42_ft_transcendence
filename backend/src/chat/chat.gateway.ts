@@ -8,6 +8,7 @@ import {
 	WebSocketServer,
 } from "@nestjs/websockets";
 import { Logger } from "@nestjs/common";
+import { t_user_id } from "./alias";
 
 @WebSocketGateway({
 	namespace: "chat",
@@ -39,6 +40,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			if (socket.rooms.has(message.channelId)) {
 				socket.emit("channel_message", message);
 			}
+		}
+	}
+
+	/**
+	 * @brief	Broadcast an event to a set of users.
+	 * 			It is assumed that the provided user ids are valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	event_name The name of the event to broadcast.
+	 * @param	users A set of users to broadcast to.
+	 * @param	data Data to send with the event.
+	 */
+	public broadcast_to_many(event_name: string, users: Set<t_user_id>, data: any): void {
+		for (const user of users) {
+			const socket: Socket = ChatGateway._client_sockets.get(user.id) as Socket;
+
+			socket.emit(event_name, data);
 		}
 	}
 
