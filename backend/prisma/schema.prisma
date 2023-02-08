@@ -22,7 +22,8 @@ model User {
   skin                    Skin      @relation(fields: [skinId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   elo                     Int       @default(0)
   twoFactAuth             Boolean   @default(false)
-  twoFactSecret           String?
+  twoFACode               String?
+  twoFACreationDate       DateTime?
   channels                Channel[] @relation("userchannels")
   channelsOwned           Channel[] @relation("chanowner")
   gamesPlayed             Game[]    @relation("gamesplayed")
@@ -33,13 +34,14 @@ model User {
   // les champs ci-dessous sont neccessaires pour les relations mais
   // ne sont pas accessibles par le client Prisma grace a l'attribut 
   // @ignore.
-  // Pour utiliser Prisma Studio, commenter les @ignore
-  mirrorOperators               Channel[]         @relation("chanops") //@ignore
-  mirrorFriends                 User[]            @relation("friendship") //@ignore
-  mirrorpendingFriendsRequests  User[]            @relation("pending friendship") //@ignore
-  mirrorBlocked                 User[]            @relation("blocked") //@ignore
-  mirrorDms                     DM[]              @relation("userdms") //@ignore
-  mirrorSender                  ChannelMessage[]  @relation("usermessage") //@ignore
+  // REMIND: Pour utiliser Prisma Studio, commenter les @ignore
+  mirrorOperators             Channel[]        @relation("chanops") //@ignore
+  mirrorFriends               User[]           @relation("friendship") //@ignore
+  mirrorpendingFriendRequests User[]           @relation("pending friendship") //@ignore
+  mirrorBlocked               User[]           @relation("blocked") //@ignore
+  mirrorDirectMessageSender   DirectMessage[]  @relation("direct_message_sending") //@ignore
+  mirrorDirectMessageReceiver DirectMessage[]  @relation("direct_message_receiving") //@ignore
+  mirrorSender                ChannelMessage[] @relation("usermessage") //@ignore
   // les champs ci-dessous sont neccessaires pour les relations
   // mais n'existent pas reellement dans la bdd (foreign keys)
   skinId          String
@@ -74,11 +76,16 @@ model ChannelMessage {
   channelId String
 }
 
-model DM {
-  id       String   @id @unique @default(cuid())
-  users    User[]   @relation("userdms")
-  dateTime DateTime @default(now())
-  content  String
+model DirectMessage {
+  id         String   @id @unique @default(cuid())
+  sender     User     @relation("direct_message_sending", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  receiver   User     @relation("direct_message_receiving", fields: [receiverId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  dateTime   DateTime @default(now())
+  content    String
+  // les champs ci-dessous sont neccessaires pour les relations
+  // mais n'existent pas reellement dans la bdd (foreign keys)
+  senderId   String
+  receiverId String
 }
 
 model Game {
@@ -107,5 +114,6 @@ enum ChanType {
 
 enum StateType {
   ACTIVE
+  PENDING
   DISABLED
 }
