@@ -7,7 +7,7 @@ import { UserService } from "src/user/user.service";
 import { JwtModule } from "@nestjs/jwt";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JwtStrategy, FtOauthStrategy } from "./strategy";
-import { JwtGuard, FtOauthGuard } from "./guards";
+import { FtOauthGuard, Jwt2FAGuard, JwtPendingStateGuard } from "./guards";
 import { SessionSerializer } from "./utils/Serializer";
 import { HttpModule } from "@nestjs/axios";
 
@@ -25,8 +25,9 @@ import { HttpModule } from "@nestjs/axios";
 		UserService,
 		ConfigService,
 		JwtStrategy,
-		JwtGuard,
 		FtOauthGuard,
+		Jwt2FAGuard,
+		JwtPendingStateGuard,
 		FtOauthStrategy,
 		SessionSerializer,
 		Logger,
