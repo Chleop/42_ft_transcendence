@@ -85,7 +85,9 @@ export class GameService {
 			this.logger.verbose(`${client.data.user.login} was queued up.`);
 			return null;
 		}
+
 		this.logger.verbose(`Room ${new_game_room.match.name} created.`);
+
 		this.game_rooms.push(new_game_room);
 		return new_game_room;
 	}
@@ -94,22 +96,22 @@ export class GameService {
 	 * Removes a player from the queue, or destroys their game room.
 	 */
 	public async unQueue(client: Socket): Promise<Match | null> {
-		// Client has passed matchmaking
+		/* Client has passed matchmaking */
 		this.logger.verbose(`User ${client.data.user.login} is being unqueued`);
 		if (!this.matchmaking.unQueue(client)) {
 			const index: number = this.findUserRoomIndex(client);
 
-			// Client is not in a gameroom
+			/* Client is not in a gameroom */
 			if (index < 0) return null;
 
-			// Client was in an ongoing game
-
+			/* Client was in an ongoing game */
 			const room: GameRoom = this.game_rooms[index];
 			if (room.is_ongoing) {
 				const results: Results = room.cutGameShort(room.playerNumber(client));
-				this.logger.verbose(`Game was cut short: '${room.match.name}'`);
-				const match: Match = await this.registerGameHistory(room, results);
 
+				this.logger.verbose(`Game was cut short: '${room.match.name}'`);
+
+				const match: Match = await this.registerGameHistory(room, results);
 				this.destroyRoom(room);
 				return match;
 			}

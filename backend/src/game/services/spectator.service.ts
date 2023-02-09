@@ -1,9 +1,16 @@
 import { GameRoom, SpectatedRoom } from "../rooms";
-import { Injectable, StreamableFile } from "@nestjs/common";
+import {
+	BadRequestException,
+	ForbiddenException,
+	Injectable,
+	InternalServerErrorException,
+	StreamableFile,
+} from "@nestjs/common";
 import { UserService } from "src/user/user.service";
 import { PlayerInfos } from "../objects";
 import { Socket } from "socket.io";
 import { RoomData } from "../aliases";
+import { UserNotFoundError, UserNotLinkedError } from "src/user/error";
 
 /**
  * Spectated rooms handler.
@@ -42,7 +49,12 @@ export class SpectatorService {
 			const player_infos2: PlayerInfos = new PlayerInfos(player2.data.user, avatar2);
 			return { player1: player_infos1, player2: player_infos2 };
 		} catch (e) {
-			throw e;
+			if (e instanceof UserNotFoundError) {
+				throw new BadRequestException(e.message);
+			} else if (e instanceof UserNotLinkedError) {
+				throw new ForbiddenException(e.message);
+			}
+			throw new InternalServerErrorException();
 		}
 	}
 
