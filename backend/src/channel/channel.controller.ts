@@ -1,3 +1,4 @@
+import { t_get_all_fields } from "src/channel/alias";
 import { ChannelService } from "src/channel/channel.service";
 import {
 	BadRequestException,
@@ -122,6 +123,25 @@ export class ChannelController {
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
+	}
+
+	@Get("all")
+	async get_all(
+		@Req()
+		request: {
+			user: t_get_one_fields;
+		},
+	): Promise<t_get_all_fields> {
+		let channels: t_get_all_fields;
+
+		try {
+			channels = await this._channel_service.get_all(request.user.id);
+		} catch (error) {
+			this._logger.error("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+
+		return channels;
 	}
 
 	@Get(":id/messages")

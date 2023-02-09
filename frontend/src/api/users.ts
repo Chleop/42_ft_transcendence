@@ -1,16 +1,19 @@
 import { Client, PrivateUser, User, UserId } from ".";
+import { Soon } from "../strawberry";
 
 /**
  * Stores and caches information about users.
  */
 export const Users = (function() {
     class UsersClass {
-        private users: Record<UserId, User>;
+        private users: Record<UserId, Soon<User>>;
+        private avatars: Record<UserId, Soon<string>>;
 
-        private me_: PrivateUser | undefined;
+        private me_: Soon<PrivateUser> | undefined;
 
         public constructor() {
-            this.users = {}
+            this.users = {};
+            this.avatars = {};
             this.me_ = undefined;
         }
 
@@ -21,12 +24,34 @@ export const Users = (function() {
          */
         public async get(id: UserId): Promise<User> {
             if (this.users[id]) {
-                return this.users[id];
+                return this.users[id].get();
             }
 
+            this.users[id] = new Soon();
             const user = await Client.user(id);
-            this.users[id] = user;
+            this.users[id].resolve(user);
             return user;
+        }
+
+        /** Invalidates the provided avatar, effectively removing it from the cache. */
+        public invalidate_avatar(id: UserId) {
+            delete this.avatars[id];
+        }
+
+        /**
+         * Returns the requested user's avatar.
+         *
+         * This function will first look in the cache.
+         */
+        public async get_avatar(id: UserId): Promise<string> {
+            if (this.avatars[id]) {
+                return this.avatars[id].get();
+            }
+
+            this.avatars[id] = new Soon();
+            const url = await Client.user_avatar(id);
+            this.avatars[id].resolve(url);
+            return url;
         }
 
         /**
@@ -34,10 +59,12 @@ export const Users = (function() {
          */
         public async me(): Promise<PrivateUser> {
             if (this.me_)
-                return this.me_;
+                return this.me_.get();
 
-            this.me_ = await Client.me();
-            return this.me_;
+            this.me_ = new Soon();
+            const me = await Client.me();
+            this.me_.resolve(me);
+            return me;
         }
     }
 
