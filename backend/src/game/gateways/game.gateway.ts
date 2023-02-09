@@ -63,7 +63,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Moves client to the queue if not already in game.
 	 */
 	public handleConnection(client: Socket): void {
-		this.logger.log(`[${client.id} connected]`);
+		this.logger.log(`[${client.data.user.login} connected]`);
 		try {
 			const game_room: GameRoom | null = this.game_service.queueUp(client);
 			if (game_room !== null) this.matchmake(game_room);
@@ -99,7 +99,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			await this.endGameEarly(client, room);
 			this.game_service.destroyRoom(room);
 		}
-		this.logger.log(`[${client.id} disconnected]`);
+		this.logger.log(`[${client.data.user.login} disconnected]`);
 	}
 
 	/* Event handlers ---------------------------------------------------------- */

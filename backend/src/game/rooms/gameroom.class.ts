@@ -69,7 +69,6 @@ export class GameRoom {
 	 * Stops the game early (when someone leaves the game).
 	 */
 	public cutGameShort(guilty: number): Results {
-		// this.is_ongoing = false;
 		this.has_updated_score = false;
 		const score: Score = this.game.getScores();
 
