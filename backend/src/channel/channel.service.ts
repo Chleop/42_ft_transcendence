@@ -1,3 +1,4 @@
+import { t_get_all_fields, t_get_all_fields_tmp } from "src/channel/alias";
 import {
 	ChannelAlreadyJoinedError,
 	ChannelFieldUnavailableError,
@@ -486,15 +487,57 @@ export class ChannelService {
 	/**
 	 * @brief	Get the list of the available channels.
 	 * 			Channels which are private or which the user is already in are not listed.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is ACTIVE)
 	 *
 	 * @param	user_id The id of the user who is getting the channels.
 	 *
 	 * @return	A promise containing the list of the available channels.
 	 */
-	public async get_all(user_id: string): Promise<Channel[]> {
-		// TODO
-		user_id;
-		return [];
+	public async get_all(user_id: string): Promise<t_get_all_fields> {
+		const channels_tmp: t_get_all_fields_tmp = await this._prisma.channel.findMany({
+			select: {
+				id: true,
+				name: true,
+				chanType: true,
+				ownerId: true,
+				members: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				OR: [
+					{
+						chanType: ChanType.PUBLIC,
+					},
+					{
+						chanType: ChanType.PROTECTED,
+					},
+				],
+				NOT: {
+					members: {
+						some: {
+							id: user_id,
+						},
+					},
+				},
+			},
+		});
+
+		const channels: t_get_all_fields = [];
+		for (const channel_tmp of channels_tmp) {
+			channels.push({
+				id: channel_tmp.id,
+				name: channel_tmp.name,
+				type: channel_tmp.chanType,
+				owner_id: channel_tmp.ownerId,
+				members_count: channel_tmp.members.length,
+			});
+		}
+
+		return channels;
 	}
 
 	/**

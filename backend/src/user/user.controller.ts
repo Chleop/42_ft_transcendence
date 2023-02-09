@@ -9,10 +9,11 @@ import {
 	UserNotFriendError,
 	UserNotLinkedError,
 	UserSelfBlockError,
+	UserSelfMessageError,
 	UserSelfUnblockError,
 	UserSelfUnfriendError,
 } from "src/user/error";
-import { JwtGuard } from "src/auth/guards";
+import { Jwt2FAGuard } from "src/auth/guards";
 import { UserService } from "src/user/user.service";
 import {
 	BadRequestException,
@@ -25,6 +26,7 @@ import {
 	Logger,
 	Param,
 	Patch,
+	Post,
 	Put,
 	Req,
 	StreamableFile,
@@ -35,9 +37,10 @@ import {
 	ValidationPipe,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { UserMessageSendDto } from "./dto/UserMessageSend.dto";
 
 @Controller("user")
-@UseGuards(JwtGuard)
+@UseGuards(Jwt2FAGuard)
 export class UserController {
 	private _user_service: UserService;
 	private readonly _logger: Logger;
@@ -49,11 +52,11 @@ export class UserController {
 
 	@Patch(":id/block")
 	async block_one(
-		@Param("id") id: string,
 		@Req()
 		request: {
 			user: t_get_me_fields;
 		},
+		@Param("id") id: string,
 	): Promise<void> {
 		try {
 			await this._user_service.block_one(request.user.id, id);
@@ -161,6 +164,32 @@ export class UserController {
 		return sfile;
 	}
 
+	@Post(":id/message")
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	async send_message_to_one(
+		@Req()
+		request: {
+			user: t_get_one_fields;
+		},
+		@Param("id") id: string,
+		@Body() dto: UserMessageSendDto,
+	): Promise<void> {
+		try {
+			await this._user_service.send_message_to_one(request.user.id, id, dto.content);
+		} catch (error) {
+			if (error instanceof UserNotFoundError || error instanceof UserSelfMessageError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof UserNotLinkedError) {
+				this._logger.error(error.message);
+				throw new ForbiddenException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+	}
+
 	@Patch(":id/unblock")
 	async unblock_one(
 		@Req()
@@ -247,8 +276,12 @@ export class UserController {
 		request: {
 			user: t_get_me_fields;
 		},
-		@UploadedFile() file: Express.Multer.File,
+		@UploadedFile() file?: Express.Multer.File,
 	): Promise<void> {
+		if (!file) {
+			this._logger.error("No file provided while updating avatar");
+			throw new BadRequestException("No file provided");
+		}
 		try {
 			await this._user_service.update_ones_avatar(request.user.id, file);
 		} catch (error) {
