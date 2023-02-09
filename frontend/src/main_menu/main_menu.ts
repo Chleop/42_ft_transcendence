@@ -103,16 +103,24 @@ class ProfileOverlay extends Overlay {
             editor_email.disabled = true;
 
             if (new_mail === "") {
-                Client.deactivate_2fa().then(() => {
+                Client.deactivate_2fa().finally(() => {
                     editor_email.disabled = false;
-                })
-
+                });
             } else {
                 Client.activate_2fa(new_mail).then(() => {
-                    let code = prompt("gimme the code") || "";
+                    let code = prompt("gimme the code");
+                    if (!code) {
+                        editor_email.value = "";
+                        editor_email.disabled = false;
+                        return;
+                    }
+
                     Client.validate_2fa(code).then(() => {
                         editor_email.disabled = false;
                     })
+                }).catch(() => {
+                    editor_email.value = "";
+                    editor_email.disabled = false;
                 });
             }
         };

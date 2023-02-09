@@ -10,6 +10,7 @@ DOWN 			= down
 REMOVEALL 		= --rmi all --volumes
 
 all:
+	rm -f frontend/tsconfig.tsbuildinfo
 	cd frontend && npm update && npx tsc && npx webpack
 	${DOCKERCOMPOSE} ${COMPOSEFILE} ${BUILD}
 
@@ -43,3 +44,4 @@ fclean:
 	docker system prune -af --volumes
 	rm -rf backend/node_modules backend/dist
 	rm -rf frontend/node_modules frontend/out
+	rm -f frontend/tsconfig.tsbuildinfo

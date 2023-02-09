@@ -53,7 +53,7 @@ export class AuthController {
 			response.cookie("access_token", token.access_token); // REMIND try with httpOnly
 			if (user.twoFactAuth === true) {
 				await this._authService.trigger_2FA(user_id);
-				response.redirect("http://localhost:3000/api/auth/42/2FARedirect");
+				response.redirect(<string>this._config.get<string>("SITE_URL") + "/2FA");
 			} else response.redirect(<string>this._config.get<string>("SITE_URL"));
 		} catch (error) {
 			this._logger.error(error);
@@ -70,7 +70,7 @@ export class AuthController {
 	async two_factor_authentication_redirect(): Promise<void> {}
 
 	@UseGuards(Jwt2FAGuard)
-	@Get("42/2FAActivate")
+	@Post("42/2FAActivate")
 	async activate_2FA(@Req() req: any, @Body() dto: EmailDto): Promise<void> {
 		try {
 			await this._authService.activate_2FA(req.user.id, dto.email);

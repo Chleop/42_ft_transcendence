@@ -3,6 +3,7 @@ import { RouteData, Router } from "./strawberry/router";
 import { MainMenu } from "./main_menu/main_menu";
 import { GameBoard } from "./game";
 import { SpectatingGame } from "./game/spectating_game";
+import { Client } from "./api";
 
 /**
  * The entry point of the application.
@@ -20,6 +21,12 @@ function entry_point() {
 	router.register_route("/spectate/:room_id", data => {
 		GameBoard.start_game(new SpectatingGame(data["room_id"]));
 		History.replace_state(GameBoard);
+	});
+	router.register_route("/2fa", () => {
+		const code = prompt("gimme the code") || "";
+		Client.validate_2fa(code).then(() => {
+			History.replace_state(MainMenu);
+		});
 	});
 
 	const route_result = router.get(window.location.pathname);
