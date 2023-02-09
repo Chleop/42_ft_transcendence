@@ -26,6 +26,6 @@ export class ScoreUpdate {
 
 	public invert(): ScoreUpdate {
 		const who: boolean = this.just_scored === "you" ? false : true;
-		return new ScoreUpdate(this.opponent, this.you, who);
+		return new ScoreUpdate(this.you, this.opponent, who);
 	}
 }
