@@ -11,27 +11,20 @@ import {
 	Logger,
 	BadRequestException,
 } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { Response } from "express";
-import { UserService } from "src/user/user.service";
 import { AuthService } from "./auth.service";
 import { FtOauthGuard, Jwt2FAGuard, JwtPendingStateGuard } from "./guards";
 import { ExpiredCode, InvalidCode } from "./error";
-import { t_access_token, t_user_auth } from "./alias";
 import { CodeDto, EmailDto } from "./dto";
 
 @Controller("auth")
 export class AuthController {
 	private _authService: AuthService;
-	private readonly _user: UserService;
 	private readonly _logger: Logger;
-	private readonly _config: ConfigService;
 
 	constructor() {
 		this._authService = new AuthService();
-		this._user = new UserService();
-		this._config = new ConfigService();
 		this._logger = new Logger(AuthController.name);
 	}
 
@@ -45,16 +38,7 @@ export class AuthController {
 	@UseGuards(FtOauthGuard)
 	async signin(@Req() request: any, @Res() response: Response) {
 		try {
-			const token: t_access_token = await this._authService.create_access_token(
-				request.user.login,
-			);
-			const user_id: string = await this._user.get_ones_id_by_login(request.user.login);
-			const user: t_user_auth = await this._authService.get_user_auth(user_id);
-			response.cookie("access_token", token.access_token); // REMIND try with httpOnly
-			if (user.twoFactAuth === true) {
-				await this._authService.trigger_2FA(user_id);
-				response.redirect("http://localhost:3000/api/auth/42/2FARedirect");
-			} else response.redirect(<string>this._config.get<string>("SITE_URL"));
+			this._authService.signin(request.user.login, response);
 		} catch (error) {
 			this._logger.error(error);
 			if (error instanceof PrismaClientKnownRequestError) {

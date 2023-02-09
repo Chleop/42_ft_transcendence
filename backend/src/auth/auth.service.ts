@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { UserNotFoundError } from "src/user/error";
 import { UserService } from "src/user/user.service";
+import { Response } from "express";
 import * as nodemailer from "nodemailer";
 import { PrismaService } from "src/prisma/prisma.service";
 import { StateType } from "@prisma/client";
@@ -81,21 +82,22 @@ export class AuthService {
 	/* ************************************************************************** */
 	/*                             PUBLIC FUNCTIONS                               */
 	/* ************************************************************************** */
-	public async create_access_token(login: string): Promise<t_access_token> {
-		// get the user id (creates user if not already existing)
-		let user_id: string | undefined;
+	public async signin(login: string, res: Response): Promise<void> {
+		let user: t_user_auth;
 		try {
-			user_id = await this._user.get_ones_id_by_login(login);
+			user = await this.get_user_auth_by_login(login);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
-				this._logger.error(error.message);
-				user_id = await this._user.create_one(login);
+				await this._user.create_one(login);
+				user = await this.get_user_auth_by_login(login);
 			} else throw error;
 		}
-		// create access_token object
-		const payload: t_payload = { sub: user_id };
-		const token_obj: t_access_token = await this.sign_token(payload);
-		return token_obj;
+		const token: t_access_token = await this.create_access_token(user.id);
+		res.cookie("access_token", token.access_token);
+		if (user.twoFactAuth === true) {
+			await this.trigger_2FA(user.id);
+			res.redirect("http://localhost:3000/api/auth/42/2FARedirect");
+		} else res.redirect(<string>this._config.get<string>("SITE_URL"));
 	}
 
 	public async activate_2FA(user_id: string, email: string): Promise<void> {
@@ -131,6 +133,12 @@ export class AuthService {
 	/* ************************************************************************** */
 	/*                            PRIVATE FUNCTIONS                               */
 	/* ************************************************************************** */
+	private async create_access_token(user_id: string): Promise<t_access_token> {
+		const payload: t_payload = { sub: user_id };
+		const token_obj: t_access_token = await this.sign_token(payload);
+		return token_obj;
+	}
+
 	private async sign_token(payload: t_payload): Promise<t_access_token> {
 		// get the secret from the .env file
 		const our_secret: string | undefined = this._config.get<string>("JWT_SECRET");
@@ -226,6 +234,25 @@ export class AuthService {
 			},
 			where: {
 				id: user_id,
+			},
+		});
+		if (!user) throw new UserNotFoundError();
+		return user;
+	}
+
+	public async get_user_auth_by_login(login: string): Promise<t_user_auth> {
+		const user: t_user_auth | null = await this._prisma.user.findUnique({
+			select: {
+				id: true,
+				email: true,
+				twoFactAuth: true,
+				state: true,
+			},
+			where: {
+				loginAndState: {
+					login: login,
+					state: StateType.ACTIVE,
+				},
 			},
 		});
 		if (!user) throw new UserNotFoundError();

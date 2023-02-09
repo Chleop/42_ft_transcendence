@@ -697,39 +697,6 @@ export class UserService {
 	}
 
 	/**
-	 * @brief	Get user id from its login.
-	 *
-	 * @param	login The login of the user to get.
-	 *
-	 * @error	The following errors may be thrown :
-	 * 			- UserNotFoundError
-	 *
-	 * @return	A promise containing the wanted user id.
-	 */
-	public async get_ones_id_by_login(login: string): Promise<string> {
-		type t_fields = {
-			id: string;
-		};
-		const user: t_fields | null = await this._prisma.user.findUnique({
-			select: {
-				id: true,
-			},
-			where: {
-				loginAndState: {
-					login: login,
-					state: StateType.ACTIVE,
-				},
-			},
-		});
-
-		if (!user) {
-			throw new UserNotFoundError(login);
-		}
-
-		return user.id;
-	}
-
-	/**
 	 * @brief	Make a user send a direct message to another user.
 	 * 			Receiving user must be active, not be the same as the sending user,
 	 * 			and either have at least one common channel with the sending user,
