@@ -137,6 +137,15 @@ export class RawHTTPClient {
         });
     }
 
+	/** Modify the current user. */
+	public async patch_user(user: Partial<PrivateUser>): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: "/api/user/@me",
+			body: new JsonBody(user),
+		});
+	}
+
     /**
      * Generates a local URL for a user's avatar.
      */
@@ -288,4 +297,32 @@ export class RawHTTPClient {
             url: `/api/channel/all`,
         })).json();
     }
+
+	/** Requests the activation of 2FA. */
+	public async activate_2fa(email: string): Promise<void> {
+		await this.make_request({
+			method: "POST",
+			url: "/api/auth/42/2FAActivate",
+			success_status: 201,
+			body: new JsonBody({ email }),
+		});
+	}
+
+	/** Requests the removal of 2FA. */
+	public async deactivate_2fa(): Promise<void> {
+		await this.make_request({
+			method: "POST",
+			url: "/api/auth/42/2FADeactivate",
+		});
+	}
+
+	/** Validates a 2FA request. */
+	public async validate_2fa(code: string): Promise<void> {
+		await this.make_request({
+			method: "POST",
+			success_status: 201,
+			url: "/api/auth/42/2FAValidate",
+			body: new JsonBody({ code }),
+		});
+	}
 }

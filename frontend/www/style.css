@@ -390,7 +390,7 @@ body {
   transform: translate(-50%, -50%) translateY(20px) scale(80%);
 
   background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(15px);
+  backdrop-filter: blur(20px);
   border-radius: 15px;
   color: white;
 
@@ -491,7 +491,7 @@ body {
   display: flex;
   flex-flow: column nowrap;
   margin: 0px;
-  height: 250px;
+  height: 300px;
   overflow: scroll;
   border-top: 2px solid rgba(255, 255, 255, 0.2);
 }
@@ -747,4 +747,52 @@ body {
 
   background-position: center;
   background-size: contain;
+}
+
+#editor {
+  display: flex;
+  flex-flow: column nowrap;
+
+  margin-top: 20px;
+  padding-bottom: 20px;
+}
+
+.editor-field-container {
+  position: relative;
+
+  margin-bottom: 10px;
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.editor-field-label {
+  position: absolute;
+  top: -8px;
+  left: 20px;
+
+  font-family: "Krona One", sans-serif;
+  color: white;
+  font-size: 14px;
+
+  letter-spacing: -1px;
+}
+
+.editor-field {
+  background-color: rgba(255, 255, 255, 0.2);
+
+  outline: none;
+
+  border: none;
+  border-bottom: solid 2px rgba(255, 255, 255, 0.4);
+
+  border-radius: 4px;
+
+  padding: 16px 4px 6px 4px;
+
+  font-family: "Noto Sans", sans-serif;
+  color: white;
+  font-size: 18px;
+
+  width: 100%;
+  box-sizing: border-box;
 }
