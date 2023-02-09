@@ -1,4 +1,245 @@
-import { Channel, ChannelId, Message, Client, Users, Gateway } from "../api";
+import { Channel, ChannelId, Message, Client, Users, Gateway, UserId } from "../api";
+import { Rank, rank_to_image, ratio_to_rank } from "../utility";
+
+/** Information about a channel to be added. */
+class ChannelResultElement {
+    public readonly root: HTMLDivElement;
+
+    public constructor(channel: Channel) {
+        const root = document.createElement("div");
+        root.classList.add("create-channel-result");
+
+        const header = document.createElement("div");
+        header.classList.add("create-channel-result-header");
+        header.onclick = () => {
+            // TODO: join the channel!
+        };
+        root.appendChild(header);
+
+        const name = document.createElement("div");
+        name.classList.add("create-channel-result-name");
+        name.innerText = channel.name;
+        header.appendChild(name);
+
+        if (channel.type === "PROTECTED") {
+            const lock = document.createElement("div");
+            lock.classList.add("create-channel-result-lock");
+            header.appendChild(lock);
+        }
+
+        const member_count = document.createElement("div");
+        member_count.classList.add("create-channel-result-members");
+        member_count.innerText = `${channel.members_count} members`;
+        header.appendChild(member_count);
+
+        this.root = root;
+    }
+}
+
+/** The element displayed when looking for a new channel to join. */
+class ChannelListElement {
+    private screen: HTMLDivElement;
+    private container: HTMLDivElement;
+    private list: HTMLDivElement;
+
+    public constructor() {
+        const screen = document.createElement("div");
+        screen.id = "create-channel-screen";
+        screen.onclick = ev => {
+            if (ev.target === screen)
+                this.screen.remove();
+        };
+        
+        const container = document.createElement("div");
+        container.id = "create-channel-container";
+        screen.appendChild(container);
+
+        const channel_list = document.createElement("div");
+        channel_list.id = "create-channel-list";
+        container.appendChild(channel_list);
+
+        this.screen = screen;
+        this.container = container;
+        this.list = channel_list;
+    }
+
+    public show(at: HTMLElement) {
+        while (this.list.firstChild)
+            this.list.firstChild.remove();
+
+        const rect = at.getBoundingClientRect();
+        this.container.style.top = `${rect.bottom + 20}px`;
+        this.container.style.left = `${rect.right - 400}px`;
+        document.body.appendChild(this.screen);
+
+        Client.get_all_channels().then(channels => {
+            for (const chan of channels) {
+                this.list.appendChild(new ChannelResultElement(chan).root);
+            }
+        });
+    }
+}
+
+class UserCardElement {
+    private screen: HTMLDivElement;
+    private card: HTMLDivElement;
+    private banner: HTMLDivElement;
+    private avatar: HTMLDivElement;
+    private name: HTMLDivElement;
+    private wins: HTMLDivElement;
+    private rank: HTMLDivElement;
+    private status: HTMLDivElement;
+    private friend_button: HTMLButtonElement;
+    private blocked_button: HTMLButtonElement;
+
+    private current_user: UserId|null;
+
+    public constructor() {
+        const screen = document.createElement("div");
+        screen.id = "user-card-screen";
+        screen.onclick = ev => {
+            if (ev.target === screen)
+            {
+                this.screen.remove();
+                this.current_user = null;
+            }
+        };
+
+        const card = document.createElement("div");
+        card.id = "user-card";
+        screen.appendChild(card);
+
+        const banner = document.createElement("div");
+        banner.id = "user-card-banner";
+        card.appendChild(banner);
+
+        const content_container = document.createElement("div");
+        content_container.id = "user-card-content-container";
+        card.appendChild(content_container);
+
+        const header = document.createElement("div");
+        header.id = "user-card-header";
+        content_container.appendChild(header);
+
+        const avatar = document.createElement("div");
+        avatar.id = "user-card-avatar";
+        header.appendChild(avatar);
+
+        const name = document.createElement("div");
+        name.id = "user-card-name";
+        header.appendChild(name);
+
+        const status = document.createElement("div");
+        status.id = "user-card-status";
+        content_container.appendChild(status);
+
+        const stats = document.createElement("div");
+        stats.id = "user-card-stats";
+        content_container.appendChild(stats);
+
+        const wins = document.createElement("div");
+        wins.id = "user-card-wins";
+        stats.appendChild(wins);
+
+        const rank = document.createElement("div");
+        rank.id = "user-card-stats-rank";
+        stats.appendChild(rank);
+
+        const menu = document.createElement("div");
+        menu.id = "user-card-menu";
+        content_container.appendChild(menu);
+
+        const friend_button = document.createElement("button");
+        friend_button.classList.add("user-card-menu-button");
+        menu.appendChild(friend_button);
+
+        const blocked_button = document.createElement("button");
+        blocked_button.classList.add("user-card-menu-button");
+        menu.appendChild(blocked_button);
+
+        const send_message_button = document.createElement("button");
+        send_message_button.classList.add("user-card-menu-button");
+        send_message_button.innerText = "Send Message";
+        menu.appendChild(send_message_button);
+
+        this.screen = screen;
+        this.card = card;
+        this.banner = banner;
+        this.avatar = avatar;
+        this.name = name;
+        this.wins = wins;
+        this.rank = rank;
+        this.status = status;
+        this.friend_button = friend_button;
+        this.blocked_button = blocked_button;
+        this.current_user = null;
+    }
+
+    public show(elem: HTMLElement, user: UserId) {
+        this.current_user = user;
+
+        Users.get(user).then(user => {
+            Users.me().then(me => {
+                this.name.innerText = user.name;
+
+                // TODO: use the status of the user when it is sent by the backend.
+                this.status.innerText = "STATUS HERE";
+
+                const wins = user.games_won_ids.length;
+                const losses = user.games_played_ids.length - wins;
+                let percent_f = 0;
+                if (wins + losses !== 0) {
+                    const percent = (wins / (wins + losses)) * 100.0;
+                    percent_f = Math.floor(percent * 10) / 10;
+                }
+                const rank: Rank = ratio_to_rank(wins, losses);
+                const url = rank_to_image(rank);
+
+                this.rank.style.backgroundImage = `url('${url}')`;
+                this.wins.innerText = `${wins} W / ${losses} L / ${percent_f}%`;
+
+                const friend = !!me.friends_ids.find(id => user.id === id);
+                const pending = !!me.pending_friends_ids.find(id => user.id === id);
+                const blocked = !!me.blocked_ids.find(id => user.id === id);
+
+                if (friend) {
+                    this.friend_button.innerText = "Remove Friend";
+                } else if (pending) {
+                    this.friend_button.innerText = "Accept Friend";
+                } else {
+                    this.friend_button.innerText = "Add Friend";
+                }
+
+                if (blocked) {
+                    this.blocked_button.innerText = "Unblock User";
+                } else {
+                    this.blocked_button.innerText = "Block User";
+                }
+            });
+        });
+        Users.get_avatar(user).then(url => {
+            // TODO: use the skin here.
+            this.avatar.style.backgroundImage = `url(\"${url}\")`;
+            this.banner.style.backgroundImage = `url(\"${url}\")`;
+        });
+
+        const box = elem.getBoundingClientRect();
+        const top = box.top;
+        const left = box.left - 10;
+
+        this.card.style.top = `${top}px`;
+        this.card.style.left = `${left}px`;
+        document.body.appendChild(this.screen);
+
+        setTimeout(() => {
+            const box2 = this.card.getBoundingClientRect();
+            if (box2.bottom >= window.innerHeight - 20)
+                this.card.style.top = `${window.innerHeight - 20 - box2.height}px`;
+        });
+    }
+}
+
+const USER_CARD = new UserCardElement();
 
 /**
  * A message that has been instanciated in the DOM.
@@ -15,11 +256,13 @@ class MessageElementInternal {
     public constructor(continuing: boolean, message: Message) {
         const avatar = document.createElement("avatar");
         avatar.classList.add("message-avatar");
-        Client.user_avatar(message.senderId).then(url => {
+        Users.get_avatar(message.senderId).then(url => {
             avatar.style.backgroundImage = `url(\"${url}\")`;
         });
+        avatar.onclick = _ => USER_CARD.show(avatar, message.senderId);
         const author = document.createElement("button");
         author.classList.add("message-author");
+        author.onclick = _ => USER_CARD.show(author, message.senderId);
         Users.get(message.senderId).then(user => author.innerText = user.name);
         const time = document.createElement("div");
         time.classList.add("message-time");
@@ -156,6 +399,8 @@ export class ChatElement {
      * Creates a new `ChatContainer` element.
      */
     public constructor() {
+        const channel_list_element = new ChannelListElement();
+
         this.container = document.createElement("div");
         this.container.id = "chat-container";
 
@@ -172,11 +417,16 @@ export class ChatElement {
         chat_nav.appendChild(create_channel_container);
 
         const create_channel_button = document.createElement("button");
+        create_channel_button.classList.add("circle-button");
         create_channel_button.id = "chat-create-channel";
+        create_channel_button.onclick = () => {
+            channel_list_element.show(create_channel_button);
+        };
         create_channel_container.appendChild(create_channel_button);
 
         this.messages = document.createElement("div");
         this.messages.id = "chat-messages";
+        this.messages.classList.add("custom-scrollbar");
         this.container.appendChild(this.messages);
 
         const send_message_container = document.createElement("div");
@@ -185,13 +435,24 @@ export class ChatElement {
 
         const channel_settings_button = document.createElement("button");
         channel_settings_button.id = "chat-settings-button";
+        channel_settings_button.classList.add("circle-button");
         send_message_container.appendChild(channel_settings_button);
 
         const handle = document.createElement("div");
         handle.id = "chat-handle";
         handle.onclick = () => {
             this.container.classList.toggle("chat-hidden");
+            if (this.container.classList.contains("chat-hidden")) {
+                window.localStorage.setItem("chat-hidden", "true");
+            } else {
+                window.localStorage.setItem("chat-hidden", "false");
+            }
         };
+        if (window.localStorage.getItem("chat-hidden") === "true") {
+            setTimeout(() => {
+                this.container.classList.add("chat-hidden");
+            }, 0);
+        }
         this.container.appendChild(handle);
 
         this.message_input = document.createElement("input");

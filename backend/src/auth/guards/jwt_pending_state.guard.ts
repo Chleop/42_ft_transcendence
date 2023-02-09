@@ -6,8 +6,7 @@ import { t_user_auth } from "../alias";
 @Injectable()
 export class JwtPendingStateGuard extends AuthGuard("jwt") {
 	override async canActivate(context: ExecutionContext) {
-		const result = (await super.canActivate(context)) as boolean;
-		if (result === true) console.log(result);
+		await super.canActivate(context);
 		const request = context.switchToHttp().getRequest();
 		return this.validateRequest(request.user);
 	}
