@@ -284,7 +284,7 @@ export class RawHTTPClient {
             success_status: 201,
             accept: "application/json",
             url: `/api/channel/${channel}/message`,
-            body: new JsonBody({ message: content }),
+            body: new JsonBody({ content }),
         })).json();
     }
 
