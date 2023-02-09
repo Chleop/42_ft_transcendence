@@ -22,7 +22,7 @@ function entry_point() {
 		GameBoard.start_game(new SpectatingGame(data["room_id"]));
 		History.replace_state(GameBoard);
 	});
-	router.register_route("/2fa", () => {
+	router.register_route("/2FA", () => {
 		const code = prompt("gimme the code") || "";
 		Client.validate_2fa(code).then(() => {
 			History.replace_state(MainMenu);
