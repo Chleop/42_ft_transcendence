@@ -10,6 +10,7 @@ DOWN 			= down
 REMOVEALL 		= --rmi all --volumes
 
 all:
+	cd frontend && npm update && npx tsc && npx webpack
 	${DOCKERCOMPOSE} ${COMPOSEFILE} ${BUILD}
 
 .PHONY: start
@@ -40,4 +41,5 @@ clean: down
 fclean:
 	${DOCKERCOMPOSE} ${COMPOSEFILE} ${DOWN} ${REMOVEALL}
 	docker system prune -af --volumes
-	rm -rf */node_modules */dist
+	rm -rf backend/node_modules backend/dist
+	rm -rf frontend/node_modules frontend/out
