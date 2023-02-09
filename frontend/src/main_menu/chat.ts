@@ -549,7 +549,7 @@ export class ChatElement {
 
         let continuing = false;
         if (channel_.last_message) {
-            if (channel_.last_message.senderId === message.senderId && Date.parse(message.dateTime) - Date.parse(channel_.last_message.dateTime) < 5 * 60 * 1000)
+            if (channel_.last_message.senderId === message.senderId && Date.parse(message.dateTime) - Date.parse(channel_.last_message.dateTime) < 10 * 1000)
                 continuing = true;
         }
 

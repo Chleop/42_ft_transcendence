@@ -78,7 +78,7 @@ class ProfileOverlay extends Overlay {
                 }).then(() => {
                     editor_name.disabled = false;
                     name.innerText = new_name;
-                    Users.me().then(me => { me.name = new_name });
+                    Users.patch_name(null, new_name);
                 });
             }
         }
