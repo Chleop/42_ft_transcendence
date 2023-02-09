@@ -3,8 +3,11 @@ export class Soon<T> {
     /** The stored value. */
     private value: T|null;
 
-    public constructor() {
-        this.value = null;
+    public constructor(already_resolved?: T) {
+        if (already_resolved)
+            this.value = already_resolved;
+        else
+            this.value = null;
     }
 
     /** Resolves this `Soon<T>` to a value. */

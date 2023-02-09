@@ -48,6 +48,10 @@ export const Users = (function() {
             u.name = name;
         }
 
+        public set_avatar(id: UserId, avatar: string) {
+            this.avatars[id] = new Soon(avatar);
+        }
+
         /**
          * Returns the requested user's avatar.
          *

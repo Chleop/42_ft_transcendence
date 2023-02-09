@@ -165,10 +165,9 @@ class ProfileOverlay extends Overlay {
                 if (avatar_input.files && avatar_input.files[0]) {
                     const file = avatar_input.files[0];
                     Client.set_avatar(file);
-                    Users.invalidate_avatar(me.id);
-                    Users.get_avatar(me.id).then(url => {
-                        avatar.style.backgroundImage = `url(\"${url}\")`;
-                    });
+                    const new_url = URL.createObjectURL(file);
+                    Users.set_avatar(me.id, new_url);
+                    avatar.style.backgroundImage = `url(\"${new_url}\")`;
                 }
             };
 
