@@ -28,7 +28,7 @@ class ChannelResultElement {
 
         const member_count = document.createElement("div");
         member_count.classList.add("create-channel-result-members");
-        member_count.innerText = `${channel.member_count} members`;
+        member_count.innerText = `${channel.members_count} members`;
         header.appendChild(member_count);
 
         this.root = root;
@@ -72,7 +72,6 @@ class ChannelListElement {
         document.body.appendChild(this.screen);
 
         Client.get_all_channels().then(channels => {
-            console.log(channels);
             for (const chan of channels) {
                 this.list.appendChild(new ChannelResultElement(chan).root);
             }

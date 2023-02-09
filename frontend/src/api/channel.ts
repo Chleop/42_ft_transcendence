@@ -70,5 +70,5 @@ export interface Channel {
     /** The type of this channel. */
     type: "PUBLIC"|"PROTECTED",
     /** Member count. */
-    member_count: number,
+    members_count: number,
 }
