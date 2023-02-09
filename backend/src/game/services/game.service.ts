@@ -93,30 +93,37 @@ export class GameService {
 	}
 
 	/**
-	 * Removes a player from the queue, or destroys their game room.
+	 * Removes a player from the queue.
 	 */
-	public async unQueue(client: Socket): Promise<Match | null> {
-		/* Client has passed matchmaking */
+	public unQueue(client: Socket): GameRoom | null {
 		this.logger.verbose(`User ${client.data.user.login} is being unqueued`);
-		if (!this.matchmaking.unQueue(client)) {
-			const index: number = this.findUserRoomIndex(client);
 
-			/* Client is not in a gameroom */
-			if (index < 0) return null;
+		/* Client was in matchmaking */
+		if (this.matchmaking.unQueue(client)) return null;
 
-			/* Client was in an ongoing game */
-			const room: GameRoom = this.game_rooms[index];
-			if (room.is_ongoing) {
-				const results: Results = room.cutGameShort(room.playerNumber(client));
+		const index: number = this.findUserRoomIndex(client);
 
-				this.logger.verbose(`Game was cut short: '${room.match.name}'`);
+		/* Client is not in a gameroom */
+		if (index < 0) return null;
 
-				const match: Match = await this.registerGameHistory(room, results);
-				this.destroyRoom(room);
-				return match;
-			}
+		/* Client was in an ongoing game */
+		const room: GameRoom = this.game_rooms[index];
+		if (room.is_ongoing) {
+			this.logger.verbose(`Game '${room.match.name}' was ongoing`);
+			return room;
 		}
 		return null;
+	}
+
+	/**
+	 * Removes game room from list.
+	 */
+	public destroyRoom(room: GameRoom): void {
+		const index: number = this.game_rooms.indexOf(room);
+		if (index < 0) return;
+		this.logger.verbose(`Destroying room ${room.match.name}`);
+		room.destroyPlayerPing();
+		this.game_rooms.splice(index, 1);
 	}
 
 	/**
@@ -145,17 +152,6 @@ export class GameService {
 	}
 
 	/* PRIVATE ================================================================= */
-
-	/**
-	 * Removes game room from list.
-	 */
-	private destroyRoom(room: GameRoom): void {
-		const index: number = this.game_rooms.indexOf(room);
-		if (index < 0) return;
-		this.logger.verbose(`Destroying room ${room.match.name}`);
-		room.destroyPlayerPing();
-		this.game_rooms.splice(index, 1);
-	}
 
 	/**
 	 * Returns index of room if client is in it.

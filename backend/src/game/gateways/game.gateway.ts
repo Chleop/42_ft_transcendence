@@ -63,7 +63,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Moves client to the queue if not already in game.
 	 */
 	public handleConnection(client: Socket): void {
-		this.logger.log(`[${client.data.user.login} connected]`);
+		this.logger.log(`[${client.id} connected]`);
 		try {
 			const game_room: GameRoom | null = this.game_service.queueUp(client);
 			if (game_room !== null) this.matchmake(game_room);
@@ -83,31 +83,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Handler for gateway disconnection.
 	 *
 	 * Removes client from queue if in it.
-	 * Else removes match.
+	 * Else saves and destroy the ongoing game they're in.
 	 * Also removes timer if it hasn't fired yet.
 	 */
 	public async handleDisconnect(client: Socket): Promise<void> {
-		try {
-			const match: Match | null = await this.game_service.unQueue(client);
-			if (match !== null) {
-				const index: number = this.timeouts.findIndex((obj) => {
-					return obj.match === match.name;
-				});
-				if (index >= 0) {
-					clearTimeout(this.timeouts[index].timer);
-					this.timeouts.splice(index, 1);
-				}
-				this.disconnectRoom(match);
+		const room: GameRoom | null = this.game_service.unQueue(client);
+		if (room !== null) {
+			const index: number = this.timeouts.findIndex((obj) => {
+				return obj.match === room.match.name;
+			});
+			if (index >= 0) {
+				clearTimeout(this.timeouts[index].timer);
+				this.timeouts.splice(index, 1);
 			}
-		} catch (e) {
-			if (e instanceof BadRequestException || e instanceof ConflictException) {
-				this.logger.error(e.message);
-				this.sendError(client, e);
-				return;
-			}
-			throw e;
+			await this.endGameEarly(client, room);
+			this.game_service.destroyRoom(room);
 		}
-		this.logger.log(`[${client.data.user.login} disconnected]`);
+		this.logger.log(`[${client.id} disconnected]`);
 	}
 
 	/* Event handlers ---------------------------------------------------------- */
@@ -199,13 +191,39 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			}
 		} catch (e) {
 			if (e instanceof BadRequestException || e instanceof ConflictException) {
-				this.logger.error(e.message);
+				me.logger.error(e.message);
 				me.sendError(room.match.player1, e);
 				me.sendError(room.match.player2, e);
 				me.disconnectRoom(room.match);
 				return;
 			}
 			throw e;
+		}
+	}
+
+	/**
+	 * Kicks players from an ongoing game.
+	 *
+	 * The game is being saved before being destroyed.
+	 */
+	private async endGameEarly(client: Socket, room: GameRoom): Promise<void> {
+		const results: Results = room.cutGameShort(room.playerNumber(client));
+		room.destroyPlayerPing();
+		if (room.is_ongoing) {
+			room.is_ongoing = false;
+
+			try {
+				await this.game_service.registerGameHistory(room, results);
+			} catch (e) {
+				if (e instanceof BadRequestException || e instanceof ConflictException) {
+					this.logger.error(e.message);
+					this.sendError(room.match.player1, e);
+					this.sendError(room.match.player2, e);
+				} else {
+					throw e;
+				}
+			}
+			this.disconnectRoom(room.match);
 		}
 	}
 

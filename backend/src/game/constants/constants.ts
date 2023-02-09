@@ -32,7 +32,7 @@ export const h_2: number = 4.5;
 /**
  * Score limit before end of game.
  */
-export const max_score: number = 10;
+export const max_score: number = 5;
 
 /**
  * Paddle width, divided by 2.
