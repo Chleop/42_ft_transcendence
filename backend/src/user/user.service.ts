@@ -1208,56 +1208,21 @@ export class UserService {
 
 	/**
 	 * @brief	Get a user's background skin from the database.
-	 * 			Requested user must be active,
-	 * 			and either have at least one common channel with the requesting user,
-	 * 			or be friends with the requesting user, or be the requesting user.
-	 * 			It is assumed that the provided requesting user id is valid.
-	 * 			(user exists and is ACTIVE)
+	 * 			Requested user must be active.
 	 *
-	 * @param	requesting_user_id The id of the user requesting the user's skin.
 	 * @param	requested_user_id The id of the user to get the skin from.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserNotFoundError
-	 * 			- UserNotLinkedError
 	 *
 	 * @return	A promise containing the wanted background skin.
 	 */
-	public async get_ones_background(
-		requesting_user_id: string,
-		requested_user_id: string,
-	): Promise<StreamableFile> {
-		type t_requesting_user_fields = {
-			channels: {
-				id: string;
-			}[];
-		};
+	public async get_ones_background(requested_user_id: string): Promise<StreamableFile> {
 		type t_requested_user_fields = {
 			skin: {
 				background: string;
 			};
-			channels: {
-				id: string;
-			}[];
-			friends: {
-				id: string;
-			}[];
 		};
-		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
-			select: {
-				channels: {
-					select: {
-						id: true,
-					},
-				},
-			},
-			where: {
-				idAndState: {
-					id: requesting_user_id,
-					state: StateType.ACTIVE,
-				},
-			},
-		})) as t_requesting_user_fields;
 		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
 			select: {
 				skin: {
@@ -1265,16 +1230,6 @@ export class UserService {
 						background: true,
 					},
 				},
-				channels: {
-					select: {
-						id: true,
-					},
-				},
-				friends: {
-					select: {
-						id: true,
-					},
-				},
 			},
 			where: {
 				idAndState: {
@@ -1283,21 +1238,7 @@ export class UserService {
 				},
 			},
 		});
-		if (!requested_user) {
-			throw new UserNotFoundError(requested_user_id);
-		}
-		if (
-			requesting_user_id !== requested_user_id &&
-			!requested_user.friends.some((friend) => friend.id === requesting_user_id) &&
-			!requested_user.channels.some((requested_user_channel): boolean =>
-				requesting_user.channels.some(
-					(requesting_user_channel): boolean =>
-						requesting_user_channel.id === requested_user_channel.id,
-				),
-			)
-		) {
-			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
-		}
+		if (!requested_user) throw new UserNotFoundError(requested_user_id);
 		return new StreamableFile(
 			createReadStream(join(process.cwd(), requested_user.skin.background)),
 		);
@@ -1305,56 +1246,21 @@ export class UserService {
 
 	/**
 	 * @brief	Get a user's ball skin from the database.
-	 * 			Requested user must be active,
-	 * 			and either have at least one common channel with the requesting user,
-	 * 			or be friends with the requesting user, or be the requesting user.
-	 * 			It is assumed that the provided requesting user id is valid.
-	 * 			(user exists and is ACTIVE)
+	 * 			Requested user must be active.
 	 *
-	 * @param	requesting_user_id The id of the user requesting the user's skin.
 	 * @param	requested_user_id The id of the user to get the skin from.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserNotFoundError
-	 * 			- UserNotLinkedError
 	 *
 	 * @return	A promise containing the wanted ball skin.
 	 */
-	public async get_ones_ball(
-		requesting_user_id: string,
-		requested_user_id: string,
-	): Promise<StreamableFile> {
-		type t_requesting_user_fields = {
-			channels: {
-				id: string;
-			}[];
-		};
+	public async get_ones_ball(requested_user_id: string): Promise<StreamableFile> {
 		type t_requested_user_fields = {
 			skin: {
 				ball: string;
 			};
-			channels: {
-				id: string;
-			}[];
-			friends: {
-				id: string;
-			}[];
 		};
-		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
-			select: {
-				channels: {
-					select: {
-						id: true,
-					},
-				},
-			},
-			where: {
-				idAndState: {
-					id: requesting_user_id,
-					state: StateType.ACTIVE,
-				},
-			},
-		})) as t_requesting_user_fields;
 		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
 			select: {
 				skin: {
@@ -1362,16 +1268,6 @@ export class UserService {
 						ball: true,
 					},
 				},
-				channels: {
-					select: {
-						id: true,
-					},
-				},
-				friends: {
-					select: {
-						id: true,
-					},
-				},
 			},
 			where: {
 				idAndState: {
@@ -1380,76 +1276,27 @@ export class UserService {
 				},
 			},
 		});
-		if (!requested_user) {
-			throw new UserNotFoundError(requested_user_id);
-		}
-		if (
-			requesting_user_id !== requested_user_id &&
-			!requested_user.friends.some((friend) => friend.id === requesting_user_id) &&
-			!requested_user.channels.some((requested_user_channel): boolean =>
-				requesting_user.channels.some(
-					(requesting_user_channel): boolean =>
-						requesting_user_channel.id === requested_user_channel.id,
-				),
-			)
-		) {
-			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
-		}
+		if (!requested_user) throw new UserNotFoundError(requested_user_id);
 		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.skin.ball)));
 	}
 
 	/**
 	 * @brief	Get a user's paddle skin from the database.
-	 * 			Requested user must be active,
-	 * 			and either have at least one common channel with the requesting user,
-	 * 			or be friends with the requesting user, or be the requesting user.
-	 * 			It is assumed that the provided requesting user id is valid.
-	 * 			(user exists and is ACTIVE)
+	 * 			Requested user must be active.
 	 *
-	 * @param	requesting_user_id The id of the user requesting the user's skin.
 	 * @param	requested_user_id The id of the user to get the skin from.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserNotFoundError
-	 * 			- UserNotLinkedError
 	 *
 	 * @return	A promise containing the wanted paddle skin.
 	 */
-	public async get_ones_paddle(
-		requesting_user_id: string,
-		requested_user_id: string,
-	): Promise<StreamableFile> {
-		type t_requesting_user_fields = {
-			channels: {
-				id: string;
-			}[];
-		};
+	public async get_ones_paddle(requested_user_id: string): Promise<StreamableFile> {
 		type t_requested_user_fields = {
 			skin: {
 				paddle: string;
 			};
-			channels: {
-				id: string;
-			}[];
-			friends: {
-				id: string;
-			}[];
 		};
-		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
-			select: {
-				channels: {
-					select: {
-						id: true,
-					},
-				},
-			},
-			where: {
-				idAndState: {
-					id: requesting_user_id,
-					state: StateType.ACTIVE,
-				},
-			},
-		})) as t_requesting_user_fields;
 		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
 			select: {
 				skin: {
@@ -1457,16 +1304,6 @@ export class UserService {
 						paddle: true,
 					},
 				},
-				channels: {
-					select: {
-						id: true,
-					},
-				},
-				friends: {
-					select: {
-						id: true,
-					},
-				},
 			},
 			where: {
 				idAndState: {
@@ -1475,21 +1312,7 @@ export class UserService {
 				},
 			},
 		});
-		if (!requested_user) {
-			throw new UserNotFoundError(requested_user_id);
-		}
-		if (
-			requesting_user_id !== requested_user_id &&
-			!requested_user.friends.some((friend) => friend.id === requesting_user_id) &&
-			!requested_user.channels.some((requested_user_channel): boolean =>
-				requesting_user.channels.some(
-					(requesting_user_channel): boolean =>
-						requesting_user_channel.id === requested_user_channel.id,
-				),
-			)
-		) {
-			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
-		}
+		if (!requested_user) throw new UserNotFoundError(requested_user_id);
 		return new StreamableFile(
 			createReadStream(join(process.cwd(), requested_user.skin.paddle)),
 		);
