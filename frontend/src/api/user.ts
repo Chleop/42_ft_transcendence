@@ -7,11 +7,6 @@ import { Id } from "./id";
 export type UserId = Id;
 
 /**
- * The ID of an avatar.
- */
-export type AvatarId = Id
-
-/**
  * Stores private information about a user.
  */
 export interface PrivateUser {
@@ -87,6 +82,9 @@ export interface GameResult {
     winner_id: string;
 }
 
+/** The ID of a game. */
+type GameId = Id;
+
 /**
  * Stores public information about a user.
  */
@@ -99,4 +97,8 @@ export interface User {
      * The name of the user.
      */
     name: string,
+    /** The ID of played games. */
+    games_played_ids: GameId[];
+    /** ID of won games. */
+    games_won_ids: GameId[];
 };

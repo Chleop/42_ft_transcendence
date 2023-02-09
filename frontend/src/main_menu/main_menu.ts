@@ -2,6 +2,7 @@ import { ChatElement } from "./chat";
 import { Overlay, Scene, State, History } from "../strawberry";
 import { Client, GameSocket, Users } from "../api";
 import { GameBoard, PlayingGame } from "../game";
+import { rank_to_image, ratio_to_rank } from "../utility";
 
 class ProfileOverlay extends Overlay {
     private html: HTMLDivElement;
@@ -50,7 +51,6 @@ class ProfileOverlay extends Overlay {
 
         const rank = document.createElement("div");
         rank.id = "profile-stats-rank";
-        rank.innerText = "B";
         stats.appendChild(rank);
 
         // TODO: compute the number of wins/loses.
@@ -69,6 +69,18 @@ class ProfileOverlay extends Overlay {
                 avatar.style.backgroundImage = `url(\"${url}\")`;
             });
             name.innerText = me.name;
+
+            let wins = 0;
+            let losses = 0;
+            for (const game of me.games_played) {
+                if (game.winner_id === me.id) {
+                    wins += 1;
+                } else {
+                    losses += 1;
+                }
+            }
+
+            rank.style.backgroundImage = `url('${rank_to_image(ratio_to_rank(wins, losses))}')`;
 
             avatar_input.onchange = () => {
                 if (avatar_input.files && avatar_input.files[0]) {
@@ -230,6 +242,21 @@ class MainMenuScene extends Scene {
         Users.me().then((me) => {
             console.info(`connected as '${me.name}'`);
             console.log(`user ID: '${me.id}'`);
+
+            let wins = 0;
+            let losses = 0;
+
+            for (const game of me.games_played) {
+                if (game.winner_id === me.id) {
+                    wins += 1;
+                } else {
+                    losses += 1;
+                }
+            }
+
+            const rank_type = ratio_to_rank(wins, losses);
+            const rank_image = rank_to_image(rank_type);
+            rank.style.backgroundImage = `url('${rank_image}')`;
 
             // Initialize the stuff that's related to the user.
             let first: boolean = true;

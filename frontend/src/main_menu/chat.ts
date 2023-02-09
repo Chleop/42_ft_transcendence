@@ -1,4 +1,5 @@
 import { Channel, ChannelId, Message, Client, Users, Gateway, UserId } from "../api";
+import { Rank, rank_to_image, ratio_to_rank } from "../utility";
 
 /** Information about a channel to be added. */
 class ChannelResultElement {
@@ -85,8 +86,9 @@ class UserCardElement {
     private banner: HTMLDivElement;
     private avatar: HTMLDivElement;
     private name: HTMLDivElement;
+    private wins: HTMLDivElement;
+    private rank: HTMLDivElement;
     private status: HTMLDivElement;
-    private stats: HTMLDivElement;
     private friend_button: HTMLButtonElement;
     private blocked_button: HTMLButtonElement;
 
@@ -135,6 +137,14 @@ class UserCardElement {
         stats.id = "user-card-stats";
         content_container.appendChild(stats);
 
+        const wins = document.createElement("div");
+        wins.id = "user-card-wins";
+        stats.appendChild(wins);
+
+        const rank = document.createElement("div");
+        rank.id = "user-card-stats-rank";
+        stats.appendChild(rank);
+
         const menu = document.createElement("div");
         menu.id = "user-card-menu";
         content_container.appendChild(menu);
@@ -157,8 +167,9 @@ class UserCardElement {
         this.banner = banner;
         this.avatar = avatar;
         this.name = name;
+        this.wins = wins;
+        this.rank = rank;
         this.status = status;
-        this.stats = stats;
         this.friend_button = friend_button;
         this.blocked_button = blocked_button;
         this.current_user = null;
@@ -173,7 +184,19 @@ class UserCardElement {
 
                 // TODO: use the status of the user when it is sent by the backend.
                 this.status.innerText = "STATUS HERE";
-                this.stats.innerText = "STATS HERE";
+
+                const wins = user.games_won_ids.length;
+                const losses = user.games_played_ids.length - wins;
+                let percent_f = 0;
+                if (wins + losses !== 0) {
+                    const percent = (wins / (wins + losses)) * 100.0;
+                    percent_f = Math.floor(percent * 10) / 10;
+                }
+                const rank: Rank = ratio_to_rank(wins, losses);
+                const url = rank_to_image(rank);
+
+                this.rank.style.backgroundImage = `url('${url}')`;
+                this.wins.innerText = `${wins} W / ${losses} L / ${percent_f}%`;
 
                 const friend = !!me.friends_ids.find(id => user.id === id);
                 const pending = !!me.pending_friends_ids.find(id => user.id === id);

@@ -30,6 +30,13 @@ body {
 
 #main-menu-rank {
   flex-grow: 1;
+
+  margin-top: 20px;
+  margin-bottom: 20px;
+
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
 }
 
 .main-menu-button {
@@ -465,6 +472,13 @@ body {
 
 #profile-stats-rank {
   margin-right: 10px;
+
+  width: 20px;
+  height: 20px;
+
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
 #profile-game-history {
@@ -614,6 +628,10 @@ body {
   font-size: 18px;
   padding-top: 10px;
   padding-bottom: 10px;
+
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
 }
 
 #user-card-menu {
@@ -719,4 +737,14 @@ body {
   background-position: center;
   background-size: contain;
   margin-left: 10px;
+}
+
+#user-card-stats-rank {
+  width: 40px;
+  height: 40px;
+
+  margin-top: 20px;
+
+  background-position: center;
+  background-size: contain;
 }
