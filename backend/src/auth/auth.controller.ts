@@ -54,7 +54,7 @@ export class AuthController {
 	async two_factor_authentication_redirect(): Promise<void> {}
 
 	@UseGuards(Jwt2FAGuard)
-	@Get("42/2FAActivate")
+	@Post("42/2FAActivate")
 	async activate_2FA(@Req() req: any, @Body() dto: EmailDto): Promise<void> {
 		try {
 			await this._authService.activate_2FA(req.user.id, dto.email);
