@@ -219,22 +219,11 @@ export class UserService {
 	 * @return	A promise containing the id of the created user.
 	 */
 	public async create_one(login: string): Promise<string> {
-		const skin_id: string = (
-			await this._prisma.skin.create({
-				data: {
-					background: "resource/skin/background/default.jpg",
-					ball: "resource/skin/ball/default.jpg",
-					paddle: "resource/skin/paddle/default.jpg",
-				},
-			})
-		).id;
-
 		let user_id: string;
 
 		try {
 			let name: string = login;
 			let suffix: number = 0;
-
 			while (
 				await this._prisma.user.count({
 					where: {
@@ -250,13 +239,17 @@ export class UserService {
 					data: {
 						login: login,
 						name: name,
-						skinId: skin_id,
+						skin: {
+							connect: {
+								id: "default",
+							},
+						},
 					},
 				})
 			).id;
 			this._logger.log(`User ${user_id} created`);
 		} catch (error) {
-			this._logger.error(`Error while creating user ${login}`);
+			this._logger.error(`Error while creating user ${login}` + error.message);
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2002":

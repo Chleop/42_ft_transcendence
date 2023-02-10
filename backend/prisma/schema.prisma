@@ -101,6 +101,7 @@ model Game {
 
 model Skin {
   id          String @id @unique @default(cuid())
+  name        String
   background  String
   ball        String
   paddle      String
