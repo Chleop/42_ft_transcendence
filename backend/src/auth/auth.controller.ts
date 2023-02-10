@@ -10,12 +10,13 @@ import {
 	Res,
 	Logger,
 	BadRequestException,
+	UnauthorizedException,
 } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { Response } from "express";
 import { AuthService } from "./auth.service";
 import { FtOauthGuard, Jwt2FAGuard, JwtPendingStateGuard } from "./guards";
-import { ExpiredCode, InvalidCode } from "./error";
+import { CodeIsNotSet, ExpiredCode, InvalidCode, PendingUser } from "./error";
 import { CodeDto, EmailDto } from "./dto";
 
 @Controller("auth")
@@ -41,12 +42,13 @@ export class AuthController {
 			this._authService.signin(request.user.login, response);
 		} catch (error) {
 			this._logger.error(error);
+			if (error instanceof PendingUser) throw new UnauthorizedException(error.message);
 			if (error instanceof PrismaClientKnownRequestError) {
 				if (error.code == "P2002")
 					throw new ForbiddenException(
 						"One of the provided fields is already taken (unique constraint)",
 					);
-			} else throw new InternalServerErrorException("An unknown error occured");
+			} else throw new InternalServerErrorException();
 		}
 	}
 
@@ -60,7 +62,7 @@ export class AuthController {
 			await this._authService.activate_2FA(req.user.id, dto.email);
 		} catch (error) {
 			this._logger.error(error);
-			throw new InternalServerErrorException("An unknown error occured");
+			throw new InternalServerErrorException();
 		}
 	}
 
@@ -71,7 +73,7 @@ export class AuthController {
 			await this._authService.deactivate_2FA(req.user.id);
 		} catch (error) {
 			this._logger.error(error);
-			throw new InternalServerErrorException("An unknown error occured");
+			throw new InternalServerErrorException();
 		}
 	}
 
@@ -82,9 +84,10 @@ export class AuthController {
 			await this._authService.validate_2FA(req.user.id, dto.code);
 		} catch (error) {
 			this._logger.error(error);
+			if (error instanceof CodeIsNotSet) throw new ForbiddenException(error.message);
 			if (error instanceof InvalidCode || error instanceof ExpiredCode)
 				throw new BadRequestException(error.message);
-			else throw new InternalServerErrorException("An unknown error occured");
+			else throw new InternalServerErrorException();
 		}
 	}
 }

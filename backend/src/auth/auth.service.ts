@@ -9,7 +9,7 @@ import { PrismaService } from "src/prisma/prisma.service";
 import { StateType } from "@prisma/client";
 import { t_access_token, t_email, t_payload, t_secret, t_user_auth } from "src/auth/alias";
 import * as argon2 from "argon2";
-import { ExpiredCode, InvalidCode } from "./error";
+import { CodeIsNotSet, ExpiredCode, InvalidCode, PendingUser } from "./error";
 
 ("use strict");
 
@@ -86,15 +86,21 @@ export class AuthService {
 		let user: t_user_auth;
 		try {
 			user = await this.get_user_auth_by_login(login);
+			if (user.state === StateType.PENDING) throw new PendingUser();
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
-				await this._user.create_one(login);
-				user = await this.get_user_auth_by_login(login);
+				try {
+					await this._user.create_one(login);
+					user = await this.get_user_auth_by_login(login);
+				} catch (error) {
+					throw new Error("Failed to create user : " + error.message);
+				}
 			} else throw error;
 		}
 		const token: t_access_token = await this.create_access_token(user.id);
 		res.cookie("access_token", token.access_token);
 		if (user.twoFactAuth === true) {
+			await this.set_status_to_pending(user.id);
 			await this.trigger_2FA(user.id);
 			res.redirect("http://localhost:3000/api/auth/42/2FARedirect");
 		} else res.redirect(<string>this._config.get<string>("SITE_URL"));
@@ -115,7 +121,6 @@ export class AuthService {
 		if (email === null) throw new Error("Email was not set in the database");
 		const code: string = this.create_code();
 		await this.add_code_to_db(user_id, code);
-		await this.set_status_to_pending(user_id);
 		await this.send_confirmation_email(email, code);
 	}
 
@@ -163,8 +168,7 @@ export class AuthService {
 
 	private async validate_code(user_id: string, code: string): Promise<boolean> {
 		const secret: t_secret = await this.get_secret_from_db(user_id);
-		if (!secret.twoFACode || !secret.twoFACreationDate)
-			throw new Error("Code is not set in the database");
+		if (!secret.twoFACode || !secret.twoFACreationDate) throw new CodeIsNotSet();
 		if ((await argon2.verify(secret.twoFACode, code)) === false) throw new InvalidCode();
 		if (this.is_expired(secret.twoFACreationDate) === true) throw new ExpiredCode();
 		return true;
@@ -249,10 +253,7 @@ export class AuthService {
 				state: true,
 			},
 			where: {
-				loginAndState: {
-					login: login,
-					state: StateType.ACTIVE,
-				},
+				login: login,
 			},
 		});
 		if (!user) throw new UserNotFoundError();
@@ -299,7 +300,7 @@ export class AuthService {
 
 	private async set_status_to_active(user_id: string): Promise<void> {
 		await this._prisma.user.update({
-			where: { idAndState: { id: user_id, state: StateType.PENDING } },
+			where: { id: user_id },
 			data: { state: StateType.ACTIVE },
 		});
 	}
