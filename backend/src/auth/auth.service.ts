@@ -83,39 +83,34 @@ export class AuthService {
 	/*                             PUBLIC FUNCTIONS                               */
 	/* ************************************************************************** */
 	public async signin(login: string, res: Response): Promise<void> {
-		let user: t_user_auth;
-		try {
+		let user: t_user_auth | null;
+
+		user = await this.get_user_auth_by_login(login);
+		if (!user) {
+			await this._user.create_one(login);
 			user = await this.get_user_auth_by_login(login);
-			if (user.state === StateType.PENDING) throw new PendingUser();
-		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				try {
-					await this._user.create_one(login);
-					user = await this.get_user_auth_by_login(login);
-				} catch (error) {
-					throw new Error("Failed to create user : " + error.message);
-				}
-			} else throw error;
+			if (!user) throw new Error("Failed to create user");
 		}
+		if (user.state === StateType.PENDING) throw new PendingUser();
 		const token: t_access_token = await this.create_access_token(user.id);
 		res.cookie("access_token", token.access_token);
 		if (user.twoFactAuth === true) {
 			await this.set_status_to_pending(user.id);
-			await this.trigger_2FA(user.id);
-			res.redirect("http://localhost:3000/api/auth/42/2FARedirect");
+			await this.generate_and_send_code(user.id);
+			res.redirect(<string>this._config.get<string>("TFA_REDIRECT_URL"));
 		} else res.redirect(<string>this._config.get<string>("SITE_URL"));
 	}
 
 	public async activate_2FA(user_id: string, email: string): Promise<void> {
 		await this.add_email_to_db(user_id, email);
-		await this.trigger_2FA(user_id);
+		await this.generate_and_send_code(user_id);
 	}
 
 	public async deactivate_2FA(user_id: string): Promise<void> {
 		await this.deactivate_2FA_in_db(user_id);
 	}
 
-	public async trigger_2FA(user_id: string): Promise<void> {
+	public async generate_and_send_code(user_id: string): Promise<void> {
 		const user: t_user_auth = await this.get_user_auth(user_id);
 		const email: string | null = user.email;
 		if (email === null) throw new Error("Email was not set in the database");
@@ -244,7 +239,7 @@ export class AuthService {
 		return user;
 	}
 
-	public async get_user_auth_by_login(login: string): Promise<t_user_auth> {
+	public async get_user_auth_by_login(login: string): Promise<t_user_auth | null> {
 		const user: t_user_auth | null = await this._prisma.user.findUnique({
 			select: {
 				id: true,
@@ -256,7 +251,6 @@ export class AuthService {
 				login: login,
 			},
 		});
-		if (!user) throw new UserNotFoundError();
 		return user;
 	}
 
@@ -274,7 +268,10 @@ export class AuthService {
 	}
 
 	private async add_email_to_db(user_id: string, email: string): Promise<void> {
-		await this._user.update_one(user_id, undefined, email);
+		await this._prisma.user.update({
+			where: { id: user_id },
+			data: { email: email },
+		});
 	}
 
 	private async activate_2FA_in_db(user_id: string): Promise<void> {
