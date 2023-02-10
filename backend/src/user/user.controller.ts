@@ -293,4 +293,58 @@ export class UserController {
 			throw new InternalServerErrorException();
 		}
 	}
+
+	@Get(":id/skin/background")
+	async get_background_skin(@Param("id") id: string): Promise<StreamableFile> {
+		let sfile: StreamableFile;
+		try {
+			sfile = await this._user_service.get_ones_background(id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error(error.message);
+			throw new InternalServerErrorException();
+		}
+
+		return sfile;
+	}
+
+	@Get(":id/skin/ball")
+	async get_ball_skin(@Param("id") id: string): Promise<StreamableFile> {
+		let sfile: StreamableFile;
+		try {
+			sfile = await this._user_service.get_ones_ball(id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error(error.message);
+			throw new InternalServerErrorException();
+		}
+
+		return sfile;
+	}
+
+	@Get(":id/skin/paddle")
+	async get_paddle_skin(@Param("id") id: string): Promise<StreamableFile> {
+		let sfile: StreamableFile;
+		try {
+			sfile = await this._user_service.get_ones_paddle(id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error(error.message);
+			throw new InternalServerErrorException();
+		}
+
+		return sfile;
+	}
 }

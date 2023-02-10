@@ -15,7 +15,6 @@ import {
 	UserNotFoundError,
 	UserNotFriendError,
 	UserNotLinkedError,
-	UserRelationNotFoundError,
 	UserSelfBlockError,
 	UserSelfMessageError,
 	UserSelfUnblockError,
@@ -220,29 +219,11 @@ export class UserService {
 	 * @return	A promise containing the id of the created user.
 	 */
 	public async create_one(login: string): Promise<string> {
-		type t_fields = {
-			id: string;
-		};
-
-		const skin: t_fields | null = await this._prisma.skin.findUnique({
-			select: {
-				id: true,
-			},
-			where: {
-				name: "Default",
-			},
-		});
-
-		if (!skin) {
-			throw new UserRelationNotFoundError();
-		}
-
-		let id: string;
+		let user_id: string;
 
 		try {
 			let name: string = login;
 			let suffix: number = 0;
-
 			while (
 				await this._prisma.user.count({
 					where: {
@@ -253,18 +234,22 @@ export class UserService {
 				name = `${login}#${suffix++}`;
 			}
 
-			id = (
+			user_id = (
 				await this._prisma.user.create({
 					data: {
 						login: login,
 						name: name,
-						skinId: skin.id,
+						skin: {
+							connect: {
+								id: "default",
+							},
+						},
 					},
 				})
 			).id;
-			this._logger.log(`User ${id} created`);
+			this._logger.log(`User ${user_id} created`);
 		} catch (error) {
-			this._logger.error(`Error while creating user ${login}`);
+			this._logger.error(`Error while creating user ${login}` + error.message);
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2002":
@@ -275,7 +260,7 @@ export class UserService {
 			throw new UnknownError();
 		}
 
-		return id;
+		return user_id;
 	}
 
 	/**
@@ -1212,5 +1197,117 @@ export class UserService {
 			throw new UnknownError();
 		}
 		this._logger.log(`Updated user ${id}'s avatar`);
+	}
+
+	/**
+	 * @brief	Get a user's background skin from the database.
+	 * 			Requested user must be active.
+	 *
+	 * @param	requested_user_id The id of the user to get the skin from.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 *
+	 * @return	A promise containing the wanted background skin.
+	 */
+	public async get_ones_background(requested_user_id: string): Promise<StreamableFile> {
+		type t_requested_user_fields = {
+			skin: {
+				background: string;
+			};
+		};
+		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				skin: {
+					select: {
+						background: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requested_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		if (!requested_user) throw new UserNotFoundError(requested_user_id);
+		return new StreamableFile(
+			createReadStream(join(process.cwd(), requested_user.skin.background)),
+		);
+	}
+
+	/**
+	 * @brief	Get a user's ball skin from the database.
+	 * 			Requested user must be active.
+	 *
+	 * @param	requested_user_id The id of the user to get the skin from.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 *
+	 * @return	A promise containing the wanted ball skin.
+	 */
+	public async get_ones_ball(requested_user_id: string): Promise<StreamableFile> {
+		type t_requested_user_fields = {
+			skin: {
+				ball: string;
+			};
+		};
+		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				skin: {
+					select: {
+						ball: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requested_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		if (!requested_user) throw new UserNotFoundError(requested_user_id);
+		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.skin.ball)));
+	}
+
+	/**
+	 * @brief	Get a user's paddle skin from the database.
+	 * 			Requested user must be active.
+	 *
+	 * @param	requested_user_id The id of the user to get the skin from.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 *
+	 * @return	A promise containing the wanted paddle skin.
+	 */
+	public async get_ones_paddle(requested_user_id: string): Promise<StreamableFile> {
+		type t_requested_user_fields = {
+			skin: {
+				paddle: string;
+			};
+		};
+		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				skin: {
+					select: {
+						paddle: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requested_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		if (!requested_user) throw new UserNotFoundError(requested_user_id);
+		return new StreamableFile(
+			createReadStream(join(process.cwd(), requested_user.skin.paddle)),
+		);
 	}
 }
