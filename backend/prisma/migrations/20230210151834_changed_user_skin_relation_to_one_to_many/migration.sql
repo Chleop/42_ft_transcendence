@@ -1,0 +1,10 @@
+-- DropForeignKey
+ALTER TABLE "User" DROP CONSTRAINT "User_skinId_fkey";
+
+-- AlterTable
+ALTER TABLE "Skin" ALTER COLUMN "background" DROP DEFAULT,
+ALTER COLUMN "ball" DROP DEFAULT,
+ALTER COLUMN "paddle" DROP DEFAULT;
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_skinId_fkey" FOREIGN KEY ("skinId") REFERENCES "Skin"("id") ON DELETE CASCADE ON UPDATE CASCADE;

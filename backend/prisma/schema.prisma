@@ -44,7 +44,7 @@ model User {
   mirrorSender                ChannelMessage[] @relation("usermessage") //@ignore
   // les champs ci-dessous sont neccessaires pour les relations
   // mais n'existent pas reellement dans la bdd (foreign keys)
-  skinId                  String    @unique
+  skinId                  String
 
   @@unique(fields: [id, state], name: "idAndState")
   @@unique(fields: [login, state], name: "loginAndState")
@@ -101,9 +101,9 @@ model Game {
 
 model Skin {
   id          String @id @unique @default(cuid())
-  background  String @unique
-  ball        String @unique
-  paddle      String @unique
+  background  String
+  ball        String
+  paddle      String
   users       User[]
 }
 
