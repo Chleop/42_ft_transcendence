@@ -37,12 +37,14 @@ export class AuthController {
 
 	@Get("42/callback")
 	@UseGuards(FtOauthGuard)
-	async signin(@Req() request: any, @Res() response: Response) {
+	async signin(@Req() request: any, @Res() response: Response): Promise<void> {
 		try {
-			this._authService.signin(request.user.login, response);
+			await this._authService.signin(request.user.login, response);
 		} catch (error) {
 			this._logger.error(error);
-			if (error instanceof PendingUser) throw new UnauthorizedException(error.message);
+			if (error instanceof PendingUser) {
+				throw new UnauthorizedException(error.message);
+			}
 			if (error instanceof PrismaClientKnownRequestError) {
 				if (error.code == "P2002")
 					throw new ForbiddenException(
@@ -55,7 +57,7 @@ export class AuthController {
 	@Get("42/2FARedirect")
 	async two_factor_authentication_redirect(): Promise<void> {}
 
-	@UseGuards(Jwt2FAGuard)
+	@UseGuards(JwtPendingStateGuard)
 	@Post("42/2FAActivate")
 	async activate_2FA(@Req() req: any, @Body() dto: EmailDto): Promise<void> {
 		try {
