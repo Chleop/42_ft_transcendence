@@ -19,7 +19,7 @@ model User {
   state                   StateType @default(ACTIVE)
   stateDate               DateTime  @default(now())
   // par defaut se fait au niveau du signup
-  skin                    Skin      @relation(fields: [skinId], references: [id])
+  skin                    Skin      @relation(fields: [skinId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   elo                     Int       @default(0)
   twoFactAuth             Boolean   @default(false)
   twoFACode               String?
@@ -101,10 +101,10 @@ model Game {
 
 model Skin {
   id          String @id @unique @default(cuid())
-  background  String @default("resource/skin/background/default.jpg")
-  ball        String @default("resource/skin/ball/default.jpg")
-  paddle      String @default("resource/skin/paddle/default.jpg")
-  users       User?
+  background  String @unique
+  ball        String @unique
+  paddle      String @unique
+  users       User[]
 }
 
 enum ChanType {
