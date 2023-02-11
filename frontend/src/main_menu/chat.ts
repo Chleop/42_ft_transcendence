@@ -1,5 +1,7 @@
-import { Channel, ChannelId, Message, Client, Users, Gateway } from "../api";
+import { Channel, ChannelId, Message, Client, Users } from "../api";
+import GATEWAY from "../api/gateway";
 import CHANNEL_LIST from "./channel_list";
+import CHANNEL_SETTINGS from "./channel_settings";
 import USER_CARD from "./user_card";
 
 /**
@@ -208,6 +210,7 @@ class ChatElement {
         const channel_settings_button = document.createElement("button");
         channel_settings_button.id = "chat-settings-button";
         channel_settings_button.classList.add("circle-button");
+        channel_settings_button.onclick = () => CHANNEL_SETTINGS.show(channel_settings_button, true);
         send_message_container.appendChild(channel_settings_button);
 
         const handle = document.createElement("div");
@@ -245,11 +248,11 @@ class ChatElement {
         this.selected_channel = null;
         this.channel_elements = [];
 
-        Gateway.on_connected = () => {
+        GATEWAY.on_connected = () => {
             console.log("Connected to the gateway!");
         };
 
-        Gateway.on_message = (msg: Message) => {
+        GATEWAY.on_message = (msg: Message) => {
             let ch = this.get_channel(msg.channelId);
             if (ch) {
                 this.add_message(ch, msg);
