@@ -1,5 +1,5 @@
-import { Body, JsonBody, FileBody } from "./body"
-import { Channel, ChannelId, ChannelJoined, Message, MessageId } from "./channel";
+import { Body, JsonBody, FileBody } from "./body";
+import { Channel, ChannelId, Message, MessageId } from "./channel";
 import { PrivateUser, User, UserId } from "./user";
 
 /**
@@ -82,12 +82,11 @@ export class RawHTTPClient {
 
 		headers["Authorization"] = "Bearer " + this.token;
 
-        let body: BodyInit | undefined = undefined;
-        if (request.body) {
-            body = request.body.data;
-            if (request.body.content_type)
-                headers["Content-Type"] = request.body.content_type;
-        }
+		let body: BodyInit | undefined = undefined;
+		if (request.body) {
+			body = request.body.data;
+			if (request.body.content_type) headers["Content-Type"] = request.body.content_type;
+		}
 
 		if (request.accept) headers["Accept"] = request.accept;
 
@@ -102,15 +101,15 @@ export class RawHTTPClient {
 
 		let response = await fetch(request.url, request_init);
 
-        if (response.status == 401) {
-    		document.location.pathname = "/api/auth/42/login";
-            throw "user not connected";
-        }
+		if (response.status == 401) {
+			document.location.pathname = "/api/auth/42/login";
+			throw "user not connected";
+		}
 
-        if (response.status != success_status) {
-            // An error seems to have occured server-side.
-            throw new UnexpectedStatusCode(response.status, response.statusText);
-        }
+		if (response.status != success_status) {
+			// An error seems to have occured server-side.
+			throw new UnexpectedStatusCode(response.status, response.statusText);
+		}
 
 		return response;
 	}
@@ -128,14 +127,14 @@ export class RawHTTPClient {
 		).json();
 	}
 
-    /** Sets the user's avatar. */
-    public async set_avatar(file: File): Promise<void> {
-        await this.make_request({
-            method: "PUT",
-            url: "/api/user/@me/avatar",
-            body: new FileBody(file),
-        });
-    }
+	/** Sets the user's avatar. */
+	public async set_avatar(file: File): Promise<void> {
+		await this.make_request({
+			method: "PUT",
+			url: "/api/user/@me/avatar",
+			body: new FileBody(file),
+		});
+	}
 
 	/** Modify the current user. */
 	public async patch_user(user: Partial<PrivateUser>): Promise<void> {
@@ -146,16 +145,16 @@ export class RawHTTPClient {
 		});
 	}
 
-    /**
-     * Generates a local URL for a user's avatar.
-     */
-    public async user_avatar(user: UserId): Promise<string> {
-        const img = await this.make_request({
-            method: "GET",
-            url: `/api/user/${user}/avatar`,
-        });
-        return URL.createObjectURL(await img.blob());
-    }
+	/**
+	 * Generates a local URL for a user's avatar.
+	 */
+	public async user_avatar(user: UserId): Promise<string> {
+		const img = await this.make_request({
+			method: "GET",
+			url: `/api/user/${user}/avatar`,
+		});
+		return URL.createObjectURL(await img.blob());
+	}
 
 	/**
 	 * Gets public information about a user.
@@ -177,7 +176,7 @@ export class RawHTTPClient {
 		name: string,
 		priv: boolean,
 		password: string = "",
-	): Promise<ChannelJoined> {
+	): Promise<void> {
 		return (
 			await this.make_request({
 				accept: "application/json",
@@ -196,17 +195,15 @@ export class RawHTTPClient {
 	/**
 	 * Joins a new channel.
 	 */
-	public async join_channel(id: ChannelId, password: string = ""): Promise<ChannelJoined> {
-		return (
-			await this.make_request({
-				accept: "application/json",
-				method: "POST",
-				url: `/api/channel/${id}/join`,
-				body: new JsonBody({
-					password,
-				}),
-			})
-		).json();
+	public async join_channel(id: ChannelId, password?: string): Promise<void> {
+		await this.make_request({
+			accept: "application/json",
+			method: "PATCH",
+			url: `/api/channel/${id}/join`,
+			body: new JsonBody({
+				password,
+			}),
+		});
 	}
 
 	/**
@@ -214,7 +211,7 @@ export class RawHTTPClient {
 	 */
 	public async leave_channel(id: ChannelId) {
 		this.make_request({
-			method: "POST",
+			method: "PATCH",
 			url: `/api/channel/${id}/leave`,
 		});
 	}
@@ -275,28 +272,28 @@ export class RawHTTPClient {
 		).json();
 	}
 
-    /**
-     * Sends a message to the specified channel.
-     */
-    public async send_message(channel: ChannelId, content: string): Promise<Message> {
-        return (await this.make_request({
-            method: "POST",
-            success_status: 201,
-            accept: "application/json",
-            url: `/api/channel/${channel}/message`,
-            body: new JsonBody({ content }),
-        })).json();
-    }
+	/**
+	 * Sends a message to the specified channel.
+	 */
+	public async send_message(channel: ChannelId, content: string): Promise<Message> {
+		return (await this.make_request({
+			method: "POST",
+			success_status: 201,
+			accept: "application/json",
+			url: `/api/channel/${channel}/message`,
+			body: new JsonBody({ content }),
+		})).json();
+	}
 
-    /** Gets the list of all available channels. */
-    public async get_all_channels(): Promise<Channel[]> {
-        return (await this.make_request({
-            method: "GET",
-            success_status: 200,
-            accept: "application/json",
-            url: `/api/channel/all`,
-        })).json();
-    }
+	/** Gets the list of all available channels. */
+	public async get_all_channels(): Promise<Channel[]> {
+		return (await this.make_request({
+			method: "GET",
+			success_status: 200,
+			accept: "application/json",
+			url: `/api/channel/all`,
+		})).json();
+	}
 
 	/** Requests the activation of 2FA. */
 	public async activate_2fa(email: string): Promise<void> {

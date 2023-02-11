@@ -12,7 +12,8 @@ export class JwtPendingStateGuard extends AuthGuard("jwt") {
 	}
 
 	private validateRequest(user: t_user_auth): boolean {
-		if (user.state != StateType.PENDING) throw new UnauthorizedException();
+		if (user.state !== StateType.PENDING && user.state !== StateType.ACTIVE)
+			throw new UnauthorizedException();
 		return true;
 	}
 }

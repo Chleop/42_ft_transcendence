@@ -5,14 +5,33 @@ import { Rank, rank_to_image, ratio_to_rank } from "../utility";
 class ChannelResultElement {
     public readonly root: HTMLDivElement;
 
-    public constructor(channel: Channel) {
+    public constructor(channel: Channel, chat: ChatElement, list: ChannelListElement) {
         const root = document.createElement("div");
         root.classList.add("create-channel-result");
 
         const header = document.createElement("div");
         header.classList.add("create-channel-result-header");
         header.onclick = () => {
-            // TODO: join the channel!
+            let promise;
+            if (channel.type === "PUBLIC") {
+                promise = Client.join_channel(channel.id);
+            } else if (channel.type === "PROTECTED") {
+                const password = prompt("c koi le mdp??");
+                if (!password)
+                    return;
+                promise = Client.join_channel(channel.id, password);
+            } else { return; }
+
+            promise.then(() => {
+                const elem = chat.add_channel(channel);
+                Client.last_messages(channel.id, 50).then(messages => {
+                    for (const msg of messages) {
+                        chat.add_message(elem, msg);
+                    }
+                });
+                chat.set_selected_channel(elem);
+                list.hide();
+            }).catch(() => { })
         };
         root.appendChild(header);
 
@@ -47,9 +66,9 @@ class ChannelListElement {
         screen.id = "create-channel-screen";
         screen.onclick = ev => {
             if (ev.target === screen)
-                this.screen.remove();
+                this.hide();
         };
-        
+
         const container = document.createElement("div");
         container.id = "create-channel-container";
         screen.appendChild(container);
@@ -63,7 +82,7 @@ class ChannelListElement {
         this.list = channel_list;
     }
 
-    public show(at: HTMLElement) {
+    public show(at: HTMLElement, chat: ChatElement) {
         while (this.list.firstChild)
             this.list.firstChild.remove();
 
@@ -74,9 +93,13 @@ class ChannelListElement {
 
         Client.get_all_channels().then(channels => {
             for (const chan of channels) {
-                this.list.appendChild(new ChannelResultElement(chan).root);
+                this.list.appendChild(new ChannelResultElement(chan, chat, this).root);
             }
         });
+    }
+
+    public hide() {
+        this.screen.remove();
     }
 }
 
@@ -92,17 +115,12 @@ class UserCardElement {
     private friend_button: HTMLButtonElement;
     private blocked_button: HTMLButtonElement;
 
-    private current_user: UserId|null;
-
     public constructor() {
         const screen = document.createElement("div");
         screen.id = "user-card-screen";
         screen.onclick = ev => {
             if (ev.target === screen)
-            {
                 this.screen.remove();
-                this.current_user = null;
-            }
         };
 
         const card = document.createElement("div");
@@ -172,12 +190,9 @@ class UserCardElement {
         this.status = status;
         this.friend_button = friend_button;
         this.blocked_button = blocked_button;
-        this.current_user = null;
     }
 
     public show(elem: HTMLElement, user: UserId) {
-        this.current_user = user;
-
         Users.get(user).then(user => {
             Users.me().then(me => {
                 this.name.innerText = user.name;
@@ -315,9 +330,9 @@ class ChannelElementInternal {
      */
     public messages: HTMLDivElement;
 
-    public last_message: Message|null;
+    public last_message: Message | null;
 
-    public my_last_message: string|null = null;
+    public my_last_message: string | null = null;
 
     /**
      * The ID of the channel.
@@ -333,11 +348,24 @@ class ChannelElementInternal {
     /**
      * This constructor should basically never be called outside of the module.
      */
-    public constructor(container: ChatElement, channel: Channel) {
+    public constructor(container: ChatElement, channel: Channel, chat: ChatElement) {
         this.tab = document.createElement("button");
         this.tab.classList.add("channel-tab");
         this.tab.innerText = channel.name;
         this.tab.onclick = () => container.set_selected_channel(this);
+        this.tab.onmousedown = ev => {
+            if (ev.button === 1) {
+                ev.preventDefault();
+                ev.stopPropagation();
+            }
+        }
+        this.tab.onmouseup = ev => {
+            if (ev.button === 1) {
+                Client.leave_channel(channel.id).then(() => {
+                    chat.remove_channel(this);
+                });
+            }
+        };
 
         this.messages = document.createElement("div");
 
@@ -420,7 +448,7 @@ export class ChatElement {
         create_channel_button.classList.add("circle-button");
         create_channel_button.id = "chat-create-channel";
         create_channel_button.onclick = () => {
-            channel_list_element.show(create_channel_button);
+            channel_list_element.show(create_channel_button, this);
         };
         create_channel_container.appendChild(create_channel_button);
 
@@ -514,6 +542,9 @@ export class ChatElement {
 
             this.message_input.value = element_.input;
             this.message_input.focus();
+        } else {
+            while (this.messages.firstChild)
+                this.messages.firstChild.remove();
         }
     }
 
@@ -521,12 +552,12 @@ export class ChatElement {
      * Adds a channel to the list of channels.
      */
     public add_channel(channel: Channel): ChannelElement {
-        let element = new ChannelElementInternal(this, channel);
+        let element = new ChannelElementInternal(this, channel, this);
 
         this.channel_tabs.appendChild(element.tab);
 
         // Try to get the twenty last messages of the channel.
-        Client.last_messages(channel.id, 20).then(messages => {
+        Client.last_messages(channel.id, 50).then(messages => {
             for (const m of messages) {
                 this.add_message(element, m);
             }
@@ -534,6 +565,20 @@ export class ChatElement {
 
         this.channel_elements.push(element);
         return element;
+    }
+
+    public remove_channel(channel: ChannelElement) {
+        const channel_ = <ChannelElementInternal>channel;
+        const index = this.channel_elements.indexOf(channel_);
+        if (index !== -1)
+            this.channel_elements.splice(index, 1);
+        if (!this.selected_channel || this.selected_channel.channel_id !== channel_.channel_id)
+            return;
+        if (this.channel_elements.length > 0)
+            this.set_selected_channel(this.channel_elements.length - 1);
+        else
+            this.set_selected_channel(null);
+        channel_.tab.remove();
     }
 
     /** Returns a channel element by ID */
@@ -582,7 +627,7 @@ export class ChatElement {
             return null;
         }
 
-        this.selected_channel.my_last_message = content; 
+        this.selected_channel.my_last_message = content;
         return Client.send_message(this.selected_channel.channel_id, content);
     }
 
