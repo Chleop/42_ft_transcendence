@@ -815,6 +815,18 @@ body {
   border-radius: 20px;
 }
 
-#channel-settings-password-container {
+#channel-settings-container>div {
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 10px;
+}
+
+.channel-settings-field-container {
   margin: 0px;
+}
+
+#channel-settings-not-owner {
+  color: white;
+  font-family: "Krona One", sans-serif;
+  font-size: 16px;
 }

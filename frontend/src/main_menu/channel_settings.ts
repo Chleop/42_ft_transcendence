@@ -21,9 +21,24 @@ class ChannelSettings {
 
         const owner_container = document.createElement("div");
 
+        const name_container = document.createElement("div");
+        name_container.classList.add("editor-field-container");
+        name_container.classList.add("channel-settings-field-container");
+        owner_container.appendChild(name_container);
+        
+        const name = document.createElement("input");
+        name.type = "password";
+        name.classList.add("editor-field");
+        name_container.appendChild(name);
+
+        const name_label = document.createElement("div");
+        name_label.classList.add("editor-field-label");
+        name_label.innerText = "Name";
+        name_container.appendChild(name_label);
+
         const password_container = document.createElement("div");
         password_container.classList.add("editor-field-container");
-        password_container.id = "channel-settings-password-container";
+        password_container.classList.add("channel-settings-field-container");
         owner_container.appendChild(password_container);
         
         const password = document.createElement("input");
@@ -37,6 +52,7 @@ class ChannelSettings {
         password_container.appendChild(password_label);
 
         const not_owner_container = document.createElement("div");
+        not_owner_container.id = "channel-settings-not-owner";
         not_owner_container.innerText = "You are not the owner of this channel.";
 
         this.screen = screen;

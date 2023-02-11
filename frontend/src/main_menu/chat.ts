@@ -210,7 +210,15 @@ class ChatElement {
         const channel_settings_button = document.createElement("button");
         channel_settings_button.id = "chat-settings-button";
         channel_settings_button.classList.add("circle-button");
-        channel_settings_button.onclick = () => CHANNEL_SETTINGS.show(channel_settings_button, true);
+        channel_settings_button.onclick = () => {
+            if (!this.selected_channel)
+                return;
+            const selected_channel_id = this.selected_channel.channel_id; // this is a data race!
+            Users.me().then(me => {
+                const owner = !!me.channels_owned_ids.find(owned_id => owned_id === selected_channel_id);
+                CHANNEL_SETTINGS.show(channel_settings_button, owner);
+            });
+        };
         send_message_container.appendChild(channel_settings_button);
 
         const handle = document.createElement("div");
