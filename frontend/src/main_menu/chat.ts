@@ -325,15 +325,16 @@ class ChatElement {
     public remove_channel(channel: ChannelElement) {
         const channel_ = <ChannelElementInternal>channel;
         const index = this.channel_elements.indexOf(channel_);
-        if (index !== -1)
-            this.channel_elements.splice(index, 1);
+        if (index === -1)
+            throw new Error("Trying a remove a channel that does not exist.");
+        channel_.tab.remove();
+        this.channel_elements.splice(index, 1);
         if (!this.selected_channel || this.selected_channel.channel_id !== channel_.channel_id)
             return;
         if (this.channel_elements.length > 0)
-            this.set_selected_channel(this.channel_elements.length - 1);
+            this.set_selected_channel(this.channel_elements[0]);
         else
             this.set_selected_channel(null);
-        channel_.tab.remove();
     }
 
     /** Returns a channel element by ID */
