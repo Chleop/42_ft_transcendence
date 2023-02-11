@@ -12,6 +12,8 @@ export class Jwt2FAGuard extends AuthGuard("jwt") {
 	}
 
 	private validateRequest(user: t_user_auth): boolean {
+		if (user.state === StateType.PENDING)
+			throw new UnauthorizedException("User is pending 2FA validation");
 		if (user.state != StateType.ACTIVE) throw new UnauthorizedException();
 		return true;
 	}
