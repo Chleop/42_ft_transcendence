@@ -6,8 +6,12 @@ import MAIN_MENU from "./main_menu";
 class ProfileOverlay extends Overlay {
     private html: HTMLDivElement;
 
-    public constructor(parent_state: State) {
-        super(parent_state);
+    public get parent_state(): State {
+        return MAIN_MENU;
+    }
+
+    public constructor() {
+        super();
 
         this.html = document.createElement("div");
         this.html.id = "profile";
@@ -221,5 +225,5 @@ class ProfileOverlay extends Overlay {
     }
 }
 
-const PROFILE_OVERLAY = new ProfileOverlay(MAIN_MENU);
+const PROFILE_OVERLAY = new ProfileOverlay();
 export default PROFILE_OVERLAY;
