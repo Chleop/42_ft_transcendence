@@ -322,4 +322,49 @@ export class RawHTTPClient {
 			body: new JsonBody({ code }),
 		});
 	}
+
+	public async request_friend(user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: "/api/friend_request/send",
+			body: new JsonBody({ receiving_user_id: user }),
+		});
+	}
+
+	public async reject_friend(user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: "/api/friend_request/reject",
+			body: new JsonBody({ rejected_user_id: user }),
+		})
+	}
+
+	public async accept_friend(user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: "/api/friend_request/accept",
+			body: new JsonBody({ accepted_user_id: user }),
+		})
+	}
+
+	public async unfriend(user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: `/api/user/${user}/unfriend`,
+		});
+	}
+
+	public async block(user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: `/api/user/${user}/block`,
+		});
+	}
+
+	public async unblock(user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: `/api/user/${user}/unblock`,
+		});
+	}
 }

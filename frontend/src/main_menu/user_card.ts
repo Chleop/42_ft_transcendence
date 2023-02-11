@@ -1,4 +1,4 @@
-import { UserId, Users } from "../api";
+import { Client, User, Users } from "../api";
 import { Rank, rank_to_image, ratio_to_rank } from "../utility";
 
 class UserCardElement {
@@ -12,6 +12,7 @@ class UserCardElement {
     private status: HTMLDivElement;
     private friend_button: HTMLButtonElement;
     private blocked_button: HTMLButtonElement;
+    private send_message_button: HTMLButtonElement;
 
     public constructor() {
         const screen = document.createElement("div");
@@ -88,61 +89,98 @@ class UserCardElement {
         this.status = status;
         this.friend_button = friend_button;
         this.blocked_button = blocked_button;
+        this.send_message_button = send_message_button;
     }
 
-    public show(elem: HTMLElement, user: UserId) {
-        Users.get(user).then(user => {
-            Users.me().then(me => {
-                this.name.innerText = user.name;
+    public show(elem: HTMLElement|null, user: User) {
+        Users.me().then(me => {
+            this.name.innerText = user.name;
 
-                // TODO: use the status of the user when it is sent by the backend.
-                this.status.innerText = "STATUS HERE";
+            // TODO: use the status of the user when it is sent by the backend.
+            this.status.innerText = "STATUS HERE";
 
-                const wins = user.games_won_ids.length;
-                const losses = user.games_played_ids.length - wins;
-                let percent_f = 0;
-                if (wins + losses !== 0) {
-                    const percent = (wins / (wins + losses)) * 100.0;
-                    percent_f = Math.floor(percent * 10) / 10;
-                }
-                const rank: Rank = ratio_to_rank(wins, losses);
-                const url = rank_to_image(rank);
+            const wins = user.games_won_ids.length;
+            const losses = user.games_played_ids.length - wins;
+            let percent_f = 0;
+            if (wins + losses !== 0) {
+                const percent = (wins / (wins + losses)) * 100.0;
+                percent_f = Math.floor(percent * 10) / 10;
+            }
+            const rank: Rank = ratio_to_rank(wins, losses);
+            const url = rank_to_image(rank);
 
-                this.rank.style.backgroundImage = `url('${url}')`;
-                this.wins.innerText = `${wins} W / ${losses} L / ${percent_f}%`;
+            this.rank.style.backgroundImage = `url('${url}')`;
+            this.wins.innerText = `${wins} W / ${losses} L / ${percent_f}%`;
 
-                const friend = !!me.friends_ids.find(id => user.id === id);
-                const pending = !!me.pending_friends_ids.find(id => user.id === id);
-                const blocked = !!me.blocked_ids.find(id => user.id === id);
+            if (user.id === me.id) {
+                this.friend_button.style.display = "none";
+                this.blocked_button.style.display = "none";
+                this.send_message_button.style.display = "none";
+                return;
+            } else {
+                this.friend_button.style.display = "block";
+                this.blocked_button.style.display = "block";
+                this.send_message_button.style.display = "block";
+            }
 
-                if (friend) {
-                    this.friend_button.innerText = "Remove Friend";
-                } else if (pending) {
-                    this.friend_button.innerText = "Accept Friend";
-                } else {
-                    this.friend_button.innerText = "Add Friend";
-                }
+            const friend = !!me.friends_ids.find(id => user.id === id);
+            const pending = !!me.pending_friends_ids.find(id => user.id === id);
+            const blocked = !!me.blocked_ids.find(id => user.id === id);
 
-                if (blocked) {
-                    this.blocked_button.innerText = "Unblock User";
-                } else {
-                    this.blocked_button.innerText = "Block User";
-                }
-            });
+            if (friend) {
+                this.friend_button.innerText = "Remove Friend";
+                this.friend_button.onclick = () => Client.unfriend(user.id).then(() => {
+                    const index = me.friends_ids.indexOf(user.id);
+                    if (index !== -1)
+                        me.friends_ids.splice(index, 1);
+                    this.show(null, user);
+                });
+            } else if (pending) {
+                this.friend_button.innerText = "Accept Friend";
+                this.friend_button.onclick = () => Client.accept_friend(user.id).then(() => {
+                    me.friends_ids.push(user.id);
+                    this.show(null, user);
+                });
+            } else {
+                this.friend_button.innerText = "Add Friend";
+                this.friend_button.onclick = () => Client.request_friend(user.id).then(() => {
+                    this.show(null, user);
+                });
+            }
+
+            if (blocked) {
+                this.blocked_button.innerText = "Unblock User";
+                this.blocked_button.onclick = () => Client.unblock(user.id).then(() => {
+                    const index = me.blocked_ids.indexOf(user.id);
+                    if (index !== -1)
+                        me.blocked_ids.splice(index, 1);
+                    this.show(null, user);
+                });
+                this.friend_button.style.display = "none";
+            } else {
+                this.blocked_button.innerText = "Block User";
+                this.blocked_button.onclick = () => Client.block(user.id).then(() => {
+                    me.blocked_ids.push(user.id);
+                    this.show(null, user);
+                });
+                this.friend_button.style.display = "display";
+            }
         });
-        Users.get_avatar(user).then(url => {
+        Users.get_avatar(user.id).then(url => {
             // TODO: use the skin here.
             this.avatar.style.backgroundImage = `url(\"${url}\")`;
             this.banner.style.backgroundImage = `url(\"${url}\")`;
         });
 
-        const box = elem.getBoundingClientRect();
-        const top = box.top;
-        const left = box.left - 10;
+        if (elem) {
+            const box = elem.getBoundingClientRect();
+            const top = box.top;
+            const left = box.left - 10;
 
-        this.card.style.top = `${top}px`;
-        this.card.style.left = `${left}px`;
-        document.body.appendChild(this.screen);
+            this.card.style.top = `${top}px`;
+            this.card.style.left = `${left}px`;
+            document.body.appendChild(this.screen);
+        }
 
         setTimeout(() => {
             const box2 = this.card.getBoundingClientRect();

@@ -22,10 +22,10 @@ class MessageElementInternal {
         Users.get_avatar(message.senderId).then(url => {
             avatar.style.backgroundImage = `url(\"${url}\")`;
         });
-        avatar.onclick = _ => USER_CARD.show(avatar, message.senderId);
+        avatar.onclick = () => Users.get(message.senderId).then(user => USER_CARD.show(avatar, user));
         const author = document.createElement("button");
         author.classList.add("message-author");
-        author.onclick = _ => USER_CARD.show(author, message.senderId);
+        author.onclick = () => Users.get(message.senderId).then(user => USER_CARD.show(author, user));;
         Users.get(message.senderId).then(user => author.innerText = user.name);
         const time = document.createElement("div");
         time.classList.add("message-time");
