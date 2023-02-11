@@ -177,4 +177,5 @@ class GameBoardClass extends Scene {
 }
 
 /** The global game board scene. */
-export const GameBoard = new GameBoardClass();
+const GAME_BOARD = new GameBoardClass();
+export default GAME_BOARD;
