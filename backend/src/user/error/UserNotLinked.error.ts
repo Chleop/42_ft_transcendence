@@ -4,8 +4,7 @@ export class UserNotLinkedError implements Error {
 
 	constructor(details?: string) {
 		this._name = "UserNotLinkedError";
-		this._message =
-			"Requesting user does not share any common channel or friendship with requested user";
+		this._message = "Requesting user does not share any link with requested user";
 		if (details) {
 			this._message += ` (${details})`;
 		}

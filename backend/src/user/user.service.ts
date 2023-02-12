@@ -49,6 +49,95 @@ export class UserService {
 	}
 
 	/**
+	 * @brief	Check whether two users are linked through :
+	 * 			- a friendship
+	 * 			- a common channel
+	 *
+	 * @param	user0_id The id of the first user.
+	 * @param	user1_id The id of the second user.
+	 * @param	user0 The first user.
+	 * @param	user1 The second user.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 *
+	 * @return	True if the two users are linked, false otherwise.
+	 */
+	private async _are_linked(
+		user0_id: string,
+		user1_id: string,
+		user0?: {
+			channels: {
+				id: string;
+			}[];
+			friends: {
+				id: string;
+			}[];
+		} | null,
+		user1?: {
+			channels: {
+				id: string;
+			}[];
+		} | null,
+	): Promise<boolean> {
+		if (!user0) {
+			user0 = await this._prisma.user.findUnique({
+				select: {
+					channels: {
+						select: {
+							id: true,
+						},
+					},
+					friends: {
+						select: {
+							id: true,
+						},
+					},
+				},
+				where: {
+					idAndState: {
+						id: user0_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			});
+
+			if (!user0) {
+				throw new UserNotFoundError(user0_id);
+			}
+		}
+
+		if (!user1) {
+			user1 = await this._prisma.user.findUnique({
+				select: {
+					channels: {
+						select: {
+							id: true,
+						},
+					},
+				},
+				where: {
+					idAndState: {
+						id: user1_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			});
+
+			if (!user1) {
+				throw new UserNotFoundError(user1_id);
+			}
+		}
+
+		return (
+			user0.friends.some((friend): boolean => friend.id === user1_id) ||
+			user0.channels.some((channel0): boolean =>
+				user1!.channels.some((channel1): boolean => channel0.id === channel1.id),
+			)
+		);
+	}
+
+	/**
 	 * @brief	Make a user block an other user, preventing the blocking user of :
 	 * 			- being challenged by the blocked user
 	 * 			- being invited to a channel by the blocked user
@@ -585,13 +674,12 @@ export class UserService {
 
 		if (
 			requesting_user_id !== requested_user_id &&
-			!requesting_user.friends.some((friend): boolean => friend.id === requested_user_id) &&
-			!requested_user.channels.some((requested_user_channel): boolean =>
-				requesting_user.channels.some(
-					(requesting_user_channel): boolean =>
-						requesting_user_channel.id === requested_user_channel.id,
-				),
-			)
+			!(await this._are_linked(
+				requesting_user_id,
+				requested_user_id,
+				requesting_user,
+				requested_user,
+			))
 		) {
 			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
 		}
@@ -627,13 +715,13 @@ export class UserService {
 			channels: {
 				id: string;
 			}[];
+			friends: {
+				id: string;
+			}[];
 		};
 		type t_requested_user_fields = {
 			avatar: string;
 			channels: {
-				id: string;
-			}[];
-			friends: {
 				id: string;
 			}[];
 		};
@@ -641,6 +729,11 @@ export class UserService {
 		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
 			select: {
 				channels: {
+					select: {
+						id: true,
+					},
+				},
+				friends: {
 					select: {
 						id: true,
 					},
@@ -662,11 +755,6 @@ export class UserService {
 						id: true,
 					},
 				},
-				friends: {
-					select: {
-						id: true,
-					},
-				},
 			},
 			where: {
 				idAndState: {
@@ -682,13 +770,12 @@ export class UserService {
 
 		if (
 			requesting_user_id !== requested_user_id &&
-			!requested_user.friends.some((friend) => friend.id === requesting_user_id) &&
-			!requested_user.channels.some((requested_user_channel): boolean =>
-				requesting_user.channels.some(
-					(requesting_user_channel): boolean =>
-						requesting_user_channel.id === requested_user_channel.id,
-				),
-			)
+			!(await this._are_linked(
+				requesting_user_id,
+				requested_user_id,
+				requesting_user,
+				requested_user,
+			))
 		) {
 			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
 		}
@@ -799,13 +886,12 @@ export class UserService {
 		}
 
 		if (
-			!receiving_user.channels.some((receiving_user_channel): boolean =>
-				sending_user.channels.some(
-					(sending_user_channel): boolean =>
-						sending_user_channel.id === receiving_user_channel.id,
-				),
-			) &&
-			!sending_user.friends.some((friend) => friend.id === receiving_user_id)
+			!(await this._are_linked(
+				sending_user_id,
+				receiving_user_id,
+				sending_user,
+				receiving_user,
+			))
 		) {
 			throw new UserNotLinkedError(`${sending_user_id} - ${receiving_user_id}`);
 		}
