@@ -28,7 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
 		this._authService = new AuthService();
 	}
 
-	public async validate(payload: t_payload): Promise<any> {
+	public async validate(payload: t_payload): Promise<t_user_auth> {
 		try {
 			const user: t_user_auth = await this._authService.get_user_auth(payload.sub);
 			return user;
@@ -37,7 +37,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
 				this._logger.error(error.message);
 				throw new UnauthorizedException(error.message);
 			}
-			this._logger.error("Unknown error type, this should nt happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
