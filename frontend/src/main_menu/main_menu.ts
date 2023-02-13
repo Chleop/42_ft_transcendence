@@ -66,12 +66,14 @@ class MainMenuScene extends Scene {
                     find_game_span.innerText = "Find Game";
                 };
 
-                this.game_socket.on_match_found = () => {
+                this.game_socket.on_match_found = found => {
                     console.log("Match found!");
 
                     const s = <GameSocket>this.game_socket;
-                    GAME_BOARD.start_game(new PlayingGame(s));
-                    History.push_state(GAME_BOARD);
+                    Users.me().then(me => {
+                        GAME_BOARD.start_game(new PlayingGame(s, me.id, found.id));
+                        History.push_state(GAME_BOARD);
+                    });
                     this.game_socket = null;
                     find_game_span.innerText = "Find Game";
                 };

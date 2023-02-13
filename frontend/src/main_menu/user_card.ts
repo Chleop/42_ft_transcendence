@@ -169,6 +169,8 @@ class UserCardElement {
         Users.get_avatar(user.id).then(url => {
             // TODO: use the skin here.
             this.avatar.style.backgroundImage = `url(\"${url}\")`;
+        });
+        Client.get_background(user.id).then(url => {
             this.banner.style.backgroundImage = `url(\"${url}\")`;
         });
 

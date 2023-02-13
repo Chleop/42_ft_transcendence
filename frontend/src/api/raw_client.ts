@@ -383,4 +383,28 @@ export class RawHTTPClient {
 			url: `/api/user/${user}/unblock`,
 		});
 	}
+
+	public async get_background(user: UserId): Promise<string> {
+		const img = await this.make_request({
+			method: "GET",
+			url: `/api/user/${user}/skin/background`,
+		});
+		return URL.createObjectURL(await img.blob());
+	}
+
+	public async get_paddle(user: UserId): Promise<string> {
+		const img = await this.make_request({
+			method: "GET",
+			url: `/api/user/${user}/skin/paddle`,
+		});
+		return URL.createObjectURL(await img.blob());
+	}
+
+	public async get_ball(user: UserId): Promise<string> {
+		const img = await this.make_request({
+			method: "GET",
+			url: `/api/user/${user}/skin/ball`,
+		});
+		return URL.createObjectURL(await img.blob());
+	}
 }
