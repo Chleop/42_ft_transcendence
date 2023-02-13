@@ -4,6 +4,10 @@ import {
 	ChannelFieldUnavailableError,
 	ChannelInvitationIncorrectError,
 	ChannelInvitationUnexpectedError,
+	ChannelMemberAlreadyDemotedError,
+	ChannelMemberAlreadyPromotedError,
+	ChannelMemberNotFoundError,
+	ChannelMemberNotOperatorError,
 	ChannelMessageNotFoundError,
 	ChannelMessageTooLongError,
 	ChannelMissingOwnerError,
@@ -485,6 +489,111 @@ export class ChannelService {
 	}
 
 	/**
+	 * @brief	Make a user demote another user from operators.
+	 * 			The demoting user must be either the owner of the channel or an operator.
+	 * 			It is assumed that the provided user ids are valid.
+	 * 			(users exist and are ACTIVE)
+	 *
+	 * @param	demoting_user_id The id of the user who is demoting the other user.
+	 * @param	channel_id The id of the channel to demote a user in.
+	 * @param	demoted_user_id The id of the user who is being demoted.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
+	 * 			- ChannelMemberNotFoundError
+	 * 			- ChannelMemberNotOperatorError
+	 * 			- ChannelMemberAlreadyDemotedError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async demote_ones_operator(
+		demoting_user_id: string,
+		channel_id: string,
+		demoted_user_id: string,
+	): Promise<void> {
+		type t_fields = {
+			members: {
+				id: string;
+			}[];
+			operators: {
+				id: string;
+			}[];
+			owner: {
+				id: string;
+			} | null;
+		};
+
+		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			select: {
+				members: {
+					select: {
+						id: true,
+					},
+				},
+				operators: {
+					select: {
+						id: true,
+					},
+				},
+				owner: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+
+		if (!channel) {
+			throw new ChannelNotFoundError(channel_id);
+		}
+
+		if (channel.members.every((member): boolean => member.id !== demoting_user_id)) {
+			throw new ChannelNotJoinedError(`user: ${demoting_user_id} | channel: ${channel_id}`);
+		}
+
+		if (channel.members.every((member): boolean => member.id !== demoted_user_id)) {
+			throw new ChannelMemberNotFoundError(
+				`user: ${demoted_user_id} | channel: ${channel_id}`,
+			);
+		}
+
+		if (
+			channel.owner!.id !== demoting_user_id &&
+			channel.operators.every((operator): boolean => operator.id !== demoting_user_id)
+		) {
+			throw new ChannelMemberNotOperatorError(
+				`user: ${demoting_user_id} | channel: ${channel_id}`,
+			);
+		}
+
+		if (channel.operators.every((operator): boolean => operator.id !== demoted_user_id)) {
+			throw new ChannelMemberAlreadyDemotedError(
+				`user: ${demoted_user_id} | channel: ${channel_id}`,
+			);
+		}
+
+		await this._prisma.channel.update({
+			data: {
+				operators: {
+					disconnect: {
+						id: demoted_user_id,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+		this._logger.log(
+			`User ${demoted_user_id} demoted from operators in channel ${channel_id} by user ${demoting_user_id}`,
+		);
+	}
+
+	/**
 	 * @brief	Get the list of the available channels.
 	 * 			Channels which are private or which the user is already in are not listed.
 	 * 			It is assumed that the provided user id is valid.
@@ -790,18 +899,7 @@ export class ChannelService {
 			}
 		}
 
-		if (
-			!(await this._prisma.channel.count({
-				where: {
-					id: channel_id,
-					members: {
-						some: {
-							id: user_id,
-						},
-					},
-				},
-			}))
-		) {
+		if (channel.members.every((member): boolean => member.id !== user_id)) {
 			throw new ChannelNotJoinedError(channel_id);
 		}
 
@@ -835,6 +933,118 @@ export class ChannelService {
 		this._logger.log(`Channel ${channel_id} left by user ${user_id}`);
 
 		this._gateway.make_user_socket_leave_room(user_id, channel_id);
+	}
+
+	/**
+	 * @brief	Make a user promote another user as operator.
+	 * 			The promoting user must be either the owner of the channel or an operator.
+	 * 			Operators are able to :
+	 * 				- Promote other users as operators.
+	 * 				- Demote other users from operators.
+	 * 				- Kick other users from the channel.
+	 * 				- Ban other users from the channel.
+	 * 				- Unban other users from the channel.
+	 * 				- Mute other users in the channel for a limited time.
+	 * 			It is assumed that the provided promoting user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	promoting_user_id The id of the user promoting another user.
+	 * @param	channel_id The id of the channel to promote a user in.
+	 * @param	promoted_user_id The id of the user being promoted.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
+	 * 			- ChannelMemberNotFoundError
+	 * 			- ChannelMemberNotOperatorError
+	 * 			- ChannelMemberAlreadyPromotedError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async promote_ones_member(
+		promoting_user_id: string,
+		channel_id: string,
+		promoted_user_id: string,
+	): Promise<void> {
+		type t_fields = {
+			members: {
+				id: string;
+			}[];
+			operators: {
+				id: string;
+			}[];
+			owner: {
+				id: string;
+			} | null;
+		};
+
+		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			select: {
+				members: {
+					select: {
+						id: true,
+					},
+				},
+				operators: {
+					select: {
+						id: true,
+					},
+				},
+				owner: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+
+		if (!channel) {
+			throw new ChannelNotFoundError(channel_id);
+		}
+
+		if (channel.members.every((member): boolean => member.id !== promoting_user_id)) {
+			throw new ChannelNotJoinedError(`user: ${promoting_user_id} | channel: ${channel_id}`);
+		}
+
+		if (channel.members.every((member): boolean => member.id !== promoted_user_id)) {
+			throw new ChannelMemberNotFoundError(
+				`user: ${promoted_user_id} | channel: ${channel_id}`,
+			);
+		}
+
+		if (
+			channel.owner!.id !== promoting_user_id &&
+			channel.operators.every((operator): boolean => operator.id !== promoting_user_id)
+		) {
+			throw new ChannelMemberNotOperatorError(
+				`user: ${promoting_user_id} | channel: ${channel_id}`,
+			);
+		}
+
+		if (channel.operators.some((operator): boolean => operator.id === promoted_user_id)) {
+			throw new ChannelMemberAlreadyPromotedError(
+				`user: ${promoted_user_id} | channel: ${channel_id}`,
+			);
+		}
+
+		await this._prisma.channel.update({
+			data: {
+				operators: {
+					connect: {
+						id: promoted_user_id,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+		this._logger.log(
+			`User ${promoted_user_id} promoted as operator in channel ${channel_id} by user ${promoting_user_id}`,
+		);
 	}
 
 	/**

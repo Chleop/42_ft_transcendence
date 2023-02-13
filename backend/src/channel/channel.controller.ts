@@ -20,9 +20,11 @@ import {
 } from "@nestjs/common";
 import {
 	ChannelCreateDto,
+	ChannelDemoteOperatorDto,
 	ChannelJoinDto,
 	ChannelMessageGetDto,
 	ChannelMessageSendDto,
+	ChannelPromoteMemberDto,
 } from "src/channel/dto";
 import { Channel, ChannelMessage } from "@prisma/client";
 import {
@@ -30,6 +32,10 @@ import {
 	ChannelFieldUnavailableError,
 	ChannelInvitationIncorrectError,
 	ChannelInvitationUnexpectedError,
+	ChannelMemberAlreadyDemotedError,
+	ChannelMemberAlreadyPromotedError,
+	ChannelMemberNotFoundError,
+	ChannelMemberNotOperatorError,
 	ChannelMessageNotFoundError,
 	ChannelMessageTooLongError,
 	ChannelNotFoundError,
@@ -135,7 +141,26 @@ export class ChannelController {
 		@Param("id") id: string,
 		@Body() dto: ChannelDemoteOperatorDto,
 	): Promise<void> {
-		// TODO: Implement
+		try {
+			await this._channel_service.demote_ones_operator(request.user.id, id, dto.user_id);
+		} catch (error) {
+			if (
+				error instanceof ChannelNotFoundError ||
+				error instanceof ChannelNotJoinedError ||
+				error instanceof ChannelMemberNotFoundError ||
+				error instanceof ChannelMemberAlreadyDemotedError
+			) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelMemberNotOperatorError) {
+				this._logger.error(error.message);
+				throw new ForbiddenException(error.message);
+			}
+
+			this._logger.error("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
 	}
 
 	@Get("all")
@@ -273,7 +298,26 @@ export class ChannelController {
 		@Param("id") id: string,
 		@Body() dto: ChannelPromoteMemberDto,
 	): Promise<void> {
-		// TODO: Implement
+		try {
+			await this._channel_service.promote_ones_member(request.user.id, id, dto.user_id);
+		} catch (error) {
+			if (
+				error instanceof ChannelNotFoundError ||
+				error instanceof ChannelNotJoinedError ||
+				error instanceof ChannelMemberNotFoundError ||
+				error instanceof ChannelMemberAlreadyPromotedError
+			) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelMemberNotOperatorError) {
+				this._logger.error(error.message);
+				throw new ForbiddenException(error.message);
+			}
+
+			this._logger.error("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
 	}
 
 	@Post(":id/message")
