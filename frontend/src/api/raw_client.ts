@@ -1,6 +1,6 @@
-import {Body, JsonBody, FileBody} from "./body";
-import {Channel, ChannelId, ChannelJoined, Message, MessageId} from "./channel";
-import {PrivateUser, User, UserId} from "./user";
+import { Body, JsonBody, FileBody } from "./body";
+import { Channel, ChannelId, Message, MessageId } from "./channel";
+import { PrivateUser, User, UserId } from "./user";
 
 /**
  * The server returned a status code which wasn't expected.
@@ -101,9 +101,25 @@ export class RawHTTPClient {
 
 		let response = await fetch(request.url, request_init);
 
+		console.log(request.method + " " + request.url + " -> " + response.status + " " + response.statusText);
+
 		if (response.status == 401) {
-			document.location.pathname = "/api/auth/42/login";
-			throw "user not connected";
+			const err = await response.json();
+			if (err.message === "User is pending 2FA validation") {
+				while (true) {
+					const code = prompt("gimme the code") || "";
+
+					try {
+						await this.validate_2fa(code);
+						break;
+					} catch (e) {}
+				}
+
+				return this.make_request(request);
+			} else {
+				document.location.pathname = "/api/auth/42/login";
+				throw "user not connected";
+			}
 		}
 
 		if (response.status != success_status) {
@@ -133,6 +149,15 @@ export class RawHTTPClient {
 			method: "PUT",
 			url: "/api/user/@me/avatar",
 			body: new FileBody(file),
+		});
+	}
+
+	/** Modify the current user. */
+	public async patch_user(user: Partial<PrivateUser>): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: "/api/user/@me",
+			body: new JsonBody(user),
 		});
 	}
 
@@ -167,7 +192,7 @@ export class RawHTTPClient {
 		name: string,
 		priv: boolean,
 		password: string = "",
-	): Promise<ChannelJoined> {
+	): Promise<void> {
 		return (
 			await this.make_request({
 				accept: "application/json",
@@ -186,17 +211,15 @@ export class RawHTTPClient {
 	/**
 	 * Joins a new channel.
 	 */
-	public async join_channel(id: ChannelId, password: string = ""): Promise<ChannelJoined> {
-		return (
-			await this.make_request({
-				accept: "application/json",
-				method: "POST",
-				url: `/api/channel/${id}/join`,
-				body: new JsonBody({
-					password,
-				}),
-			})
-		).json();
+	public async join_channel(id: ChannelId, password?: string): Promise<void> {
+		await this.make_request({
+			accept: "application/json",
+			method: "PATCH",
+			url: `/api/channel/${id}/join`,
+			body: new JsonBody({
+				password,
+			}),
+		});
 	}
 
 	/**
@@ -204,7 +227,7 @@ export class RawHTTPClient {
 	 */
 	public async leave_channel(id: ChannelId) {
 		this.make_request({
-			method: "POST",
+			method: "PATCH",
 			url: `/api/channel/${id}/leave`,
 		});
 	}
@@ -269,26 +292,120 @@ export class RawHTTPClient {
 	 * Sends a message to the specified channel.
 	 */
 	public async send_message(channel: ChannelId, content: string): Promise<Message> {
-		return (
-			await this.make_request({
-				method: "POST",
-				success_status: 201,
-				accept: "application/json",
-				url: `/api/channel/${channel}/message`,
-				body: new JsonBody({content}),
-			})
-		).json();
+		return (await this.make_request({
+			method: "POST",
+			success_status: 201,
+			accept: "application/json",
+			url: `/api/channel/${channel}/message`,
+			body: new JsonBody({ content }),
+		})).json();
 	}
 
 	/** Gets the list of all available channels. */
 	public async get_all_channels(): Promise<Channel[]> {
-		return (
-			await this.make_request({
-				method: "GET",
-				success_status: 200,
-				accept: "application/json",
-				url: `/api/channel/all`,
-			})
-		).json();
+		return (await this.make_request({
+			method: "GET",
+			success_status: 200,
+			accept: "application/json",
+			url: `/api/channel/all`,
+		})).json();
+	}
+
+	/** Requests the activation of 2FA. */
+	public async activate_2fa(email: string): Promise<void> {
+		await this.make_request({
+			method: "POST",
+			url: "/api/auth/42/2FAActivate",
+			success_status: 201,
+			body: new JsonBody({ email }),
+		});
+	}
+
+	/** Requests the removal of 2FA. */
+	public async deactivate_2fa(): Promise<void> {
+		await this.make_request({
+			method: "POST",
+			success_status: 201,
+			url: "/api/auth/42/2FADeactivate",
+		});
+	}
+
+	/** Validates a 2FA request. */
+	public async validate_2fa(code: string): Promise<void> {
+		await this.make_request({
+			method: "POST",
+			success_status: 201,
+			url: "/api/auth/42/2FAValidate",
+			body: new JsonBody({ code }),
+		});
+	}
+
+	public async request_friend(user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: "/api/friend_request/send",
+			body: new JsonBody({ receiving_user_id: user }),
+		});
+	}
+
+	public async reject_friend(user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: "/api/friend_request/reject",
+			body: new JsonBody({ rejected_user_id: user }),
+		})
+	}
+
+	public async accept_friend(user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: "/api/friend_request/accept",
+			body: new JsonBody({ accepted_user_id: user }),
+		})
+	}
+
+	public async unfriend(user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: `/api/user/${user}/unfriend`,
+		});
+	}
+
+	public async block(user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: `/api/user/${user}/block`,
+		});
+	}
+
+	public async unblock(user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: `/api/user/${user}/unblock`,
+		});
+	}
+
+	public async get_background(user: UserId): Promise<string> {
+		const img = await this.make_request({
+			method: "GET",
+			url: `/api/user/${user}/skin/background`,
+		});
+		return URL.createObjectURL(await img.blob());
+	}
+
+	public async get_paddle(user: UserId): Promise<string> {
+		const img = await this.make_request({
+			method: "GET",
+			url: `/api/user/${user}/skin/paddle`,
+		});
+		return URL.createObjectURL(await img.blob());
+	}
+
+	public async get_ball(user: UserId): Promise<string> {
+		const img = await this.make_request({
+			method: "GET",
+			url: `/api/user/${user}/skin/ball`,
+		});
+		return URL.createObjectURL(await img.blob());
 	}
 }

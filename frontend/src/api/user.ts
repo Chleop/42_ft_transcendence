@@ -75,7 +75,7 @@ export interface GameResult {
     /**
      * The time of the game.
      */
-    date_time: Date;
+    date_time: string;
     /**
      * The ID of the winner.
      */

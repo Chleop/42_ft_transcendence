@@ -10,11 +10,12 @@ import { Server, Socket } from "socket.io";
 import { GameService } from "../services/game.service";
 import { GameRoom } from "../rooms";
 import { PaddleDto } from "../dto";
-import { Results, ScoreUpdate } from "../objects";
+import { Results, ScoreUpdate, OpponentUpdate } from "../objects";
 import { Ball } from "../gameplay";
-import { Match, OpponentUpdate } from "../aliases";
+import { Match } from "../aliases";
 import { BadRequestException, ConflictException, Logger } from "@nestjs/common";
 import { Constants } from "../constants";
+import { BadEvent } from "../exceptions";
 
 /**
  * setTimeout tracker
@@ -23,49 +24,6 @@ type TimeoutId = {
 	match: string;
 	timer: NodeJS.Timer;
 };
-
-/* EVENT LIST ===============================================================
-
-From the client:
-	- `connection`
-		implicitly handled by 'handleConnection'.
-		the jwt token must be checked and the client is registed in the matchmaking queue.
-	 	if another client was in the queue, they are matched in 'matchmake'.
-
-	- `disconnect`
-		implicitly handled by 'handleDisconnect'.
-		if the client was not in the queue, they are simply disconnected.
-		if they were matched with another client (or in a game), they both are disconnected.
-
-	- `update`
-		handled by 'updateOpponent'.
-		during the game, the client will regularly send their paddle position to the gateway.
-		the gateway will check those values (TODO: anticheat), and, if the data seems accurate,
-		it is sent to their opponent.
-
-From the server:
-	- `matchFound`
-		once two clients are matched, they are sent this event.
-		the gateway will then await for both matched client to send the `ok` event.
-
-	- `gameStart`
-		3 seconds after the two players get matched, they get sent this event which contains the
-		initial ball position and velocity vector data object.
-
-	- `updateOpponent`
-		when the gateway receives an update from a client, it processes it then sends it to the
-		client's opponent, labeled with this event.
-
-	- `updateBall`
-		contains ball update
-
-	- `updateScore`
-		updates only once one of the players scores
-
-	- `error`
-		sends error to client
-
-============================================================================= */
 
 @WebSocketGateway({
 	namespace: "game",
@@ -105,13 +63,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Moves client to the queue if not already in game.
 	 */
 	public handleConnection(client: Socket): void {
-		this.logger.log(`[${client.handshake.auth.token} connected]`);
+		this.logger.log(`[${client.data.user.login} connected]`);
 		try {
 			const game_room: GameRoom | null = this.game_service.queueUp(client);
 			if (game_room !== null) this.matchmake(game_room);
 		} catch (e) {
-			this.sendError(client, e);
-			client.disconnect();
+			if (e instanceof BadEvent) {
+				this.logger.error(e.message);
+				this.sendError(client, e);
+				client.disconnect();
+				return;
+			}
+			throw e;
 		}
 	}
 
@@ -120,22 +83,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Handler for gateway disconnection.
 	 *
 	 * Removes client from queue if in it.
-	 * Else removes match.
+	 * Else saves and destroy the ongoing game they're in.
 	 * Also removes timer if it hasn't fired yet.
 	 */
 	public async handleDisconnect(client: Socket): Promise<void> {
-		const match: Match | null = await this.game_service.unQueue(client);
-		if (match !== null) {
+		const room: GameRoom | null = this.game_service.unQueue(client);
+		if (room !== null) {
 			const index: number = this.timeouts.findIndex((obj) => {
-				return obj.match === match.name;
+				return obj.match === room.match.name;
 			});
 			if (index >= 0) {
 				clearTimeout(this.timeouts[index].timer);
 				this.timeouts.splice(index, 1);
 			}
-			this.disconnectRoom(match);
+			await this.endGameEarly(client, room);
+			this.game_service.destroyRoom(room);
 		}
-		this.logger.log(`[${client.handshake.auth.token} disconnected]`);
+		this.logger.log(`[${client.data.user.login} disconnected]`);
 	}
 
 	/* Event handlers ---------------------------------------------------------- */
@@ -151,10 +115,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		try {
 			client.data.paddle_dto = dto;
 			const update: OpponentUpdate = this.game_service.updateOpponent(client);
-			update.player.emit("updateOpponent", client.data.paddle_dto);
+			update.player.emit("updateOpponent", update.updated_paddle);
 		} catch (e) {
-			this.sendError(client, e);
-			client.disconnect();
+			if (e instanceof BadEvent) {
+				this.logger.error(e.message);
+				this.sendError(client, e);
+				client.disconnect();
+				return;
+			}
+			throw e;
 		}
 	}
 
@@ -211,9 +180,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				room.match.player2.emit("updateScore", update.invert());
 			} else if (update instanceof Results) {
 				/* The game ended */
+				room.destroyPlayerPing();
 				room.has_updated_score = false;
 				room.is_ongoing = false;
-				const last_score: ScoreUpdate = room.getFinalScore();
+				const last_score: ScoreUpdate = room.getScoreUpdate();
 				room.match.player1.emit("updateScore", last_score);
 				room.match.player2.emit("updateScore", last_score.invert());
 				const match: Match = await me.game_service.registerGameHistory(room, update);
@@ -221,13 +191,39 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			}
 		} catch (e) {
 			if (e instanceof BadRequestException || e instanceof ConflictException) {
+				me.logger.error(e.message);
 				me.sendError(room.match.player1, e);
 				me.sendError(room.match.player2, e);
-				this.logger.log(e);
 				me.disconnectRoom(room.match);
 				return;
 			}
 			throw e;
+		}
+	}
+
+	/**
+	 * Kicks players from an ongoing game.
+	 *
+	 * The game is being saved before being destroyed.
+	 */
+	private async endGameEarly(client: Socket, room: GameRoom): Promise<void> {
+		const results: Results = room.cutGameShort(room.playerNumber(client));
+		room.destroyPlayerPing();
+		if (room.is_ongoing) {
+			room.is_ongoing = false;
+
+			try {
+				await this.game_service.registerGameHistory(room, results);
+			} catch (e) {
+				if (e instanceof BadRequestException || e instanceof ConflictException) {
+					this.logger.error(e.message);
+					this.sendError(room.match.player1, e);
+					this.sendError(room.match.player2, e);
+				} else {
+					throw e;
+				}
+			}
+			this.disconnectRoom(room.match);
 		}
 	}
 
@@ -243,7 +239,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Disconnect players matched.
 	 */
 	private disconnectRoom(match: Match): void {
-		match.player1.disconnect(true);
-		match.player2.disconnect(true);
+		match.player1.disconnect();
+		match.player2.disconnect();
 	}
 }

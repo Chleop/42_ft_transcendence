@@ -39,6 +39,15 @@ export interface GameState {
 /** The return type of the `tick` function. */
 export type GameFlow = "break" | "continue";
 
+export interface SkinUrls {
+    left_background: Promise<string>,
+    right_background: Promise<string>,
+    left_paddle: Promise<string>,
+    right_paddle: Promise<string>,
+    left_ball: Promise<string>,
+    right_ball: Promise<string>,
+}
+
 /**
  * Describes what happens on the game board.
  */
@@ -89,4 +98,6 @@ export abstract class OngoingGame {
 
     /** Returns the location of the `GameBoard` scene. */
     abstract get location(): string;
+
+    abstract get_skins(): SkinUrls;
 }
