@@ -30,8 +30,10 @@ export class Matchmaking {
 			this.queue = client;
 			return null;
 		} else {
-			if (this.queue.data.user.id === client.data.user.id)
+			if (this.queue.data.user.id === client.data.user.id) {
+				this.queue = null;
 				throw new BadEvent("Client already in the queue");
+			}
 			const match: Match = {
 				name: this.queue.id + client.id,
 				player1: this.queue,

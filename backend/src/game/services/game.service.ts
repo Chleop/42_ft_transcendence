@@ -79,7 +79,10 @@ export class GameService {
 	 */
 	public queueUp(client: Socket): GameRoom | null {
 		const index: number = this.findUserRoomIndex(client);
-		if (index >= 0) throw new BadEvent("Player already in game");
+		if (index >= 0) {
+			this.destroyRoom(this.game_rooms[index]);
+			throw new BadEvent("Player already in game");
+		}
 		const new_game_room: GameRoom | null = this.matchmaking.queueUp(client);
 		if (new_game_room === null) {
 			this.logger.verbose(`${client.data.user.login} was queued up.`);

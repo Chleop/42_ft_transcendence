@@ -115,7 +115,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		try {
 			client.data.paddle_dto = dto;
 			const update: OpponentUpdate = this.game_service.updateOpponent(client);
-			update.player.emit("updateOpponent", client.data.paddle_dto);
+			update.player.emit("updateOpponent", update.updated_paddle);
 		} catch (e) {
 			if (e instanceof BadEvent) {
 				this.logger.error(e.message);
