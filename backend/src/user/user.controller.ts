@@ -38,10 +38,12 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { UserMessageSendDto } from "./dto/UserMessageSend.dto";
+import { t_user_auth } from "src/auth/alias";
 
 @Controller("user")
 @UseGuards(Jwt2FAGuard)
 export class UserController {
+	// REMIND: Check if passing `_user_service` in readonly keep it working well
 	private _user_service: UserService;
 	private readonly _logger: Logger;
 
@@ -54,7 +56,7 @@ export class UserController {
 	async block_one(
 		@Req()
 		request: {
-			user: t_get_me_fields;
+			user: t_user_auth;
 		},
 		@Param("id") id: string,
 	): Promise<void> {
@@ -78,7 +80,7 @@ export class UserController {
 	async disable_me(
 		@Req()
 		request: {
-			user: t_get_me_fields;
+			user: t_user_auth;
 		},
 	): Promise<void> {
 		try {
@@ -97,7 +99,7 @@ export class UserController {
 	async get_me(
 		@Req()
 		request: {
-			user: t_get_me_fields;
+			user: t_user_auth;
 		},
 	): Promise<t_get_me_fields> {
 		try {
@@ -116,7 +118,7 @@ export class UserController {
 	async get_one(
 		@Req()
 		request: {
-			user: t_get_me_fields;
+			user: t_user_auth;
 		},
 		@Param("id") id: string,
 	): Promise<t_get_one_fields> {
@@ -140,7 +142,7 @@ export class UserController {
 	async get_ones_avatar(
 		@Req()
 		request: {
-			user: t_get_me_fields;
+			user: t_user_auth;
 		},
 		@Param("id") id: string,
 	): Promise<StreamableFile> {
@@ -169,7 +171,7 @@ export class UserController {
 	async send_message_to_one(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_user_auth;
 		},
 		@Param("id") id: string,
 		@Body() dto: UserMessageSendDto,
@@ -194,7 +196,7 @@ export class UserController {
 	async unblock_one(
 		@Req()
 		request: {
-			user: t_get_me_fields;
+			user: t_user_auth;
 		},
 		@Param("id") id: string,
 	): Promise<void> {
@@ -218,7 +220,7 @@ export class UserController {
 	async unfriend_one(
 		@Req()
 		request: {
-			user: t_get_me_fields;
+			user: t_user_auth;
 		},
 		@Param("id") id: string,
 	): Promise<void> {
@@ -243,7 +245,7 @@ export class UserController {
 	async update_me(
 		@Req()
 		request: {
-			user: t_get_me_fields;
+			user: t_user_auth;
 		},
 		@Body() dto: UserUpdateDto,
 	): Promise<void> {
@@ -274,7 +276,7 @@ export class UserController {
 	async update_ones_avatar(
 		@Req()
 		request: {
-			user: t_get_me_fields;
+			user: t_user_auth;
 		},
 		@UploadedFile() file?: Express.Multer.File,
 	): Promise<void> {
@@ -292,5 +294,59 @@ export class UserController {
 			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
+	}
+
+	@Get(":id/skin/background")
+	async get_background_skin(@Param("id") id: string): Promise<StreamableFile> {
+		let sfile: StreamableFile;
+		try {
+			sfile = await this._user_service.get_ones_background(id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error(error.message);
+			throw new InternalServerErrorException();
+		}
+
+		return sfile;
+	}
+
+	@Get(":id/skin/ball")
+	async get_ball_skin(@Param("id") id: string): Promise<StreamableFile> {
+		let sfile: StreamableFile;
+		try {
+			sfile = await this._user_service.get_ones_ball(id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error(error.message);
+			throw new InternalServerErrorException();
+		}
+
+		return sfile;
+	}
+
+	@Get(":id/skin/paddle")
+	async get_paddle_skin(@Param("id") id: string): Promise<StreamableFile> {
+		let sfile: StreamableFile;
+		try {
+			sfile = await this._user_service.get_ones_paddle(id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error(error.message);
+			throw new InternalServerErrorException();
+		}
+
+		return sfile;
 	}
 }
