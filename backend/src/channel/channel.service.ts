@@ -341,6 +341,87 @@ export class ChannelService {
 	}
 
 	/**
+	 * @brief	Make a user ban another user from a specific channel.
+	 * 			The banning user must be either the owner of the channel, or an operator.
+	 * 			It is assumed that the provided banning user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	banning_user_id The id of the user who is banning the other user.
+	 * @param	channel_id The id of the channel to ban the user from.
+	 * @param	banned_user_id The id of the user who is being banned.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
+	 * 			- ChannelMemberNotFoundError
+	 * 			- ChannelMemberNotOperatorError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async ban_ones_member(
+		banning_user_id: string,
+		channel_id: string,
+		banned_user_id: string,
+	): Promise<void> {
+		type t_fields = {
+			members: {
+				id: string;
+			}[];
+			operators: {
+				id: string;
+			}[];
+			owner: {
+				id: string;
+			} | null;
+		};
+
+		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			select: {
+				members: {
+					select: {
+						id: true,
+					},
+				},
+				operators: {
+					select: {
+						id: true,
+					},
+				},
+				owner: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+
+		if (!channel) {
+			throw new ChannelNotFoundError(channel_id);
+		}
+
+		await this.kick_ones_member(banning_user_id, channel_id, banned_user_id, channel);
+		await this._prisma.channel.update({
+			data: {
+				banned: {
+					connect: {
+						id: banned_user_id,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+
+		this._logger.log(
+			`User ${banned_user_id} banned from channel ${channel_id} by ${banning_user_id}`,
+		);
+	}
+
+	/**
 	 * @brief	Create a new channel in the database.
 	 * 			It is assumed that the provided user id is valid.
 	 * 			(user exists and is ACTIVE)
@@ -490,7 +571,7 @@ export class ChannelService {
 
 	/**
 	 * @brief	Make a user demote another user from operators.
-	 * 			The demoting user must be either the owner of the channel or an operator.
+	 * 			The demoting user must be either the owner of the channel, or an operator.
 	 * 			It is assumed that the provided user ids are valid.
 	 * 			(users exist and are ACTIVE)
 	 *
@@ -840,6 +921,106 @@ export class ChannelService {
 	}
 
 	/**
+	 * @brief	Make a user remove another user from the members of a specific channel.
+	 * 			The kicking user must be either the owner of the channel, or an operator.
+	 * 			It is assumed that the provided kicking user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	kicking_user_id The id of the user who is kicking the other user.
+	 * @param	channel_id The id of the channel to kick the user from.
+	 * @param	kicked_user_id The id of the user who is being kicked.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
+	 * 			- ChannelMemberNotFoundError
+	 * 			- ChannelMemberNotOperatorError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async kick_ones_member(
+		kicking_user_id: string,
+		channel_id: string,
+		kicked_user_id: string,
+		channel?: {
+			members: {
+				id: string;
+			}[];
+			operators: {
+				id: string;
+			}[];
+			owner: {
+				id: string;
+			} | null;
+		} | null,
+	): Promise<void> {
+		if (!channel) {
+			channel = await this._prisma.channel.findUnique({
+				select: {
+					members: {
+						select: {
+							id: true,
+						},
+					},
+					operators: {
+						select: {
+							id: true,
+						},
+					},
+					owner: {
+						select: {
+							id: true,
+						},
+					},
+				},
+				where: {
+					id: channel_id,
+				},
+			});
+
+			if (!channel) {
+				throw new ChannelNotFoundError(channel_id);
+			}
+		}
+
+		if (channel.members.every((member): boolean => member.id !== kicking_user_id)) {
+			throw new ChannelNotJoinedError(`user: ${kicking_user_id} | channel: ${channel_id}`);
+		}
+
+		if (channel.members.every((member): boolean => member.id !== kicked_user_id)) {
+			throw new ChannelMemberNotFoundError(
+				`user: ${kicked_user_id} | channel: ${channel_id}`,
+			);
+		}
+
+		if (
+			channel.owner!.id !== kicking_user_id &&
+			channel.operators.every((operator): boolean => operator.id !== kicking_user_id)
+		) {
+			throw new ChannelMemberNotOperatorError(
+				`user: ${kicking_user_id} | channel: ${channel_id}`,
+			);
+		}
+
+		await this._prisma.channel.update({
+			data: {
+				members: {
+					disconnect: {
+						id: kicked_user_id,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+
+		this._logger.log(
+			`User ${kicked_user_id} kicked from channel ${channel_id} by ${kicking_user_id}`,
+		);
+	}
+
+	/**
 	 * @brief	Make a user leave a channel.
 	 * 			It is assumed that the provided user id is valid.
 	 * 			(user exists and is ACTIVE)
@@ -854,7 +1035,6 @@ export class ChannelService {
 	 *
 	 * @return	An empty promise.
 	 */
-
 	public async leave_one(
 		user_id: string,
 		channel_id: string,
@@ -937,7 +1117,7 @@ export class ChannelService {
 
 	/**
 	 * @brief	Make a user promote another user as operator.
-	 * 			The promoting user must be either the owner of the channel or an operator.
+	 * 			The promoting user must be either the owner of the channel, or an operator.
 	 * 			Operators are able to :
 	 * 				- Promote other users as operators.
 	 * 				- Demote other users from operators.

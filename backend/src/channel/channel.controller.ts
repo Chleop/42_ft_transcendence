@@ -19,9 +19,11 @@ import {
 	Logger,
 } from "@nestjs/common";
 import {
+	ChannelBanMemberDto,
 	ChannelCreateDto,
 	ChannelDemoteOperatorDto,
 	ChannelJoinDto,
+	ChannelKickMemberDto,
 	ChannelMessageGetDto,
 	ChannelMessageSendDto,
 	ChannelPromoteMemberDto,
@@ -61,6 +63,36 @@ export class ChannelController {
 	constructor() {
 		this._channel_service = new ChannelService();
 		this._logger = new Logger(ChannelController.name);
+	}
+
+	@Patch(":id/ban")
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	async ban_ones_member(
+		@Req()
+		request: {
+			user: t_user_auth;
+		},
+		@Param("id") id: string,
+		@Body() dto: ChannelBanMemberDto,
+	): Promise<void> {
+		try {
+			await this._channel_service.ban_ones_member(request.user.id, id, dto.user_id);
+		} catch (error) {
+			if (
+				error instanceof ChannelNotFoundError ||
+				error instanceof ChannelNotJoinedError ||
+				error instanceof ChannelMemberNotFoundError
+			) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelMemberNotOperatorError) {
+				this._logger.error(error.message);
+				throw new ForbiddenException(error.message);
+			}
+			this._logger.error("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
 	}
 
 	@Post()
@@ -267,6 +299,37 @@ export class ChannelController {
 		}
 
 		return channel;
+	}
+
+	@Patch(":id/kick")
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	async kick_ones_member(
+		@Req()
+		request: {
+			user: t_user_auth;
+		},
+		@Param("id") id: string,
+		@Body() dto: ChannelKickMemberDto,
+	): Promise<void> {
+		try {
+			await this._channel_service.kick_ones_member(request.user.id, id, dto.user_id);
+		} catch (error) {
+			if (
+				error instanceof ChannelNotFoundError ||
+				error instanceof ChannelNotJoinedError ||
+				error instanceof ChannelMemberNotFoundError
+			) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelMemberNotOperatorError) {
+				this._logger.error(error.message);
+				throw new ForbiddenException(error.message);
+			}
+
+			this._logger.error("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
 	}
 
 	@Patch(":id/leave")
