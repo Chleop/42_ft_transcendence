@@ -29,6 +29,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Channel, ChannelMessage, ChanType, StateType } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import * as argon2 from "argon2";
+import { ChannelMemberNotBannedError } from "./error/ChannelMemberNotBanned.error";
 
 @Injectable()
 export class ChannelService {
@@ -1311,5 +1312,111 @@ export class ChannelService {
 		this._logger.verbose(`Message sent to channel ${channel_id} by user ${user_id}`);
 
 		return message;
+	}
+
+	/**
+	 * @brief	Make a user unban another user from a specific channel.
+	 * 			The unbanning user must be either the owner of the channel, or an operator.
+	 * 			It is assumed that the provided unbanning user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	unbanning_user_id The id of the user who is unbanning the other user.
+	 * @param	channel_id The id of the channel to ban the user from.
+	 * @param	unbanned_user_id The id of the user who is being unbanned.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
+	 * 			- ChannelMemberNotBannedError
+	 * 			- ChannelMemberNotOperatorError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async unban_ones_member(
+		unbanning_user_id: string,
+		channel_id: string,
+		unbanned_user_id: string,
+	): Promise<void> {
+		type t_fields = {
+			banned: {
+				id: string;
+			}[];
+			members: {
+				id: string;
+			}[];
+			operators: {
+				id: string;
+			}[];
+			owner: {
+				id: string;
+			} | null;
+		};
+
+		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			select: {
+				banned: {
+					select: {
+						id: true,
+					},
+				},
+				members: {
+					select: {
+						id: true,
+					},
+				},
+				operators: {
+					select: {
+						id: true,
+					},
+				},
+				owner: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+
+		if (!channel) {
+			throw new ChannelNotFoundError(channel_id);
+		}
+
+		if (channel.members.every((member): boolean => member.id !== unbanning_user_id)) {
+			throw new ChannelNotJoinedError(`user: ${unbanning_user_id} | channel: ${channel_id}`);
+		}
+
+		if (channel.banned.every((banned): boolean => banned.id !== unbanned_user_id)) {
+			throw new ChannelMemberNotBannedError(
+				`user: ${unbanned_user_id} | channel: ${channel_id}`,
+			);
+		}
+
+		if (
+			channel.owner!.id !== unbanning_user_id &&
+			channel.operators.every((operator): boolean => operator.id !== unbanning_user_id)
+		) {
+			throw new ChannelMemberNotOperatorError(
+				`user: ${unbanning_user_id} | channel: ${channel_id}`,
+			);
+		}
+
+		await this._prisma.channel.update({
+			data: {
+				banned: {
+					disconnect: {
+						id: unbanned_user_id,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+		this._logger.log(
+			`User ${unbanned_user_id} unbanned from channel ${channel_id} by user ${unbanning_user_id}`,
+		);
 	}
 }

@@ -27,6 +27,7 @@ import {
 	ChannelMessageGetDto,
 	ChannelMessageSendDto,
 	ChannelPromoteMemberDto,
+	ChannelUnbanMemberDto,
 } from "src/channel/dto";
 import { Channel, ChannelMessage } from "@prisma/client";
 import {
@@ -36,6 +37,7 @@ import {
 	ChannelInvitationUnexpectedError,
 	ChannelMemberAlreadyDemotedError,
 	ChannelMemberAlreadyPromotedError,
+	ChannelMemberNotBannedError,
 	ChannelMemberNotFoundError,
 	ChannelMemberNotOperatorError,
 	ChannelMessageNotFoundError,
@@ -408,6 +410,37 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
+			this._logger.error("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+	}
+
+	@Patch(":id/unban")
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	async unban_ones_member(
+		@Req()
+		request: {
+			user: t_user_auth;
+		},
+		@Param("id") id: string,
+		@Body() dto: ChannelUnbanMemberDto,
+	): Promise<void> {
+		try {
+			await this._channel_service.unban_ones_member(request.user.id, id, dto.user_id);
+		} catch (error) {
+			if (
+				error instanceof ChannelNotFoundError ||
+				error instanceof ChannelNotJoinedError ||
+				error instanceof ChannelMemberNotBannedError
+			) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelMemberNotOperatorError) {
+				this._logger.error(error.message);
+				throw new ForbiddenException(error.message);
+			}
+
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}

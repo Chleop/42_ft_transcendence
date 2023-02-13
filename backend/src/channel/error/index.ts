@@ -4,6 +4,7 @@ export * from "src/channel/error/ChannelInvitationIncorrect.error";
 export * from "src/channel/error/ChannelInvitationUnexpected.error";
 export * from "src/channel/error/ChannelMemberAlreadyDemoted.error";
 export * from "src/channel/error/ChannelMemberAlreadyPromoted.error";
+export * from "src/channel/error/ChannelMemberNotBanned.error";
 export * from "src/channel/error/ChannelMemberNotFound.error";
 export * from "src/channel/error/ChannelMemberNotOperator.error";
 export * from "src/channel/error/ChannelMessageNotFound.error";
