@@ -47,7 +47,7 @@ export class Matchmaking {
 	 * Removes the person from the queue.
 	 */
 	public unQueue(client: Socket): boolean {
-		if (this.queue?.id === client.id) {
+		if (this.queue?.data.user.id === client.data.user.id) {
 			this.queue = null;
 			return true;
 		}
