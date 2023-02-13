@@ -1,4 +1,4 @@
-import { t_get_all_fields } from "src/channel/alias";
+import { t_get_all_fields, t_join_one_fields } from "src/channel/alias";
 import { ChannelService } from "src/channel/channel.service";
 import {
 	BadRequestException,
@@ -33,7 +33,9 @@ import { Channel, ChannelMessage } from "@prisma/client";
 import {
 	ChannelAlreadyJoinedError,
 	ChannelFieldUnavailableError,
+	ChannelForbiddenToJoinError,
 	ChannelInvitationIncorrectError,
+	ChannelInvitationMissingError,
 	ChannelInvitationUnexpectedError,
 	ChannelMemberAlreadyDemotedError,
 	ChannelMemberAlreadyPromotedError,
@@ -268,11 +270,9 @@ export class ChannelController {
 		},
 		@Param("id") id: string,
 		@Body() dto: ChannelJoinDto,
-	): Promise<Channel> {
-		let channel: Channel;
-
+	): Promise<t_join_one_fields> {
 		try {
-			channel = await this._channel_service.join_one(
+			return await this._channel_service.join_one(
 				request.user.id,
 				id,
 				dto.password,
@@ -283,6 +283,7 @@ export class ChannelController {
 				error instanceof ChannelNotFoundError ||
 				error instanceof ChannelAlreadyJoinedError ||
 				error instanceof ChannelPasswordUnexpectedError ||
+				error instanceof ChannelInvitationMissingError ||
 				error instanceof ChannelInvitationIncorrectError ||
 				error instanceof ChannelInvitationUnexpectedError ||
 				error instanceof ChannelPasswordMissingError ||
@@ -292,6 +293,10 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
+			if (error instanceof ChannelForbiddenToJoinError) {
+				this._logger.error(error.message);
+				throw new ForbiddenException(error.message);
+			}
 			if (error instanceof UnknownError) {
 				this._logger.error(error.message);
 				throw new InternalServerErrorException(error.message);
@@ -299,8 +304,6 @@ export class ChannelController {
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-
-		return channel;
 	}
 
 	@Patch(":id/kick")

@@ -1,8 +1,15 @@
-import { t_get_all_fields, t_get_all_fields_tmp } from "src/channel/alias";
+import {
+	t_get_all_fields,
+	t_get_all_fields_tmp,
+	t_join_one_fields,
+	t_join_one_fields_tmp,
+} from "src/channel/alias";
 import {
 	ChannelAlreadyJoinedError,
 	ChannelFieldUnavailableError,
+	ChannelForbiddenToJoinError,
 	ChannelInvitationIncorrectError,
+	ChannelInvitationMissingError,
 	ChannelInvitationUnexpectedError,
 	ChannelMemberAlreadyDemotedError,
 	ChannelMemberAlreadyPromotedError,
@@ -813,10 +820,12 @@ export class ChannelService {
 	 * 			- ChannelNotFoundError
 	 * 			- ChannelAlreadyJoinedError
 	 * 			- ChannelPasswordUnexpectedError
+	 * 			- ChannelInvitationMissingError
 	 * 			- ChannelInvitationIncorrectError
 	 * 			- ChannelInvitationUnexpectedError
 	 * 			- ChannelPasswordMissingError
 	 * 			- ChannelPasswordIncorrectError
+	 * 			- ChannelForbiddenToJoinError
 	 * 			- ChannelRelationNotFoundError
 	 * 			- UnknownError
 	 *
@@ -827,81 +836,87 @@ export class ChannelService {
 		channel_id: string,
 		password?: string,
 		inviting_user_id?: string,
-	): Promise<Channel> {
-		let channel: Channel | null;
+	): Promise<t_join_one_fields> {
+		const channel_tmp: t_join_one_fields_tmp | null = await this._prisma.channel.findUnique({
+			select: {
+				banned: {
+					select: {
+						id: true,
+					},
+				},
+				chanType: true,
+				hash: true,
+				id: true,
+				members: {
+					select: {
+						id: true,
+					},
+				},
+				name: true,
+				ownerId: true,
+			},
 
-		channel = await this._prisma.channel.findUnique({
 			where: {
 				id: channel_id,
 			},
 		});
-		if (!channel) {
+
+		if (!channel_tmp) {
 			throw new ChannelNotFoundError(channel_id);
 		}
 
-		if (
-			await this._prisma.channel.count({
-				where: {
-					id: channel_id,
+		if (channel_tmp.members.some((member) => member.id === joining_user_id)) {
+			throw new ChannelAlreadyJoinedError(channel_id);
+		}
+
+		switch (channel_tmp.chanType) {
+			case ChanType.PRIVATE:
+				if (password !== undefined) {
+					throw new ChannelPasswordUnexpectedError();
+				}
+				if (inviting_user_id === undefined) {
+					throw new ChannelInvitationMissingError();
+				}
+				if (channel_tmp.members.every((member) => member.id !== inviting_user_id)) {
+					throw new ChannelInvitationIncorrectError();
+				}
+				break;
+
+			case ChanType.PROTECTED:
+				if (inviting_user_id !== undefined) {
+					throw new ChannelInvitationUnexpectedError();
+				}
+				if (password === undefined) {
+					throw new ChannelPasswordMissingError();
+				} else if (!(await argon2.verify(<string>channel_tmp.hash, password))) {
+					throw new ChannelPasswordIncorrectError();
+				}
+				break;
+
+			case ChanType.PUBLIC:
+				if (password !== undefined) {
+					throw new ChannelPasswordUnexpectedError();
+				}
+				break;
+		}
+
+		if (channel_tmp.banned.some((ban) => ban.id === joining_user_id)) {
+			throw new ChannelForbiddenToJoinError(
+				`channel: ${channel_id} | user: ${joining_user_id}`,
+			);
+		}
+
+		try {
+			await this._prisma.channel.update({
+				data: {
 					members: {
-						some: {
+						connect: {
 							id: joining_user_id,
 						},
 					},
 				},
-			})
-		) {
-			throw new ChannelAlreadyJoinedError(channel_id);
-		}
-
-		if (channel.chanType === ChanType.PRIVATE) {
-			if (password !== undefined) {
-				throw new ChannelPasswordUnexpectedError();
-			}
-			if (
-				inviting_user_id === undefined ||
-				!(await this._prisma.channel.count({
-					where: {
-						id: channel_id,
-						members: {
-							some: {
-								id: inviting_user_id,
-							},
-						},
-					},
-				}))
-			) {
-				throw new ChannelInvitationIncorrectError();
-			}
-		} else if (channel.chanType === ChanType.PROTECTED) {
-			if (inviting_user_id !== undefined) {
-				throw new ChannelInvitationUnexpectedError();
-			}
-			if (password === undefined) {
-				throw new ChannelPasswordMissingError();
-			} else if (!(await argon2.verify(<string>channel.hash, password))) {
-				throw new ChannelPasswordIncorrectError();
-			}
-		} else {
-			if (password !== undefined) {
-				throw new ChannelPasswordUnexpectedError();
-			}
-		}
-
-		try {
-			channel = await this._prisma.channel.update({
 				where: {
 					id: channel_id,
-				},
-				data: {
-					members: {
-						connect: {
-							idAndState: {
-								id: joining_user_id,
-								state: StateType.ACTIVE,
-							},
-						},
-					},
 				},
 			});
 			this._logger.log(`Channel ${channel_id} joined by ${joining_user_id}`);
@@ -916,8 +931,12 @@ export class ChannelService {
 		}
 
 		this._gateway.make_user_socket_join_room(joining_user_id, channel_id);
-		channel = await this._inherit_ones_ownership(channel, joining_user_id);
-		channel.hash = null;
+		const channel: t_join_one_fields = {
+			id: channel_tmp.id,
+			name: channel_tmp.name,
+			type: channel_tmp.chanType,
+			owner_id: (await this._inherit_ones_ownership(channel_tmp, joining_user_id)).ownerId,
+		};
 		return channel;
 	}
 
