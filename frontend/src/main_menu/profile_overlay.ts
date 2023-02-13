@@ -111,21 +111,30 @@ class ProfileOverlay extends Overlay {
                 });
             } else {
                 Client.activate_2fa(new_mail).then(() => {
-                    let code = prompt("gimme the code");
-                    if (!code) {
-                        editor_email.value = "";
-                        editor_email.disabled = false;
-                        return;
-                    }
+                    while (true) {
+                        let code = prompt("gimme the code");
+                        if (!code) {
+                            continue;
+                        }
 
-                    Client.validate_2fa(code).catch(() => {
-                        Users.me().then(me => {
-                            if (me.email)
-                                editor_email.value = me.email;
-                        })
-                    }).finally(() => {
-                        editor_email.disabled = false;
-                    });
+                        Client.validate_2fa(code).then(() => {
+                            Users.me().then(me => {
+                                if (me.email)
+                                    me.email = editor_email.value;
+                            });
+                        }).catch(() => {
+                            Users.me().then(me => {
+                                if (me.two_fact_auth && me.email)
+                                    editor_email.value = me.email;
+                                else
+                                    editor_email.value = "";
+                            });
+                        }).finally(() => {
+                            editor_email.disabled = false;
+                        });
+
+                        break;
+                    }
                 }).catch(() => {
                     editor_email.value = "";
                     editor_email.disabled = false;

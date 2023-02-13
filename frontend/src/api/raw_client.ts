@@ -325,6 +325,7 @@ export class RawHTTPClient {
 	public async deactivate_2fa(): Promise<void> {
 		await this.make_request({
 			method: "POST",
+			success_status: 201,
 			url: "/api/auth/42/2FADeactivate",
 		});
 	}
