@@ -509,6 +509,8 @@ body {
 }
 
 .profile-game-container {
+  position: relative;
+
   display: flex;
   flex-flow: row nowrap;
   justify-content: center;
@@ -829,4 +831,40 @@ body {
   color: white;
   font-family: "Krona One", sans-serif;
   font-size: 16px;
+}
+
+.profile-game-box-color {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  width: 80px;
+  height: 10px;
+
+  transform: translate(-50%, -50%);
+
+  filter: blur(10px);
+
+  border-radius: 100%;
+
+  z-index: -1;
+}
+
+.profile-game-time {
+  position: absolute;
+  top: 50%;
+  left: 20px;
+
+  font-family: "Noto Sans", sans-serif;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+
+  transform: translate(0, -50%);
+}
+
+.profile-game-their-name {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(90px, -16px);
 }

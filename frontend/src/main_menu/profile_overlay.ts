@@ -180,9 +180,11 @@ class ProfileOverlay extends Overlay {
             };
 
             for (const result of me.games_played) {
+                const my_idx = (me.id === result.players_ids[0]) ? 0 : 1;
+
                 const game_container = document.createElement("li");
                 game_container.classList.add("profile-game-container");
-                game_history.appendChild(game_container);
+                game_history.prepend(game_container);
 
                 const my_avatar = document.createElement("div");
                 my_avatar.classList.add("profile-game-avatar");
@@ -205,7 +207,25 @@ class ProfileOverlay extends Overlay {
                 their_avatar.classList.add("profile-game-avatar");
                 game_container.appendChild(their_avatar);
 
-                const my_idx = (me.id === result.players_ids[0]) ? 0 : 1;
+                const their_name = document.createElement("div");
+                their_name.classList.add("profile-game-their-name");
+                game_container.appendChild(their_name);
+
+                const box_color = document.createElement("div");
+                box_color.classList.add("profile-game-box-color");
+                if (result.winner_id === me.id)
+                    box_color.style.backgroundColor = "green";
+                else
+                    box_color.style.backgroundColor = "red";
+
+                box_color.style.backgroundColor
+                game_container.appendChild(box_color);
+
+                const time = document.createElement("div");
+                time.classList.add("profile-game-time");
+                const date = new Date(result.date_time);
+                time.innerText = `${date.toLocaleTimeString()} ${date.toLocaleDateString()}`;
+                game_container.appendChild(time);
 
                 my_score.innerText = "" + result.scores[my_idx];
                 Users.get_avatar(result.players_ids[my_idx]).then(url => {
@@ -214,6 +234,9 @@ class ProfileOverlay extends Overlay {
                 their_score.innerText = "" + result.scores[1 - my_idx];
                 Users.get_avatar(result.players_ids[1 - my_idx]).then(url => {
                     their_avatar.style.backgroundImage = `url(\"${url}\")`;
+                });
+                Users.get(result.players_ids[1 - my_idx]).then(u => {
+                    their_name.innerText = u.name;
                 });
             }
         });
