@@ -551,6 +551,8 @@ body {
 
 .profile-game-score {
   font-family: "Krona One", sans-serif;
+  width: 30px;
+  text-align: center;
 }
 
 #user-card-screen {
