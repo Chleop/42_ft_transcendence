@@ -100,7 +100,7 @@ class ProfileOverlay extends Overlay {
         editor_email.type = "text";
         editor_email.classList.add("editor-field");
         editor_email_container.appendChild(editor_email);
-        editor_email.onchange = () => {
+        editor_email.onchange = e => {
             const new_mail = editor_email.value;
 
             editor_email.disabled = true;
@@ -118,9 +118,14 @@ class ProfileOverlay extends Overlay {
                         return;
                     }
 
-                    Client.validate_2fa(code).then(() => {
+                    Client.validate_2fa(code).catch(() => {
+                        Users.me().then(me => {
+                            if (me.email)
+                                editor_email.value = me.email;
+                        })
+                    }).finally(() => {
                         editor_email.disabled = false;
-                    })
+                    });
                 }).catch(() => {
                     editor_email.value = "";
                     editor_email.disabled = false;

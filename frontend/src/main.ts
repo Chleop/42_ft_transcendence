@@ -2,9 +2,10 @@ import { History } from "./strawberry";
 import { RouteData, Router } from "./strawberry/router";
 import MAIN_MENU from "./main_menu/main_menu";
 import { SpectatingGame } from "./game/spectating_game";
-import { Client } from "./api";
 import PROFILE_OVERLAY from "./main_menu/profile_overlay";
 import GAME_BOARD from "./game/game_board";
+
+export let AUTHENTICATING: boolean = false;
 
 /**
  * The entry point of the application.
@@ -22,12 +23,6 @@ function entry_point() {
 	router.register_route("/spectate/:room_id", data => {
 		GAME_BOARD.start_game(new SpectatingGame(data["room_id"]));
 		History.replace_state(GAME_BOARD);
-	});
-	router.register_route("/2FA", () => {
-		const code = prompt("gimme the code") || "";
-		Client.validate_2fa(code).then(() => {
-			History.replace_state(MAIN_MENU);
-		});
 	});
 
 	const route_result = router.get(window.location.pathname);

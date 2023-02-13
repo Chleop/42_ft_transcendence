@@ -101,9 +101,25 @@ export class RawHTTPClient {
 
 		let response = await fetch(request.url, request_init);
 
+		console.log(request.method + " " + request.url + " -> " + response.status + " " + response.statusText);
+
 		if (response.status == 401) {
-			document.location.pathname = "/api/auth/42/login";
-			throw "user not connected";
+			const err = await response.json();
+			if (err.message === "User is pending 2FA validation") {
+				while (true) {
+					const code = prompt("gimme the code") || "";
+
+					try {
+						await this.validate_2fa(code);
+						break;
+					} catch (e) {}
+				}
+
+				return this.make_request(request);
+			} else {
+				document.location.pathname = "/api/auth/42/login";
+				throw "user not connected";
+			}
 		}
 
 		if (response.status != success_status) {
