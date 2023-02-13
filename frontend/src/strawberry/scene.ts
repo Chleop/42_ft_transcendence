@@ -40,17 +40,6 @@ export abstract class Scene extends State {
  * A sub-scene, which prevents the scene it replaces from being completely removed when inserted.
  */
 export abstract class Overlay extends State {
-    /**
-     * The parent state of this overlay.
-     */
-    private parent_state: State;
-
-    public constructor(parent_state: State) {
-        super();
-
-        this.parent_state = parent_state;
-    }
-
     public on_entered(_prev: State) {
         this.root_html_element.classList.add("active");
     }
@@ -60,6 +49,8 @@ export abstract class Overlay extends State {
             this.root_html_element.classList.remove("active");
         }
     }
+
+    public abstract get parent_state(): State;
     
     /**
      * Returns the root HTML element of the scene.
