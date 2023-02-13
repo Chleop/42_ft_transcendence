@@ -82,9 +82,6 @@ export interface GameResult {
     winner_id: string;
 }
 
-/** The ID of a game. */
-type GameId = Id;
-
 /**
  * Stores public information about a user.
  */
@@ -98,7 +95,7 @@ export interface User {
      */
     name: string,
     /** The ID of played games. */
-    games_played_ids: GameId[];
+    games_played: number;
     /** ID of won games. */
-    games_won_ids: GameId[];
+    games_won: number;
 };

@@ -99,8 +99,8 @@ class UserCardElement {
             // TODO: use the status of the user when it is sent by the backend.
             this.status.innerText = "STATUS HERE";
 
-            const wins = user.games_won_ids.length;
-            const losses = user.games_played_ids.length - wins;
+            const wins = user.games_won;
+            const losses = user.games_played - wins;
             let percent_f = 0;
             if (wins + losses !== 0) {
                 const percent = (wins / (wins + losses)) * 100.0;
