@@ -89,22 +89,22 @@ export class PlayingGame extends OngoingGame {
         if (!this.game_started)
             return; // The game has not started yet.
 
-        let s = this.state;
+        // let s = this.state;
 
         // Update the position of the ball according to its velocity.
-        s.ball.x += s.ball.vx * delta_time;
-        s.ball.y += s.ball.vy * delta_time;
+        // s.ball.x += s.ball.vx * delta_time;
+        // s.ball.y += s.ball.vy * delta_time;
 
         // Make the ball "bounce" off walls. `Math.abs` is used everywhere to avoid having the ball
         // bounce multiple times on the same wall.
-        if (s.ball.y - Constants.ball_radius < -Constants.board_height / 2) {
-            s.ball.y = -Constants.board_height / 2 + Constants.ball_radius;
-            s.ball.vy = Math.abs(s.ball.vy);
-        }
-        if (s.ball.y + Constants.ball_radius > Constants.board_height / 2) {
-            s.ball.y = Constants.board_height / 2 - Constants.ball_radius;
-            s.ball.vy = -Math.abs(s.ball.vy);
-        }
+        // if (s.ball.y - Constants.ball_radius < -Constants.board_height / 2) {
+        //     s.ball.y = -Constants.board_height / 2 + Constants.ball_radius;
+        //     s.ball.vy = Math.abs(s.ball.vy);
+        // }
+        // if (s.ball.y + Constants.ball_radius > Constants.board_height / 2) {
+        //     s.ball.y = Constants.board_height / 2 - Constants.ball_radius;
+        //     s.ball.vy = -Math.abs(s.ball.vy);
+        // }
 
         // Use the input gathered for the player and move the left paddle accordingly.
         let movement_input = 0;

@@ -41,7 +41,7 @@ export class AuthController {
 		try {
 			await this._authService.signin(request.user.login, response);
 		} catch (error) {
-			this._logger.error(error);
+			this._logger.error(error.message);
 			if (error instanceof PendingUser) {
 				throw new UnauthorizedException(error.message);
 			}
@@ -63,7 +63,7 @@ export class AuthController {
 		try {
 			await this._authService.activate_2FA(req.user.id, dto.email);
 		} catch (error) {
-			this._logger.error(error);
+			this._logger.error(error.message);
 			throw new InternalServerErrorException();
 		}
 	}
@@ -74,7 +74,7 @@ export class AuthController {
 		try {
 			await this._authService.deactivate_2FA(req.user.id);
 		} catch (error) {
-			this._logger.error(error);
+			this._logger.error(error.message);
 			throw new InternalServerErrorException();
 		}
 	}
@@ -85,7 +85,7 @@ export class AuthController {
 		try {
 			await this._authService.validate_2FA(req.user.id, dto.code);
 		} catch (error) {
-			this._logger.error(error);
+			this._logger.error(error.message);
 			if (error instanceof CodeIsNotSet) throw new ForbiddenException(error.message);
 			if (error instanceof InvalidCode || error instanceof ExpiredCode)
 				throw new BadRequestException(error.message);

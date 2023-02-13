@@ -1,5 +1,7 @@
 import { hitbox_fragment_shader_source, hitbox_vertex_shader_source } from "./hitbox_shader";
+import { image_fragment_shader_source, image_vertex_shader_source } from "./image_shader";
 import { sprite_fragment_shader_source, sprite_vertex_shader_source } from "./sprite_shader";
+import { warp_fragment_shader_source, warp_vertex_shader_source } from "./warp_shader";
 
 /**
  * An exception which indicates that the WebGL2 renderer produced an error.
@@ -64,23 +66,43 @@ function get_uniform_location(gl: WebGL2RenderingContext, program: WebGLProgram,
     return location;
 }
 
+export class Framebuffer implements WithTexture {
+    public texture: WebGLTexture;
+    public framebuffer: WebGLFramebuffer;
+
+    public constructor(gl: WebGL2RenderingContext, w: number, h: number) {
+        const tex = gl.createTexture();
+        if (!tex)
+            throw new RendererError("failed to create a framebuffer texture");
+        const f = gl.createFramebuffer();
+        if (!f)
+            throw new RendererError("failed to create the framebuffer");
+
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+
+        this.texture = tex;
+        this.framebuffer = f;
+    }
+}
+
+interface WithTexture {
+    readonly texture: WebGLTexture;
+}
+
 /**
  * Internal information about a sprite.
  */
-class SpriteInternal {
+export class Sprite implements WithTexture {
     /**
      * The texture.
      */
     public texture: WebGLTexture;
-
-    /**
-     * The width of the sprite.
-     */
-    public width: number;
-    /**
-     * The height of the sprite.
-     */
-    public height: number;
 
     constructor(gl: WebGL2RenderingContext, albedo: string) {
         const texture = gl.createTexture();
@@ -97,30 +119,12 @@ class SpriteInternal {
             gl.bindTexture(gl.TEXTURE_2D, texture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
             gl.generateMipmap(gl.TEXTURE_2D);
-            this.width = image.width;
-            this.height = image.height;
 
-            console.log(`loaded image '${image.src}' (${this.width}x${this.height})`);
+            console.log(`loaded image '${image.src}' (${image.width}x${image.height})`);
         };
 
         this.texture = texture;
-        this.width = 1;
-        this.height = 1;
     }
-}
-
-/**
- * A sprite which may be rendered.
-*/
-export interface Sprite {
-    /**
-     * The width of the sprite.
-     */
-    readonly width: number;
-    /**
-     * The height of the sprite.
-     */
-    readonly height: number;
 }
 
 /**
@@ -169,6 +173,12 @@ export class Renderer {
      */
     private hitbox_uniform_view_transform: WebGLUniformLocation;
 
+    private image_program: WebGLProgram;
+    
+    private warp_program: WebGLProgram;
+
+    private warp_uniform_screen: WebGLUniformLocation;
+
     /**
      * The view matrix.
      */
@@ -190,6 +200,9 @@ export class Renderer {
         this.hitbox_uniform_model_position = get_uniform_location(this.gl, this.hitbox_program, "model_position");
         this.hitbox_uniform_model_transform = get_uniform_location(this.gl, this.hitbox_program, "model_transform");
         this.hitbox_uniform_view_transform = get_uniform_location(this.gl, this.hitbox_program, "view_transform");
+        this.image_program = create_program(this.gl, image_vertex_shader_source, image_fragment_shader_source);
+        this.warp_program = create_program(this.gl, warp_vertex_shader_source, warp_fragment_shader_source);
+        this.warp_uniform_screen = get_uniform_location(this.gl, this.warp_program, "screen");
 
         this.view_matrix = [1, 0, 0, 1];
     }
@@ -214,7 +227,7 @@ export class Renderer {
      * Creates a new `Sprite` for this renderer.
      */
     public create_sprite(albedo: string): Sprite {
-        return new SpriteInternal(this.gl, albedo);
+        return new Sprite(this.gl, albedo);
     }
 
     /**
@@ -228,15 +241,13 @@ export class Renderer {
     /**
      * Draws a sprite.
      */
-    public draw_sprite(sprite: Sprite, x: number, y: number, w: number, h: number): void {
-        const sprite_ = sprite as SpriteInternal;
-
+    public draw_sprite(sprite: WithTexture, x: number, y: number, w: number, h: number): void {
         this.gl.useProgram(this.sprite_program);
         this.gl.uniform2f(this.sprite_uniform_model_position, x, y);
         this.gl.uniformMatrix2fv(this.sprite_uniform_model_transform, false, [w, 0, 0, h]);
         this.gl.uniformMatrix2fv(this.sprite_uniform_view_transform, false, this.view_matrix);
         this.gl.activeTexture(this.gl.TEXTURE0);
-        this.gl.bindTexture(this.gl.TEXTURE_2D, sprite_.texture);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, sprite.texture);
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
     }
 
@@ -246,5 +257,29 @@ export class Renderer {
         this.gl.uniformMatrix2fv(this.hitbox_uniform_model_transform, false, [w, 0, 0, h]);
         this.gl.uniformMatrix2fv(this.hitbox_uniform_view_transform, false, this.view_matrix);
         this.gl.drawArrays(this.gl.LINE_STRIP, 0, 5);
+    }
+
+    public draw_image(image: WithTexture) {
+        this.gl.useProgram(this.image_program);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, image.texture);
+        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+    }
+
+    public warp(sprite: WithTexture, width: number, height: number) {
+        this.gl.useProgram(this.warp_program);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, sprite.texture);
+        this.gl.uniform2f(this.warp_uniform_screen, width, height);
+        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+    }
+
+    public create_framebuffer(width: number, height: number): Framebuffer {
+        return new Framebuffer(this.gl, width, height);
+    }
+
+    public bind_framebuffer(framebuffer: Framebuffer|null) {
+        if (framebuffer)
+            this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer.framebuffer);
+        else
+            this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     }
 }

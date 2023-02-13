@@ -1,6 +1,6 @@
 import { Scene, State } from "../strawberry";
 import { Constants, OngoingGame } from ".";
-import { Renderer, Sprite } from "./renderer";
+import { Renderer, Sprite, Framebuffer } from "./renderer";
 
 /**
  * An exception which indicates that WebGL2 technology is not supported by the
@@ -51,6 +51,8 @@ class GameBoardClass extends Scene {
     private right_paddle: Sprite|undefined;
     private left_ball: Sprite|undefined;
     private right_ball: Sprite|undefined;
+
+    private tmp_canvas: Framebuffer;
     
     /**
      * Creates a new `GameBoard` instance.
@@ -74,9 +76,14 @@ class GameBoardClass extends Scene {
         this.last_timestamp_ms = 0;
         this.canvas = canvas;
         this.renderer = renderer;
-        this.render_state = {
-            debug: true,
-        };
+        this.render_state = { debug: false };
+        this.tmp_canvas = this.renderer.create_framebuffer(canvas.width, canvas.height);
+
+        window.addEventListener("keydown", e => {
+            if (e.key === "F10") {
+                this.render_state.debug = !this.render_state.debug;
+            }
+        });
     }
 
     /** Starts the game with a specific controller. */
@@ -147,9 +154,11 @@ class GameBoardClass extends Scene {
 
         const aspect_ratio = this.canvas.width / this.canvas.height;
         if (aspect_ratio < BOARD_RATIO)
-            r.set_view_matrix(0.8 * 2 / Constants.board_width, 0, 0, 0.8 * 2 * aspect_ratio / Constants.board_width);
+            r.set_view_matrix(2 / Constants.board_width, 0, 0, 2 * aspect_ratio / Constants.board_width);
         else
-            r.set_view_matrix(0.8 * 2 * (1.0 / aspect_ratio) / Constants.board_height, 0, 0, 0.8 * 2 / Constants.board_height);
+            r.set_view_matrix(2 * (1.0 / aspect_ratio) / Constants.board_height, 0, 0, 2 / Constants.board_height);
+
+        r.bind_framebuffer(this.tmp_canvas);
         r.clear(0, 0, 0);
 
         // Display the background.
@@ -199,6 +208,9 @@ class GameBoardClass extends Scene {
                 r.draw_hitbox(-Constants.board_width / 2 + HEART_GAP + i * (HEART_SIZE + HEART_GAP), Constants.board_height / 2 - HEART_GAP - HEART_SIZE, HEART_SIZE, HEART_SIZE);
             }
         }
+
+        r.bind_framebuffer(null);
+        r.warp(this.tmp_canvas, this.canvas.width, this.canvas.height);
     }
 
     /** Notifies the scene that it is about to leave the focus. */
