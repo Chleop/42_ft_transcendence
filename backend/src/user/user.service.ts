@@ -50,8 +50,10 @@ export class UserService {
 
 	/**
 	 * @brief	Check whether two users are linked through :
-	 * 			- a friendship
 	 * 			- a common channel
+	 * 			- a direct message sent by one to the other
+	 * 			- a friendship
+	 * 			- a game played together
 	 *
 	 * @param	user0_id The id of the first user.
 	 * @param	user1_id The id of the second user.
@@ -68,15 +70,27 @@ export class UserService {
 		user1_id: string,
 		user0?: {
 			channels: {
-				id: string;
+				members: {
+					id: string;
+				}[];
+			}[];
+			directMessagesReceived: {
+				sender: {
+					id: string;
+				};
+			}[];
+			directMessagesSent: {
+				receiver: {
+					id: string;
+				};
 			}[];
 			friends: {
 				id: string;
 			}[];
-		} | null,
-		user1?: {
-			channels: {
-				id: string;
+			gamesPlayed: {
+				players: {
+					id: string;
+				}[];
 			}[];
 		} | null,
 	): Promise<boolean> {
@@ -85,12 +99,43 @@ export class UserService {
 				select: {
 					channels: {
 						select: {
-							id: true,
+							members: {
+								select: {
+									id: true,
+								},
+							},
+						},
+					},
+					directMessagesReceived: {
+						select: {
+							sender: {
+								select: {
+									id: true,
+								},
+							},
+						},
+					},
+					directMessagesSent: {
+						select: {
+							receiver: {
+								select: {
+									id: true,
+								},
+							},
 						},
 					},
 					friends: {
 						select: {
 							id: true,
+						},
+					},
+					gamesPlayed: {
+						select: {
+							players: {
+								select: {
+									id: true,
+								},
+							},
 						},
 					},
 				},
@@ -107,32 +152,19 @@ export class UserService {
 			}
 		}
 
-		if (!user1) {
-			user1 = await this._prisma.user.findUnique({
-				select: {
-					channels: {
-						select: {
-							id: true,
-						},
-					},
-				},
-				where: {
-					idAndState: {
-						id: user1_id,
-						state: StateType.ACTIVE,
-					},
-				},
-			});
-
-			if (!user1) {
-				throw new UserNotFoundError(user1_id);
-			}
-		}
-
 		return (
+			user0.channels.some((channel): boolean =>
+				channel.members.some((member): boolean => member.id === user1_id),
+			) ||
+			user0.directMessagesReceived.some(
+				(direct_message): boolean => direct_message.sender.id === user1_id,
+			) ||
+			user0.directMessagesSent.some(
+				(direct_message): boolean => direct_message.receiver.id === user1_id,
+			) ||
 			user0.friends.some((friend): boolean => friend.id === user1_id) ||
-			user0.channels.some((channel0): boolean =>
-				user1!.channels.some((channel1): boolean => channel0.id === channel1.id),
+			user0.gamesPlayed.some((game_played): boolean =>
+				game_played.players.some((player): boolean => player.id === user1_id),
 			)
 		);
 	}
@@ -570,8 +602,7 @@ export class UserService {
 	/**
 	 * @brief	Get a user from the database.
 	 * 			Requested user must be active,
-	 * 			and either have at least one common channel with the requesting user,
-	 * 			be friends with the requesting user, or be the requesting user.
+	 * 			and either have at least 1 link with the requesting user, or be the requesting user.
 	 * 			It is assumed that the provided requesting user id is valid.
 	 * 			(user exists and is ACTIVE)
 	 *
@@ -590,10 +621,27 @@ export class UserService {
 	): Promise<t_get_one_fields> {
 		type t_requesting_user_fields = {
 			channels: {
-				id: string;
+				members: {
+					id: string;
+				}[];
+			}[];
+			directMessagesReceived: {
+				sender: {
+					id: string;
+				};
+			}[];
+			directMessagesSent: {
+				receiver: {
+					id: string;
+				};
 			}[];
 			friends: {
 				id: string;
+			}[];
+			gamesPlayed: {
+				players: {
+					id: string;
+				}[];
 			}[];
 		};
 
@@ -601,12 +649,43 @@ export class UserService {
 			select: {
 				channels: {
 					select: {
-						id: true,
+						members: {
+							select: {
+								id: true,
+							},
+						},
+					},
+				},
+				directMessagesReceived: {
+					select: {
+						sender: {
+							select: {
+								id: true,
+							},
+						},
+					},
+				},
+				directMessagesSent: {
+					select: {
+						receiver: {
+							select: {
+								id: true,
+							},
+						},
 					},
 				},
 				friends: {
 					select: {
 						id: true,
+					},
+				},
+				gamesPlayed: {
+					select: {
+						players: {
+							select: {
+								id: true,
+							},
+						},
 					},
 				},
 			},
@@ -674,12 +753,7 @@ export class UserService {
 
 		if (
 			requesting_user_id !== requested_user_id &&
-			!(await this._are_linked(
-				requesting_user_id,
-				requested_user_id,
-				requesting_user,
-				requested_user,
-			))
+			!(await this._are_linked(requesting_user_id, requested_user_id, requesting_user))
 		) {
 			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
 		}
@@ -693,8 +767,7 @@ export class UserService {
 	/**
 	 * @brief	Get a user's avatar from the database.
 	 * 			Requested user must be active,
-	 * 			and either have at least one common channel with the requesting user,
-	 * 			or be friends with the requesting user, or be the requesting user.
+	 * 			and either have at least 1 link with the requesting user, or be the requesting user.
 	 * 			It is assumed that the provided requesting user id is valid.
 	 * 			(user exists and is ACTIVE)
 	 *
@@ -713,10 +786,27 @@ export class UserService {
 	): Promise<StreamableFile> {
 		type t_requesting_user_fields = {
 			channels: {
-				id: string;
+				members: {
+					id: string;
+				}[];
+			}[];
+			directMessagesReceived: {
+				sender: {
+					id: string;
+				};
+			}[];
+			directMessagesSent: {
+				receiver: {
+					id: string;
+				};
 			}[];
 			friends: {
 				id: string;
+			}[];
+			gamesPlayed: {
+				players: {
+					id: string;
+				}[];
 			}[];
 		};
 		type t_requested_user_fields = {
@@ -730,12 +820,43 @@ export class UserService {
 			select: {
 				channels: {
 					select: {
-						id: true,
+						members: {
+							select: {
+								id: true,
+							},
+						},
+					},
+				},
+				directMessagesReceived: {
+					select: {
+						sender: {
+							select: {
+								id: true,
+							},
+						},
+					},
+				},
+				directMessagesSent: {
+					select: {
+						receiver: {
+							select: {
+								id: true,
+							},
+						},
 					},
 				},
 				friends: {
 					select: {
 						id: true,
+					},
+				},
+				gamesPlayed: {
+					select: {
+						players: {
+							select: {
+								id: true,
+							},
+						},
 					},
 				},
 			},
@@ -770,12 +891,7 @@ export class UserService {
 
 		if (
 			requesting_user_id !== requested_user_id &&
-			!(await this._are_linked(
-				requesting_user_id,
-				requested_user_id,
-				requesting_user,
-				requested_user,
-			))
+			!(await this._are_linked(requesting_user_id, requested_user_id, requesting_user))
 		) {
 			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
 		}
@@ -786,8 +902,7 @@ export class UserService {
 	/**
 	 * @brief	Make a user send a direct message to another user.
 	 * 			Receiving user must be active, not be the same as the sending user,
-	 * 			and either have at least one common channel with the sending user,
-	 * 			or be friends with the sending user.
+	 * 			and have at least 1 link with the sending user.
 	 * 			Sending user must not have blocked the receiving user.
 	 * 			If the sending user has been blocked by the receiving user,
 	 * 			the message will be stored in the database,
@@ -815,17 +930,31 @@ export class UserService {
 				id: string;
 			}[];
 			channels: {
-				id: string;
+				members: {
+					id: string;
+				}[];
+			}[];
+			directMessagesReceived: {
+				sender: {
+					id: string;
+				};
+			}[];
+			directMessagesSent: {
+				receiver: {
+					id: string;
+				};
 			}[];
 			friends: {
 				id: string;
 			}[];
+			gamesPlayed: {
+				players: {
+					id: string;
+				}[];
+			}[];
 		};
 		type t_receiving_user_fields = {
 			blocked: {
-				id: string;
-			}[];
-			channels: {
 				id: string;
 			}[];
 		};
@@ -839,12 +968,43 @@ export class UserService {
 				},
 				channels: {
 					select: {
-						id: true,
+						members: {
+							select: {
+								id: true,
+							},
+						},
+					},
+				},
+				directMessagesReceived: {
+					select: {
+						sender: {
+							select: {
+								id: true,
+							},
+						},
+					},
+				},
+				directMessagesSent: {
+					select: {
+						receiver: {
+							select: {
+								id: true,
+							},
+						},
 					},
 				},
 				friends: {
 					select: {
 						id: true,
+					},
+				},
+				gamesPlayed: {
+					select: {
+						players: {
+							select: {
+								id: true,
+							},
+						},
 					},
 				},
 			},
@@ -859,11 +1019,6 @@ export class UserService {
 		const receiving_user: t_receiving_user_fields | null = await this._prisma.user.findUnique({
 			select: {
 				blocked: {
-					select: {
-						id: true,
-					},
-				},
-				channels: {
 					select: {
 						id: true,
 					},
@@ -885,14 +1040,7 @@ export class UserService {
 			throw new UserSelfMessageError();
 		}
 
-		if (
-			!(await this._are_linked(
-				sending_user_id,
-				receiving_user_id,
-				sending_user,
-				receiving_user,
-			))
-		) {
+		if (!(await this._are_linked(sending_user_id, receiving_user_id, sending_user))) {
 			throw new UserNotLinkedError(`${sending_user_id} - ${receiving_user_id}`);
 		}
 

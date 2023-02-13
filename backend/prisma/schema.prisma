@@ -11,26 +11,28 @@ datasource db {
 }
 
 model User {
-  id                      String    @id @unique @default(cuid())
-  login                   String    @unique
-  name                    String    @unique
-  avatar                  String    @default("resource/avatar/default.jpg") // !le choix de l'avatar
-  email                   String?   @unique
-  state                   StateType @default(ACTIVE)
-  stateDate               DateTime  @default(now())
+  id                      String           @id @unique @default(cuid())
+  login                   String           @unique
+  name                    String           @unique
+  avatar                  String           @default("resource/avatar/default.jpg") // !le choix de l'avatar
+  email                   String?          @unique
+  state                   StateType        @default(ACTIVE)
+  stateDate               DateTime         @default(now())
   // par defaut se fait au niveau du signup
-  skin                    Skin      @relation(fields: [skinId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  elo                     Int       @default(0)
-  twoFactAuth             Boolean   @default(false)
+  skin                    Skin             @relation(fields: [skinId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  elo                     Int              @default(0)
+  twoFactAuth             Boolean          @default(false)
   twoFACode               String?
   twoFACreationDate       DateTime?
-  channels                Channel[] @relation("userchannels")
-  channelsOwned           Channel[] @relation("chanowner")
-  gamesPlayed             Game[]    @relation("gamesplayed")
-  gamesWon                Game[]    @relation("gameswon")
-  friends                 User[]    @relation("friendship")
-  pendingFriendRequests   User[]    @relation("pending friendship")
-  blocked                 User[]    @relation("blocked")
+  channels                Channel[]        @relation("userchannels")
+  channelsOwned           Channel[]        @relation("chanowner")
+  gamesPlayed             Game[]           @relation("gamesplayed")
+  gamesWon                Game[]           @relation("gameswon")
+  friends                 User[]           @relation("friendship")
+  pendingFriendRequests   User[]           @relation("pending friendship")
+  blocked                 User[]           @relation("blocked")
+  directMessagesSent      DirectMessage[]  @relation("direct_message_sending")
+  directMessagesReceived  DirectMessage[]  @relation("direct_message_receiving")
   // les champs ci-dessous sont neccessaires pour les relations mais
   // ne sont pas accessibles par le client Prisma grace a l'attribut 
   // @ignore.
@@ -39,8 +41,6 @@ model User {
   mirrorFriends               User[]           @relation("friendship") //@ignore
   mirrorpendingFriendRequests User[]           @relation("pending friendship") //@ignore
   mirrorBlocked               User[]           @relation("blocked") //@ignore
-  mirrorDirectMessageSender   DirectMessage[]  @relation("direct_message_sending") //@ignore
-  mirrorDirectMessageReceiver DirectMessage[]  @relation("direct_message_receiving") //@ignore
   mirrorSender                ChannelMessage[] @relation("usermessage") //@ignore
   // les champs ci-dessous sont neccessaires pour les relations
   // mais n'existent pas reellement dans la bdd (foreign keys)
