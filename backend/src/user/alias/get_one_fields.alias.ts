@@ -7,8 +7,8 @@ export type t_get_one_fields = {
 	skin_id: string;
 	elo: number;
 	channels: t_channels_fields[];
-	games_played_ids: string[];
-	games_won_ids: string[];
+	games_played: number;
+	games_won: number;
 };
 
 export type t_get_one_fields_tmp = {

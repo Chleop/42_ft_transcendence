@@ -732,8 +732,8 @@ export class UserService {
 					type: channel.chanType,
 				};
 			}),
-			games_played_ids: requested_user_tmp.gamesPlayed.map((game): string => game.id),
-			games_won_ids: requested_user_tmp.gamesWon.map((game): string => game.id),
+			games_played: requested_user_tmp.gamesPlayed.length,
+			games_won: requested_user_tmp.gamesWon.length,
 		};
 
 		if (
