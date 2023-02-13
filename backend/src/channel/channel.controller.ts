@@ -43,12 +43,12 @@ import {
 	UnknownError,
 } from "src/channel/error";
 import { Jwt2FAGuard } from "src/auth/guards";
-import { t_get_one_fields } from "src/user/alias";
 import { t_user_auth } from "src/auth/alias";
 
 @UseGuards(Jwt2FAGuard)
 @Controller("channel")
 export class ChannelController {
+	// REMIND: check if passing `_channel_service` in readonly keep it working well
 	private _channel_service: ChannelService;
 	private readonly _logger: Logger;
 
@@ -62,7 +62,7 @@ export class ChannelController {
 	async create_one(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_user_auth;
 		},
 		@Body() dto: ChannelCreateDto,
 	): Promise<Channel> {
@@ -102,7 +102,7 @@ export class ChannelController {
 	async delete_one(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_user_auth;
 		},
 		@Param("id") id: string,
 	): Promise<void> {
@@ -142,7 +142,7 @@ export class ChannelController {
 	async get_all(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_user_auth;
 		},
 	): Promise<t_get_all_fields> {
 		let channels: t_get_all_fields;
@@ -162,7 +162,7 @@ export class ChannelController {
 	async get_ones_messages(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_user_auth;
 		},
 		@Param("id") id: string,
 		@Query() dto: ChannelMessageGetDto,
@@ -205,7 +205,7 @@ export class ChannelController {
 	async join_one(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_user_auth;
 		},
 		@Param("id") id: string,
 		@Body() dto: ChannelJoinDto,
@@ -249,7 +249,7 @@ export class ChannelController {
 	async leave_one(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_user_auth;
 		},
 		@Param("id") id: string,
 	): Promise<void> {
@@ -281,7 +281,7 @@ export class ChannelController {
 	async send_message_to_one(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_user_auth;
 		},
 		@Param("id") id: string,
 		@Body() dto: ChannelMessageSendDto,

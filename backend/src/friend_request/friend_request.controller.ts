@@ -26,11 +26,12 @@ import {
 	ValidationPipe,
 	Logger,
 } from "@nestjs/common";
-import { t_get_one_fields } from "src/user/alias";
+import { t_user_auth } from "src/auth/alias";
 
 @Controller("friend_request")
 @UseGuards(Jwt2FAGuard)
 export class FriendRequestController {
+	// REMIND: check if passing `_friend_request_service` in readonly keep it working well
 	private _friend_request_service: FriendRequestService;
 	private readonly _logger: Logger;
 
@@ -44,7 +45,7 @@ export class FriendRequestController {
 	async accept_one(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_user_auth;
 		},
 		@Body() dto: FriendRequestAcceptDto,
 	): Promise<void> {
@@ -70,7 +71,7 @@ export class FriendRequestController {
 	async reject_one(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_user_auth;
 		},
 		@Body() dto: FriendRequestRejectDto,
 	): Promise<void> {
@@ -95,7 +96,7 @@ export class FriendRequestController {
 	async send_one(
 		@Req()
 		request: {
-			user: t_get_one_fields;
+			user: t_user_auth;
 		},
 		@Body() dto: FriendRequestSendDto,
 	): Promise<void> {
