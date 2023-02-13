@@ -100,7 +100,7 @@ class ProfileOverlay extends Overlay {
         editor_email.type = "text";
         editor_email.classList.add("editor-field");
         editor_email_container.appendChild(editor_email);
-        editor_email.onchange = e => {
+        editor_email.onchange = () => {
             const new_mail = editor_email.value;
 
             editor_email.disabled = true;

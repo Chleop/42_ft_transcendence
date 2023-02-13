@@ -36,7 +36,6 @@ class MessageElementInternal {
         header.appendChild(time);
         const content = document.createElement("div");
         content.classList.add("message-content");
-        content.innerText = message.content;
         const header_and_content = document.createElement("div");
         header_and_content.classList.add("message-header-and-content");
         header_and_content.appendChild(header);
@@ -45,6 +44,13 @@ class MessageElementInternal {
         this.container.classList.add("message-container");
         this.container.appendChild(avatar);
         this.container.appendChild(header_and_content);
+
+        Users.me().then(me => {
+            if (me.blocked_ids.indexOf(message.senderId) !== -1)
+                content.innerText = "<blocked message>";
+            else
+                content.innerText = message.content;
+        });
 
         if (continuing) {
             this.container.classList.add("message-continuing");
