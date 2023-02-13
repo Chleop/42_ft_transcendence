@@ -546,6 +546,7 @@ export class UserService {
 			id: user_tmp.id,
 			login: user_tmp.login,
 			name: user_tmp.name,
+			status: this._gateway.get_user_status(user_tmp.id),
 			email: user_tmp.email,
 			skin_id: user_tmp.skinId,
 			elo: user_tmp.elo,
@@ -725,6 +726,7 @@ export class UserService {
 			id: requested_user_tmp.id,
 			login: requested_user_tmp.login,
 			name: requested_user_tmp.name,
+			status: this._gateway.get_user_status(requested_user_tmp.id),
 			skin_id: requested_user_tmp.skinId,
 			elo: requested_user_tmp.elo,
 			channels: requested_user_tmp.channels.map((channel): t_channels_fields => {
@@ -1335,11 +1337,10 @@ export class UserService {
 				},
 			});
 
-			const data: t_user_update_event = {
-				id: id,
-				name: name,
-			};
-			await this.broadcast_user_update_to_many(data);
+			await this.broadcast_user_update_to_many({
+				id,
+				name,
+			});
 		} catch (error) {
 			this._logger.error(`Error occured while updating user ${id}`);
 			if (error instanceof PrismaClientKnownRequestError) {
@@ -1401,11 +1402,10 @@ export class UserService {
 		try {
 			createWriteStream(join(process.cwd(), user.avatar)).write(file.buffer);
 
-			const data: t_user_update_event = {
-				id: id,
+			await this.broadcast_user_update_to_many({
+				id,
 				is_avatar_changed: true,
-			};
-			await this.broadcast_user_update_to_many(data);
+			});
 		} catch (error) {
 			if (error instanceof Error)
 				this._logger.error(`Error occured while writing avatar to disk: ${error.message}`);
@@ -1462,14 +1462,14 @@ export class UserService {
 						},
 					},
 					{
-						mirrorDirectMessageSender: {
+						directMessagesSent: {
 							some: {
 								receiverId: data.id,
 							},
 						},
 					},
 					{
-						mirrorDirectMessageReceiver: {
+						directMessagesReceived: {
 							some: {
 								senderId: data.id,
 							},

@@ -1,9 +1,10 @@
-import { t_channels_fields, t_channels_fields_tmp } from "src/user/alias";
+import { t_channels_fields, t_channels_fields_tmp, t_user_status } from "src/user/alias";
 
 export type t_get_one_fields = {
 	id: string;
 	login: string;
 	name: string;
+	status: t_user_status;
 	skin_id: string;
 	elo: number;
 	channels: t_channels_fields[];

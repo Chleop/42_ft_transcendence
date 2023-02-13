@@ -1,9 +1,11 @@
 import { ChanType } from "@prisma/client";
+import { t_user_status } from "./user_update_event.alias";
 
 export type t_get_me_fields = {
 	id: string;
 	login: string;
 	name: string;
+	status: t_user_status;
 	email: string | null;
 	skin_id: string;
 	elo: number;
