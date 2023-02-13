@@ -18,8 +18,10 @@ async function main() {
 	const skin_id: string = (
 		await prisma.skin.create({
 			data: {
-				name: "Default",
-				url: "resource/skin/default.jpg",
+				name: "default",
+				background: "resource/skin/background/default.jpg",
+				ball: "resource/skin/ball/default.jpg",
+				paddle: "resource/skin/paddle/default.jpg",
 			},
 		})
 	).id;

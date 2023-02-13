@@ -84,7 +84,6 @@ export class GameSocket {
      * Creates a new GameSocket.
      */
     public constructor() {
-        console.log(Client.access_token);
         this.socket = io("/game", {
             auth: {
                 token: Client.access_token,

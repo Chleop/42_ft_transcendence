@@ -1,5 +1,5 @@
-import {Body, JsonBody} from "./body";
-import {ChannelId, ChannelJoined, Message, MessageId} from "./channel";
+import {Body, JsonBody, FileBody} from "./body";
+import {Channel, ChannelId, ChannelJoined, Message, MessageId} from "./channel";
 import {PrivateUser, User, UserId} from "./user";
 
 /**
@@ -85,7 +85,7 @@ export class RawHTTPClient {
 		let body: BodyInit | undefined = undefined;
 		if (request.body) {
 			body = request.body.data;
-			headers["Content-Type"] = request.body.content_type;
+			if (request.body.content_type) headers["Content-Type"] = request.body.content_type;
 		}
 
 		if (request.accept) headers["Accept"] = request.accept;
@@ -100,6 +100,11 @@ export class RawHTTPClient {
 		};
 
 		let response = await fetch(request.url, request_init);
+
+		if (response.status == 401) {
+			document.location.pathname = "/api/auth/42/login";
+			throw "user not connected";
+		}
 
 		if (response.status != success_status) {
 			// An error seems to have occured server-side.
@@ -120,6 +125,15 @@ export class RawHTTPClient {
 				url: "/api/user/@me",
 			})
 		).json();
+	}
+
+	/** Sets the user's avatar. */
+	public async set_avatar(file: File): Promise<void> {
+		await this.make_request({
+			method: "PUT",
+			url: "/api/user/@me/avatar",
+			body: new FileBody(file),
+		});
 	}
 
 	/**
@@ -262,6 +276,18 @@ export class RawHTTPClient {
 				accept: "application/json",
 				url: `/api/channel/${channel}/message`,
 				body: new JsonBody({content}),
+			})
+		).json();
+	}
+
+	/** Gets the list of all available channels. */
+	public async get_all_channels(): Promise<Channel[]> {
+		return (
+			await this.make_request({
+				method: "GET",
+				success_status: 200,
+				accept: "application/json",
+				url: `/api/channel/all`,
 			})
 		).json();
 	}

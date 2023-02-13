@@ -3,12 +3,13 @@ import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { UserNotFoundError } from "src/user/error";
 import { UserService } from "src/user/user.service";
+import { Response } from "express";
 import * as nodemailer from "nodemailer";
 import { PrismaService } from "src/prisma/prisma.service";
 import { StateType } from "@prisma/client";
 import { t_access_token, t_email, t_payload, t_secret, t_user_auth } from "src/auth/alias";
 import * as argon2 from "argon2";
-import { ExpiredCode, InvalidCode } from "./error";
+import { CodeIsNotSet, ExpiredCode, InvalidCode, PendingUser } from "./error";
 
 ("use strict");
 
@@ -81,39 +82,40 @@ export class AuthService {
 	/* ************************************************************************** */
 	/*                             PUBLIC FUNCTIONS                               */
 	/* ************************************************************************** */
-	public async create_access_token(login: string): Promise<t_access_token> {
-		// get the user id (creates user if not already existing)
-		let user_id: string | undefined;
-		try {
-			user_id = await this._user.get_ones_id_by_login(login);
-		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				this._logger.error(error.message);
-				user_id = await this._user.create_one(login);
-			} else throw error;
+	public async signin(login: string, res: Response): Promise<void> {
+		let user: t_user_auth | null;
+
+		user = await this.get_user_auth_by_login(login);
+		if (!user) {
+			await this._user.create_one(login);
+			user = await this.get_user_auth_by_login(login);
+			if (!user) throw new Error("Failed to create user");
 		}
-		// create access_token object
-		const payload: t_payload = { sub: user_id };
-		const token_obj: t_access_token = await this.sign_token(payload);
-		return token_obj;
+		if (user.state === StateType.PENDING) throw new PendingUser();
+		const token: t_access_token = await this.create_access_token(user.id);
+		res.cookie("access_token", token.access_token);
+		if (user.twoFactAuth === true) {
+			await this.set_status_to_pending(user.id);
+			await this.generate_and_send_code(user.id);
+			res.redirect(<string>this._config.get<string>("TFA_REDIRECT_URL"));
+		} else res.redirect(<string>this._config.get<string>("SITE_URL"));
 	}
 
 	public async activate_2FA(user_id: string, email: string): Promise<void> {
 		await this.add_email_to_db(user_id, email);
-		await this.trigger_2FA(user_id);
+		await this.generate_and_send_code(user_id);
 	}
 
 	public async deactivate_2FA(user_id: string): Promise<void> {
 		await this.deactivate_2FA_in_db(user_id);
 	}
 
-	public async trigger_2FA(user_id: string): Promise<void> {
+	public async generate_and_send_code(user_id: string): Promise<void> {
 		const user: t_user_auth = await this.get_user_auth(user_id);
 		const email: string | null = user.email;
 		if (email === null) throw new Error("Email was not set in the database");
 		const code: string = this.create_code();
 		await this.add_code_to_db(user_id, code);
-		await this.set_status_to_pending(user_id);
 		await this.send_confirmation_email(email, code);
 	}
 
@@ -131,6 +133,12 @@ export class AuthService {
 	/* ************************************************************************** */
 	/*                            PRIVATE FUNCTIONS                               */
 	/* ************************************************************************** */
+	private async create_access_token(user_id: string): Promise<t_access_token> {
+		const payload: t_payload = { sub: user_id };
+		const token_obj: t_access_token = await this.sign_token(payload);
+		return token_obj;
+	}
+
 	private async sign_token(payload: t_payload): Promise<t_access_token> {
 		// get the secret from the .env file
 		const our_secret: string | undefined = this._config.get<string>("JWT_SECRET");
@@ -155,8 +163,7 @@ export class AuthService {
 
 	private async validate_code(user_id: string, code: string): Promise<boolean> {
 		const secret: t_secret = await this.get_secret_from_db(user_id);
-		if (!secret.twoFACode || !secret.twoFACreationDate)
-			throw new Error("Code is not set in the database");
+		if (!secret.twoFACode || !secret.twoFACreationDate) throw new CodeIsNotSet();
 		if ((await argon2.verify(secret.twoFACode, code)) === false) throw new InvalidCode();
 		if (this.is_expired(secret.twoFACreationDate) === true) throw new ExpiredCode();
 		return true;
@@ -232,6 +239,21 @@ export class AuthService {
 		return user;
 	}
 
+	public async get_user_auth_by_login(login: string): Promise<t_user_auth | null> {
+		const user: t_user_auth | null = await this._prisma.user.findUnique({
+			select: {
+				id: true,
+				email: true,
+				twoFactAuth: true,
+				state: true,
+			},
+			where: {
+				login: login,
+			},
+		});
+		return user;
+	}
+
 	private async add_code_to_db(user_id: string, code: string): Promise<void> {
 		const crypted_code = await argon2.hash(code);
 		const currentTime: Date = new Date();
@@ -246,7 +268,10 @@ export class AuthService {
 	}
 
 	private async add_email_to_db(user_id: string, email: string): Promise<void> {
-		await this._user.update_one(user_id, undefined, email);
+		await this._prisma.user.update({
+			where: { id: user_id },
+			data: { email: email },
+		});
 	}
 
 	private async activate_2FA_in_db(user_id: string): Promise<void> {
@@ -272,7 +297,7 @@ export class AuthService {
 
 	private async set_status_to_active(user_id: string): Promise<void> {
 		await this._prisma.user.update({
-			where: { idAndState: { id: user_id, state: StateType.PENDING } },
+			where: { id: user_id },
 			data: { state: StateType.ACTIVE },
 		});
 	}
