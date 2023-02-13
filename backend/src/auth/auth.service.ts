@@ -97,8 +97,8 @@ export class AuthService {
 		if (user.twoFactAuth === true) {
 			await this.set_status_to_pending(user.id);
 			await this.generate_and_send_code(user.id);
-			res.redirect(<string>this._config.get<string>("SITE_URL") + "/2FA");
-		} else res.redirect(<string>this._config.get<string>("SITE_URL"));
+		}
+		res.redirect(<string>this._config.get<string>("SITE_URL"));
 	}
 
 	public async activate_2FA(user_id: string, email: string): Promise<void> {
