@@ -65,11 +65,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	public handleConnection(client: Socket): void {
 		this.logger.log(`[${client.data.user.login} connected]`);
 		try {
-			this.logger.debug(`TRYING QUEUE UP`);
 			const game_room: GameRoom | null = this.game_service.queueUp(client);
-			this.logger.debug(`FINISHED QUEUEUP`);
 			if (game_room !== null) this.matchmake(game_room);
-			this.logger.debug(`LEAVING on_connection`);
 		} catch (e) {
 			if (e instanceof BadEvent) {
 				this.logger.error(e.message);

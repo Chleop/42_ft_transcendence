@@ -89,6 +89,7 @@ export class GameSocket {
      */
     public constructor() {
         this.socket = io("/game", {
+    	    reconnection: false,
             auth: {
                 token: Client.access_token,
             },
