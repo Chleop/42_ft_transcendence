@@ -130,7 +130,7 @@ export class GameRoom {
 	 * Returns player's number.
 	 */
 	public playerNumber(client: Socket): number {
-		if (this.match.player1.id === client.id) return 1;
+		if (this.match.player1.data.user.id === client.data.user.id) return 1;
 		else return 2;
 	}
 
@@ -140,7 +140,7 @@ export class GameRoom {
 	 * Returns client's opponent.
 	 */
 	private whoIsOpponent(client: Socket): Socket {
-		if (this.match.player1.id === client.id) return this.match.player2;
+		if (this.match.player1.data.user.id === client.data.user.id) return this.match.player2;
 		else return this.match.player1;
 	}
 }

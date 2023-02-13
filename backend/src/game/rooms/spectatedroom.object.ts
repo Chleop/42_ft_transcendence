@@ -25,7 +25,7 @@ export class SpectatedRoom {
 
 	public removeSpectator(client: Socket): void {
 		const index: number = this.spectators.findIndex((obj) => {
-			return obj.id === client.id;
+			return obj.data.user.id === client.data.user.id;
 		});
 		if (index < 0) return;
 		this.spectators.splice(index, 1);
