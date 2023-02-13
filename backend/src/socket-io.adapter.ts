@@ -1,6 +1,6 @@
 import { t_get_one_fields } from "src/user/alias";
 import { UserService } from "src/user/user.service";
-import { ForbiddenException, INestApplicationContext } from "@nestjs/common";
+import { ForbiddenException, INestApplicationContext, Logger } from "@nestjs/common";
 import { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.interface";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
@@ -16,11 +16,13 @@ type UserData = t_get_one_fields;
 export class SocketIOAdapter extends IoAdapter {
 	private readonly app: INestApplicationContext;
 	private readonly config_service: ConfigService;
+	private readonly logger: Logger;
 
 	constructor(app: INestApplicationContext, configService: ConfigService) {
 		super(app);
 		this.app = app;
 		this.config_service = configService;
+		this.logger = new Logger(SocketIOAdapter.name);
 	}
 
 	/* PUBLIC ================================================================== */
@@ -37,6 +39,7 @@ export class SocketIOAdapter extends IoAdapter {
 		const port_str: string | undefined = this.config_service.get("CLIENT_PORT");
 
 		if (port_str === undefined) {
+			this.logger.log("Port not specified in .env file. Using default value.");
 			client_port = 3000;
 		} else {
 			client_port = parseInt(port_str);
@@ -48,6 +51,7 @@ export class SocketIOAdapter extends IoAdapter {
 				new RegExp(`/^http:\/\/192\.168\.1\.([1-9]|[1-9]\d):${client_port}$/`),
 			],
 		};
+		this.logger.log(`Cors options origin port is set to: ${client_port}`);
 
 		const jwt_service: JwtService = this.app.get(JwtService);
 		const config_service: ConfigService = this.app.get(ConfigService);
@@ -82,9 +86,6 @@ const websocketMiddleware =
 			}
 			const payload: { sub: string } = jwt_service.verify(token, { secret });
 			const user: UserData = await user_service.get_one(payload.sub, payload.sub);
-			// TODO: remove this assignation, it's useless
-			// as far as the user id is already contained in the retreived user
-			client.handshake.auth.token = payload.sub;
 			client.data.user = user;
 			next();
 		} catch (e) {

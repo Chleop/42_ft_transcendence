@@ -1,2 +1,2 @@
 export * from "./game.service";
-export * from "./spectatedrooms";
+export * from "./spectator.service";

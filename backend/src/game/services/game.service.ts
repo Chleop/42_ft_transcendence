@@ -3,29 +3,22 @@ import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { BadRequestException, ConflictException } from "@nestjs/common";
 import { Socket } from "socket.io";
 import { GameRoom } from "../rooms";
-import { Match, OpponentUpdate } from "../aliases";
-import { Results } from "../objects";
+import { Match } from "../aliases";
+import { Results, OpponentUpdate } from "../objects";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Matchmaking } from "../matchmaking";
+import { BadEvent, WrongData } from "../exceptions";
 
 /**
  * Game rooms manager.
  *
- * Holds the matchmaker.
+ * Holds the matchmaking unit.
  */
 @Injectable()
 export class GameService {
-	// REMIND: would it be better to make these properties static ?
-	// REMIND: check if passing `prisma_service` in readonly keep it working well
-	// TODO: in order to harmonise names, we should rename `prisma_service` to `_prisma_service`
-	private prisma_service: PrismaService;
-	// REMIND: check if passing `game_rooms` in readonly keep it working well
+	private readonly prisma_service: PrismaService;
 	private game_rooms: GameRoom[];
-
-	// REMIND: check if passing `matchmaking` in readonly keep it working well
-	// TODO: in order to harmonise names, we should rename `matchmaking` to `_matchmaking`
-	private matchmaking: Matchmaking;
-	// TODO: in order to harmonise names, we should rename `logger` to `_logger`
+	private readonly matchmaking: Matchmaking;
 	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
@@ -58,10 +51,11 @@ export class GameService {
 							id: results.winner,
 						},
 					},
-					scores: [results.score.player1_score, results.score.player2_score],
+					scores: [results.scores.player1_score, results.scores.player2_score],
 					dateTime: new Date(results.date),
 				},
 			});
+			this.logger.log(`Saved game '${room.match.name}' to database`);
 		} catch (error) {
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
@@ -85,33 +79,38 @@ export class GameService {
 	 */
 	public queueUp(client: Socket): GameRoom | null {
 		const index: number = this.findUserRoomIndex(client);
-		if (index >= 0) throw "Player already in game";
+		if (index >= 0) throw new BadEvent("Player already in game");
 		const new_game_room: GameRoom | null = this.matchmaking.queueUp(client);
-		if (new_game_room === null) return null;
+		if (new_game_room === null) {
+			this.logger.verbose(`${client.data.user.login} was queued up.`);
+			return null;
+		}
+
+		this.logger.verbose(`Room ${new_game_room.match.name} created.`);
+
 		this.game_rooms.push(new_game_room);
 		return new_game_room;
 	}
 
 	/**
-	 * Removes a player from the queue, or destroys their game room.
+	 * Removes a player from the queue.
 	 */
-	public async unQueue(client: Socket): Promise<Match | null> {
-		// Client has passed matchmaking
-		if (!this.matchmaking.unQueue(client)) {
-			const index: number = this.findUserRoomIndex(client);
+	public unQueue(client: Socket): GameRoom | null {
+		this.logger.verbose(`User ${client.data.user.login} is being unqueued`);
 
-			// Client is not in a gameroom
-			if (index < 0) return null;
+		/* Client was in matchmaking */
+		if (this.matchmaking.unQueue(client)) return null;
 
-			this.logger.log("Kicked from room");
+		const index: number = this.findUserRoomIndex(client);
 
-			// Client was in an ongoing game
-			const room: GameRoom = this.game_rooms[index];
-			const results: Results = room.cutGameShort(room.playerNumber(client));
-			const match: Match = await this.registerGameHistory(room, results);
+		/* Client is not in a gameroom */
+		if (index < 0) return null;
 
-			this.destroyRoom(room);
-			return match;
+		/* Client was in an ongoing game */
+		const room: GameRoom = this.game_rooms[index];
+		if (room.is_ongoing) {
+			this.logger.verbose(`Game '${room.match.name}' was ongoing`);
+			return room;
 		}
 		return null;
 	}
@@ -122,7 +121,7 @@ export class GameService {
 	public destroyRoom(room: GameRoom): void {
 		const index: number = this.game_rooms.indexOf(room);
 		if (index < 0) return;
-		this.logger.log(`Destroying room ${room.match.name}`);
+		this.logger.verbose(`Destroying room ${room.match.name}`);
 		room.destroyPlayerPing();
 		this.game_rooms.splice(index, 1);
 	}
@@ -134,7 +133,7 @@ export class GameService {
 	 */
 	public updateOpponent(client: Socket): OpponentUpdate {
 		const index: number = this.findUserRoomIndex(client);
-		if (index < 0) throw "Paddle update received but not in game";
+		if (index < 0) throw new BadEvent("Paddle update received but not in game");
 		return this.game_rooms[index].updatePaddle(client);
 	}
 
@@ -144,11 +143,11 @@ export class GameService {
 	public findUserGame(user_id: string): GameRoom {
 		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
 			return (
-				obj.match.player1.handshake.auth.token === user_id ||
-				obj.match.player2.handshake.auth.token === user_id
+				obj.match.player1.data.user.id === user_id ||
+				obj.match.player2.data.user.id === user_id
 			);
 		});
-		if (room === undefined) throw "Room does not exist";
+		if (room === undefined) throw new WrongData("Room does not exist");
 		return room;
 	}
 
