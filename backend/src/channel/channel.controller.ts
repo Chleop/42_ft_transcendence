@@ -44,6 +44,7 @@ import {
 } from "src/channel/error";
 import { Jwt2FAGuard } from "src/auth/guards";
 import { t_get_one_fields } from "src/user/alias";
+import { t_user_auth } from "src/auth/alias";
 
 @UseGuards(Jwt2FAGuard)
 @Controller("channel")
@@ -103,10 +104,10 @@ export class ChannelController {
 		request: {
 			user: t_get_one_fields;
 		},
-		@Param("id") channel_id: string,
+		@Param("id") id: string,
 	): Promise<void> {
 		try {
-			await this._channel_service.delete_one(request.user.id, channel_id);
+			await this._channel_service.delete_one(request.user.id, id);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError) {
 				this._logger.error(error.message);
@@ -123,6 +124,18 @@ export class ChannelController {
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
+	}
+
+	@Patch(":id/demote")
+	async demote_ones_operator(
+		@Req()
+		request: {
+			user: t_user_auth;
+		},
+		@Param("id") id: string,
+		@Body() dto: ChannelDemoteOperatorDto,
+	): Promise<void> {
+		// TODO: Implement
 	}
 
 	@Get("all")
@@ -248,6 +261,19 @@ export class ChannelController {
 				throw new BadRequestException(error.message);
 			}
 		}
+	}
+
+	@Patch(":id/promote")
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	async promote_ones_member(
+		@Req()
+		request: {
+			user: t_user_auth;
+		},
+		@Param("id") id: string,
+		@Body() dto: ChannelPromoteMemberDto,
+	): Promise<void> {
+		// TODO: Implement
 	}
 
 	@Post(":id/message")
