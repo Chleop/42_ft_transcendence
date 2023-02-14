@@ -74,4 +74,3 @@ export const limit_y: number = h_2 - ball_radius; // = 4.5 - 0.2 = 4.3
 export const pi_4: number = Math.PI * 0.25;
 
 export const cos_pi4: number = Math.cos(pi_4);
-export const sin_pi4: number = Math.sin(pi_4);

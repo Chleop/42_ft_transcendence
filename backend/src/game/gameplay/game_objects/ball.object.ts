@@ -128,23 +128,15 @@ export class Ball {
 	 * Shifts velocity vector depending on the ball position on the paddle.
 	 */
 	private shiftBouncing(paddle_y: number): void {
-		const oh: number = Math.abs(this.y - paddle_y);
-		const percent: number = oh / Constants.paddle_radius;
-		const new_vy: number = percent * Constants.cos_pi4;
-
-		const norm: number = Math.sqrt(1 + new_vy * new_vy);
-		this.vy = new_vy / norm;
-		this.vx = -(1 / norm);
-		/*
 		const orig_norm: number = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
 
+		const oh: number = this.y - paddle_y;
 		const vy: number = this.vy / orig_norm + 0.5 * oh;
 		const vx: number = -this.vx / orig_norm;
 
 		const norm: number = Math.sqrt(vx * vx + vy * vy);
 		this.vy = (vy / norm) * orig_norm;
 		this.vx = (vx / norm) * orig_norm;
-		*/
 	}
 
 	private generateSign(): number {

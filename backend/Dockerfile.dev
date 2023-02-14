@@ -3,12 +3,10 @@ FROM node:19
 WORKDIR /app
 
 RUN apt update \
-	&& apt install -y zsh \
-	&& sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" \
 	&& npm i -g npm \
 	&& npm i -g @nestjs/cli
 
-USER node
+# USER node
 
 EXPOSE 3000
 ENTRYPOINT ["/bin/bash", "/app/script/docker-entrypoint.dev.sh"]
