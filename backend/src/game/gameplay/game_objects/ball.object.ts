@@ -131,10 +131,10 @@ export class Ball {
 		const oh: number = Math.abs(this.y - paddle_y);
 		const percent: number = oh / Constants.paddle_radius;
 		const new_vy: number = percent * Constants.cos_pi4;
-		
+
 		const norm: number = Math.sqrt(1 + new_vy * new_vy);
-		this.vy = (new_vy / norm);
-		this.vx = (1 / norm);
+		this.vy = new_vy / norm;
+		this.vx = -(1 / norm);
 		/*
 		const orig_norm: number = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
 
