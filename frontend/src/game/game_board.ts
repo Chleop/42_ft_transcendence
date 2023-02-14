@@ -1,6 +1,6 @@
 import { Scene, State } from "../strawberry";
 import { Constants, OngoingGame } from ".";
-import { Renderer } from "./renderer";
+import { Renderer, Sprite } from "./renderer";
 
 /**
  * An exception which indicates that WebGL2 technology is not supported by the
@@ -45,6 +45,13 @@ class GameBoardClass extends Scene {
      */
     private render_state: RenderState;
 
+    private left_background: Sprite|undefined;
+    private right_background: Sprite|undefined;
+    private left_paddle: Sprite|undefined;
+    private right_paddle: Sprite|undefined;
+    private left_ball: Sprite|undefined;
+    private right_ball: Sprite|undefined;
+    
     /**
      * Creates a new `GameBoard` instance.
      */
@@ -75,6 +82,26 @@ class GameBoardClass extends Scene {
     /** Starts the game with a specific controller. */
     public start_game(ongoing_game: OngoingGame): void {
         this.ongoing_game = ongoing_game;
+        let skins = ongoing_game.get_skins();
+
+        skins.left_background.then(url => {
+            this.left_background = this.renderer.create_sprite(url);
+        });
+        skins.right_background.then(url => {
+            this.right_background = this.renderer.create_sprite(url);
+        });
+        skins.left_paddle.then(url => {
+            this.left_paddle = this.renderer.create_sprite(url);
+        });
+        skins.right_paddle.then(url => {
+            this.right_paddle = this.renderer.create_sprite(url);
+        });
+        skins.left_ball.then(url => {
+            this.left_ball = this.renderer.create_sprite(url);
+        });
+        skins.right_ball.then(url => {
+            this.right_ball = this.renderer.create_sprite(url);
+        });
     }
 
     /**
@@ -125,6 +152,32 @@ class GameBoardClass extends Scene {
             r.set_view_matrix(0.8 * 2 * (1.0 / aspect_ratio) / Constants.board_height, 0, 0, 0.8 * 2 / Constants.board_height);
         r.clear(0, 0, 0);
 
+        // Display the background.
+        if (this.left_background)
+            r.draw_sprite(this.left_background, -Constants.board_width / 2, -Constants.board_height / 2, Constants.board_width / 2, Constants.board_height);
+        if (this.right_background)
+            r.draw_sprite(this.right_background, Constants.board_width / 2, -Constants.board_height / 2, -Constants.board_width / 2, Constants.board_height);
+
+        // Display the player and its opponent.
+        if (this.left_paddle)
+            r.draw_sprite(this.left_paddle, -Constants.board_width / 2 + Constants.paddle_x - Constants.paddle_width, s.left_paddle.position - Constants.paddle_height / 2, Constants.paddle_width, Constants.paddle_height);
+        if (this.right_paddle)
+            r.draw_sprite(this.right_paddle, Constants.board_width / 2 - Constants.paddle_x + Constants.paddle_width, s.right_paddle.position - Constants.paddle_height / 2, -Constants.paddle_width, Constants.paddle_height);
+
+        // Display the ball.
+        if (this.left_ball)
+            r.draw_sprite(this.left_ball, s.ball.x - Constants.ball_radius / 2, s.ball.y - Constants.ball_radius / 2, Constants.ball_radius, Constants.ball_radius);
+
+        // Display the health of the opponent.
+        for (let i = 0; i < Constants.max_score - s.left_paddle.score; ++i) {
+            r.draw_hitbox(Constants.board_width / 2 - (i + 1) * (HEART_SIZE + HEART_GAP), Constants.board_height / 2 - HEART_GAP - HEART_SIZE, HEART_SIZE, HEART_SIZE);
+        }
+
+        // Display the health of the player.
+        for (let i = 0; i < Constants.max_score - s.right_paddle.score; ++i) {
+            r.draw_hitbox(-Constants.board_width / 2 + HEART_GAP + i * (HEART_SIZE + HEART_GAP), Constants.board_height / 2 - HEART_GAP - HEART_SIZE, HEART_SIZE, HEART_SIZE);
+        }
+        
         // When debug information are required, hitboxes are drawn.
         if (this.render_state.debug) {
             r.draw_hitbox(-Constants.board_width / 2, -Constants.board_height / 2, Constants.board_width, Constants.board_height);
@@ -177,4 +230,5 @@ class GameBoardClass extends Scene {
 }
 
 /** The global game board scene. */
-export const GameBoard = new GameBoardClass();
+const GAME_BOARD = new GameBoardClass();
+export default GAME_BOARD;

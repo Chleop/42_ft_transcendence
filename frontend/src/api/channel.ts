@@ -38,24 +38,6 @@ export interface Message {
 }
 
 /**
- * Information sent by the server when a channel is joined.
- */
-export interface ChannelJoined {
-    /**
-     * The ID of the channel.
-     */
-    id: ChannelId;
-    /**
-     * The last messages of the channel.
-     */
-    admin: boolean;
-    /**
-     * The last messages of the channel.
-     */
-    messages: Array<Message>
-}
-
-/**
  * Information about a channel.
  */
 export interface Channel {

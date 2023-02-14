@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import { Socket } from "socket.io";
 import { Match } from "../aliases";
 import { GameRoom } from "../rooms";
@@ -11,11 +12,13 @@ import { GameRoom } from "../rooms";
  */
 export class Matchmaking {
 	private queue: Socket | null;
+	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
 
 	constructor() {
 		this.queue = null;
+		this.logger = new Logger(Matchmaking.name);
 	}
 
 	/* PUBLIC ================================================================== */
@@ -29,10 +32,12 @@ export class Matchmaking {
 			this.queue = client;
 			return null;
 		} else {
-			if (this.queue.data.user.id === client.data.user.id)
-				throw "Client already in the queue";
+			if (this.queue.data.user.id === client.data.user.id) {
+				this.logger.verbose(`${this.queue.data.user.login} already in the queue`);
+				return null;
+			}
 			const match: Match = {
-				name: this.queue.handshake.auth.token + client.handshake.auth.token,
+				name: this.queue.id + client.id,
 				player1: this.queue,
 				player2: client,
 			};
@@ -46,7 +51,7 @@ export class Matchmaking {
 	 * Removes the person from the queue.
 	 */
 	public unQueue(client: Socket): boolean {
-		if (this.queue?.handshake.auth.token === client.handshake.auth.token) {
+		if (this.queue?.data.user.id === client.data.user.id) {
 			this.queue = null;
 			return true;
 		}

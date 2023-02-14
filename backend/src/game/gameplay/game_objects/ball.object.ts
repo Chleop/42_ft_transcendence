@@ -1,6 +1,21 @@
 import { Constants } from "../../constants";
 
 /**
+ * Ball state at each refresh() call:
+ *
+ * either it collided with a paddle,
+ * either it's outside of the 'playable area',
+ * else it is not in a specific state.
+ */
+export enum BallRefreshResult {
+	oneCollide,
+	twoCollide,
+	oneOutside,
+	twoOutside,
+	nothing,
+}
+
+/**
  * Pong ball coordinates.
  */
 export class Ball {
@@ -35,11 +50,11 @@ export class Ball {
 		this.refreshX(delta_time);
 		this.refreshY(delta_time);
 
-		if (this.x > Constants.max_x) return Constants.BallRefreshResult.twoOutside;
-		else if (this.x > Constants.limit_x) return Constants.BallRefreshResult.twoCollide;
-		else if (this.x < -Constants.max_x) return Constants.BallRefreshResult.oneOutside;
-		else if (this.x < -Constants.limit_x) return Constants.BallRefreshResult.oneCollide;
-		return Constants.BallRefreshResult.nothing;
+		if (this.x > Constants.max_x) return BallRefreshResult.twoOutside;
+		else if (this.x > Constants.limit_x) return BallRefreshResult.twoCollide;
+		else if (this.x < -Constants.max_x) return BallRefreshResult.oneOutside;
+		else if (this.x < -Constants.limit_x) return BallRefreshResult.oneCollide;
+		return BallRefreshResult.nothing;
 	}
 
 	/**

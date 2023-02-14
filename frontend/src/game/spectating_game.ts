@@ -1,5 +1,5 @@
-import { Constants, OngoingGame, Paddle, } from ".";
-import { SpecSocket, SpectatorStateUpdate, UserId } from "../api";
+import { Constants, OngoingGame, Paddle, SkinUrls, } from ".";
+import { Client, SpecSocket, SpectatorStateUpdate, UserId } from "../api";
 import { History } from "../strawberry";
 
 /** An onging game that we are spectating. */
@@ -25,6 +25,9 @@ export class SpectatingGame extends OngoingGame {
     /** Becomes `true` when the player left by himself. */
     private has_left: boolean;
 
+    private left_id: UserId;
+    private right_id: UserId;
+
     public constructor(user_id: UserId) {
         super();
 
@@ -39,6 +42,9 @@ export class SpectatingGame extends OngoingGame {
         this.socket = socket;
         this.has_left = false;
         this.user_id = user_id;
+
+        this.left_id = user_id;
+        this.right_id = user_id;
     }
 
     private on_spec_update(state: SpectatorStateUpdate) {
@@ -95,6 +101,17 @@ export class SpectatingGame extends OngoingGame {
 
     public get location(): string {
         return `/spectate/${this.user_id}`;
+    }
+
+    public get_skins(): SkinUrls {
+        return {
+            left_background: Client.get_background(this.left_id),
+            right_background: Client.get_background(this.right_id),
+            left_paddle: Client.get_paddle(this.left_id),
+            right_paddle: Client.get_paddle(this.right_id),
+            left_ball: Client.get_ball(this.left_id),
+            right_ball: Client.get_ball(this.right_id),
+        };
     }
 }
 

@@ -37,4 +37,5 @@ class GatewayClass {
 }
 
 /** The global gateway. */
-export const Gateway = new GatewayClass();
+const GATEWAY = new GatewayClass();
+export default GATEWAY;

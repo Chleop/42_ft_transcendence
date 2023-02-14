@@ -38,6 +38,20 @@ export const Users = (function() {
             delete this.avatars[id];
         }
 
+        public async patch_name(id: UserId|null, name: string) {
+            const m = await this.me();
+            if (!id)
+                id = m.id;
+            if (m.id === id)
+                m.name = name;
+            const u = await this.get(id);
+            u.name = name;
+        }
+
+        public set_avatar(id: UserId, avatar: string) {
+            this.avatars[id] = new Soon(avatar);
+        }
+
         /**
          * Returns the requested user's avatar.
          *
