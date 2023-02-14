@@ -191,7 +191,7 @@ export class RawHTTPClient {
 	public async create_channel(
 		name: string,
 		priv: boolean,
-		password: string = "",
+		password?: string,
 	): Promise<Channel> {
 		return (
 			await this.make_request({
