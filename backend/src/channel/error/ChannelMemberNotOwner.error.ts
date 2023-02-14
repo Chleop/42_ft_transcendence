@@ -1,10 +1,10 @@
-export class ChannelPasswordMissingError implements Error {
+export class ChannelMemberNotOwnerError implements Error {
 	private readonly _name: string;
 	private readonly _message: string;
 
 	constructor(details?: string) {
-		this._name = "ChannelPasswordMissingError";
-		this._message = "No channel password provided although it is required";
+		this._name = "ChannelMemberNotOwnerError";
+		this._message = "Channel member is not the owner";
 		if (details) {
 			this._message += ` (${details})`;
 		}

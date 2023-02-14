@@ -884,6 +884,118 @@ export class UserService {
 	}
 
 	/**
+	 * @brief	Get a user's background skin from the database.
+	 * 			Requested user must be active.
+	 *
+	 * @param	requested_user_id The id of the user to get the skin from.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 *
+	 * @return	A promise containing the wanted background skin.
+	 */
+	public async get_ones_background(requested_user_id: string): Promise<StreamableFile> {
+		type t_requested_user_fields = {
+			skin: {
+				background: string;
+			};
+		};
+		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				skin: {
+					select: {
+						background: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requested_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		if (!requested_user) throw new UserNotFoundError(requested_user_id);
+		return new StreamableFile(
+			createReadStream(join(process.cwd(), requested_user.skin.background)),
+		);
+	}
+
+	/**
+	 * @brief	Get a user's ball skin from the database.
+	 * 			Requested user must be active.
+	 *
+	 * @param	requested_user_id The id of the user to get the skin from.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 *
+	 * @return	A promise containing the wanted ball skin.
+	 */
+	public async get_ones_ball(requested_user_id: string): Promise<StreamableFile> {
+		type t_requested_user_fields = {
+			skin: {
+				ball: string;
+			};
+		};
+		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				skin: {
+					select: {
+						ball: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requested_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		if (!requested_user) throw new UserNotFoundError(requested_user_id);
+		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.skin.ball)));
+	}
+
+	/**
+	 * @brief	Get a user's paddle skin from the database.
+	 * 			Requested user must be active.
+	 *
+	 * @param	requested_user_id The id of the user to get the skin from.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserNotFoundError
+	 *
+	 * @return	A promise containing the wanted paddle skin.
+	 */
+	public async get_ones_paddle(requested_user_id: string): Promise<StreamableFile> {
+		type t_requested_user_fields = {
+			skin: {
+				paddle: string;
+			};
+		};
+		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+			select: {
+				skin: {
+					select: {
+						paddle: true,
+					},
+				},
+			},
+			where: {
+				idAndState: {
+					id: requested_user_id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		if (!requested_user) throw new UserNotFoundError(requested_user_id);
+		return new StreamableFile(
+			createReadStream(join(process.cwd(), requested_user.skin.paddle)),
+		);
+	}
+
+	/**
 	 * @brief	Make a user send a direct message to another user.
 	 * 			Receiving user must be active, not be the same as the sending user,
 	 * 			and have at least 1 link with the sending user.
@@ -1397,117 +1509,5 @@ export class UserService {
 			throw new UnknownError();
 		}
 		this._logger.log(`Updated user ${id}'s avatar`);
-	}
-
-	/**
-	 * @brief	Get a user's background skin from the database.
-	 * 			Requested user must be active.
-	 *
-	 * @param	requested_user_id The id of the user to get the skin from.
-	 *
-	 * @error	The following errors may be thrown :
-	 * 			- UserNotFoundError
-	 *
-	 * @return	A promise containing the wanted background skin.
-	 */
-	public async get_ones_background(requested_user_id: string): Promise<StreamableFile> {
-		type t_requested_user_fields = {
-			skin: {
-				background: string;
-			};
-		};
-		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
-			select: {
-				skin: {
-					select: {
-						background: true,
-					},
-				},
-			},
-			where: {
-				idAndState: {
-					id: requested_user_id,
-					state: StateType.ACTIVE,
-				},
-			},
-		});
-		if (!requested_user) throw new UserNotFoundError(requested_user_id);
-		return new StreamableFile(
-			createReadStream(join(process.cwd(), requested_user.skin.background)),
-		);
-	}
-
-	/**
-	 * @brief	Get a user's ball skin from the database.
-	 * 			Requested user must be active.
-	 *
-	 * @param	requested_user_id The id of the user to get the skin from.
-	 *
-	 * @error	The following errors may be thrown :
-	 * 			- UserNotFoundError
-	 *
-	 * @return	A promise containing the wanted ball skin.
-	 */
-	public async get_ones_ball(requested_user_id: string): Promise<StreamableFile> {
-		type t_requested_user_fields = {
-			skin: {
-				ball: string;
-			};
-		};
-		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
-			select: {
-				skin: {
-					select: {
-						ball: true,
-					},
-				},
-			},
-			where: {
-				idAndState: {
-					id: requested_user_id,
-					state: StateType.ACTIVE,
-				},
-			},
-		});
-		if (!requested_user) throw new UserNotFoundError(requested_user_id);
-		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.skin.ball)));
-	}
-
-	/**
-	 * @brief	Get a user's paddle skin from the database.
-	 * 			Requested user must be active.
-	 *
-	 * @param	requested_user_id The id of the user to get the skin from.
-	 *
-	 * @error	The following errors may be thrown :
-	 * 			- UserNotFoundError
-	 *
-	 * @return	A promise containing the wanted paddle skin.
-	 */
-	public async get_ones_paddle(requested_user_id: string): Promise<StreamableFile> {
-		type t_requested_user_fields = {
-			skin: {
-				paddle: string;
-			};
-		};
-		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
-			select: {
-				skin: {
-					select: {
-						paddle: true,
-					},
-				},
-			},
-			where: {
-				idAndState: {
-					id: requested_user_id,
-					state: StateType.ACTIVE,
-				},
-			},
-		});
-		if (!requested_user) throw new UserNotFoundError(requested_user_id);
-		return new StreamableFile(
-			createReadStream(join(process.cwd(), requested_user.skin.paddle)),
-		);
 	}
 }

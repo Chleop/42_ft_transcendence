@@ -8,18 +8,17 @@ import {
 	ChannelAlreadyJoinedError,
 	ChannelFieldUnavailableError,
 	ChannelForbiddenToJoinError,
-	ChannelInvitationIncorrectError,
-	ChannelInvitationMissingError,
-	ChannelInvitationUnexpectedError,
 	ChannelMemberAlreadyDemotedError,
 	ChannelMemberAlreadyMutedError,
 	ChannelMemberAlreadyPromotedError,
 	ChannelMemberMutedError,
 	ChannelMemberNotFoundError,
 	ChannelMemberNotOperatorError,
+	ChannelMemberNotOwnerError,
 	ChannelMessageNotFoundError,
 	ChannelMessageTooLongError,
 	ChannelMissingOwnerError,
+	ChannelNameAlreadyTakenError,
 	ChannelNotFoundError,
 	ChannelNotJoinedError,
 	ChannelNotOwnedError,
@@ -808,7 +807,7 @@ export class ChannelService {
 	 * 			Depending on the channel's type, the user will join the channel in different ways :
 	 * 			- PUBLIC, nothing is requiered.
 	 * 			- PROTECTED, a correct password is required.
-	 * 			- PRIVATE, an valid invitation is required.
+	 * 			- PRIVATE, nothing is requered.
 	 * 			If the channel is ownerless, the user will inherit of the ownership of the channel.
 	 * 			It is assumed that the provided joining user id is valid.
 	 * 			(user exists and is ACTIVE)
@@ -816,20 +815,14 @@ export class ChannelService {
 	 * @param	joining_user_id The id of the user who is joining the channel.
 	 * @param	channel_id The id of the channel to join.
 	 * @param	password The password of the channel to join.
-	 * @param	inviting_user_id The id of the user who invited the joining user.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
 	 * 			- ChannelAlreadyJoinedError
 	 * 			- ChannelPasswordUnexpectedError
-	 * 			- ChannelInvitationMissingError
-	 * 			- ChannelInvitationIncorrectError
-	 * 			- ChannelInvitationUnexpectedError
 	 * 			- ChannelPasswordMissingError
 	 * 			- ChannelPasswordIncorrectError
 	 * 			- ChannelForbiddenToJoinError
-	 * 			- ChannelRelationNotFoundError
-	 * 			- UnknownError
 	 *
 	 * @return	A promise containing the joined channel's data.
 	 */
@@ -837,7 +830,6 @@ export class ChannelService {
 		joining_user_id: string,
 		channel_id: string,
 		password?: string,
-		inviting_user_id?: string,
 	): Promise<t_join_one_fields> {
 		const channel_tmp: t_join_one_fields_tmp | null = await this._prisma.channel.findUnique({
 			select: {
@@ -876,18 +868,9 @@ export class ChannelService {
 				if (password !== undefined) {
 					throw new ChannelPasswordUnexpectedError();
 				}
-				if (inviting_user_id === undefined) {
-					throw new ChannelInvitationMissingError();
-				}
-				if (channel_tmp.members.every((member) => member.id !== inviting_user_id)) {
-					throw new ChannelInvitationIncorrectError();
-				}
 				break;
 
 			case ChanType.PROTECTED:
-				if (inviting_user_id !== undefined) {
-					throw new ChannelInvitationUnexpectedError();
-				}
 				if (password === undefined) {
 					throw new ChannelPasswordMissingError();
 				} else if (!(await argon2.verify(<string>channel_tmp.hash, password))) {
@@ -908,29 +891,19 @@ export class ChannelService {
 			);
 		}
 
-		try {
-			await this._prisma.channel.update({
-				data: {
-					members: {
-						connect: {
-							id: joining_user_id,
-						},
+		await this._prisma.channel.update({
+			data: {
+				members: {
+					connect: {
+						id: joining_user_id,
 					},
 				},
-				where: {
-					id: channel_id,
-				},
-			});
-			this._logger.log(`Channel ${channel_id} joined by ${joining_user_id}`);
-		} catch (error) {
-			if (error instanceof PrismaClientKnownRequestError) {
-				switch (error.code) {
-					case "P2025":
-						throw new ChannelRelationNotFoundError("members");
-				}
-			}
-			throw new UnknownError();
-		}
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+		this._logger.log(`Channel ${channel_id} joined by ${joining_user_id}`);
 
 		this._gateway.make_user_socket_join_room(joining_user_id, channel_id);
 		const channel: t_join_one_fields = {
@@ -1570,5 +1543,127 @@ export class ChannelService {
 		this._logger.log(
 			`User ${unbanned_user_id} unbanned from channel ${channel_id} by user ${unbanning_user_id}`,
 		);
+	}
+
+	/**
+	 * @brief	Make a user update a specific channel.
+	 * 			The updating user must be the owner of the channel.
+	 * 			It is assumed that the provided updating user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	updating_user_id The id of the user who is updating the channel.
+	 * @param	channel_id The id of the channel to update.
+	 * @param	name The new name of the channel.
+	 * @param	type The new type of the channel.
+	 * @param	password The new password of the channel.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
+	 * 			- ChannelMemberNotOwnerError
+	 * 			- ChannelNameAlreadyTakenError
+	 * 			- ChannelPasswordMissingError
+	 * 			- ChannelPasswordNotAllowedError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async update_one(
+		updating_user_id: string,
+		channel_id: string,
+		name?: string,
+		type?: ChanType,
+		password?: string,
+	): Promise<void> {
+		type t_fields = {
+			chanType: ChanType;
+			hash: string | null;
+			members: {
+				id: string;
+			}[];
+			name: string;
+			owner: {
+				id: string;
+			} | null;
+		};
+
+		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			select: {
+				chanType: true,
+				hash: true,
+				members: {
+					select: {
+						id: true,
+					},
+				},
+				name: true,
+				owner: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+
+		if (!channel) {
+			throw new ChannelNotFoundError(channel_id);
+		}
+
+		if (channel.members.every((member): boolean => member.id !== updating_user_id)) {
+			throw new ChannelNotJoinedError(`user: ${updating_user_id} | channel: ${channel_id}`);
+		}
+
+		if (channel.owner!.id !== updating_user_id) {
+			throw new ChannelMemberNotOwnerError(
+				`user: ${updating_user_id} | channel: ${channel_id}`,
+			);
+		}
+
+		if (name !== undefined) {
+			if (
+				(
+					await this._prisma.channel.findUnique({
+						select: {
+							id: true,
+						},
+						where: {
+							name: name,
+						},
+					})
+				)?.id !== channel_id
+			) {
+				throw new ChannelNameAlreadyTakenError(name);
+			}
+			channel.name = name;
+		}
+
+		if (type !== undefined) {
+			channel.chanType = type;
+		}
+
+		if (password !== undefined) {
+			channel.hash = password ? await argon2.hash(password) : null;
+		}
+
+		if (channel.chanType === ChanType.PROTECTED && !channel.hash) {
+			throw new ChannelPasswordMissingError();
+		}
+
+		if (channel.chanType !== ChanType.PROTECTED && channel.hash) {
+			throw new ChannelPasswordNotAllowedError();
+		}
+
+		await this._prisma.channel.update({
+			data: {
+				chanType: channel.chanType,
+				hash: channel.hash,
+				name: channel.name,
+			},
+			where: {
+				id: channel_id,
+			},
+		});
 	}
 }

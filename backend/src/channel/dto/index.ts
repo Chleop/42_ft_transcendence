@@ -8,3 +8,4 @@ export * from "src/channel/dto/ChannelMessageSend.dto";
 export * from "src/channel/dto/ChannelMuteMember.dto";
 export * from "src/channel/dto/ChannelPromoteMember.dto";
 export * from "src/channel/dto/ChannelUnbanMember.dto";
+export * from "src/channel/dto/ChannelUpdate.dto";

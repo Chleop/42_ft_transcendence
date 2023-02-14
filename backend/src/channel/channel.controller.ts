@@ -17,6 +17,7 @@ import {
 	UsePipes,
 	ValidationPipe,
 	Logger,
+	ConflictException,
 } from "@nestjs/common";
 import {
 	ChannelBanMemberDto,
@@ -29,15 +30,13 @@ import {
 	ChannelMuteMemberDto,
 	ChannelPromoteMemberDto,
 	ChannelUnbanMemberDto,
+	ChannelUpdateDto,
 } from "src/channel/dto";
 import { Channel, ChannelMessage } from "@prisma/client";
 import {
 	ChannelAlreadyJoinedError,
 	ChannelFieldUnavailableError,
 	ChannelForbiddenToJoinError,
-	ChannelInvitationIncorrectError,
-	ChannelInvitationMissingError,
-	ChannelInvitationUnexpectedError,
 	ChannelMemberAlreadyDemotedError,
 	ChannelMemberAlreadyMutedError,
 	ChannelMemberAlreadyPromotedError,
@@ -45,8 +44,10 @@ import {
 	ChannelMemberNotBannedError,
 	ChannelMemberNotFoundError,
 	ChannelMemberNotOperatorError,
+	ChannelMemberNotOwnerError,
 	ChannelMessageNotFoundError,
 	ChannelMessageTooLongError,
+	ChannelNameAlreadyTakenError,
 	ChannelNotFoundError,
 	ChannelNotJoinedError,
 	ChannelNotOwnedError,
@@ -312,23 +313,14 @@ export class ChannelController {
 		@Body() dto: ChannelJoinDto,
 	): Promise<t_join_one_fields> {
 		try {
-			return await this._channel_service.join_one(
-				request.user.id,
-				id,
-				dto.password,
-				dto.inviting_user_id,
-			);
+			return await this._channel_service.join_one(request.user.id, id, dto.password);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
 				error instanceof ChannelAlreadyJoinedError ||
 				error instanceof ChannelPasswordUnexpectedError ||
-				error instanceof ChannelInvitationMissingError ||
-				error instanceof ChannelInvitationIncorrectError ||
-				error instanceof ChannelInvitationUnexpectedError ||
 				error instanceof ChannelPasswordMissingError ||
-				error instanceof ChannelPasswordIncorrectError ||
-				error instanceof ChannelRelationNotFoundError
+				error instanceof ChannelPasswordIncorrectError
 			) {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
@@ -336,10 +328,6 @@ export class ChannelController {
 			if (error instanceof ChannelForbiddenToJoinError) {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
-			}
-			if (error instanceof UnknownError) {
-				this._logger.error(error.message);
-				throw new InternalServerErrorException(error.message);
 			}
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
@@ -487,6 +475,47 @@ export class ChannelController {
 				throw new ForbiddenException(error.message);
 			}
 
+			this._logger.error("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+	}
+
+	@Patch(":id")
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	async update_one(
+		@Req()
+		request: {
+			user: t_user_auth;
+		},
+		@Param("id") id: string,
+		@Body() dto: ChannelUpdateDto,
+	): Promise<void> {
+		try {
+			await this._channel_service.update_one(
+				request.user.id,
+				id,
+				dto.name,
+				dto.type,
+				dto.password,
+			);
+		} catch (error) {
+			if (
+				error instanceof ChannelNotFoundError ||
+				error instanceof ChannelNotJoinedError ||
+				error instanceof ChannelPasswordMissingError ||
+				error instanceof ChannelPasswordNotAllowedError
+			) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelMemberNotOwnerError) {
+				this._logger.error(error.message);
+				throw new ForbiddenException(error.message);
+			}
+			if (error instanceof ChannelNameAlreadyTakenError) {
+				this._logger.error(error.message);
+				throw new ConflictException(error.message);
+			}
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
