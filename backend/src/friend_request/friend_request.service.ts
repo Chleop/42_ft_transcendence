@@ -17,8 +17,8 @@ export class FriendRequestService {
 	private _prisma: PrismaService;
 	private readonly _logger: Logger;
 
-	constructor() {
-		this._prisma = new PrismaService();
+	constructor(prisma_service: PrismaService) {
+		this._prisma = prisma_service;
 		this._logger = new Logger(FriendRequestService.name);
 	}
 

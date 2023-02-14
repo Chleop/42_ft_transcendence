@@ -10,6 +10,8 @@ import { JwtStrategy, FtOauthStrategy } from "./strategy";
 import { FtOauthGuard, Jwt2FAGuard, JwtPendingStateGuard } from "./guards";
 import { SessionSerializer } from "./utils/Serializer";
 import { HttpModule } from "@nestjs/axios";
+import { ChannelService } from "src/channel/channel.service";
+import { ChatGateway } from "src/chat/chat.gateway";
 
 @Module({
 	imports: [
@@ -25,6 +27,8 @@ import { HttpModule } from "@nestjs/axios";
 		UserService,
 		ConfigService,
 		JwtStrategy,
+		ChannelService,
+		ChatGateway,
 		FtOauthGuard,
 		Jwt2FAGuard,
 		JwtPendingStateGuard,

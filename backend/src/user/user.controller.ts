@@ -47,8 +47,8 @@ export class UserController {
 	private _user_service: UserService;
 	private readonly _logger: Logger;
 
-	constructor() {
-		this._user_service = new UserService();
+	constructor(user_service: UserService) {
+		this._user_service = user_service;
 		this._logger = new Logger(UserController.name);
 	}
 

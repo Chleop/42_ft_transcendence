@@ -24,8 +24,8 @@ export class AuthController {
 	private _authService: AuthService;
 	private readonly _logger: Logger;
 
-	constructor() {
-		this._authService = new AuthService();
+	constructor(auth_service: AuthService) {
+		this._authService = auth_service;
 		this._logger = new Logger(AuthController.name);
 	}
 

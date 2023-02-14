@@ -35,9 +35,9 @@ export class ChannelService {
 	private _gateway: ChatGateway;
 	private readonly _logger: Logger;
 
-	constructor() {
-		this._prisma = new PrismaService();
-		this._gateway = new ChatGateway();
+	constructor(prisma_service: PrismaService, chat_gateway: ChatGateway) {
+		this._prisma = prisma_service;
+		this._gateway = chat_gateway;
 		this._logger = new Logger(ChannelService.name);
 	}
 

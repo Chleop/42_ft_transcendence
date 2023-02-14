@@ -4,9 +4,8 @@ import { PrismaClient } from "@prisma/client";
 
 @Injectable()
 export class PrismaService extends PrismaClient {
-	constructor() {
-		const config: ConfigService = new ConfigService();
-		const url: string | undefined = config.get("DATABASE_URL");
+	constructor(config_service: ConfigService) {
+		const url: string | undefined = config_service.get("DATABASE_URL");
 
 		if (url === undefined) {
 			throw new Error("DATABASE_URL is undefined!");

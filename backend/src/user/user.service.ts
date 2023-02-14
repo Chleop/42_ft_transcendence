@@ -40,10 +40,10 @@ export class UserService {
 	private _prisma: PrismaService;
 	private readonly _logger: Logger;
 
-	constructor() {
-		this._channel = new ChannelService();
-		this._gateway = new ChatGateway();
-		this._prisma = new PrismaService();
+	constructor(channel_service: ChannelService, chat_gateway: ChatGateway, prisma_service: PrismaService) {
+		this._channel = channel_service;
+		this._gateway = chat_gateway;
+		this._prisma = prisma_service;
 		this._logger = new Logger(UserService.name);
 	}
 

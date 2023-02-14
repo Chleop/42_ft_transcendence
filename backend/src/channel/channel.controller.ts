@@ -52,8 +52,8 @@ export class ChannelController {
 	private _channel_service: ChannelService;
 	private readonly _logger: Logger;
 
-	constructor() {
-		this._channel_service = new ChannelService();
+	constructor(channel_service: ChannelService) {
+		this._channel_service = channel_service;
 		this._logger = new Logger(ChannelController.name);
 	}
 
