@@ -101,7 +101,6 @@ class GameBoardClass extends Scene {
         this.warped_canvas = this.renderer.create_framebuffer(w, h);
 
         window.addEventListener("keydown", e => {
-            console.log(e.key);
             if (e.key === "D") {
                 this.render_state.debug = !this.render_state.debug;
                 console.info("toggled debug infos: " + this.render_state.debug);
