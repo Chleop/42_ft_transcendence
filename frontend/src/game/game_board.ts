@@ -14,6 +14,7 @@ export class WebGL2NotSupported { }
 export interface RenderState {
     /** Whether hitboxes and other debug information should be displayed. */
     debug: boolean;
+    wtf: boolean,
 }
 
 function get_framebuffer_dims(width: number, height: number): [number, number] {
@@ -94,16 +95,19 @@ class GameBoardClass extends Scene {
         this.last_timestamp_ms = 0;
         this.canvas = canvas;
         this.renderer = renderer;
-        this.render_state = { debug: false };
+        this.render_state = { debug: false, wtf: false };
         const [w, h] = get_framebuffer_dims(canvas.width, canvas.height);
-        console.log(w / h);
-        console.log(Constants.board_width / Constants.board_height);
         this.tmp_canvas = this.renderer.create_framebuffer(w, h);
         this.warped_canvas = this.renderer.create_framebuffer(w, h);
 
         window.addEventListener("keydown", e => {
-            if (e.key === "F10") {
+            console.log(e.key);
+            if (e.key === "D") {
                 this.render_state.debug = !this.render_state.debug;
+                console.info("toggled debug infos: " + this.render_state.debug);
+            } else if (e.key === "G") {
+                this.render_state.wtf = !this.render_state.wtf;
+                console.info("toggled WTF shader: " + this.render_state.wtf);
             }
         });
     }
@@ -231,6 +235,13 @@ class GameBoardClass extends Scene {
             for (let i = 0; i < Constants.max_score - s.right_paddle.score; ++i) {
                 r.draw_hitbox(-Constants.board_width / 2 + HEART_GAP + i * (HEART_SIZE + HEART_GAP), Constants.board_height / 2 - HEART_GAP - HEART_SIZE, HEART_SIZE, HEART_SIZE);
             }
+        }
+
+        if (this.render_state.wtf) {
+            r.bind_framebuffer(this.warped_canvas);
+            r.wtf(this.tmp_canvas, this.warped_canvas.width, this.warped_canvas.height);
+            r.bind_framebuffer(this.tmp_canvas);
+            r.draw_image(this.warped_canvas);
         }
 
         r.bind_framebuffer(this.warped_canvas);

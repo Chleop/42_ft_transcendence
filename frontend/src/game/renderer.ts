@@ -2,6 +2,7 @@ import { hitbox_fragment_shader_source, hitbox_vertex_shader_source } from "./hi
 import { image_fragment_shader_source, image_vertex_shader_source } from "./image_shader";
 import { sprite_fragment_shader_source, sprite_vertex_shader_source } from "./sprite_shader";
 import { warp_fragment_shader_source, warp_vertex_shader_source } from "./warp_shader";
+import { wtf_fragment_shader_source, wtf_vertex_shader_source } from "./wtf_shader";
 
 /**
  * An exception which indicates that the WebGL2 renderer produced an error.
@@ -183,6 +184,9 @@ export class Renderer {
 
     private warp_uniform_screen: WebGLUniformLocation;
 
+    private wtf_program: WebGLProgram;
+    private wtf_uniform_screen: WebGLUniformLocation;
+
     private canvas_width: number;
     private canvas_height: number;
 
@@ -210,6 +214,8 @@ export class Renderer {
         this.image_program = create_program(this.gl, image_vertex_shader_source, image_fragment_shader_source);
         this.warp_program = create_program(this.gl, warp_vertex_shader_source, warp_fragment_shader_source);
         this.warp_uniform_screen = get_uniform_location(this.gl, this.warp_program, "screen");
+        this.wtf_program = create_program(this.gl, wtf_vertex_shader_source, wtf_fragment_shader_source);
+        this.wtf_uniform_screen = get_uniform_location(this.gl, this.wtf_program, "screen");
 
         this.canvas_width = 1;
         this.canvas_height = 1;
@@ -279,6 +285,13 @@ export class Renderer {
         this.gl.useProgram(this.warp_program);
         this.gl.bindTexture(this.gl.TEXTURE_2D, sprite.texture);
         this.gl.uniform2f(this.warp_uniform_screen, width, height);
+        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+    }
+
+    public wtf(sprite: WithTexture, width: number, height: number) {
+        this.gl.useProgram(this.wtf_program);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, sprite.texture);
+        this.gl.uniform2f(this.wtf_uniform_screen, width, height);
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
     }
 
