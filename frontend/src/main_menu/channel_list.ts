@@ -73,6 +73,52 @@ export class ChannelListElement {
         container.id = "create-channel-container";
         screen.appendChild(container);
 
+        const new_channel_container = document.createElement("div");
+        new_channel_container.id = "new-channel-container";
+        container.appendChild(new_channel_container);
+
+        const new_channel_title = document.createElement("div");
+        new_channel_title.id = "new-channel-title";
+        new_channel_title.innerText = "Create Channel";
+        new_channel_container.appendChild(new_channel_title);
+
+        const new_channel_edit_row = document.createElement("div");
+        new_channel_edit_row.id = "new-channel-edit-row";
+        new_channel_container.appendChild(new_channel_edit_row);
+
+        const channel_name_container = document.createElement("div");
+        channel_name_container.classList.add("editor-field-container");
+        new_channel_edit_row.appendChild(channel_name_container);
+        
+        const channel_name = document.createElement("input");
+        channel_name.type = "text";
+        channel_name.classList.add("editor-field");
+        channel_name_container.appendChild(channel_name);
+
+        const channel_name_label = document.createElement("div");
+        channel_name_label.classList.add("editor-field-label");
+        channel_name_label.innerText = "Name";
+        channel_name_container.appendChild(channel_name_label);
+
+        const channel_password_container = document.createElement("div");
+        channel_password_container.classList.add("editor-field-container");
+        new_channel_edit_row.appendChild(channel_password_container);
+        
+        const channel_password = document.createElement("input");
+        channel_password.type = "password";
+        channel_password.classList.add("editor-field");
+        channel_password_container.appendChild(channel_password);
+
+        const channel_password_label = document.createElement("div");
+        channel_password_label.innerText = "Password"
+        channel_password_label.classList.add("editor-field-label");
+        channel_password_container.appendChild(channel_password_label);
+
+        const channel_private = document.createElement("button");
+        channel_private.innerText = "PRIV";
+        channel_private.id = "new-channel-private";
+        new_channel_edit_row.appendChild(channel_private);
+        
         const channel_list = document.createElement("div");
         channel_list.id = "create-channel-list";
         container.appendChild(channel_list);
