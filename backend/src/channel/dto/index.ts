@@ -5,5 +5,6 @@ export * from "src/channel/dto/ChannelJoin.dto";
 export * from "src/channel/dto/ChannelKickMember.dto";
 export * from "src/channel/dto/ChannelMessageGet.dto";
 export * from "src/channel/dto/ChannelMessageSend.dto";
+export * from "src/channel/dto/ChannelMuteMember.dto";
 export * from "src/channel/dto/ChannelPromoteMember.dto";
 export * from "src/channel/dto/ChannelUnbanMember.dto";

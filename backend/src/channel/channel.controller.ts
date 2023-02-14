@@ -26,6 +26,7 @@ import {
 	ChannelKickMemberDto,
 	ChannelMessageGetDto,
 	ChannelMessageSendDto,
+	ChannelMuteMemberDto,
 	ChannelPromoteMemberDto,
 	ChannelUnbanMemberDto,
 } from "src/channel/dto";
@@ -38,7 +39,9 @@ import {
 	ChannelInvitationMissingError,
 	ChannelInvitationUnexpectedError,
 	ChannelMemberAlreadyDemotedError,
+	ChannelMemberAlreadyMutedError,
 	ChannelMemberAlreadyPromotedError,
+	ChannelMemberMutedError,
 	ChannelMemberNotBannedError,
 	ChannelMemberNotFoundError,
 	ChannelMemberNotOperatorError,
@@ -261,6 +264,43 @@ export class ChannelController {
 		return messages;
 	}
 
+	@Patch(":id/mute")
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	async mute_ones_member(
+		@Req()
+		request: {
+			user: t_user_auth;
+		},
+		@Param("id") id: string,
+		@Body() dto: ChannelMuteMemberDto,
+	): Promise<void> {
+		try {
+			await this._channel_service.mute_ones_member(
+				request.user.id,
+				id,
+				dto.user_id,
+				dto.duration,
+			);
+		} catch (error) {
+			if (
+				error instanceof ChannelNotFoundError ||
+				error instanceof ChannelNotJoinedError ||
+				error instanceof ChannelMemberNotFoundError ||
+				error instanceof ChannelMemberAlreadyMutedError
+			) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelMemberNotOperatorError) {
+				this._logger.error(error.message);
+				throw new ForbiddenException(error.message);
+			}
+
+			this._logger.error("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+	}
+
 	@Patch(":id/join")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async join_one(
@@ -409,7 +449,10 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			if (error instanceof ChannelMessageTooLongError) {
+			if (
+				error instanceof ChannelMemberMutedError ||
+				error instanceof ChannelMessageTooLongError
+			) {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}

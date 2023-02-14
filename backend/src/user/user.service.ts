@@ -370,7 +370,6 @@ export class UserService {
 			).id;
 			this._logger.log(`User ${user_id} created`);
 		} catch (error) {
-			this._logger.error(`Error while creating user ${login}` + error.message);
 			if (error instanceof PrismaClientKnownRequestError) {
 				switch (error.code) {
 					case "P2002":

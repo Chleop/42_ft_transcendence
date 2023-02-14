@@ -12,7 +12,9 @@ import {
 	ChannelInvitationMissingError,
 	ChannelInvitationUnexpectedError,
 	ChannelMemberAlreadyDemotedError,
+	ChannelMemberAlreadyMutedError,
 	ChannelMemberAlreadyPromotedError,
+	ChannelMemberMutedError,
 	ChannelMemberNotFoundError,
 	ChannelMemberNotOperatorError,
 	ChannelMessageNotFoundError,
@@ -1136,6 +1138,135 @@ export class ChannelService {
 	}
 
 	/**
+	 * @brief	Make a user mute another user.
+	 * 			The muting user must be either the owner of the channel, or an operator.
+	 * 			It is assumed that the provided muting user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	muting_user_id The id of the user muting another user.
+	 * @param	channel_id The id of the channel to mute a user in.
+	 * @param	muted_user_id The id of the user being muted.
+	 * @param	duration The duration of the mute. (in seconds)
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
+	 * 			- ChannelMemberNotFoundError
+	 * 			- ChannelMemberNotOperatorError
+	 * 			- ChannelMemberAlreadyMutedError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async mute_ones_member(
+		muting_user_id: string,
+		channel_id: string,
+		muted_user_id: string,
+		duration: number,
+	): Promise<void> {
+		type t_fields = {
+			members: {
+				id: string;
+			}[];
+			muted: {
+				id: string;
+			}[];
+			operators: {
+				id: string;
+			}[];
+			owner: {
+				id: string;
+			} | null;
+		};
+
+		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			select: {
+				members: {
+					select: {
+						id: true,
+					},
+				},
+				muted: {
+					select: {
+						id: true,
+					},
+				},
+				operators: {
+					select: {
+						id: true,
+					},
+				},
+				owner: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+
+		if (!channel) {
+			throw new ChannelNotFoundError(channel_id);
+		}
+
+		if (channel.members.every((member): boolean => member.id !== muting_user_id)) {
+			throw new ChannelNotJoinedError(`user: ${muting_user_id} | channel: ${channel_id}`);
+		}
+
+		if (channel.members.every((member): boolean => member.id !== muted_user_id)) {
+			throw new ChannelMemberNotFoundError(`user: ${muted_user_id} | channel: ${channel_id}`);
+		}
+
+		if (
+			channel.operators.every((operator): boolean => operator.id !== muting_user_id) &&
+			channel.owner?.id !== muting_user_id
+		) {
+			throw new ChannelMemberNotOperatorError(
+				`user: ${muting_user_id} | channel: ${channel_id}`,
+			);
+		}
+
+		if (channel.muted.some((muted): boolean => muted.id === muted_user_id)) {
+			throw new ChannelMemberAlreadyMutedError(
+				`user: ${muted_user_id} | channel: ${channel_id}`,
+			);
+		}
+
+		await this._prisma.channel.update({
+			data: {
+				muted: {
+					connect: {
+						id: muted_user_id,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+
+		setTimeout(async () => {
+			await this._prisma.channel.update({
+				data: {
+					muted: {
+						disconnect: {
+							id: muted_user_id,
+						},
+					},
+				},
+				where: {
+					id: channel_id,
+				},
+			});
+		}, duration * 1000);
+
+		this._logger.log(
+			`User ${muted_user_id} muted in channel ${channel_id} by user ${muting_user_id} for ${duration} seconds`,
+		);
+	}
+
+	/**
 	 * @brief	Make a user promote another user as operator.
 	 * 			The promoting user must be either the owner of the channel, or an operator.
 	 * 			Operators are able to :
@@ -1259,6 +1390,7 @@ export class ChannelService {
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
 	 * 			- ChannelNotJoinedError
+	 * 			- ChannelMemberMutedError
 	 * 			- ChannelMessageTooLongError
 	 *
 	 * @return	A promise containing the newly sent message data.
@@ -1272,11 +1404,19 @@ export class ChannelService {
 			members: {
 				id: string;
 			}[];
+			muted: {
+				id: string;
+			}[];
 		};
 
 		const channel: t_fields | null = await this._prisma.channel.findUnique({
 			select: {
 				members: {
+					select: {
+						id: true,
+					},
+				},
+				muted: {
 					select: {
 						id: true,
 					},
@@ -1291,19 +1431,12 @@ export class ChannelService {
 			throw new ChannelNotFoundError(channel_id);
 		}
 
-		if (
-			!(await this._prisma.channel.count({
-				where: {
-					id: channel_id,
-					members: {
-						some: {
-							id: user_id,
-						},
-					},
-				},
-			}))
-		) {
+		if (channel.members.every((member): boolean => member.id !== user_id)) {
 			throw new ChannelNotJoinedError(channel_id);
+		}
+
+		if (channel.muted.some((muted): boolean => muted.id === user_id)) {
+			throw new ChannelMemberMutedError(user_id);
 		}
 
 		if (content.length > g_channel_message_length_limit) {
