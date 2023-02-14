@@ -14,18 +14,16 @@ import { Logger } from "@nestjs/common";
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
 	@WebSocketServer()
-	private readonly _server: Server;
-	private static _client_sockets: Map<string, Socket> = new Map<string, Socket>();
-	private static _logger: Logger = new Logger(ChatGateway.name);
+	public readonly _server: Server;
+	private _client_sockets: Map<string, Socket> = new Map<string, Socket>();
+	private _logger: Logger = new Logger(ChatGateway.name);
 
 	constructor() {
 		this._server = new Server();
-
-		this._server; // REMIND: This is a hack to avoid a warning about an unused variable.
 	}
 
 	public afterInit(): void {
-		ChatGateway._logger.log("Chat gateway initialized");
+		this._logger.log("Chat gateway initialized");
 	}
 
 	/**
@@ -35,7 +33,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 */
 	public broadcast_to_room(message: ChannelMessage): void {
 		// REMIND: This way works, but it is not taking advantage of socker-io built-in ways to do it.
-		for (const socket of ChatGateway._client_sockets.values()) {
+		for (const socket of this._client_sockets.values()) {
 			if (socket.rooms.has(message.channelId)) {
 				socket.emit("channel_message", message);
 			}
@@ -51,7 +49,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * @param	message The message to forward.
 	 */
 	public forward_to_user_socket(message: DirectMessage): void {
-		const socket: Socket = ChatGateway._client_sockets.get(message.receiverId) as Socket;
+		const socket: Socket = this._client_sockets.get(message.receiverId) as Socket;
 
 		socket.emit("direct_message", message);
 	}
@@ -65,10 +63,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * @param	client The socket that just connected.
 	 */
 	public handleConnection(client: Socket): void {
-		ChatGateway._logger.log(
+		this._logger.log(
 			`Client ${client.id} (${client.data.user.login}) connected to chat gateway`,
 		);
-		ChatGateway._client_sockets.set(client.data.user.id, client);
+		this._client_sockets.set(client.data.user.id, client);
 		for (const channel of client.data.user.channels) {
 			client.join(channel.id);
 		}
@@ -83,8 +81,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		for (const room of client.rooms) {
 			client.leave(room);
 		}
-		ChatGateway._client_sockets.delete(client.data.user.id);
-		ChatGateway._logger.log(
+		this._client_sockets.delete(client.data.user.id);
+		this._logger.log(
 			`Client ${client.id} (${client.data.user.login}) disconnected from chat gateway`,
 		);
 	}
@@ -99,7 +97,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * @param	room_id The id of the room to join.
 	 */
 	public make_user_socket_join_room(user_id: string, room_id: string): void {
-		const client: Socket = ChatGateway._client_sockets.get(user_id) as Socket;
+		const client: Socket = this._client_sockets.get(user_id) as Socket;
 
 		client.join(room_id);
 	}
@@ -115,7 +113,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * @param	room_id The id of the room to leave.
 	 */
 	public make_user_socket_leave_room(user_id: string, room_id: string): void {
-		const client: Socket = ChatGateway._client_sockets.get(user_id) as Socket;
+		const client: Socket = this._client_sockets.get(user_id) as Socket;
 
 		client.leave(room_id);
 	}

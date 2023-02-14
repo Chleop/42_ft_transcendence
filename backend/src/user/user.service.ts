@@ -24,10 +24,10 @@ import { ChannelService } from "src/channel/channel.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, Logger, StreamableFile } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-import { DirectMessage, StateType } from "@prisma/client";
+import { /* DirectMessage, */ StateType } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
-import { ChatGateway } from "src/chat/chat.gateway";
+// import { ChatGateway } from "src/chat/chat.gateway";
 
 @Injectable()
 export class UserService {
@@ -35,14 +35,17 @@ export class UserService {
 	// REMIND: check if passing `_channel` in readonly keep it working well
 	private _channel: ChannelService;
 	// REMIND: check if passing `_gateway` in readonly keep it working well
-	private _gateway: ChatGateway;
+	// private _gateway: ChatGateway;
 	// REMIND: check if passing `_prisma` in readonly keep it working well
 	private _prisma: PrismaService;
 	private readonly _logger: Logger;
 
-	constructor(channel_service: ChannelService, chat_gateway: ChatGateway, prisma_service: PrismaService) {
+	constructor(
+		channel_service: ChannelService /* , chat_gateway: ChatGateway */,
+		prisma_service: PrismaService,
+	) {
 		this._channel = channel_service;
-		this._gateway = chat_gateway;
+		// this._gateway = chat_gateway;
 		this._prisma = prisma_service;
 		this._logger = new Logger(UserService.name);
 	}
@@ -1033,7 +1036,7 @@ export class UserService {
 			throw new UserBlockedError(`${receiving_user_id}`);
 		}
 
-		const message: DirectMessage = await this._prisma.directMessage.create({
+		/* const message: DirectMessage = */ await this._prisma.directMessage.create({
 			data: {
 				sender: {
 					connect: {
@@ -1050,7 +1053,7 @@ export class UserService {
 		});
 
 		if (!receiving_user.blocked.some((blocked) => blocked.id === sending_user_id)) {
-			this._gateway.forward_to_user_socket(message);
+			// this._gateway.forward_to_user_socket(message);
 		}
 
 		this._logger.log(`User ${sending_user_id} sent a message to user ${receiving_user_id}`);
