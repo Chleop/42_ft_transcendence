@@ -57,9 +57,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 */
 	public broadcast_to_many(event_name: string, users: Set<t_user_id>, data: any): void {
 		for (const user of users) {
-			const socket: Socket = ChatGateway._client_sockets.get(user.id)?.socket as Socket;
+			const socket: Socket | undefined = ChatGateway._client_sockets.get(user.id)?.socket;
 
-			socket.emit(event_name, data);
+			if (socket) {
+				socket.emit(event_name, data);
+			}
 		}
 	}
 
