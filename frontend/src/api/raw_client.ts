@@ -192,7 +192,7 @@ export class RawHTTPClient {
 		name: string,
 		priv: boolean,
 		password: string = "",
-	): Promise<void> {
+	): Promise<Channel> {
 		return (
 			await this.make_request({
 				accept: "application/json",

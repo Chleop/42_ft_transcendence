@@ -81,9 +81,6 @@ export class ChannelListElement {
         new_channel_title.id = "new-channel-title";
         new_channel_title.innerText = "Create Channel";
         new_channel_title.disabled = true;
-        new_channel_title.onclick = () => {
-            // TODO: create the channel.
-        }
         new_channel_container.appendChild(new_channel_title);
 
         const new_channel_edit_row = document.createElement("div");
@@ -132,12 +129,31 @@ export class ChannelListElement {
         channel_private.id = "new-channel-private";
         channel_private.onclick = () => {
             channel_private.classList.toggle("active");
+
+            if (channel_private.classList.contains("active")) {
+                channel_password.value = "";
+                channel_password.disabled = true;
+            } else {
+                channel_password.disabled = false;
+            }
         }
         new_channel_edit_row.appendChild(channel_private);
 
         const channel_list = document.createElement("div");
         channel_list.id = "create-channel-list";
         container.appendChild(channel_list);
+
+        new_channel_title.onclick = () => {
+            const priv = channel_private.classList.contains("active");
+            let password: string|undefined = undefined;
+            if (!priv)
+                password = channel_password.value;
+            console.log(channel_name.value, priv, password)
+            Client.create_channel(channel_name.value, priv, password).then(channel => {
+                CHAT_ELEMENT.add_channel(channel);
+                this.hide();
+            });
+        }
 
         this.screen = screen;
         this.container = container;

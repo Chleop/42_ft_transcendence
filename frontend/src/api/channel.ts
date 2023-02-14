@@ -50,7 +50,7 @@ export interface Channel {
      */
     name: string;
     /** The type of this channel. */
-    type: "PUBLIC"|"PROTECTED",
+    type: "PUBLIC"|"PROTECTED"|"PRIVATE",
     /** Member count. */
     members_count: number,
 }
