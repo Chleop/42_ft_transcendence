@@ -77,9 +77,13 @@ export class ChannelListElement {
         new_channel_container.id = "new-channel-container";
         container.appendChild(new_channel_container);
 
-        const new_channel_title = document.createElement("div");
+        const new_channel_title = document.createElement("button");
         new_channel_title.id = "new-channel-title";
         new_channel_title.innerText = "Create Channel";
+        new_channel_title.disabled = true;
+        new_channel_title.onclick = () => {
+            // TODO: create the channel.
+        }
         new_channel_container.appendChild(new_channel_title);
 
         const new_channel_edit_row = document.createElement("div");
@@ -93,6 +97,15 @@ export class ChannelListElement {
         const channel_name = document.createElement("input");
         channel_name.type = "text";
         channel_name.classList.add("editor-field");
+        channel_name.onchange = () => {
+            if (channel_name.value === "") {
+                new_channel_title.disabled = true;
+                new_channel_title.classList.remove("ready");
+            } else {
+                new_channel_title.disabled = false;
+                new_channel_title.classList.add("ready");
+            }
+        };
         channel_name_container.appendChild(channel_name);
 
         const channel_name_label = document.createElement("div");
@@ -117,8 +130,11 @@ export class ChannelListElement {
         const channel_private = document.createElement("button");
         channel_private.innerText = "PRIV";
         channel_private.id = "new-channel-private";
+        channel_private.onclick = () => {
+            channel_private.classList.toggle("active");
+        }
         new_channel_edit_row.appendChild(channel_private);
-        
+
         const channel_list = document.createElement("div");
         channel_list.id = "create-channel-list";
         container.appendChild(channel_list);
