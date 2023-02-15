@@ -88,6 +88,7 @@ export class GameSocket {
      * Creates a new GameSocket.
      */
     public constructor() {
+        console.log("initiating a connection with the game gateway...");
         this.socket = io("/game", {
     	    reconnection: false,
             auth: {

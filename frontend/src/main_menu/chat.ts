@@ -270,14 +270,6 @@ class ChatElement {
         this.selected_channel = null;
         this.channel_elements = [];
 
-        GATEWAY.on_connected = () => {
-            console.info("Connected to the gateway!");
-        };
-
-        GATEWAY.on_disconnected = () => {
-            console.warn("connection with the gateway lost.");
-        };
-
         GATEWAY.on_message = (msg: Message) => {
             if (msg.channelId)
             {
