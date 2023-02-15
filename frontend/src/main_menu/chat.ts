@@ -16,16 +16,16 @@ class MessageElementInternal {
     /**
      * This constructor should basically never be called outside of the module.
      */
-    public constructor(continuing: boolean, message: Message) {
+    public constructor(continuing: boolean, message: Message, channel: Channel) {
         const avatar = document.createElement("avatar");
         avatar.classList.add("message-avatar");
         Users.get_avatar(message.senderId).then(url => {
             avatar.style.backgroundImage = `url(\"${url}\")`;
         });
-        avatar.onclick = () => Users.get(message.senderId).then(user => USER_CARD.show(avatar, user));
+        avatar.onclick = () => Users.get(message.senderId).then(user => USER_CARD.show(avatar, user, channel));
         const author = document.createElement("button");
         author.classList.add("message-author");
-        author.onclick = () => Users.get(message.senderId).then(user => USER_CARD.show(author, user));;
+        author.onclick = () => Users.get(message.senderId).then(user => USER_CARD.show(author, user, channel));;
         Users.get(message.senderId).then(user => author.innerText = user.name);
         const time = document.createElement("div");
         time.classList.add("message-time");
@@ -93,6 +93,8 @@ class ChannelElementInternal {
      */
     public channel_id: ChannelId;
 
+    public model: Channel;
+
     /**
      * The saved value of the input field (if the user left the channel without clearing the
      * prompt).
@@ -127,6 +129,7 @@ class ChannelElementInternal {
         this.channel_id = channel.id;
 
         this.input = "";
+        this.model = channel;
     }
 }
 
@@ -363,7 +366,7 @@ class ChatElement {
         // If the last child is the same author, add the `message-continuing` class.
         channel_.last_message = message;
 
-        const element = new MessageElementInternal(continuing, message);
+        const element = new MessageElementInternal(continuing, message, channel_.model);
         channel_.messages.appendChild(element.container);
         return element;
     }
