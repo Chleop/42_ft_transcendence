@@ -121,6 +121,9 @@ class ChannelElementInternal {
                         chat.remove_channel(this);
                     });
                 }
+                if (this.dm) {
+                    chat.remove_channel(this);
+                }
             }
         };
 
