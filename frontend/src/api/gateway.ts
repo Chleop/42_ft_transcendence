@@ -5,6 +5,14 @@ import {get_cookie} from "./client";
 /** Does nothing. */
 function noop(): void {}
 
+interface DirectMessage {
+  id: string;
+  dateTime: string;
+  content: string;
+  senderId: string;
+  receiverId: string;
+}
+
 /**
  * Wraps a web socket and provides a friendly interface to the chat gateway.
  */
@@ -28,6 +36,13 @@ class GatewayClass {
 		this.socket.on("connect", () => this.on_connected());
 		this.socket.on("disconnect", () => this.on_disconnected());
 		this.socket.on("channel_message", (message: Message) => this.on_message(message));
+		this.socket.on("channel_message", (msg: DirectMessage) => this.on_message({
+			id: msg.id,
+			dateTime: msg.dateTime,
+			content: msg.content,
+			channelId: null,
+			senderId: msg.senderId,
+		}));
 	}
 
 	/** Disconnect the socket. */

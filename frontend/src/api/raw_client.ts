@@ -101,7 +101,7 @@ export class RawHTTPClient {
 
 		let response = await fetch(request.url, request_init);
 
-		console.log(request.method + " " + request.url + " -> " + response.status + " " + response.statusText);
+		// console.log(request.method + " " + request.url + " -> " + response.status + " " + response.statusText);
 
 		if (response.status == 401) {
 			const err = await response.json();
@@ -419,5 +419,14 @@ export class RawHTTPClient {
 
 	public async mute(user: UserId, channel: ChannelId, duration: number): Promise<void> {
 		throw "not yet implemented";
+	}
+
+	public async send_dm(user: UserId, content: string): Promise<void> {
+		await this.make_request({
+			method: "POST",
+			url: `/api/user/${user}/message`,
+			success_status: 201,
+			body: new JsonBody({ content }),
+		});
 	}
 }

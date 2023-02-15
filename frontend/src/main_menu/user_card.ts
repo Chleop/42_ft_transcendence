@@ -1,5 +1,6 @@
 import { Channel, Client, User, Users } from "../api";
 import { Rank, rank_to_image, ratio_to_rank } from "../utility";
+import CHAT_ELEMENT from "./chat";
 
 class UserCardElement {
     private screen: HTMLDivElement;
@@ -21,7 +22,7 @@ class UserCardElement {
         screen.id = "user-card-screen";
         screen.onclick = ev => {
             if (ev.target === screen)
-                this.screen.remove();
+                this.hide();
         };
 
         const card = document.createElement("div");
@@ -106,7 +107,7 @@ class UserCardElement {
         this.mute_button = promote_button;
     }
 
-    public show(elem: HTMLElement | null, user: User, channel: Channel) {
+    public show(elem: HTMLElement | null, user: User, channel: Channel|null) {
         Users.me().then(me => {
             this.name.innerText = user.name;
 
@@ -130,7 +131,7 @@ class UserCardElement {
             const friend = !!me.friends_ids.find(id => user.id === id);
             const pending = !!me.pending_friends_ids.find(id => user.id === id);
             const blocked = !!me.blocked_ids.find(id => user.id === id);
-            const i_am_owner = !!me.channels_owned_ids.find(id => channel.id === id);
+            const i_am_owner = !!channel && !!me.channels_owned_ids.find(id => channel.id === id);
             const i_am_admin = i_am_owner; // TODO: check whether i'm an admin or owner.
             // TODO: Check whether the user is admin or not.
             const is_admin = false;
@@ -144,6 +145,12 @@ class UserCardElement {
                 this.friend_button.style.display = "block";
                 this.blocked_button.style.display = "block";
                 this.send_message_button.style.display = "block";
+
+                this.send_message_button.onclick = () => {
+                    const ch = CHAT_ELEMENT.get_or_create_dm_channel(user);
+                    CHAT_ELEMENT.set_selected_channel(ch);
+                    this.hide();
+                };
             }
 
             if (friend) {
@@ -245,6 +252,10 @@ class UserCardElement {
             if (box2.bottom >= window.innerHeight - 20)
                 this.card.style.top = `${window.innerHeight - 20 - box2.height}px`;
         });
+    }
+
+    public hide() {
+        this.screen.remove();
     }
 }
 
