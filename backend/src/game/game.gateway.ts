@@ -2,9 +2,9 @@ import {
 	WebSocketGateway,
 	WebSocketServer,
 	SubscribeMessage,
-	OnGatewayConnection,
-	OnGatewayDisconnect,
-	OnGatewayInit,
+	// OnGatewayConnection,
+	// OnGatewayDisconnect,
+	// OnGatewayInit,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { GameService } from "./game.service";
@@ -30,12 +30,12 @@ type TimeoutId = {
 	namespace: "game",
 })
 @UseInterceptors(WebSocketInterceptor)
-export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
+export class GameGateway /* implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit */ {
 	@WebSocketServer()
 	public readonly server: Server;
 	private readonly game_service: GameService;
-	private timeouts: TimeoutId[];
-	private readonly logger: Logger;
+	private timeouts: TimeoutId[] = [];
+	private readonly logger: Logger = new Logger();
 
 	/* CONSTRUCTOR ============================================================= */
 

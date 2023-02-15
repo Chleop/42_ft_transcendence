@@ -1,5 +1,5 @@
 import { Channel, ChannelId, Message, Client, Users } from "../api";
-import GATEWAY from "../api/gateway";
+// import GATEWAY from "../api/gateway";
 import CHANNEL_LIST from "./channel_list";
 import CHANNEL_SETTINGS from "./channel_settings";
 import USER_CARD from "./user_card";
@@ -19,14 +19,22 @@ class MessageElementInternal {
     public constructor(continuing: boolean, message: Message) {
         const avatar = document.createElement("avatar");
         avatar.classList.add("message-avatar");
-        Users.get_avatar(message.senderId).then(url => {
+        Users.get_avatar(message.senderId).then((url) => {
             avatar.style.backgroundImage = `url(\"${url}\")`;
         });
-        avatar.onclick = () => Users.get(message.senderId).then(user => USER_CARD.show(avatar, user));
+        avatar.onclick = () =>
+            Users.get(message.senderId).then((user) =>
+                USER_CARD.show(avatar, user)
+            );
         const author = document.createElement("button");
         author.classList.add("message-author");
-        author.onclick = () => Users.get(message.senderId).then(user => USER_CARD.show(author, user));;
-        Users.get(message.senderId).then(user => author.innerText = user.name);
+        author.onclick = () =>
+            Users.get(message.senderId).then((user) =>
+                USER_CARD.show(author, user)
+            );
+        Users.get(message.senderId).then(
+            (user) => (author.innerText = user.name)
+        );
         const time = document.createElement("div");
         time.classList.add("message-time");
         time.innerText = new Date(message.dateTime).toLocaleString();
@@ -45,11 +53,10 @@ class MessageElementInternal {
         this.container.appendChild(avatar);
         this.container.appendChild(header_and_content);
 
-        Users.me().then(me => {
+        Users.me().then((me) => {
             if (me.blocked_ids.indexOf(message.senderId) !== -1)
                 content.innerText = "<blocked message>";
-            else
-                content.innerText = message.content;
+            else content.innerText = message.content;
         });
 
         if (continuing) {
@@ -68,7 +75,7 @@ class MessageElementInternal {
 /**
  * A message that has been instanciated.
  */
-export interface MessageElement { }
+export interface MessageElement {}
 
 /**
  * A channel that has been instanciated in the DOM.
@@ -102,18 +109,22 @@ class ChannelElementInternal {
     /**
      * This constructor should basically never be called outside of the module.
      */
-    public constructor(container: ChatElement, channel: Channel, chat: ChatElement) {
+    public constructor(
+        container: ChatElement,
+        channel: Channel,
+        chat: ChatElement
+    ) {
         this.tab = document.createElement("button");
         this.tab.classList.add("channel-tab");
         this.tab.innerText = channel.name;
         this.tab.onclick = () => container.set_selected_channel(this);
-        this.tab.onmousedown = ev => {
+        this.tab.onmousedown = (ev) => {
             if (ev.button === 1) {
                 ev.preventDefault();
                 ev.stopPropagation();
             }
-        }
-        this.tab.onmouseup = ev => {
+        };
+        this.tab.onmouseup = (ev) => {
             if (ev.button === 1) {
                 Client.leave_channel(channel.id).then(() => {
                     chat.remove_channel(this);
@@ -133,7 +144,7 @@ class ChannelElementInternal {
 /**
  * A channel that has been instanciated.
  */
-export interface ChannelElement { }
+export interface ChannelElement {}
 
 /**
  * Stores the state of the chat.
@@ -217,11 +228,12 @@ class ChatElement {
         channel_settings_button.id = "chat-settings-button";
         channel_settings_button.classList.add("circle-button");
         channel_settings_button.onclick = () => {
-            if (!this.selected_channel)
-                return;
+            if (!this.selected_channel) return;
             const selected_channel_id = this.selected_channel.channel_id; // this is a data race!
-            Users.me().then(me => {
-                const owner = !!me.channels_owned_ids.find(owned_id => owned_id === selected_channel_id);
+            Users.me().then((me) => {
+                const owner = !!me.channels_owned_ids.find(
+                    (owned_id) => owned_id === selected_channel_id
+                );
                 CHANNEL_SETTINGS.show(channel_settings_button, owner);
             });
         };
@@ -247,12 +259,17 @@ class ChatElement {
         this.message_input = document.createElement("input");
         this.message_input.id = "chat-send-message";
         this.message_input.type = "text";
-        this.message_input.onkeydown = ev => {
+        this.message_input.onkeydown = (ev) => {
             if (ev.key === "Enter") {
                 this.send_message_input();
             } else if (ev.key === "ArrowUp") {
-                if (this.selected_channel && this.selected_channel.my_last_message && this.message_input.value === "") {
-                    this.message_input.value = this.selected_channel.my_last_message;
+                if (
+                    this.selected_channel &&
+                    this.selected_channel.my_last_message &&
+                    this.message_input.value === ""
+                ) {
+                    this.message_input.value =
+                        this.selected_channel.my_last_message;
                     ev.preventDefault();
                 }
             }
@@ -262,18 +279,18 @@ class ChatElement {
         this.selected_channel = null;
         this.channel_elements = [];
 
-        GATEWAY.on_connected = () => {
-            console.log("Connected to the gateway!");
-        };
+        // GATEWAY.on_connected = () => {
+        //     console.log("Connected to the gateway!");
+        // };
 
-        GATEWAY.on_message = (msg: Message) => {
-            let ch = this.get_channel(msg.channelId);
-            if (ch) {
-                this.add_message(ch, msg);
-            } else {
-                console.warn(`received a message not meant to me:`, msg);
-            }
-        };
+        // GATEWAY.on_message = (msg: Message) => {
+        //     let ch = this.get_channel(msg.channelId);
+        //     if (ch) {
+        //         this.add_message(ch, msg);
+        //     } else {
+        //         console.warn(`received a message not meant to me:`, msg);
+        //     }
+        // };
     }
 
     /**
@@ -304,8 +321,7 @@ class ChatElement {
             this.message_input.value = element_.input;
             this.message_input.focus();
         } else {
-            while (this.messages.firstChild)
-                this.messages.firstChild.remove();
+            while (this.messages.firstChild) this.messages.firstChild.remove();
         }
     }
 
@@ -318,7 +334,7 @@ class ChatElement {
         this.channel_tabs.appendChild(element.tab);
 
         // Try to get the twenty last messages of the channel.
-        Client.last_messages(channel.id, 50).then(messages => {
+        Client.last_messages(channel.id, 50).then((messages) => {
             for (const m of messages) {
                 this.add_message(element, m);
             }
@@ -335,28 +351,38 @@ class ChatElement {
             throw new Error("Trying a remove a channel that does not exist.");
         channel_.tab.remove();
         this.channel_elements.splice(index, 1);
-        if (!this.selected_channel || this.selected_channel.channel_id !== channel_.channel_id)
+        if (
+            !this.selected_channel ||
+            this.selected_channel.channel_id !== channel_.channel_id
+        )
             return;
         if (this.channel_elements.length > 0)
             this.set_selected_channel(this.channel_elements[0]);
-        else
-            this.set_selected_channel(null);
+        else this.set_selected_channel(null);
     }
 
     /** Returns a channel element by ID */
     public get_channel(channel: ChannelId): undefined | ChannelElement {
-        return this.channel_elements.find(e => e.channel_id == channel);
+        return this.channel_elements.find((e) => e.channel_id == channel);
     }
 
     /**
      * Adds a message to a specific channel.
      */
-    public add_message(channel: ChannelElement, message: Message): MessageElement {
+    public add_message(
+        channel: ChannelElement,
+        message: Message
+    ): MessageElement {
         const channel_ = channel as ChannelElementInternal;
 
         let continuing = false;
         if (channel_.last_message) {
-            if (channel_.last_message.senderId === message.senderId && Date.parse(message.dateTime) - Date.parse(channel_.last_message.dateTime) < 10 * 1000)
+            if (
+                channel_.last_message.senderId === message.senderId &&
+                Date.parse(message.dateTime) -
+                    Date.parse(channel_.last_message.dateTime) <
+                    10 * 1000
+            )
                 continuing = true;
         }
 

@@ -5,6 +5,8 @@ import {
 	t_get_me_fields_tmp,
 	t_get_one_fields,
 	t_get_one_fields_tmp,
+	t_receiving_user_fields,
+	t_sending_user_fields,
 } from "src/user/alias";
 import {
 	UnknownError,
@@ -24,10 +26,9 @@ import { ChannelService } from "src/channel/channel.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, Logger, StreamableFile } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-import { /* DirectMessage, */ StateType } from "@prisma/client";
+import { DirectMessage, StateType } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
-// import { ChatGateway } from "src/chat/chat.gateway";
 
 @Injectable()
 export class UserService {
@@ -912,41 +913,11 @@ export class UserService {
 		sending_user_id: string,
 		receiving_user_id: string,
 		content: string,
-	): Promise<void> {
-		type t_sending_user_fields = {
-			blocked: {
-				id: string;
-			}[];
-			channels: {
-				members: {
-					id: string;
-				}[];
-			}[];
-			directMessagesReceived: {
-				sender: {
-					id: string;
-				};
-			}[];
-			directMessagesSent: {
-				receiver: {
-					id: string;
-				};
-			}[];
-			friends: {
-				id: string;
-			}[];
-			gamesPlayed: {
-				players: {
-					id: string;
-				}[];
-			}[];
-		};
-		type t_receiving_user_fields = {
-			blocked: {
-				id: string;
-			}[];
-		};
-
+	): Promise<{
+		sender: t_sending_user_fields;
+		receiver: t_receiving_user_fields;
+		message: DirectMessage;
+	}> {
 		const sending_user: t_sending_user_fields = (await this._prisma.user.findUnique({
 			select: {
 				blocked: {
@@ -1036,7 +1007,7 @@ export class UserService {
 			throw new UserBlockedError(`${receiving_user_id}`);
 		}
 
-		/* const message: DirectMessage = */ await this._prisma.directMessage.create({
+		const message: DirectMessage = await this._prisma.directMessage.create({
 			data: {
 				sender: {
 					connect: {
@@ -1052,11 +1023,17 @@ export class UserService {
 			},
 		});
 
-		if (!receiving_user.blocked.some((blocked) => blocked.id === sending_user_id)) {
-			// this._gateway.forward_to_user_socket(message);
-		}
+		// DONE
+		// if (!receiving_user.blocked.some((blocked) => blocked.id === sending_user_id)) {
+		// 	// this._gateway.forward_to_user_socket(message);
+		// }
 
 		this._logger.log(`User ${sending_user_id} sent a message to user ${receiving_user_id}`);
+		return {
+			sender: sending_user,
+			receiver: receiving_user,
+			message: message,
+		};
 	}
 
 	/**

@@ -1,4 +1,4 @@
-DOCKERCOMPOSE 	= docker compose
+DOCKERCOMPOSE 	= docker-compose
 COMPOSEFILE 	= -f docker-compose.dev.yml
 
 BUILD 			= build
@@ -9,9 +9,15 @@ STOP 			= stop
 DOWN 			= down
 REMOVEALL 		= --rmi all --volumes
 
-all:
+all: init build
+
+.PHONY: init
+init:
 	rm -f frontend/tsconfig.tsbuildinfo
 	cd frontend && npm update && npx tsc && npx webpack
+
+.PHONY: build
+build:
 	${DOCKERCOMPOSE} ${COMPOSEFILE} ${BUILD}
 
 .PHONY: start
@@ -23,7 +29,7 @@ restart:
 	${DOCKERCOMPOSE} ${COMPOSEFILE} ${RESTART}
 
 .PHONY: up
-up:
+up: all
 	${DOCKERCOMPOSE} ${COMPOSEFILE} ${UP}
 
 .PHONY: stop
@@ -45,3 +51,6 @@ fclean:
 	rm -rf backend/node_modules backend/dist
 	rm -rf frontend/node_modules frontend/out
 	rm -f frontend/tsconfig.tsbuildinfo
+
+.PHONY: re
+re: clean up

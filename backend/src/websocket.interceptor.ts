@@ -7,12 +7,12 @@ export class WebSocketInterceptor implements NestInterceptor {
 
 	constructor() {
 		this.logger = new Logger(WebSocketInterceptor.name);
-		console.log("there");
+		// console.log("there");
 	}
 
 	intercept(context: ExecutionContext, next: CallHandler<any>): Observable<any> {
 		this.logger.debug(`Intercepted connection: ${context}`);
-		console.log("here");
+		// console.log("here");
 		return next.handle();
 	}
 }

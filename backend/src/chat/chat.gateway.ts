@@ -1,9 +1,10 @@
 import { Server, Socket } from "socket.io";
 import { ChannelMessage, DirectMessage } from "@prisma/client";
 import {
-	OnGatewayConnection,
-	OnGatewayDisconnect,
-	OnGatewayInit,
+	// OnGatewayConnection,
+	// OnGatewayDisconnect,
+	// OnGatewayInit,
+	// SubscribeMessage,
 	WebSocketGateway,
 	WebSocketServer,
 } from "@nestjs/websockets";
@@ -14,7 +15,7 @@ import { WebSocketInterceptor } from "../websocket.interceptor";
 	namespace: "chat",
 })
 @UseInterceptors(WebSocketInterceptor)
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
+export class ChatGateway /* implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit */ {
 	@WebSocketServer()
 	public readonly _server: Server;
 	private _client_sockets: Map<string, Socket> = new Map<string, Socket>();
@@ -65,12 +66,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * @param	client The socket that just connected.
 	 */
 	public handleConnection(client: Socket): void {
-		this._logger.log(
-			`Client ${client.id} (${client.data.user.login}) connected to chat gateway`,
-		);
-		this._client_sockets.set(client.data.user.id, client);
-		for (const channel of client.data.user.channels) {
-			client.join(channel.id);
+		const user: Socket | undefined = this._client_sockets.get(client.data.user.id);
+
+		if (user !== undefined) {
+			this._logger.error("already there");
+		} else {
+			this._logger.log(
+				`Client ${client.id} (${client.data.user.login}) connected to chat gateway`,
+			);
+			this._client_sockets.set(client.data.user.id, client);
+			for (const channel of client.data.user.channels) {
+				client.join(channel.id);
+			}
 		}
 	}
 

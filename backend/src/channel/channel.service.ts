@@ -724,6 +724,7 @@ export class ChannelService {
 			throw new UnknownError();
 		}
 
+		//DONE
 		// this._gateway.make_user_socket_join_room(joining_user_id, channel_id);
 		channel = await this._inherit_ones_ownership(channel, joining_user_id);
 		channel.hash = null;
@@ -834,6 +835,7 @@ export class ChannelService {
 		});
 		this._logger.log(`Channel ${channel_id} left by user ${user_id}`);
 
+		// DONE
 		// this._gateway.make_user_socket_leave_room(user_id, channel_id);
 	}
 
