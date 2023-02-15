@@ -1,13 +1,12 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-import { BadRequestException, ConflictException } from "@nestjs/common";
-import { Socket } from "socket.io";
-import { GameRoom } from "../rooms";
-import { Match } from "../aliases";
-import { Results, OpponentUpdate } from "../objects";
+import { Injectable, Logger, BadRequestException, ConflictException } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
-import { Matchmaking } from "../matchmaking";
-import { BadEvent, WrongData } from "../exceptions";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { Socket } from "socket.io";
+import { GameRoom } from "./rooms";
+import { Match } from "./aliases";
+import { Results, OpponentUpdate } from "./objects";
+import { Matchmaking } from "./matchmaking";
+import { BadEvent, WrongData } from "./exceptions";
 
 /**
  * Game rooms manager.

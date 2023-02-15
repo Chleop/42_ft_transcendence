@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import {
 	OnGatewayConnection,
 	OnGatewayDisconnect,
@@ -6,13 +7,17 @@ import {
 	WebSocketServer,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { GameService, SpectatorService } from "../services";
-import { GameRoom, SpectatedRoom } from "../rooms";
-import { RoomData } from "../aliases";
-import { ScoreUpdate, SpectatorUpdate } from "../objects";
-import { Logger } from "@nestjs/common";
-import { WrongData } from "../exceptions";
-import { Constants } from "../constants";
+
+import { GameService } from "../game/game.service";
+import { GameRoom } from "../game/rooms";
+import { ScoreUpdate } from "../game/objects";
+import { WrongData } from "../game/exceptions";
+import { Constants } from "../game/constants";
+
+import { SpectatorService } from "./spectator.service";
+import { SpectatedRoom } from "./rooms";
+import { RoomData } from "./aliases";
+import { SpectatorUpdate } from "./objects";
 
 @WebSocketGateway({
 	namespace: "spectate",

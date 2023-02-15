@@ -1,4 +1,3 @@
-import { GameRoom, SpectatedRoom } from "../rooms";
 import {
 	BadRequestException,
 	ForbiddenException,
@@ -6,10 +5,15 @@ import {
 	InternalServerErrorException,
 	StreamableFile,
 } from "@nestjs/common";
-import { UserService } from "src/user/user.service";
-import { PlayerInfos } from "../objects";
 import { Socket } from "socket.io";
-import { RoomData } from "../aliases";
+
+import { GameRoom } from "../game/rooms";
+
+import { SpectatedRoom } from "./rooms";
+import { PlayerInfos } from "./objects";
+import { RoomData } from "./aliases";
+
+import { UserService } from "src/user/user.service";
 import { UserNotFoundError, UserNotLinkedError } from "src/user/error";
 
 /**

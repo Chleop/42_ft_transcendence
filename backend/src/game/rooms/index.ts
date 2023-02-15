@@ -1,2 +1,2 @@
 export * from "./gameroom.class";
-export * from "./spectatedroom.object";
+// export * from "./spectatedroom.object";

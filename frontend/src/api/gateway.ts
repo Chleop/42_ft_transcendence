@@ -30,6 +30,11 @@ class GatewayClass {
 		this.socket.on("channel_message", (message: Message) => this.on_message(message));
 	}
 
+
+	public connect() {
+		this.socket.connect();
+	}
+
 	/** Disconnect the socket. */
 	public disconnect() {
 		this.socket.disconnect();
