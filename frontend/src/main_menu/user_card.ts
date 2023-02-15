@@ -1,4 +1,4 @@
-import { Client, User, Users } from "../api";
+import { Channel, Client, User, Users } from "../api";
 import { Rank, rank_to_image, ratio_to_rank } from "../utility";
 
 class UserCardElement {
@@ -13,6 +13,8 @@ class UserCardElement {
     private friend_button: HTMLButtonElement;
     private blocked_button: HTMLButtonElement;
     private send_message_button: HTMLButtonElement;
+    private promote_button: HTMLButtonElement;
+    private mute_button: HTMLButtonElement;
 
     public constructor() {
         const screen = document.createElement("div");
@@ -79,6 +81,16 @@ class UserCardElement {
         send_message_button.innerText = "Send Message";
         menu.appendChild(send_message_button);
 
+        const promote_button = document.createElement("button");
+        promote_button.classList.add("user-card-menu-button");
+        promote_button.innerText = "Promote";
+        menu.appendChild(send_message_button);
+
+        const mute_button = document.createElement("button");
+        mute_button.classList.add("user-card-menu-button");
+        mute_button.innerText = "Mute";
+        menu.appendChild(mute_button);
+
         this.screen = screen;
         this.card = card;
         this.banner = banner;
@@ -90,9 +102,11 @@ class UserCardElement {
         this.friend_button = friend_button;
         this.blocked_button = blocked_button;
         this.send_message_button = send_message_button;
+        this.promote_button = promote_button;
+        this.mute_button = promote_button;
     }
 
-    public show(elem: HTMLElement|null, user: User) {
+    public show(elem: HTMLElement | null, user: User, channel: Channel) {
         Users.me().then(me => {
             this.name.innerText = user.name;
 
@@ -112,7 +126,16 @@ class UserCardElement {
             this.rank.style.backgroundImage = `url('${url}')`;
             this.wins.innerText = `${wins} W / ${losses} L / ${percent_f}%`;
 
-            if (user.id === me.id) {
+            const is_me = user.id === me.id;
+            const friend = !!me.friends_ids.find(id => user.id === id);
+            const pending = !!me.pending_friends_ids.find(id => user.id === id);
+            const blocked = !!me.blocked_ids.find(id => user.id === id);
+            const i_am_owner = !!me.channels_owned_ids.find(id => channel.id === id);
+            const i_am_admin = i_am_owner; // TODO: check whether i'm an admin or owner.
+            // TODO: Check whether the user is admin or not.
+            const is_admin = false;
+
+            if (is_me) {
                 this.friend_button.style.display = "none";
                 this.blocked_button.style.display = "none";
                 this.send_message_button.style.display = "none";
@@ -123,28 +146,24 @@ class UserCardElement {
                 this.send_message_button.style.display = "block";
             }
 
-            const friend = !!me.friends_ids.find(id => user.id === id);
-            const pending = !!me.pending_friends_ids.find(id => user.id === id);
-            const blocked = !!me.blocked_ids.find(id => user.id === id);
-
             if (friend) {
                 this.friend_button.innerText = "Remove Friend";
                 this.friend_button.onclick = () => Client.unfriend(user.id).then(() => {
                     const index = me.friends_ids.indexOf(user.id);
                     if (index !== -1)
                         me.friends_ids.splice(index, 1);
-                    this.show(null, user);
+                    this.show(null, user, channel);
                 });
             } else if (pending) {
                 this.friend_button.innerText = "Accept Friend";
                 this.friend_button.onclick = () => Client.accept_friend(user.id).then(() => {
                     me.friends_ids.push(user.id);
-                    this.show(null, user);
+                    this.show(null, user, channel);
                 });
             } else {
                 this.friend_button.innerText = "Add Friend";
                 this.friend_button.onclick = () => Client.request_friend(user.id).then(() => {
-                    this.show(null, user);
+                    this.show(null, user, channel);
                 });
             }
 
@@ -154,20 +173,57 @@ class UserCardElement {
                     const index = me.blocked_ids.indexOf(user.id);
                     if (index !== -1)
                         me.blocked_ids.splice(index, 1);
-                    this.show(null, user);
+                    this.show(null, user, channel);
                 });
                 this.friend_button.style.display = "none";
             } else {
                 this.blocked_button.innerText = "Block User";
                 this.blocked_button.onclick = () => Client.block(user.id).then(() => {
                     me.blocked_ids.push(user.id);
-                    this.show(null, user);
+                    this.show(null, user, channel);
                 });
-                this.friend_button.style.display = "display";
+                this.friend_button.style.display = "block";
+            }
+
+            if (i_am_owner && !is_me) {
+                this.promote_button.style.display = "block";
+
+                if (is_admin) {
+                    this.promote_button.innerText = "Promote";
+                    this.promote_button.onclick = () => {
+                        Client.promote(user.id, channel.id);
+                        this.show(null, user, channel);
+                    };
+                } else {
+                    this.promote_button.innerText = "Demote";
+                    this.promote_button.onclick = () => {
+                        Client.demote(user.id, channel.id);
+                        this.show(null, user, channel);
+                    }
+                }
+            } else {
+                this.promote_button.style.display = "none";
+            }
+
+            if (!is_me && i_am_admin && !is_admin) {
+                this.mute_button.style.display = "block";
+                this.mute_button.onclick = () => {
+                    let time = 0;
+                    while (true) {
+                        const input = prompt("cb 2 tmp?");
+                        if (!input)
+                            return;
+                        time = parseFloat(input);
+                        if (!isNaN(time) && time !== 0)
+                            break;
+                    }
+                    Client.mute(user.id, channel.id, time);
+                }
+            } else {
+                this.mute_button.style.display = "none";
             }
         });
         Users.get_avatar(user.id).then(url => {
-            // TODO: use the skin here.
             this.avatar.style.backgroundImage = `url(\"${url}\")`;
         });
         Client.get_background(user.id).then(url => {

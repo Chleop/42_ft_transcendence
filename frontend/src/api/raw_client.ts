@@ -408,4 +408,16 @@ export class RawHTTPClient {
 		});
 		return URL.createObjectURL(await img.blob());
 	}
+
+	public async promote(user: UserId, channel: ChannelId): Promise<void> {
+		throw "not yet implemented."
+	}
+
+	public async demote(user: UserId, channel: ChannelId): Promise<void> {
+		throw "not yet implemented."
+	}
+
+	public async mute(user: UserId, channel: ChannelId, duration: number): Promise<void> {
+		throw "not yet implemented";
+	}
 }
