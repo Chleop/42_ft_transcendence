@@ -272,7 +272,11 @@ class ChatElement {
         this.channel_elements = [];
 
         GATEWAY.on_connected = () => {
-            console.log("Connected to the gateway!");
+            console.info("Connected to the gateway!");
+        };
+
+        GATEWAY.on_disconnected = () => {
+            console.warn("connection with the gateway lost.");
         };
 
         GATEWAY.on_message = (msg: Message) => {
