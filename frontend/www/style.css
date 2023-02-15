@@ -963,3 +963,20 @@ body {
 #new-channel-private.active:hover {
   background-color: #33FF55;
 }
+
+#add-priv-channel-container {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+  padding-bottom: 20px;
+  padding-right: 20px;
+  padding-left: 20px;
+}
+
+#add-priv-channel-label {
+  font-family: "Krona One", sans-serif;
+  font-size: 18px;
+  color: white;
+  white-space: nowrap;
+  padding-right: 20px;
+}

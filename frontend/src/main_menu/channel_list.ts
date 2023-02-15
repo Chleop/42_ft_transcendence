@@ -1,4 +1,4 @@
-import { Channel, Client } from "../api";
+import { Channel, Client, Users } from "../api";
 import CHAT_ELEMENT from "./chat";
 
 /** Information about a channel to be added. */
@@ -148,6 +148,32 @@ export class ChannelListElement {
         channel_list.id = "create-channel-list";
         container.appendChild(channel_list);
 
+        const add_priv_channel_container = document.createElement("div");
+        add_priv_channel_container.id = "add-priv-channel-container";
+        container.appendChild(add_priv_channel_container);
+
+        const add_priv_channel_label = document.createElement("div");
+        add_priv_channel_label.innerText = "CODE: "
+        add_priv_channel_label.id = "add-priv-channel-label";
+        add_priv_channel_container.appendChild(add_priv_channel_label);
+
+        const add_priv_channel_input = document.createElement("input");
+        add_priv_channel_input.type = "text";
+        add_priv_channel_input.classList.add("editor-field");
+        add_priv_channel_input.id = "add-priv-channel-id";
+        add_priv_channel_container.appendChild(add_priv_channel_input);
+
+        const join_chan = () => {
+            Client.join_channel(add_priv_channel_input.value).then(chan => {
+                const ch = CHAT_ELEMENT.add_channel(chan);
+                CHAT_ELEMENT.set_selected_channel(ch);
+                this.hide();
+            }).catch(() => {});
+        };
+        
+        add_priv_channel_input.onpaste = join_chan;
+        add_priv_channel_input.onchange = join_chan;
+
         new_channel_title.onclick = () => {
             const priv = channel_private.classList.contains("active");
             let password: string|undefined = undefined;
@@ -157,6 +183,7 @@ export class ChannelListElement {
             Client.create_channel(channel_name.value, priv, password).then(channel => {
                 const ch = CHAT_ELEMENT.add_channel(channel);
                 CHAT_ELEMENT.set_selected_channel(ch);
+                Users.me().then(me => me.channels_owned_ids.push(channel.id));
                 this.hide();
             });
         }

@@ -211,8 +211,8 @@ export class RawHTTPClient {
 	/**
 	 * Joins a new channel.
 	 */
-	public async join_channel(id: ChannelId, password?: string): Promise<void> {
-		await this.make_request({
+	public async join_channel(id: ChannelId, password?: string): Promise<Channel> {
+		const body = await this.make_request({
 			accept: "application/json",
 			method: "PATCH",
 			url: `/api/channel/${id}/join`,
@@ -220,6 +220,8 @@ export class RawHTTPClient {
 				password,
 			}),
 		});
+
+		return body.json();
 	}
 
 	/**
