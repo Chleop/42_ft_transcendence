@@ -238,7 +238,7 @@ class GameBoardClass extends Scene {
 
         if (this.render_state.wtf) {
             r.bind_framebuffer(this.warped_canvas);
-            r.wtf(this.tmp_canvas, this.warped_canvas.width, this.warped_canvas.height);
+            r.wtf(this.tmp_canvas);
             r.bind_framebuffer(this.tmp_canvas);
             r.draw_image(this.warped_canvas);
         }

@@ -185,7 +185,6 @@ export class Renderer {
     private warp_uniform_screen: WebGLUniformLocation;
 
     private wtf_program: WebGLProgram;
-    private wtf_uniform_screen: WebGLUniformLocation;
 
     private canvas_width: number;
     private canvas_height: number;
@@ -215,7 +214,6 @@ export class Renderer {
         this.warp_program = create_program(this.gl, warp_vertex_shader_source, warp_fragment_shader_source);
         this.warp_uniform_screen = get_uniform_location(this.gl, this.warp_program, "screen");
         this.wtf_program = create_program(this.gl, wtf_vertex_shader_source, wtf_fragment_shader_source);
-        this.wtf_uniform_screen = get_uniform_location(this.gl, this.wtf_program, "screen");
 
         this.canvas_width = 1;
         this.canvas_height = 1;
@@ -288,10 +286,9 @@ export class Renderer {
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
     }
 
-    public wtf(sprite: WithTexture, width: number, height: number) {
+    public wtf(sprite: WithTexture) {
         this.gl.useProgram(this.wtf_program);
         this.gl.bindTexture(this.gl.TEXTURE_2D, sprite.texture);
-        this.gl.uniform2f(this.wtf_uniform_screen, width, height);
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
     }
 

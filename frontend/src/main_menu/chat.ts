@@ -227,10 +227,9 @@ class ChatElement {
             if (!this.selected_channel)
                 return;
             if (this.selected_channel.model) {
-                const selected_channel_id = this.selected_channel.model.id; // this is a data race!
+                const model = this.selected_channel.model; // this is a data race! Yay!!
                 Users.me().then(me => {
-                    const owner = !!me.channels_owned_ids.find(owned_id => owned_id === selected_channel_id);
-                    CHANNEL_SETTINGS.show(channel_settings_button, owner);
+                    CHANNEL_SETTINGS.show(channel_settings_button, me, model);
                 });
             }
         };

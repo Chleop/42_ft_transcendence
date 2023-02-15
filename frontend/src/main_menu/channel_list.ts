@@ -61,6 +61,11 @@ export class ChannelListElement {
     private container: HTMLDivElement;
     private list: HTMLDivElement;
 
+    private channel_name: HTMLInputElement;
+    private channel_password: HTMLInputElement;
+    private create_channel: HTMLButtonElement;
+    private priv_channel: HTMLButtonElement;
+
     public constructor() {
         const screen = document.createElement("div");
         screen.id = "create-channel-screen";
@@ -146,11 +151,12 @@ export class ChannelListElement {
         new_channel_title.onclick = () => {
             const priv = channel_private.classList.contains("active");
             let password: string|undefined = undefined;
-            if (!priv)
+            if (!priv && channel_password.value !== "")
                 password = channel_password.value;
-            console.log(channel_name.value, priv, password)
+            console.log(channel_name.name, priv, password);
             Client.create_channel(channel_name.value, priv, password).then(channel => {
-                CHAT_ELEMENT.add_channel(channel);
+                const ch = CHAT_ELEMENT.add_channel(channel);
+                CHAT_ELEMENT.set_selected_channel(ch);
                 this.hide();
             });
         }
@@ -158,11 +164,21 @@ export class ChannelListElement {
         this.screen = screen;
         this.container = container;
         this.list = channel_list;
+        this.channel_name = channel_name;
+        this.channel_password = channel_password;
+        this.create_channel = new_channel_title;
+        this.priv_channel = channel_private;
     }
 
     public show(at: HTMLElement) {
         while (this.list.firstChild)
             this.list.firstChild.remove();
+
+        this.create_channel.classList.remove("ready");
+        this.channel_name.value = "";
+        this.channel_password.disabled = false;
+        this.channel_password.value = "";
+        this.priv_channel.classList.remove("active");
 
         const rect = at.getBoundingClientRect();
         this.container.style.top = `${rect.bottom + 20}px`;
