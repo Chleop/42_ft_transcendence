@@ -20,12 +20,14 @@ class MainMenuScene extends Scene {
      */
     private game_socket: GameSocket | null;
 
+    private tmp: number = 0;
+
     /**
      * Creatse a new `MainMenuElement` instance.
      */
     public constructor() {
         super();
-
+        this.game_socket = null;
         this.container = document.createElement("div");
         this.container.id = "main-menu-container";
 
@@ -69,7 +71,9 @@ class MainMenuScene extends Scene {
                 this.game_socket.on_match_found = found => {
                     console.log("Match found!");
 
-                    const s = <GameSocket>this.game_socket;
+                    const s: GameSocket|null = this.game_socket;
+                    if (s === null)
+                        return;
                     Users.me().then(me => {
                         GAME_BOARD.start_game(new PlayingGame(s, me.id, found.id));
                         History.push_state(GAME_BOARD);

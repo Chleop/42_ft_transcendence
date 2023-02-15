@@ -9,12 +9,7 @@ import * as passport from "passport";
 
 async function bootstrap() {
 	const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-		logger: [
-			"log",
-			"debug",
-			"error",
-			"verbose",
-		],
+		logger: ["log", "debug", "error", "verbose"],
 	});
 
 	app.setGlobalPrefix("api");
@@ -36,6 +31,7 @@ async function bootstrap() {
 	);
 	app.use(passport.initialize());
 	app.use(passport.session());
+
 	app.useWebSocketAdapter(new SocketIOAdapter(app, configService));
 
 	await app.listen(3000);

@@ -7,11 +7,13 @@ import {
 	WebSocketGateway,
 	WebSocketServer,
 } from "@nestjs/websockets";
-import { Logger } from "@nestjs/common";
+import { Logger, UseInterceptors } from "@nestjs/common";
+import { WebSocketInterceptor } from "../websocket.interceptor";
 
 @WebSocketGateway({
 	namespace: "chat",
 })
+@UseInterceptors(WebSocketInterceptor)
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
 	@WebSocketServer()
 	public readonly _server: Server;

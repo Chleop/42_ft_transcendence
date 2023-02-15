@@ -16,14 +16,22 @@ class GatewayClass {
 	public on_message: (message: Message) => void = noop;
 
 	/** Callback called when the gateway connection is ready. */
-	public on_connected: () => void = noop;
+	public on_connected = (): void => {
+		console.log(" conectedddddddddddddddddddddd");
+	}
+	// public on_connected: () => void = noop;
 
 	/** Callback called when teh gateway connection is lost. */
 	public on_disconnected: () => void = noop;
 
 	public constructor() {
 		console.log("initiating a connection with the chat gateway...");
-		this.socket = io("/chat", {auth: {token: get_cookie("access_token")}});
+		this.socket = io("/chat", {
+			reconnection: false,
+			auth: {
+				token: get_cookie("access_token")
+			}
+		});
 
 		this.socket.on("connect", () => this.on_connected());
 		this.socket.on("disconnect", () => this.on_disconnected());
@@ -32,6 +40,7 @@ class GatewayClass {
 
 
 	public connect() {
+		// console.log("Connected to gateway regular");
 		this.socket.connect();
 	}
 

@@ -1,9 +1,10 @@
 import { Module } from "@nestjs/common";
-import { GameService /* SpectatorService */ } from "./game.service";
-import { GameGateway /* SpectatorGateway */ } from "./game.gateway";
+import { GameService } from "./game.service";
+import { GameGateway } from "./game.gateway";
+import { WebSocketInterceptor } from "src/websocket.interceptor";
 
 @Module({
-	providers: [GameGateway /* SpectatorGateway */, GameService /* SpectatorService */],
+	providers: [GameGateway, GameService, WebSocketInterceptor],
 	exports: [GameService],
 })
 export class GameModule {}

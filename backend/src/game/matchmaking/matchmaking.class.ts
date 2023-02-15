@@ -1,6 +1,6 @@
-import { Logger } from "@nestjs/common";
 import { Socket } from "socket.io";
 import { Match } from "../aliases";
+import { BadEvent } from "../exceptions";
 import { GameRoom } from "../rooms";
 
 /**
@@ -12,13 +12,11 @@ import { GameRoom } from "../rooms";
  */
 export class Matchmaking {
 	private queue: Socket | null;
-	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
 
 	constructor() {
 		this.queue = null;
-		this.logger = new Logger(Matchmaking.name);
 	}
 
 	/* PUBLIC ================================================================== */
@@ -33,8 +31,7 @@ export class Matchmaking {
 			return null;
 		} else {
 			if (this.queue.data.user.id === client.data.user.id) {
-				this.logger.verbose(`${this.queue.data.user.login} already in the queue`);
-				return null;
+				throw new BadEvent(`${this.queue.data.user.login} already in the queue`);
 			}
 			const match: Match = {
 				name: this.queue.id + client.id,
