@@ -104,7 +104,7 @@ class UserCardElement {
         this.blocked_button = blocked_button;
         this.send_message_button = send_message_button;
         this.promote_button = promote_button;
-        this.mute_button = promote_button;
+        this.mute_button = mute_button;
     }
 
     public show(elem: HTMLElement | null, user: User, channel: Channel|null) {
