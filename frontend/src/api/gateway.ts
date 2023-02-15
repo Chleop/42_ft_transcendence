@@ -1,6 +1,8 @@
 import {Socket, io} from "socket.io-client";
 import {Message} from "./channel";
 import {get_cookie} from "./client";
+import { UserUpdate } from "./user";
+import { Users } from "./users";
 
 /** Does nothing. */
 function noop(): void {}
@@ -43,6 +45,7 @@ class GatewayClass {
 			channelId: null,
 			senderId: msg.senderId,
 		}));
+		this.socket.on("user_updated", (user_update: UserUpdate) => Users.on_user_update(user_update));
 	}
 
 	/** Disconnect the socket. */

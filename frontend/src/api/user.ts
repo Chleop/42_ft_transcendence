@@ -82,6 +82,18 @@ export interface GameResult {
     winner_id: string;
 }
 
+export type UserStatus = "online" | "offline" | "ingame" | "spectating";
+
+export type UserUpdate = {
+    id: string;
+    name?: string;
+    status?: UserStatus;
+    spectating?: string;
+    game_won?: number;
+    game_lost?: number;
+    is_avatar_changed?: boolean;
+};
+
 /**
  * Stores public information about a user.
  */
@@ -98,4 +110,6 @@ export interface User {
     games_played: number;
     /** ID of won games. */
     games_won: number;
+    status: UserStatus,
+    spectating: UserId | undefined,
 };

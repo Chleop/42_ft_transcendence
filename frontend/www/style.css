@@ -316,6 +316,7 @@ body {
   cursor: pointer;
   color: white;
   padding: 0px;
+  white-space: nowrap;
 }
 
 .message-author:hover {
@@ -326,6 +327,7 @@ body {
   font-weight: 400;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
 }
 
 .message-content {
@@ -419,6 +421,7 @@ body {
   justify-content: center;
   padding: 10px;
   align-items: center;
+  overflow: hidden;
 }
 
 #profile-header-info {
@@ -427,6 +430,8 @@ body {
 }
 
 #profile-avatar {
+  min-width: 100px;
+  min-height: 100px;
   width: 100px;
   height: 100px;
   border-radius: 1000px;
@@ -445,8 +450,7 @@ body {
   font-family: "Noto Sans", sans-serif;
   font-size: 30px;
   font-weight: 600;
-  cursor: pointer;
-  user-select: none;
+  white-space: nowrap;
 }
 
 #profile-edit-button {
@@ -596,6 +600,7 @@ body {
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   padding-bottom: 10px;
+  overflow: hidden;
 }
 
 #user-card-avatar {
@@ -603,6 +608,8 @@ body {
   background-position: center;
   width: 80px;
   height: 80px;
+  min-width: 80px;
+  min-height: 80px;
   border-radius: 10000px;
   z-index: 10;
   border: 3px solid white;
@@ -616,6 +623,7 @@ body {
   font-size: 24px;
   color: white;
   font-weight: bold;
+  white-space: nowrap;
 }
 
 #user-card-status {
