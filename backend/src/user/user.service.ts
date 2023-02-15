@@ -5,7 +5,9 @@ import {
 	t_get_me_fields_tmp,
 	t_get_one_fields,
 	t_get_one_fields_tmp,
+	t_user_update_event,
 } from "src/user/alias";
+import { t_user_id } from "src/chat/alias";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
@@ -544,6 +546,7 @@ export class UserService {
 			id: user_tmp.id,
 			login: user_tmp.login,
 			name: user_tmp.name,
+			status: this._gateway.get_user_status(user_tmp.id),
 			email: user_tmp.email,
 			skin_id: user_tmp.skinId,
 			elo: user_tmp.elo,
@@ -723,6 +726,7 @@ export class UserService {
 			id: requested_user_tmp.id,
 			login: requested_user_tmp.login,
 			name: requested_user_tmp.name,
+			status: this._gateway.get_user_status(requested_user_tmp.id),
 			skin_id: requested_user_tmp.skinId,
 			elo: requested_user_tmp.elo,
 			channels: requested_user_tmp.channels.map((channel): t_channels_fields => {
@@ -1332,6 +1336,11 @@ export class UserService {
 					},
 				},
 			});
+
+			await this.broadcast_user_update_to_many({
+				id,
+				name,
+			});
 		} catch (error) {
 			this._logger.error(`Error occured while updating user ${id}`);
 			if (error instanceof PrismaClientKnownRequestError) {
@@ -1392,12 +1401,99 @@ export class UserService {
 		}
 		try {
 			createWriteStream(join(process.cwd(), user.avatar)).write(file.buffer);
+
+			await this.broadcast_user_update_to_many({
+				id,
+				is_avatar_changed: true,
+			});
 		} catch (error) {
 			if (error instanceof Error)
 				this._logger.error(`Error occured while writing avatar to disk: ${error.message}`);
 			throw new UnknownError();
 		}
 		this._logger.log(`Updated user ${id}'s avatar`);
+	}
+
+	/**
+	 * @brief	Broadcast that a user has updated his profile to all related users.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	data: The id of the user to update + the fields that have been updated.
+	 *
+	 * @error	If no field has been provided, do nothing.
+	 *
+	 * @return	An empty promise.
+	 */
+	public async broadcast_user_update_to_many(data: t_user_update_event): Promise<void> {
+		if (
+			data.name === undefined &&
+			data.status === undefined &&
+			data.spectating === undefined &&
+			data.game_lost === undefined &&
+			data.game_won === undefined &&
+			data.is_avatar_changed === false
+		) {
+			return;
+		}
+
+		let users: t_user_id[] = await this._prisma.user.findMany({
+			select: {
+				id: true,
+			},
+			where: {
+				OR: [
+					{
+						friends: {
+							some: {
+								id: data.id,
+							},
+						},
+					},
+					{
+						channels: {
+							some: {
+								members: {
+									some: {
+										id: data.id,
+									},
+								},
+							},
+						},
+					},
+					{
+						directMessagesSent: {
+							some: {
+								receiverId: data.id,
+							},
+						},
+					},
+					{
+						directMessagesReceived: {
+							some: {
+								senderId: data.id,
+							},
+						},
+					},
+					{
+						gamesPlayed: {
+							some: {
+								players: {
+									some: {
+										id: data.id,
+									},
+								},
+							},
+						},
+					},
+				],
+				NOT: {
+					id: data.id,
+				},
+			},
+		});
+
+		this._gateway.broadcast_to_many("user_updated", new Set<t_user_id>(users), data);
 	}
 
 	/**
