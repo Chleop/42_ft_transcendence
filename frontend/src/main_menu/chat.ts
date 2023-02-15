@@ -448,7 +448,11 @@ class ChatElement {
         if (this.selected_channel.model)
             await Client.send_message(this.selected_channel.model.id, content);
         if (this.selected_channel.dm)
+        {
             await Client.send_dm(this.selected_channel.dm.id, content);
+            // TODO:
+            //  Put the message itself.
+        }
     }
 
     /**
