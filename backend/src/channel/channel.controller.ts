@@ -22,6 +22,7 @@ import {
 import {
 	ChannelBanMemberDto,
 	ChannelCreateDto,
+	ChannelDelegateOwnershipDto,
 	ChannelDemoteOperatorDto,
 	ChannelJoinDto,
 	ChannelKickMemberDto,
@@ -35,7 +36,6 @@ import {
 import { Channel, ChannelMessage } from "@prisma/client";
 import {
 	ChannelAlreadyJoinedError,
-	ChannelFieldUnavailableError,
 	ChannelForbiddenToJoinError,
 	ChannelMemberAlreadyDemotedError,
 	ChannelMemberAlreadyMutedError,
@@ -44,7 +44,6 @@ import {
 	ChannelMemberNotBannedError,
 	ChannelMemberNotFoundError,
 	ChannelMemberNotOperatorError,
-	ChannelMemberNotOwnerError,
 	ChannelMessageNotFoundError,
 	ChannelMessageTooLongError,
 	ChannelNameAlreadyTakenError,
@@ -55,8 +54,6 @@ import {
 	ChannelPasswordMissingError,
 	ChannelPasswordNotAllowedError,
 	ChannelPasswordUnexpectedError,
-	ChannelRelationNotFoundError,
-	UnknownError,
 } from "src/channel/error";
 import { Jwt2FAGuard } from "src/auth/guards";
 import { t_user_auth } from "src/auth/alias";
@@ -69,20 +66,27 @@ export class ChannelController {
 	private readonly _logger: Logger;
 
 	constructor() {
+		//#region
 		this._channel_service = new ChannelService();
 		this._logger = new Logger(ChannelController.name);
 	}
+	//#endregion
 
 	@Patch(":id/ban")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async ban_ones_member(
+		//#region
 		@Req()
 		request: {
+			//#region
 			user: t_user_auth;
 		},
+		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelBanMemberDto,
+		//#endregion
 	): Promise<void> {
+		//#region
 		try {
 			await this._channel_service.ban_ones_member(request.user.id, id, dto.user_id);
 		} catch (error) {
@@ -102,16 +106,22 @@ export class ChannelController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Post()
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async create_one(
+		//#region
 		@Req()
 		request: {
+			//#region
 			user: t_user_auth;
 		},
+		//#endregion
 		@Body() dto: ChannelCreateDto,
+		//#endregion
 	): Promise<Channel> {
+		//#region
 		let channel: Channel;
 
 		try {
@@ -122,20 +132,13 @@ export class ChannelController {
 				dto.password,
 			);
 		} catch (error) {
-			if (
-				error instanceof ChannelPasswordNotAllowedError ||
-				error instanceof ChannelRelationNotFoundError
-			) {
+			if (error instanceof ChannelPasswordNotAllowedError) {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			if (error instanceof ChannelFieldUnavailableError) {
+			if (error instanceof ChannelNameAlreadyTakenError) {
 				this._logger.error(error.message);
-				throw new ForbiddenException(error.message);
-			}
-			if (error instanceof UnknownError) {
-				this._logger.error(error.message);
-				throw new InternalServerErrorException(error.message);
+				throw new ConflictException(error.message);
 			}
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
@@ -143,15 +146,57 @@ export class ChannelController {
 
 		return channel;
 	}
+	//#endregion
+
+	@Patch(":id/delegate")
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	async delegate_ones_ownership(
+		//#region
+		@Req()
+		request: {
+			//#region
+			user: t_user_auth;
+		},
+		//#endregion
+		@Param("id") id: string,
+		@Body() dto: ChannelDelegateOwnershipDto,
+		//#endregion
+	): Promise<void> {
+		//#region
+		try {
+			await this._channel_service.delegate_ones_ownership(request.user.id, id, dto.user_id);
+		} catch (error) {
+			if (
+				error instanceof ChannelNotFoundError ||
+				error instanceof ChannelNotJoinedError ||
+				error instanceof ChannelMemberNotFoundError
+			) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelNotOwnedError) {
+				this._logger.error(error.message);
+				throw new ForbiddenException(error.message);
+			}
+			this._logger.error("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+	}
+	//#endregion
 
 	@Delete(":id")
 	async delete_one(
+		//#region
 		@Req()
 		request: {
+			//#region
 			user: t_user_auth;
 		},
+		//#endregion
 		@Param("id") id: string,
+		//#endregion
 	): Promise<void> {
+		//#region
 		try {
 			await this._channel_service.delete_one(request.user.id, id);
 		} catch (error) {
@@ -163,24 +208,26 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			if (error instanceof UnknownError) {
-				this._logger.error(error.message);
-				throw new InternalServerErrorException(error.message);
-			}
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Patch(":id/demote")
 	async demote_ones_operator(
+		//#region
 		@Req()
 		request: {
+			//#region
 			user: t_user_auth;
 		},
+		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelDemoteOperatorDto,
+		//#endregion
 	): Promise<void> {
+		//#region
 		try {
 			await this._channel_service.demote_ones_operator(request.user.id, id, dto.user_id);
 		} catch (error) {
@@ -202,14 +249,20 @@ export class ChannelController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Get("all")
 	async get_all(
+		//#region
 		@Req()
 		request: {
+			//#region
 			user: t_user_auth;
 		},
+		//#endregion
+		//#endregion
 	): Promise<t_get_all_fields> {
+		//#region
 		let channels: t_get_all_fields;
 
 		try {
@@ -221,17 +274,23 @@ export class ChannelController {
 
 		return channels;
 	}
+	//#endregion
 
 	@Get(":id/messages")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async get_ones_messages(
+		//#region
 		@Req()
 		request: {
+			//#region
 			user: t_user_auth;
 		},
+		//#endregion
 		@Param("id") id: string,
 		@Query() dto: ChannelMessageGetDto,
+		//#endregion
 	): Promise<ChannelMessage[]> {
+		//#region
 		if (dto.after && dto.before) {
 			throw new BadRequestException("Unexpected both `before` and `after` received");
 		}
@@ -264,17 +323,23 @@ export class ChannelController {
 
 		return messages;
 	}
+	//#endregion
 
 	@Patch(":id/mute")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async mute_ones_member(
+		//#region
 		@Req()
 		request: {
+			//#region
 			user: t_user_auth;
 		},
+		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelMuteMemberDto,
+		//#endregion
 	): Promise<void> {
+		//#region
 		try {
 			await this._channel_service.mute_ones_member(
 				request.user.id,
@@ -301,17 +366,23 @@ export class ChannelController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Patch(":id/join")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async join_one(
+		//#region
 		@Req()
 		request: {
+			//#region
 			user: t_user_auth;
 		},
+		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelJoinDto,
+		//#endregion
 	): Promise<t_join_one_fields> {
+		//#region
 		try {
 			return await this._channel_service.join_one(request.user.id, id, dto.password);
 		} catch (error) {
@@ -333,17 +404,23 @@ export class ChannelController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Patch(":id/kick")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async kick_ones_member(
+		//#region
 		@Req()
 		request: {
+			//#region
 			user: t_user_auth;
 		},
+		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelKickMemberDto,
+		//#endregion
 	): Promise<void> {
+		//#region
 		try {
 			await this._channel_service.kick_ones_member(request.user.id, id, dto.user_id);
 		} catch (error) {
@@ -364,16 +441,22 @@ export class ChannelController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Patch(":id/leave")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async leave_one(
+		//#region
 		@Req()
 		request: {
+			//#region
 			user: t_user_auth;
 		},
+		//#endregion
 		@Param("id") id: string,
+		//#endregion
 	): Promise<void> {
+		//#region
 		try {
 			await this._channel_service.leave_one(request.user.id, id);
 		} catch (error) {
@@ -383,17 +466,23 @@ export class ChannelController {
 			}
 		}
 	}
+	//#endregion
 
 	@Patch(":id/promote")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async promote_ones_member(
+		//#region
 		@Req()
 		request: {
+			//#region
 			user: t_user_auth;
 		},
+		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelPromoteMemberDto,
+		//#endregion
 	): Promise<void> {
+		//#region
 		try {
 			await this._channel_service.promote_ones_member(request.user.id, id, dto.user_id);
 		} catch (error) {
@@ -415,17 +504,23 @@ export class ChannelController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Post(":id/message")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async send_message_to_one(
+		//#region
 		@Req()
 		request: {
+			//#region
 			user: t_user_auth;
 		},
+		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelMessageSendDto,
+		//#endregion
 	): Promise<ChannelMessage> {
+		//#region
 		try {
 			return await this._channel_service.send_message_to_one(
 				request.user.id,
@@ -448,17 +543,23 @@ export class ChannelController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Patch(":id/unban")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async unban_ones_member(
+		//#region
 		@Req()
 		request: {
+			//#region
 			user: t_user_auth;
 		},
+		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelUnbanMemberDto,
+		//#endregion
 	): Promise<void> {
+		//#region
 		try {
 			await this._channel_service.unban_ones_member(request.user.id, id, dto.user_id);
 		} catch (error) {
@@ -479,17 +580,23 @@ export class ChannelController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Patch(":id")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async update_one(
+		//#region
 		@Req()
 		request: {
+			//#region
 			user: t_user_auth;
 		},
+		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelUpdateDto,
+		//#endregion
 	): Promise<void> {
+		//#region
 		try {
 			await this._channel_service.update_one(
 				request.user.id,
@@ -508,7 +615,7 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			if (error instanceof ChannelMemberNotOwnerError) {
+			if (error instanceof ChannelNotOwnedError) {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
@@ -520,4 +627,5 @@ export class ChannelController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 }

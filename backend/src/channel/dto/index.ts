@@ -1,5 +1,6 @@
 export * from "src/channel/dto/ChannelBanMember.dto";
 export * from "src/channel/dto/ChannelCreate.dto";
+export * from "src/channel/dto/ChannelDelegateOwnership.dto";
 export * from "src/channel/dto/ChannelDemoteOperator.dto";
 export * from "src/channel/dto/ChannelJoin.dto";
 export * from "src/channel/dto/ChannelKickMember.dto";

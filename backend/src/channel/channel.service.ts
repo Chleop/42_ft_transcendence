@@ -6,7 +6,6 @@ import {
 } from "src/channel/alias";
 import {
 	ChannelAlreadyJoinedError,
-	ChannelFieldUnavailableError,
 	ChannelForbiddenToJoinError,
 	ChannelMemberAlreadyDemotedError,
 	ChannelMemberAlreadyMutedError,
@@ -14,7 +13,6 @@ import {
 	ChannelMemberMutedError,
 	ChannelMemberNotFoundError,
 	ChannelMemberNotOperatorError,
-	ChannelMemberNotOwnerError,
 	ChannelMessageNotFoundError,
 	ChannelMessageTooLongError,
 	ChannelMissingOwnerError,
@@ -26,16 +24,12 @@ import {
 	ChannelPasswordMissingError,
 	ChannelPasswordNotAllowedError,
 	ChannelPasswordUnexpectedError,
-	ChannelRelationNotFoundError,
-	ChannelUnpopulatedError,
-	UnknownError,
 } from "src/channel/error";
 import { g_channel_message_length_limit } from "src/channel/limit";
 import { ChatGateway } from "src/chat/chat.gateway";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, Logger } from "@nestjs/common";
-import { Channel, ChannelMessage, ChanType, StateType } from "@prisma/client";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { Channel, ChannelMessage, ChanType } from "@prisma/client";
 import * as argon2 from "argon2";
 import { ChannelMemberNotBannedError } from "./error/ChannelMemberNotBanned.error";
 
@@ -49,28 +43,30 @@ export class ChannelService {
 	private readonly _logger: Logger;
 
 	constructor() {
+		//#region
 		this._prisma = new PrismaService();
 		this._gateway = new ChatGateway();
 		this._logger = new Logger(ChannelService.name);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Delegate the ownership of a channel
 	 * 			to a user chosen arbitrary among those present in this channel.
+	 * 			It is assumed that the channel is populated by at least 2 members and has an owner.
+	 * 			It is assumed that the provided channel id is valid.
+	 * 			(channel exists and corresponds to the provided channel)
 	 *
 	 * @param	id The id of the channel to delegate the ownership.
 	 * @param	channel The channel to delegate the ownership.
 	 *
-	 * @error	The following errors may be thrown:
-	 * 			- ChannelNotFoundError
-	 * 			- ChannelUnpopulatedError
-	 * 			- ChannelMissingOwnerError
-	 *
 	 * @return	An empty promise.
 	 */
-	private async _delegate_ones_ownership(
+	private async _delegate_ones_ownership_arbitrary(
+		//#region
 		id: string,
 		channel: {
+			//#region
 			owner: {
 				id: string;
 			} | null;
@@ -81,21 +77,14 @@ export class ChannelService {
 				id: string;
 			}[];
 		},
+		//#endregion
+		//#endregion
 	): Promise<void> {
-		if (!channel.owner) {
-			throw new ChannelMissingOwnerError(id);
-		}
-
-		if (channel.members.length < 2) {
-			throw new ChannelUnpopulatedError(id);
-		}
-
+		//#region
 		for (const operator of channel.operators) {
-			if (operator.id !== channel.owner.id) {
+			if (operator.id !== channel.owner!.id) {
 				await this._prisma.channel.update({
-					where: {
-						id: id,
-					},
+					//#region
 					data: {
 						owner: {
 							connect: {
@@ -103,7 +92,11 @@ export class ChannelService {
 							},
 						},
 					},
+					where: {
+						id: id,
+					},
 				});
+				//#endregion
 				this._logger.verbose(
 					`Channel ${id} ownership delegated to operator ${operator.id}`,
 				);
@@ -111,11 +104,9 @@ export class ChannelService {
 			}
 		}
 		for (const member of channel.members) {
-			if (member.id !== channel.owner.id) {
+			if (member.id !== channel.owner!.id) {
 				await this._prisma.channel.update({
-					where: {
-						id: id,
-					},
+					//#region
 					data: {
 						owner: {
 							connect: {
@@ -123,12 +114,17 @@ export class ChannelService {
 							},
 						},
 					},
+					where: {
+						id: id,
+					},
 				});
+				//#endregion
 				this._logger.verbose(`Channel ${id} ownership delegated to member ${member.id}`);
 				return;
 			}
 		}
 	}
+	//#endregion
 
 	/**
 	 * @brief	Drop the ownership of a channel, making the channel unowned,
@@ -144,15 +140,21 @@ export class ChannelService {
 	 * @return	An empty promise.
 	 */
 	private async _drop_ones_ownership(
+		//#region
 		id: string,
 		channel?: {
+			//#region
 			owner: {
 				id: string;
 			} | null;
 		} | null,
+		//#endregion
+		//#endregion
 	): Promise<void> {
+		//#region
 		if (!channel) {
 			channel = await this._prisma.channel.findUnique({
+				//#region
 				where: {
 					id: id,
 				},
@@ -164,6 +166,7 @@ export class ChannelService {
 					},
 				},
 			});
+			//#endregion
 
 			if (!channel) {
 				throw new ChannelNotFoundError(id);
@@ -175,6 +178,7 @@ export class ChannelService {
 		}
 
 		await this._prisma.channel.update({
+			//#region
 			where: {
 				id: id,
 			},
@@ -184,8 +188,10 @@ export class ChannelService {
 				},
 			},
 		});
+		//#endregion
 		this._logger.verbose(`Channel ${id} ownership dropped`);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Get channel's messages which have been sent after a specific one from the database.
@@ -200,16 +206,22 @@ export class ChannelService {
 	 * @return	A promise containing the wanted messages.
 	 */
 	private async _get_ones_messages_after_a_specific_message(
+		//#region
 		id: string,
 		message_id: string,
 		limit: number,
+		//#endregion
 	): Promise<ChannelMessage[]> {
+		//#region
 		type t_fields = {
+			//#region
 			channelId: string;
 			dateTime: Date;
 		};
+		//#endregion
 
 		const message: t_fields | null = await this._prisma.channelMessage.findUnique({
+			//#region
 			where: {
 				id: message_id,
 			},
@@ -218,12 +230,14 @@ export class ChannelService {
 				dateTime: true,
 			},
 		});
+		//#endregion
 
 		if (!message || message.channelId !== id) {
 			throw new ChannelMessageNotFoundError(message_id);
 		}
 
 		const messages: ChannelMessage[] = await this._prisma.channelMessage.findMany({
+			//#region
 			where: {
 				channelId: id,
 				dateTime: {
@@ -235,9 +249,11 @@ export class ChannelService {
 			},
 			take: limit,
 		});
+		//#endregion
 
 		return messages;
 	}
+	//#endregion
 
 	/**
 	 * @brief	Get channel's messages which have been sent before a specific one from the database.
@@ -252,16 +268,22 @@ export class ChannelService {
 	 * @return	A promise containing the wanted messages.
 	 */
 	private async _get_ones_messages_before_a_specific_message(
+		//#region
 		id: string,
 		message_id: string,
 		limit: number,
+		//#endregion
 	): Promise<ChannelMessage[]> {
+		//#region
 		type t_fields = {
+			//#region
 			channelId: string;
 			dateTime: Date;
 		};
+		//#endregion
 
 		const message: t_fields | null = await this._prisma.channelMessage.findUnique({
+			//#region
 			where: {
 				id: message_id,
 			},
@@ -270,12 +292,14 @@ export class ChannelService {
 				dateTime: true,
 			},
 		});
+		//#endregion
 
 		if (!message || message.channelId !== id) {
 			throw new ChannelMessageNotFoundError(message_id);
 		}
 
 		const messages: ChannelMessage[] = await this._prisma.channelMessage.findMany({
+			//#region
 			where: {
 				channelId: id,
 				dateTime: {
@@ -287,11 +311,13 @@ export class ChannelService {
 			},
 			take: limit,
 		});
+		//#endregion
 
 		// Get the most ancient messages first
 		messages.reverse();
 		return messages;
 	}
+	//#endregion
 
 	/**
 	 * @brief	Get channel's most recent messages from the database.
@@ -302,10 +328,14 @@ export class ChannelService {
 	 * @return	A promise containing the wanted messages.
 	 */
 	private async _get_ones_most_recent_messages(
+		//#region
 		id: string,
 		limit: number,
+		//#endregion
 	): Promise<ChannelMessage[]> {
+		//#region
 		const messages: ChannelMessage[] = await this._prisma.channelMessage.findMany({
+			//#region
 			where: {
 				channelId: id,
 			},
@@ -314,11 +344,13 @@ export class ChannelService {
 			},
 			take: limit,
 		});
+		//#endregion
 
 		// Get the most ancient messages first
 		messages.reverse();
 		return messages;
 	}
+	//#endregion
 
 	/**
 	 * @brief	Check if a channel is ownerless,
@@ -330,8 +362,10 @@ export class ChannelService {
 	 * @return	A promise containing the updated channel.
 	 */
 	private async _inherit_ones_ownership(channel: Channel, user_id: string): Promise<Channel> {
+		//#region
 		if (!channel.ownerId) {
 			channel = await this._prisma.channel.update({
+				//#region
 				where: {
 					id: channel.id,
 				},
@@ -343,11 +377,15 @@ export class ChannelService {
 					},
 				},
 			});
-			this._logger.log(`Channel ${channel.id} owner changed to ${user_id}`);
+			//#endregion
+			this._logger.verbose(
+				`User ${user_id} inherited of the ownership of the channel ${channel.id}`,
+			);
 		}
 
 		return channel;
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user ban another user from a specific channel.
@@ -362,17 +400,21 @@ export class ChannelService {
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
 	 * 			- ChannelNotJoinedError
-	 * 			- ChannelMemberNotFoundError
 	 * 			- ChannelMemberNotOperatorError
+	 * 			- ChannelMemberNotFoundError
 	 *
 	 * @return	An empty promise.
 	 */
 	public async ban_ones_member(
+		//#region
 		banning_user_id: string,
 		channel_id: string,
 		banned_user_id: string,
+		//#endregion
 	): Promise<void> {
+		//#region
 		type t_fields = {
+			//#region
 			members: {
 				id: string;
 			}[];
@@ -383,8 +425,10 @@ export class ChannelService {
 				id: string;
 			} | null;
 		};
+		//#endregion
 
 		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			//#region
 			select: {
 				members: {
 					select: {
@@ -406,6 +450,7 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
 
 		if (!channel) {
 			throw new ChannelNotFoundError(channel_id);
@@ -413,6 +458,7 @@ export class ChannelService {
 
 		await this.kick_ones_member(banning_user_id, channel_id, banned_user_id, channel);
 		await this._prisma.channel.update({
+			//#region
 			data: {
 				banned: {
 					connect: {
@@ -424,11 +470,13 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
 
 		this._logger.log(
-			`User ${banned_user_id} banned from channel ${channel_id} by ${banning_user_id}`,
+			`User ${banned_user_id} has been banned from channel ${channel_id} by ${banning_user_id}`,
 		);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Create a new channel in the database.
@@ -442,18 +490,19 @@ export class ChannelService {
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelPasswordNotAllowedError
-	 * 			- ChannelFieldUnavailableError
-	 * 			- ChannelRelationNotFoundError
-	 * 			- UnknownError
+	 * 			- ChannelNameAlreadyTakenError
 	 *
 	 * @return	A promise containing the created channel's data.
 	 */
 	public async create_one(
+		//#region
 		user_id: string,
 		name: string,
 		is_private: boolean,
 		password?: string,
+		//#endregion
 	): Promise<Channel> {
+		//#region
 		let type: ChanType;
 		let channel: Channel;
 
@@ -468,47 +517,140 @@ export class ChannelService {
 			type = ChanType.PUBLIC;
 		}
 
-		try {
-			channel = await this._prisma.channel.create({
-				data: {
+		if (
+			await this._prisma.channel.findUnique({
+				//#region
+				where: {
 					name: name,
-					chanType: type,
-					hash: password ? await argon2.hash(password) : null,
-					owner: {
-						connect: {
-							idAndState: {
-								id: user_id,
-								state: StateType.ACTIVE,
-							},
-						},
-					},
-					members: {
-						connect: {
-							idAndState: {
-								id: user_id,
-								state: StateType.ACTIVE,
-							},
-						},
-					},
 				},
-			});
-			this._logger.log(`Channel ${channel.id} created`);
-		} catch (error) {
-			if (error instanceof PrismaClientKnownRequestError) {
-				switch (error.code) {
-					case "P2002":
-						throw new ChannelFieldUnavailableError("name");
-					case "P2025":
-						throw new ChannelRelationNotFoundError("owner|members");
-				}
-			}
-
-			throw new UnknownError();
+			})
+			//#endregion
+		) {
+			throw new ChannelNameAlreadyTakenError(name);
 		}
 
+		channel = await this._prisma.channel.create({
+			//#region
+			data: {
+				name: name,
+				chanType: type,
+				hash: password ? await argon2.hash(password) : null,
+				owner: {
+					connect: {
+						id: user_id,
+					},
+				},
+				members: {
+					connect: {
+						id: user_id,
+					},
+				},
+			},
+		});
+		//#endregion
 		channel.hash = null;
+
+		this._logger.log(`User ${user_id} created channel ${channel.id}`);
+
 		return channel;
 	}
+	//#endregion
+
+	/**
+	 * @brief	Delegate the ownership of a specific channel to specific member.
+	 * 			The delegating user must be the owner of the channel.
+	 * 			It is assumed that the provided delegating user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	delegating_user_id The id of the user who is delegating the ownership.
+	 * @param	channel_id The id of the channel to delegate the ownership.
+	 * @param	delegated_user_id The id of the user who has been delegated to be the new owner.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
+	 * 			- ChannelNotOwnedError
+	 * 			- ChannelMemberNotFoundError
+	 *
+	 * @return	An empty promise.
+	 */
+	public async delegate_ones_ownership(
+		//#region
+		delegating_user_id: string,
+		channel_id: string,
+		delegated_user_id: string,
+		//#endregion
+	): Promise<void> {
+		//#region
+		type t_fields = {
+			//#region
+			owner: {
+				id: string;
+			} | null;
+			members: {
+				id: string;
+			}[];
+		};
+		//#endregion
+
+		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			//#region
+			select: {
+				owner: {
+					select: {
+						id: true,
+					},
+				},
+				members: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+		//#endregion
+
+		if (!channel) {
+			throw new ChannelNotFoundError(channel_id);
+		}
+
+		if (channel.members.every((member) => member.id !== delegating_user_id)) {
+			throw new ChannelNotJoinedError(`user ${delegating_user_id} | channel ${channel_id}`);
+		}
+
+		if (channel.owner!.id !== delegating_user_id) {
+			throw new ChannelNotOwnedError(`user ${delegating_user_id} | channel ${channel_id}`);
+		}
+
+		if (channel.members.every((member) => member.id !== delegated_user_id)) {
+			throw new ChannelMemberNotFoundError(
+				`user ${delegated_user_id} | channel ${channel_id}`,
+			);
+		}
+
+		await this._prisma.channel.update({
+			//#region
+			data: {
+				owner: {
+					connect: {
+						id: delegated_user_id,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		});
+		//#endregion
+
+		this._logger.log(
+			`User ${delegating_user_id} delegated the ownership of the channel ${channel_id} to ${delegated_user_id}`,
+		);
+	}
+	//#endregion
 
 	/**
 	 * @brief	Delete a channel from the database.
@@ -523,60 +665,73 @@ export class ChannelService {
 	 * 			- ChannelNotFoundError
 	 * 			- ChannelNotJoinedError
 	 * 			- ChannelNotOwnedError
-	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
 	 */
 	public async delete_one(user_id: string, channel_id: string): Promise<void> {
+		//#region
 		type t_fields = {
-			ownerId: string | null;
+			//#region
 			members: {
 				id: string;
 			}[];
+			owner: {
+				id: string;
+			} | null;
 		};
+		//#endregion
 
 		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			//#region
 			select: {
-				ownerId: true,
 				members: {
-					select: { id: true },
+					select: {
+						id: true,
+					},
+				},
+				owner: {
+					select: {
+						id: true,
+					},
 				},
 			},
-			where: { id: channel_id },
+			where: {
+				id: channel_id,
+			},
 		});
+		//#endregion
 
 		if (!channel) {
 			throw new ChannelNotFoundError(channel_id);
-		} else if (channel.members.find((member) => member.id === user_id) === undefined) {
-			throw new ChannelNotJoinedError(channel_id);
-		} else if (channel.ownerId !== user_id) {
-			throw new ChannelNotOwnedError(channel_id);
 		}
 
-		try {
-			await this._prisma.channelMessage.deleteMany({
-				where: {
-					channelId: channel_id,
-				},
-			});
-
-			await this._prisma.channel.delete({
-				where: {
-					id: channel_id,
-				},
-			});
-			this._logger.log(`Channel ${channel_id} deleted`);
-		} catch (error) {
-			if (error instanceof PrismaClientKnownRequestError) {
-				switch (error.code) {
-					case "P2025":
-						throw new ChannelNotFoundError(channel_id);
-				}
-			}
-
-			throw new UnknownError();
+		if (channel.members.every((member) => member.id !== user_id)) {
+			throw new ChannelNotJoinedError(`user: ${user_id} | channel: ${channel_id}`);
 		}
+
+		if (channel.owner!.id !== user_id) {
+			throw new ChannelNotOwnedError(`user: ${user_id} | channel: ${channel_id}`);
+		}
+
+		await this._prisma.channelMessage.deleteMany({
+			//#region
+			where: {
+				channelId: channel_id,
+			},
+		});
+		//#endregion
+
+		await this._prisma.channel.delete({
+			//#region
+			where: {
+				id: channel_id,
+			},
+		});
+		//#endregion
+
+		this._logger.log(`User ${user_id} deleted channel ${channel_id}`);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user demote another user from operators.
@@ -591,18 +746,22 @@ export class ChannelService {
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
 	 * 			- ChannelNotJoinedError
-	 * 			- ChannelMemberNotFoundError
 	 * 			- ChannelMemberNotOperatorError
+	 * 			- ChannelMemberNotFoundError
 	 * 			- ChannelMemberAlreadyDemotedError
 	 *
 	 * @return	An empty promise.
 	 */
 	public async demote_ones_operator(
+		//#region
 		demoting_user_id: string,
 		channel_id: string,
 		demoted_user_id: string,
+		//#endregion
 	): Promise<void> {
+		//#region
 		type t_fields = {
+			//#region
 			members: {
 				id: string;
 			}[];
@@ -613,8 +772,10 @@ export class ChannelService {
 				id: string;
 			} | null;
 		};
+		//#endregion
 
 		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			//#region
 			select: {
 				members: {
 					select: {
@@ -636,6 +797,7 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
 
 		if (!channel) {
 			throw new ChannelNotFoundError(channel_id);
@@ -643,12 +805,6 @@ export class ChannelService {
 
 		if (channel.members.every((member): boolean => member.id !== demoting_user_id)) {
 			throw new ChannelNotJoinedError(`user: ${demoting_user_id} | channel: ${channel_id}`);
-		}
-
-		if (channel.members.every((member): boolean => member.id !== demoted_user_id)) {
-			throw new ChannelMemberNotFoundError(
-				`user: ${demoted_user_id} | channel: ${channel_id}`,
-			);
 		}
 
 		if (
@@ -660,6 +816,12 @@ export class ChannelService {
 			);
 		}
 
+		if (channel.members.every((member): boolean => member.id !== demoted_user_id)) {
+			throw new ChannelMemberNotFoundError(
+				`user: ${demoted_user_id} | channel: ${channel_id}`,
+			);
+		}
+
 		if (channel.operators.every((operator): boolean => operator.id !== demoted_user_id)) {
 			throw new ChannelMemberAlreadyDemotedError(
 				`user: ${demoted_user_id} | channel: ${channel_id}`,
@@ -667,6 +829,7 @@ export class ChannelService {
 		}
 
 		await this._prisma.channel.update({
+			//#region
 			data: {
 				operators: {
 					disconnect: {
@@ -678,10 +841,12 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
 		this._logger.log(
-			`User ${demoted_user_id} demoted from operators in channel ${channel_id} by user ${demoting_user_id}`,
+			`User ${demoted_user_id} has been demoted from operators in channel ${channel_id} by user ${demoting_user_id}`,
 		);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Get the list of the available channels.
@@ -694,7 +859,9 @@ export class ChannelService {
 	 * @return	A promise containing the list of the available channels.
 	 */
 	public async get_all(user_id: string): Promise<t_get_all_fields> {
+		//#region
 		const channels_tmp: t_get_all_fields_tmp = await this._prisma.channel.findMany({
+			//#region
 			select: {
 				id: true,
 				name: true,
@@ -724,6 +891,7 @@ export class ChannelService {
 				},
 			},
 		});
+		//#endregion
 
 		const channels: t_get_all_fields = [];
 		for (const channel_tmp of channels_tmp) {
@@ -736,8 +904,11 @@ export class ChannelService {
 			});
 		}
 
+		this._logger.verbose(`User ${user_id} got the list of available channels`);
+
 		return channels;
 	}
+	//#endregion
 
 	/**
 	 * @brief	Get channel's messages from the database.
@@ -758,19 +929,25 @@ export class ChannelService {
 	 * @return	A promise containing the wanted messages.
 	 */
 	public async get_ones_messages(
+		//#region
 		user_id: string,
 		channel_id: string,
 		limit: number,
 		before?: string,
 		after?: string,
+		//#endregion
 	): Promise<ChannelMessage[]> {
+		//#region
 		type t_fields = {
+			//#region
 			members: {
 				id: string;
 			}[];
 		};
+		//#endregion
 
 		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			//#region
 			select: {
 				members: {
 					select: {
@@ -782,6 +959,7 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
 
 		if (!channel) {
 			throw new ChannelNotFoundError(channel_id);
@@ -801,6 +979,7 @@ export class ChannelService {
 			return await this._get_ones_most_recent_messages(channel_id, limit);
 		}
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user join a channel.
@@ -827,11 +1006,15 @@ export class ChannelService {
 	 * @return	A promise containing the joined channel's data.
 	 */
 	public async join_one(
+		//#region
 		joining_user_id: string,
 		channel_id: string,
 		password?: string,
+		//#endregion
 	): Promise<t_join_one_fields> {
+		//#region
 		const channel_tmp: t_join_one_fields_tmp | null = await this._prisma.channel.findUnique({
+			//#region
 			select: {
 				banned: {
 					select: {
@@ -854,6 +1037,7 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
 
 		if (!channel_tmp) {
 			throw new ChannelNotFoundError(channel_id);
@@ -892,6 +1076,7 @@ export class ChannelService {
 		}
 
 		await this._prisma.channel.update({
+			//#region
 			data: {
 				members: {
 					connect: {
@@ -903,7 +1088,7 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
-		this._logger.log(`Channel ${channel_id} joined by ${joining_user_id}`);
+		//#endregion
 
 		this._gateway.make_user_socket_join_room(joining_user_id, channel_id);
 		const channel: t_join_one_fields = {
@@ -912,8 +1097,12 @@ export class ChannelService {
 			type: channel_tmp.chanType,
 			owner_id: (await this._inherit_ones_ownership(channel_tmp, joining_user_id)).ownerId,
 		};
+
+		this._logger.log(`User ${joining_user_id} joined the channel ${channel_id}`);
+
 		return channel;
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user remove another user from the members of a specific channel.
@@ -928,16 +1117,18 @@ export class ChannelService {
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
 	 * 			- ChannelNotJoinedError
-	 * 			- ChannelMemberNotFoundError
 	 * 			- ChannelMemberNotOperatorError
+	 * 			- ChannelMemberNotFoundError
 	 *
 	 * @return	An empty promise.
 	 */
 	public async kick_ones_member(
+		//#region
 		kicking_user_id: string,
 		channel_id: string,
 		kicked_user_id: string,
 		channel?: {
+			//#region
 			members: {
 				id: string;
 			}[];
@@ -948,9 +1139,13 @@ export class ChannelService {
 				id: string;
 			} | null;
 		} | null,
+		//#endregion
+		//#endregion
 	): Promise<void> {
+		//#region
 		if (!channel) {
 			channel = await this._prisma.channel.findUnique({
+				//#region
 				select: {
 					members: {
 						select: {
@@ -972,6 +1167,7 @@ export class ChannelService {
 					id: channel_id,
 				},
 			});
+			//#endregion
 
 			if (!channel) {
 				throw new ChannelNotFoundError(channel_id);
@@ -980,12 +1176,6 @@ export class ChannelService {
 
 		if (channel.members.every((member): boolean => member.id !== kicking_user_id)) {
 			throw new ChannelNotJoinedError(`user: ${kicking_user_id} | channel: ${channel_id}`);
-		}
-
-		if (channel.members.every((member): boolean => member.id !== kicked_user_id)) {
-			throw new ChannelMemberNotFoundError(
-				`user: ${kicked_user_id} | channel: ${channel_id}`,
-			);
 		}
 
 		if (
@@ -997,7 +1187,14 @@ export class ChannelService {
 			);
 		}
 
+		if (channel.members.every((member): boolean => member.id !== kicked_user_id)) {
+			throw new ChannelMemberNotFoundError(
+				`user: ${kicked_user_id} | channel: ${channel_id}`,
+			);
+		}
+
 		await this._prisma.channel.update({
+			//#region
 			data: {
 				members: {
 					disconnect: {
@@ -1009,11 +1206,13 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
 
 		this._logger.log(
-			`User ${kicked_user_id} kicked from channel ${channel_id} by ${kicking_user_id}`,
+			`User ${kicked_user_id} has been kicked from channel ${channel_id} by ${kicking_user_id}`,
 		);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user leave a channel.
@@ -1031,9 +1230,11 @@ export class ChannelService {
 	 * @return	An empty promise.
 	 */
 	public async leave_one(
+		//#region
 		user_id: string,
 		channel_id: string,
 		channel?: {
+			//#region
 			owner: {
 				id: string;
 			} | null;
@@ -1044,9 +1245,13 @@ export class ChannelService {
 				id: string;
 			}[];
 		} | null,
+		//#endregion
+		//#endregion
 	): Promise<void> {
+		//#region
 		if (!channel) {
 			channel = await this._prisma.channel.findUnique({
+				//#region
 				select: {
 					owner: {
 						select: {
@@ -1068,6 +1273,7 @@ export class ChannelService {
 					id: channel_id,
 				},
 			});
+			//#endregion
 
 			if (!channel) {
 				throw new ChannelNotFoundError(channel_id);
@@ -1078,20 +1284,16 @@ export class ChannelService {
 			throw new ChannelNotJoinedError(channel_id);
 		}
 
-		if (channel.owner?.id === user_id) {
-			try {
-				await this._delegate_ones_ownership(channel_id, channel);
-			} catch (error) {
-				if (error instanceof ChannelUnpopulatedError) {
-					await this._drop_ones_ownership(channel_id, channel);
-				}
+		if (channel.owner!.id === user_id) {
+			if (channel.members.length < 2) {
+				await this._drop_ones_ownership(channel_id, channel);
+			} else {
+				await this._delegate_ones_ownership_arbitrary(channel_id, channel);
 			}
 		}
 
 		await this._prisma.channel.update({
-			where: {
-				id: channel_id,
-			},
+			//#region
 			data: {
 				members: {
 					disconnect: {
@@ -1104,11 +1306,17 @@ export class ChannelService {
 					},
 				},
 			},
+			where: {
+				id: channel_id,
+			},
 		});
-		this._logger.log(`Channel ${channel_id} left by user ${user_id}`);
+		//#endregion
 
 		this._gateway.make_user_socket_leave_room(user_id, channel_id);
+
+		this._logger.log(`User ${user_id} left the channel ${channel_id}`);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user mute another user.
@@ -1124,19 +1332,23 @@ export class ChannelService {
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
 	 * 			- ChannelNotJoinedError
-	 * 			- ChannelMemberNotFoundError
 	 * 			- ChannelMemberNotOperatorError
+	 * 			- ChannelMemberNotFoundError
 	 * 			- ChannelMemberAlreadyMutedError
 	 *
 	 * @return	An empty promise.
 	 */
 	public async mute_ones_member(
+		//#region
 		muting_user_id: string,
 		channel_id: string,
 		muted_user_id: string,
 		duration: number,
+		//#endregion
 	): Promise<void> {
+		//#region
 		type t_fields = {
+			//#region
 			members: {
 				id: string;
 			}[];
@@ -1150,8 +1362,10 @@ export class ChannelService {
 				id: string;
 			} | null;
 		};
+		//#endregion
 
 		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			//#region
 			select: {
 				members: {
 					select: {
@@ -1178,6 +1392,7 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
 
 		if (!channel) {
 			throw new ChannelNotFoundError(channel_id);
@@ -1185,10 +1400,6 @@ export class ChannelService {
 
 		if (channel.members.every((member): boolean => member.id !== muting_user_id)) {
 			throw new ChannelNotJoinedError(`user: ${muting_user_id} | channel: ${channel_id}`);
-		}
-
-		if (channel.members.every((member): boolean => member.id !== muted_user_id)) {
-			throw new ChannelMemberNotFoundError(`user: ${muted_user_id} | channel: ${channel_id}`);
 		}
 
 		if (
@@ -1200,6 +1411,10 @@ export class ChannelService {
 			);
 		}
 
+		if (channel.members.every((member): boolean => member.id !== muted_user_id)) {
+			throw new ChannelMemberNotFoundError(`user: ${muted_user_id} | channel: ${channel_id}`);
+		}
+
 		if (channel.muted.some((muted): boolean => muted.id === muted_user_id)) {
 			throw new ChannelMemberAlreadyMutedError(
 				`user: ${muted_user_id} | channel: ${channel_id}`,
@@ -1207,6 +1422,7 @@ export class ChannelService {
 		}
 
 		await this._prisma.channel.update({
+			//#region
 			data: {
 				muted: {
 					connect: {
@@ -1218,9 +1434,11 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
 
 		setTimeout(async () => {
 			await this._prisma.channel.update({
+				//#region
 				data: {
 					muted: {
 						disconnect: {
@@ -1232,12 +1450,14 @@ export class ChannelService {
 					id: channel_id,
 				},
 			});
+			//#endregion
 		}, duration * 1000);
 
 		this._logger.log(
-			`User ${muted_user_id} muted in channel ${channel_id} by user ${muting_user_id} for ${duration} seconds`,
+			`User ${muted_user_id} has been muted in channel ${channel_id} by user ${muting_user_id} for ${duration} seconds`,
 		);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user promote another user as operator.
@@ -1259,18 +1479,22 @@ export class ChannelService {
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
 	 * 			- ChannelNotJoinedError
-	 * 			- ChannelMemberNotFoundError
 	 * 			- ChannelMemberNotOperatorError
+	 * 			- ChannelMemberNotFoundError
 	 * 			- ChannelMemberAlreadyPromotedError
 	 *
 	 * @return	An empty promise.
 	 */
 	public async promote_ones_member(
+		//#region
 		promoting_user_id: string,
 		channel_id: string,
 		promoted_user_id: string,
+		//#endregion
 	): Promise<void> {
+		//#region
 		type t_fields = {
+			//#region
 			members: {
 				id: string;
 			}[];
@@ -1281,8 +1505,10 @@ export class ChannelService {
 				id: string;
 			} | null;
 		};
+		//#endregion
 
 		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			//#region
 			select: {
 				members: {
 					select: {
@@ -1304,6 +1530,7 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
 
 		if (!channel) {
 			throw new ChannelNotFoundError(channel_id);
@@ -1311,12 +1538,6 @@ export class ChannelService {
 
 		if (channel.members.every((member): boolean => member.id !== promoting_user_id)) {
 			throw new ChannelNotJoinedError(`user: ${promoting_user_id} | channel: ${channel_id}`);
-		}
-
-		if (channel.members.every((member): boolean => member.id !== promoted_user_id)) {
-			throw new ChannelMemberNotFoundError(
-				`user: ${promoted_user_id} | channel: ${channel_id}`,
-			);
 		}
 
 		if (
@@ -1328,6 +1549,12 @@ export class ChannelService {
 			);
 		}
 
+		if (channel.members.every((member): boolean => member.id !== promoted_user_id)) {
+			throw new ChannelMemberNotFoundError(
+				`user: ${promoted_user_id} | channel: ${channel_id}`,
+			);
+		}
+
 		if (channel.operators.some((operator): boolean => operator.id === promoted_user_id)) {
 			throw new ChannelMemberAlreadyPromotedError(
 				`user: ${promoted_user_id} | channel: ${channel_id}`,
@@ -1335,6 +1562,7 @@ export class ChannelService {
 		}
 
 		await this._prisma.channel.update({
+			//#region
 			data: {
 				operators: {
 					connect: {
@@ -1346,10 +1574,13 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
+
 		this._logger.log(
-			`User ${promoted_user_id} promoted as operator in channel ${channel_id} by user ${promoting_user_id}`,
+			`User ${promoted_user_id} has been promoted as operator in channel ${channel_id} by user ${promoting_user_id}`,
 		);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user send a message to a channel they are in.
@@ -1369,11 +1600,15 @@ export class ChannelService {
 	 * @return	A promise containing the newly sent message data.
 	 */
 	public async send_message_to_one(
+		//#region
 		user_id: string,
 		channel_id: string,
 		content: string,
+		//#endregion
 	): Promise<ChannelMessage> {
+		//#region
 		type t_fields = {
+			//#region
 			members: {
 				id: string;
 			}[];
@@ -1381,8 +1616,10 @@ export class ChannelService {
 				id: string;
 			}[];
 		};
+		//#endregion
 
 		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			//#region
 			select: {
 				members: {
 					select: {
@@ -1399,6 +1636,7 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
 
 		if (!channel) {
 			throw new ChannelNotFoundError(channel_id);
@@ -1419,6 +1657,7 @@ export class ChannelService {
 		}
 
 		const message: ChannelMessage = await this._prisma.channelMessage.create({
+			//#region
 			data: {
 				channel: {
 					connect: {
@@ -1433,11 +1672,15 @@ export class ChannelService {
 				content: content,
 			},
 		});
+		//#endregion
+
 		this._gateway.broadcast_to_room(message);
-		this._logger.verbose(`Message sent to channel ${channel_id} by user ${user_id}`);
+
+		this._logger.verbose(`User ${user_id} sent a message to channel ${channel_id}`);
 
 		return message;
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user unban another user from a specific channel.
@@ -1452,17 +1695,21 @@ export class ChannelService {
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
 	 * 			- ChannelNotJoinedError
-	 * 			- ChannelMemberNotBannedError
 	 * 			- ChannelMemberNotOperatorError
+	 * 			- ChannelMemberNotBannedError
 	 *
 	 * @return	An empty promise.
 	 */
 	public async unban_ones_member(
+		//#region
 		unbanning_user_id: string,
 		channel_id: string,
 		unbanned_user_id: string,
+		//#endregion
 	): Promise<void> {
+		//#region
 		type t_fields = {
+			//#region
 			banned: {
 				id: string;
 			}[];
@@ -1476,8 +1723,10 @@ export class ChannelService {
 				id: string;
 			} | null;
 		};
+		//#endregion
 
 		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			//#region
 			select: {
 				banned: {
 					select: {
@@ -1504,6 +1753,7 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
 
 		if (!channel) {
 			throw new ChannelNotFoundError(channel_id);
@@ -1511,12 +1761,6 @@ export class ChannelService {
 
 		if (channel.members.every((member): boolean => member.id !== unbanning_user_id)) {
 			throw new ChannelNotJoinedError(`user: ${unbanning_user_id} | channel: ${channel_id}`);
-		}
-
-		if (channel.banned.every((banned): boolean => banned.id !== unbanned_user_id)) {
-			throw new ChannelMemberNotBannedError(
-				`user: ${unbanned_user_id} | channel: ${channel_id}`,
-			);
 		}
 
 		if (
@@ -1528,7 +1772,14 @@ export class ChannelService {
 			);
 		}
 
+		if (channel.banned.every((banned): boolean => banned.id !== unbanned_user_id)) {
+			throw new ChannelMemberNotBannedError(
+				`user: ${unbanned_user_id} | channel: ${channel_id}`,
+			);
+		}
+
 		await this._prisma.channel.update({
+			//#region
 			data: {
 				banned: {
 					disconnect: {
@@ -1540,10 +1791,12 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
 		this._logger.log(
-			`User ${unbanned_user_id} unbanned from channel ${channel_id} by user ${unbanning_user_id}`,
+			`User ${unbanned_user_id} has been unbanned from channel ${channel_id} by user ${unbanning_user_id}`,
 		);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user update a specific channel.
@@ -1560,7 +1813,7 @@ export class ChannelService {
 	 * @error	The following errors may be thrown :
 	 * 			- ChannelNotFoundError
 	 * 			- ChannelNotJoinedError
-	 * 			- ChannelMemberNotOwnerError
+	 * 			- ChannelNotOwnedError
 	 * 			- ChannelNameAlreadyTakenError
 	 * 			- ChannelPasswordMissingError
 	 * 			- ChannelPasswordNotAllowedError
@@ -1568,13 +1821,17 @@ export class ChannelService {
 	 * @return	An empty promise.
 	 */
 	public async update_one(
+		//#region
 		updating_user_id: string,
 		channel_id: string,
 		name?: string,
 		type?: ChanType,
 		password?: string,
+		//#endregion
 	): Promise<void> {
+		//#region
 		type t_fields = {
+			//#region
 			chanType: ChanType;
 			hash: string | null;
 			members: {
@@ -1585,8 +1842,10 @@ export class ChannelService {
 				id: string;
 			} | null;
 		};
+		//#endregion
 
 		const channel: t_fields | null = await this._prisma.channel.findUnique({
+			//#region
 			select: {
 				chanType: true,
 				hash: true,
@@ -1606,6 +1865,7 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
 
 		if (!channel) {
 			throw new ChannelNotFoundError(channel_id);
@@ -1616,26 +1876,27 @@ export class ChannelService {
 		}
 
 		if (channel.owner!.id !== updating_user_id) {
-			throw new ChannelMemberNotOwnerError(
-				`user: ${updating_user_id} | channel: ${channel_id}`,
-			);
+			throw new ChannelNotOwnedError(`user: ${updating_user_id} | channel: ${channel_id}`);
 		}
 
 		if (name !== undefined) {
-			if (
-				(
-					await this._prisma.channel.findUnique({
-						select: {
-							id: true,
-						},
-						where: {
-							name: name,
-						},
-					})
-				)?.id !== channel_id
-			) {
+			const id: string | undefined = (
+				await this._prisma.channel.findUnique({
+					//#region
+					select: {
+						id: true,
+					},
+					where: {
+						name: name,
+					},
+				})
+			)?.id;
+			//#endregion
+
+			if (id !== undefined && id !== channel_id) {
 				throw new ChannelNameAlreadyTakenError(name);
 			}
+
 			channel.name = name;
 		}
 
@@ -1656,6 +1917,7 @@ export class ChannelService {
 		}
 
 		await this._prisma.channel.update({
+			//#region
 			data: {
 				chanType: channel.chanType,
 				hash: channel.hash,
@@ -1665,5 +1927,11 @@ export class ChannelService {
 				id: channel_id,
 			},
 		});
+		//#endregion
+
+		this._logger.log(
+			`User ${updating_user_id} updated channel ${channel_id} (name: ${name} | type: ${type} | password: ${password})`,
+		);
 	}
+	//#endregion
 }
