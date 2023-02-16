@@ -1229,7 +1229,7 @@ export class UserService {
 		});
 		//#endregion
 
-		this._logger.log(`User ${sending_user_id} sent a message to user ${receiving_user_id}`);
+		this._logger.verbose(`User ${sending_user_id} sent a message to user ${receiving_user_id}`);
 
 		return {
 			//#region
@@ -1548,10 +1548,14 @@ export class UserService {
 			});
 			//#endregion
 
-			await this.broadcast_user_update_to_many({
-				id,
-				name,
-			});
+			const data: t_user_update_event = {
+				//#region
+				id: id,
+				name: user.name,
+			};
+			//#endregion
+
+			await this.broadcast_user_update_to_many(data);
 		} catch (error) {
 			this._logger.error(`Error occured while updating user ${id}`);
 			if (error instanceof PrismaClientKnownRequestError) {
@@ -1639,7 +1643,7 @@ export class UserService {
 	 * 			It is assumed that the provided user id is valid.
 	 * 			(user exists and is ACTIVE)
 	 *
-	 * @param	data: The id of the user to update + the fields that have been updated.
+	 * @param	data The id of the user to update + the fields that have been updated.
 	 *
 	 * @error	If no field has been provided, do nothing.
 	 *
@@ -1653,7 +1657,7 @@ export class UserService {
 			data.spectating === undefined &&
 			data.game_lost === undefined &&
 			data.game_won === undefined &&
-			data.is_avatar_changed === false
+			data.is_avatar_changed === undefined
 		) {
 			return;
 		}
