@@ -29,11 +29,12 @@ export class AuthService {
 	/* ************************************************************************** */
 	/*                               CONSTRUCTOR                                  */
 	/* ************************************************************************** */
-	constructor() {
-		this._user = new UserService();
-		this._jwt = new JwtService();
-		this._config = new ConfigService();
-		this._prisma = new PrismaService();
+	constructor(user_service: UserService, jwt_service: JwtService, config_service: ConfigService,
+		prisma_service: PrismaService) {
+		this._user = user_service;
+		this._jwt = jwt_service;
+		this._config = config_service;
+		this._prisma = prisma_service;
 		this._logger = new Logger(AuthService.name);
 		this._sender = this.get_sender(this._config);
 		const host: string = this.get_host(this._config);

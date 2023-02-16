@@ -1,7 +1,8 @@
 import { Socket } from "socket.io";
 import { Gameplay, Ball } from "../gameplay";
 import { Score, Match } from "../aliases";
-import { Results, ScoreUpdate, SpectatorUpdate, OpponentUpdate } from "../objects";
+import { Results, ScoreUpdate, OpponentUpdate } from "../objects";
+import { SpectatorUpdate } from "src/spectator/objects";
 import { BadEvent } from "../exceptions";
 
 /**

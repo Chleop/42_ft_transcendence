@@ -1,7 +1,8 @@
 import { Score } from "../aliases";
 import { PaddleDto } from "../dto";
 import { Ball, Paddle, BallRefreshResult } from "./";
-import { Results, ScoreUpdate, SpectatorUpdate } from "../objects";
+import { Results, ScoreUpdate } from "../objects";
+import { SpectatorUpdate } from "../../spectator/objects";
 import { Constants } from "../constants";
 
 /**

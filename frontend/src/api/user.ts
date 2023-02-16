@@ -82,8 +82,17 @@ export interface GameResult {
     winner_id: string;
 }
 
-/** The ID of a game. */
-type GameId = Id;
+export type UserStatus = "online" | "offline" | "ingame" | "spectating";
+
+export type UserUpdate = {
+    id: string;
+    name?: string;
+    status?: UserStatus;
+    spectating?: string;
+    game_won?: number;
+    game_lost?: number;
+    is_avatar_changed?: boolean;
+};
 
 /**
  * Stores public information about a user.
@@ -98,7 +107,9 @@ export interface User {
      */
     name: string,
     /** The ID of played games. */
-    games_played_ids: GameId[];
+    games_played: number;
     /** ID of won games. */
-    games_won_ids: GameId[];
+    games_won: number;
+    status: UserStatus,
+    spectating: UserId | undefined,
 };

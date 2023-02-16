@@ -35,8 +35,8 @@ export class FriendRequestController {
 	private _friend_request_service: FriendRequestService;
 	private readonly _logger: Logger;
 
-	constructor() {
-		this._friend_request_service = new FriendRequestService();
+	constructor(friend_request_service: FriendRequestService) {
+		this._friend_request_service = friend_request_service;
 		this._logger = new Logger(FriendRequestController.name);
 	}
 

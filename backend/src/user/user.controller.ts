@@ -1,8 +1,9 @@
-import { t_get_me_fields, t_get_one_fields } from "src/user/alias";
+import { t_get_me_fields, t_get_one_fields, t_receiving_user_fields } from "src/user/alias";
 import { UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
+	UserBlockedError,
 	UserFieldUnaivalableError,
 	UserNotBlockedError,
 	UserNotFoundError,
@@ -13,7 +14,6 @@ import {
 	UserSelfUnblockError,
 	UserSelfUnfriendError,
 } from "src/user/error";
-import { IDirectMessageSendingResponse } from "src/user/interface";
 import { Jwt2FAGuard } from "src/auth/guards";
 import { UserService } from "src/user/user.service";
 import {
@@ -40,6 +40,8 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { UserMessageSendDto } from "./dto/UserMessageSend.dto";
 import { t_user_auth } from "src/auth/alias";
+import { DirectMessage } from "@prisma/client";
+import { ChatGateway } from "src/chat/chat.gateway";
 
 @Controller("user")
 @UseGuards(Jwt2FAGuard)
@@ -47,9 +49,11 @@ export class UserController {
 	// REMIND: Check if passing `_user_service` in readonly keep it working well
 	private _user_service: UserService;
 	private readonly _logger: Logger;
+	private readonly chat_gateway: ChatGateway;
 
-	constructor() {
-		this._user_service = new UserService();
+	constructor(user_service: UserService, chat_gateway: ChatGateway) {
+		this._user_service = user_service;
+		this.chat_gateway = chat_gateway;
 		this._logger = new Logger(UserController.name);
 	}
 
@@ -186,12 +190,25 @@ export class UserController {
 		},
 		@Param("id") id: string,
 		@Body() dto: UserMessageSendDto,
-	): Promise<IDirectMessageSendingResponse> {
+	): Promise<DirectMessage> {
 		//#region
+		let object: {
+			receiver: t_receiving_user_fields;
+			message: DirectMessage;
+		};
+
 		try {
-			return await this._user_service.send_message_to_one(request.user.id, id, dto.content);
+			object = await this._user_service.send_message_to_one(request.user.id, id, dto.content);
+
+			if (!object.receiver.blocked.some((blocked) => blocked.id === request.user.id)) {
+				this.chat_gateway.forward_to_user_socket(object.message);
+			}
 		} catch (error) {
-			if (error instanceof UserNotFoundError || error instanceof UserSelfMessageError) {
+			if (
+				error instanceof UserNotFoundError ||
+				error instanceof UserSelfMessageError ||
+				error instanceof UserBlockedError
+			) {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
@@ -200,8 +217,11 @@ export class UserController {
 				throw new ForbiddenException(error.message);
 			}
 			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error(error);
 			throw new InternalServerErrorException();
 		}
+
+		return object.message;
 	}
 	//#endregion
 

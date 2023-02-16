@@ -101,7 +101,7 @@ export class RawHTTPClient {
 
 		let response = await fetch(request.url, request_init);
 
-		console.log(request.method + " " + request.url + " -> " + response.status + " " + response.statusText);
+		// console.log(request.method + " " + request.url + " -> " + response.status + " " + response.statusText);
 
 		if (response.status == 401) {
 			const err = await response.json();
@@ -191,8 +191,8 @@ export class RawHTTPClient {
 	public async create_channel(
 		name: string,
 		priv: boolean,
-		password: string = "",
-	): Promise<void> {
+		password?: string,
+	): Promise<Channel> {
 		return (
 			await this.make_request({
 				accept: "application/json",
@@ -211,8 +211,8 @@ export class RawHTTPClient {
 	/**
 	 * Joins a new channel.
 	 */
-	public async join_channel(id: ChannelId, password?: string): Promise<void> {
-		await this.make_request({
+	public async join_channel(id: ChannelId, password?: string): Promise<Channel> {
+		const body = await this.make_request({
 			accept: "application/json",
 			method: "PATCH",
 			url: `/api/channel/${id}/join`,
@@ -220,6 +220,8 @@ export class RawHTTPClient {
 				password,
 			}),
 		});
+
+		return body.json();
 	}
 
 	/**
@@ -407,5 +409,26 @@ export class RawHTTPClient {
 			url: `/api/user/${user}/skin/ball`,
 		});
 		return URL.createObjectURL(await img.blob());
+	}
+
+	public async promote(user: UserId, channel: ChannelId): Promise<void> {
+		throw "not yet implemented."
+	}
+
+	public async demote(user: UserId, channel: ChannelId): Promise<void> {
+		throw "not yet implemented."
+	}
+
+	public async mute(user: UserId, channel: ChannelId, duration: number): Promise<void> {
+		throw "not yet implemented";
+	}
+
+	public async send_dm(user: UserId, content: string): Promise<void> {
+		await this.make_request({
+			method: "POST",
+			url: `/api/user/${user}/message`,
+			success_status: 201,
+			body: new JsonBody({ content }),
+		});
 	}
 }

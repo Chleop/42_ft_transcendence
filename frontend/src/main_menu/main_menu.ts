@@ -6,6 +6,8 @@ import { rank_to_image, ratio_to_rank } from "../utility";
 import PROFILE_OVERLAY from "./profile_overlay";
 import GAME_BOARD from "../game/game_board";
 
+import { GatewayClass } from "../api/gateway";
+
 /**
  * The scene that contains the main menu.
  */
@@ -20,12 +22,14 @@ class MainMenuScene extends Scene {
      */
     private game_socket: GameSocket | null;
 
+    private tmp: number = 0;
+
     /**
      * Creatse a new `MainMenuElement` instance.
      */
     public constructor() {
         super();
-
+        this.game_socket = null;
         this.container = document.createElement("div");
         this.container.id = "main-menu-container";
 
@@ -66,12 +70,15 @@ class MainMenuScene extends Scene {
                     find_game_span.innerText = "Find Game";
                 };
 
-                this.game_socket.on_match_found = found => {
+                this.game_socket.on_match_found = (found) => {
                     console.log("Match found!");
 
-                    const s = <GameSocket>this.game_socket;
-                    Users.me().then(me => {
-                        GAME_BOARD.start_game(new PlayingGame(s, me.id, found.id));
+                    const s: GameSocket | null = this.game_socket;
+                    if (s === null) return;
+                    Users.me().then((me) => {
+                        GAME_BOARD.start_game(
+                            new PlayingGame(s, me.id, found.id)
+                        );
                         History.push_state(GAME_BOARD);
                     });
                     this.game_socket = null;
@@ -87,7 +94,9 @@ class MainMenuScene extends Scene {
         const profile_span = document.createElement("div");
         profile_span.innerText = "Profile";
         profile.appendChild(profile_span);
-        profile.onclick = () => History.push_state(PROFILE_OVERLAY);
+        profile.onclick = () => {
+            History.push_state(PROFILE_OVERLAY);
+        };
         this.container.appendChild(profile);
 
         this.container.appendChild(CHAT_ELEMENT.html);

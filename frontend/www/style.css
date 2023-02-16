@@ -134,6 +134,7 @@ body {
   flex-flow: row nowrap;
   align-items: center;
   height: 50px;
+  width: 100%;
   background-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -141,12 +142,15 @@ body {
   flex-grow: 1;
   display: flex;
   flex-flow: row nowrap;
+  overflow-x: scroll;
 }
 
 #chat-create-channel-container {
   padding: 10px;
   width: 30px;
+  min-width: 30px;
   height: 30px;
+  min-height: 30px;
   background-color: transparent;
 }
 
@@ -312,6 +316,7 @@ body {
   cursor: pointer;
   color: white;
   padding: 0px;
+  white-space: nowrap;
 }
 
 .message-author:hover {
@@ -322,6 +327,7 @@ body {
   font-weight: 400;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
 }
 
 .message-content {
@@ -415,6 +421,7 @@ body {
   justify-content: center;
   padding: 10px;
   align-items: center;
+  overflow: hidden;
 }
 
 #profile-header-info {
@@ -423,6 +430,8 @@ body {
 }
 
 #profile-avatar {
+  min-width: 100px;
+  min-height: 100px;
   width: 100px;
   height: 100px;
   border-radius: 1000px;
@@ -441,8 +450,7 @@ body {
   font-family: "Noto Sans", sans-serif;
   font-size: 30px;
   font-weight: 600;
-  cursor: pointer;
-  user-select: none;
+  white-space: nowrap;
 }
 
 #profile-edit-button {
@@ -592,6 +600,7 @@ body {
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   padding-bottom: 10px;
+  overflow: hidden;
 }
 
 #user-card-avatar {
@@ -599,6 +608,8 @@ body {
   background-position: center;
   width: 80px;
   height: 80px;
+  min-width: 80px;
+  min-height: 80px;
   border-radius: 10000px;
   z-index: 10;
   border: 3px solid white;
@@ -612,6 +623,7 @@ body {
   font-size: 24px;
   color: white;
   font-weight: bold;
+  white-space: nowrap;
 }
 
 #user-card-status {
@@ -686,7 +698,6 @@ body {
 #create-channel-container {
   position: absolute;
   width: 400px;
-  height: 500px;
   background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(15px);
   z-index: 100;
@@ -701,6 +712,7 @@ body {
   overflow-y: scroll;
   margin-top: 20px;
   margin-bottom: 20px;
+  height: 400px;
 }
 
 .create-channel-result {
@@ -869,4 +881,102 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(110px, -16px);
+}
+
+#new-channel-container {
+  display: flex;
+  flex-flow: column nowrap;
+
+  align-items: center;
+}
+
+#new-channel-title {
+  color: white;
+  font-family: "Krona One", sans-serif;
+  font-size: 16px;
+
+  text-align: center;
+  width: 200px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+
+  background: transparent;
+
+  border: none;
+
+  border-radius: 4px;
+
+  margin-top: 10px;
+  margin-bottom: 15px;
+}
+
+#new-channel-title.ready {
+  background: #22EE33;
+  cursor: pointer;
+}
+
+#new-channel-title.ready:hover {
+  background: #33FF44;
+}
+
+#new-channel-edit-row {
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 10px;
+
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+#new-channel-edit-row>div {
+  margin: 0px;
+}
+
+#new-channel-private {
+  min-width: 48px;
+
+  background-color: #EE4422;
+  outline: none;
+
+  font-family: "Noto Sans", sans-serif;
+  font-size: 12px;
+  color: white;
+
+  border: none;
+
+  width: 48px;
+  height: 48px;
+
+  border-radius: 4px;
+
+  cursor: pointer;
+}
+
+#new-channel-private:hover {
+  background-color: #FF5533;
+}
+
+#new-channel-private.active {
+  background-color: #22EE44;
+}
+
+#new-channel-private.active:hover {
+  background-color: #33FF55;
+}
+
+#add-priv-channel-container {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+  padding-bottom: 20px;
+  padding-right: 20px;
+  padding-left: 20px;
+}
+
+#add-priv-channel-label {
+  font-family: "Krona One", sans-serif;
+  font-size: 18px;
+  color: white;
+  white-space: nowrap;
+  padding-right: 20px;
 }

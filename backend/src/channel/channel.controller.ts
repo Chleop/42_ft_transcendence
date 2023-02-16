@@ -57,6 +57,7 @@ import {
 } from "src/channel/error";
 import { Jwt2FAGuard } from "src/auth/guards";
 import { t_user_auth } from "src/auth/alias";
+import { ChatGateway } from "src/chat/chat.gateway";
 
 @UseGuards(Jwt2FAGuard)
 @Controller("channel")
@@ -64,10 +65,12 @@ export class ChannelController {
 	// REMIND: check if passing `_channel_service` in readonly keep it working well
 	private _channel_service: ChannelService;
 	private readonly _logger: Logger;
+	private readonly gateway: ChatGateway;
 
-	constructor() {
+	constructor(channel_service: ChannelService, chat_gateway: ChatGateway) {
+		this._channel_service = channel_service;
+		this.gateway = chat_gateway;
 		//#region
-		this._channel_service = new ChannelService();
 		this._logger = new Logger(ChannelController.name);
 	}
 	//#endregion
@@ -348,6 +351,7 @@ export class ChannelController {
 	): Promise<t_join_one_fields> {
 		//#region
 		try {
+			this.gateway.make_user_socket_join_room(request.user.id, id);
 			return await this._channel_service.join_one(request.user.id, id, dto.password);
 		} catch (error) {
 			if (
@@ -415,6 +419,7 @@ export class ChannelController {
 		//#region
 		try {
 			await this._channel_service.leave_one(request.user.id, id);
+			this.gateway.make_user_socket_leave_room(request.user.id, id);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
 				this._logger.error(error.message);
@@ -470,11 +475,13 @@ export class ChannelController {
 	): Promise<ChannelMessage> {
 		//#region
 		try {
-			return await this._channel_service.send_message_to_one(
+			const message: ChannelMessage = await this._channel_service.send_message_to_one(
 				request.user.id,
 				id,
 				dto.content,
 			);
+			this.gateway.broadcast_to_room(message);
+			return message;
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
 				this._logger.error(error.message);

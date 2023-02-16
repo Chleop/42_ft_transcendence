@@ -14,18 +14,17 @@ import { AuthService } from "../auth.service";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
-	public readonly _logger: Logger;
 	public readonly _authService: AuthService;
+	public readonly _logger: Logger;
 
-	constructor() {
-		const _config = new ConfigService();
+	constructor(config_service: ConfigService, auth_service: AuthService) {
 		super({
 			jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
 			ignoreExpiration: false,
-			secretOrKey: _config.get("JWT_SECRET"),
+			secretOrKey: config_service.get("JWT_SECRET"),
 		});
+		this._authService = auth_service;
 		this._logger = new Logger(AuthController.name);
-		this._authService = new AuthService();
 	}
 
 	public async validate(payload: t_payload): Promise<t_user_auth> {
