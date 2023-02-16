@@ -75,16 +75,12 @@ export class ChannelController {
 	@Patch(":id/ban")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async ban_ones_member(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelBanMemberDto,
-		//#endregion
 	): Promise<void> {
 		//#region
 		try {
@@ -111,15 +107,11 @@ export class ChannelController {
 	@Post()
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async create_one(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
 		@Body() dto: ChannelCreateDto,
-		//#endregion
 	): Promise<Channel> {
 		//#region
 		let channel: Channel;
@@ -151,16 +143,12 @@ export class ChannelController {
 	@Patch(":id/delegate")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async delegate_ones_ownership(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelDelegateOwnershipDto,
-		//#endregion
 	): Promise<void> {
 		//#region
 		try {
@@ -186,15 +174,11 @@ export class ChannelController {
 
 	@Delete(":id")
 	async delete_one(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
 		@Param("id") id: string,
-		//#endregion
 	): Promise<void> {
 		//#region
 		try {
@@ -216,16 +200,12 @@ export class ChannelController {
 
 	@Patch(":id/demote")
 	async demote_ones_operator(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelDemoteOperatorDto,
-		//#endregion
 	): Promise<void> {
 		//#region
 		try {
@@ -253,14 +233,10 @@ export class ChannelController {
 
 	@Get("all")
 	async get_all(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
-		//#endregion
 	): Promise<t_get_all_fields> {
 		//#region
 		let channels: t_get_all_fields;
@@ -279,16 +255,12 @@ export class ChannelController {
 	@Get(":id/messages")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async get_ones_messages(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
 		@Param("id") id: string,
 		@Query() dto: ChannelMessageGetDto,
-		//#endregion
 	): Promise<ChannelMessage[]> {
 		//#region
 		if (dto.after && dto.before) {
@@ -328,16 +300,12 @@ export class ChannelController {
 	@Patch(":id/mute")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async mute_ones_member(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelMuteMemberDto,
-		//#endregion
 	): Promise<void> {
 		//#region
 		try {
@@ -371,16 +339,12 @@ export class ChannelController {
 	@Patch(":id/join")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async join_one(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelJoinDto,
-		//#endregion
 	): Promise<t_join_one_fields> {
 		//#region
 		try {
@@ -409,16 +373,12 @@ export class ChannelController {
 	@Patch(":id/kick")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async kick_ones_member(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelKickMemberDto,
-		//#endregion
 	): Promise<void> {
 		//#region
 		try {
@@ -446,15 +406,11 @@ export class ChannelController {
 	@Patch(":id/leave")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async leave_one(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
 		@Param("id") id: string,
-		//#endregion
 	): Promise<void> {
 		//#region
 		try {
@@ -471,16 +427,12 @@ export class ChannelController {
 	@Patch(":id/promote")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async promote_ones_member(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelPromoteMemberDto,
-		//#endregion
 	): Promise<void> {
 		//#region
 		try {
@@ -509,16 +461,12 @@ export class ChannelController {
 	@Post(":id/message")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async send_message_to_one(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelMessageSendDto,
-		//#endregion
 	): Promise<ChannelMessage> {
 		//#region
 		try {
@@ -548,16 +496,12 @@ export class ChannelController {
 	@Patch(":id/unban")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async unban_ones_member(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelUnbanMemberDto,
-		//#endregion
 	): Promise<void> {
 		//#region
 		try {
@@ -585,16 +529,12 @@ export class ChannelController {
 	@Patch(":id")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async update_one(
-		//#region
 		@Req()
 		request: {
-			//#region
 			user: t_user_auth;
 		},
-		//#endregion
 		@Param("id") id: string,
 		@Body() dto: ChannelUpdateDto,
-		//#endregion
 	): Promise<void> {
 		//#region
 		try {

@@ -63,10 +63,8 @@ export class ChannelService {
 	 * @return	An empty promise.
 	 */
 	private async _delegate_ones_ownership_arbitrary(
-		//#region
 		id: string,
 		channel: {
-			//#region
 			owner: {
 				id: string;
 			} | null;
@@ -77,8 +75,6 @@ export class ChannelService {
 				id: string;
 			}[];
 		},
-		//#endregion
-		//#endregion
 	): Promise<void> {
 		//#region
 		for (const operator of channel.operators) {
@@ -140,16 +136,12 @@ export class ChannelService {
 	 * @return	An empty promise.
 	 */
 	private async _drop_ones_ownership(
-		//#region
 		id: string,
 		channel?: {
-			//#region
 			owner: {
 				id: string;
 			} | null;
 		} | null,
-		//#endregion
-		//#endregion
 	): Promise<void> {
 		//#region
 		if (!channel) {
@@ -206,11 +198,9 @@ export class ChannelService {
 	 * @return	A promise containing the wanted messages.
 	 */
 	private async _get_ones_messages_after_a_specific_message(
-		//#region
 		id: string,
 		message_id: string,
 		limit: number,
-		//#endregion
 	): Promise<ChannelMessage[]> {
 		//#region
 		type t_fields = {
@@ -268,11 +258,9 @@ export class ChannelService {
 	 * @return	A promise containing the wanted messages.
 	 */
 	private async _get_ones_messages_before_a_specific_message(
-		//#region
 		id: string,
 		message_id: string,
 		limit: number,
-		//#endregion
 	): Promise<ChannelMessage[]> {
 		//#region
 		type t_fields = {
@@ -328,10 +316,8 @@ export class ChannelService {
 	 * @return	A promise containing the wanted messages.
 	 */
 	private async _get_ones_most_recent_messages(
-		//#region
 		id: string,
 		limit: number,
-		//#endregion
 	): Promise<ChannelMessage[]> {
 		//#region
 		const messages: ChannelMessage[] = await this._prisma.channelMessage.findMany({
@@ -406,11 +392,9 @@ export class ChannelService {
 	 * @return	An empty promise.
 	 */
 	public async ban_ones_member(
-		//#region
 		banning_user_id: string,
 		channel_id: string,
 		banned_user_id: string,
-		//#endregion
 	): Promise<void> {
 		//#region
 		type t_fields = {
@@ -495,12 +479,10 @@ export class ChannelService {
 	 * @return	A promise containing the created channel's data.
 	 */
 	public async create_one(
-		//#region
 		user_id: string,
 		name: string,
 		is_private: boolean,
 		password?: string,
-		//#endregion
 	): Promise<Channel> {
 		//#region
 		let type: ChanType;
@@ -575,11 +557,9 @@ export class ChannelService {
 	 * @return	An empty promise.
 	 */
 	public async delegate_ones_ownership(
-		//#region
 		delegating_user_id: string,
 		channel_id: string,
 		delegated_user_id: string,
-		//#endregion
 	): Promise<void> {
 		//#region
 		type t_fields = {
@@ -753,11 +733,9 @@ export class ChannelService {
 	 * @return	An empty promise.
 	 */
 	public async demote_ones_operator(
-		//#region
 		demoting_user_id: string,
 		channel_id: string,
 		demoted_user_id: string,
-		//#endregion
 	): Promise<void> {
 		//#region
 		type t_fields = {
@@ -929,13 +907,11 @@ export class ChannelService {
 	 * @return	A promise containing the wanted messages.
 	 */
 	public async get_ones_messages(
-		//#region
 		user_id: string,
 		channel_id: string,
 		limit: number,
 		before?: string,
 		after?: string,
-		//#endregion
 	): Promise<ChannelMessage[]> {
 		//#region
 		type t_fields = {
@@ -1006,11 +982,9 @@ export class ChannelService {
 	 * @return	A promise containing the joined channel's data.
 	 */
 	public async join_one(
-		//#region
 		joining_user_id: string,
 		channel_id: string,
 		password?: string,
-		//#endregion
 	): Promise<t_join_one_fields> {
 		//#region
 		const channel_tmp: t_join_one_fields_tmp | null = await this._prisma.channel.findUnique({
@@ -1123,12 +1097,10 @@ export class ChannelService {
 	 * @return	An empty promise.
 	 */
 	public async kick_ones_member(
-		//#region
 		kicking_user_id: string,
 		channel_id: string,
 		kicked_user_id: string,
 		channel?: {
-			//#region
 			members: {
 				id: string;
 			}[];
@@ -1139,8 +1111,6 @@ export class ChannelService {
 				id: string;
 			} | null;
 		} | null,
-		//#endregion
-		//#endregion
 	): Promise<void> {
 		//#region
 		if (!channel) {
@@ -1230,11 +1200,9 @@ export class ChannelService {
 	 * @return	An empty promise.
 	 */
 	public async leave_one(
-		//#region
 		user_id: string,
 		channel_id: string,
 		channel?: {
-			//#region
 			owner: {
 				id: string;
 			} | null;
@@ -1245,8 +1213,6 @@ export class ChannelService {
 				id: string;
 			}[];
 		} | null,
-		//#endregion
-		//#endregion
 	): Promise<void> {
 		//#region
 		if (!channel) {
@@ -1339,12 +1305,10 @@ export class ChannelService {
 	 * @return	An empty promise.
 	 */
 	public async mute_ones_member(
-		//#region
 		muting_user_id: string,
 		channel_id: string,
 		muted_user_id: string,
 		duration: number,
-		//#endregion
 	): Promise<void> {
 		//#region
 		type t_fields = {
@@ -1486,11 +1450,9 @@ export class ChannelService {
 	 * @return	An empty promise.
 	 */
 	public async promote_ones_member(
-		//#region
 		promoting_user_id: string,
 		channel_id: string,
 		promoted_user_id: string,
-		//#endregion
 	): Promise<void> {
 		//#region
 		type t_fields = {
@@ -1600,11 +1562,9 @@ export class ChannelService {
 	 * @return	A promise containing the newly sent message data.
 	 */
 	public async send_message_to_one(
-		//#region
 		user_id: string,
 		channel_id: string,
 		content: string,
-		//#endregion
 	): Promise<ChannelMessage> {
 		//#region
 		type t_fields = {
@@ -1701,11 +1661,9 @@ export class ChannelService {
 	 * @return	An empty promise.
 	 */
 	public async unban_ones_member(
-		//#region
 		unbanning_user_id: string,
 		channel_id: string,
 		unbanned_user_id: string,
-		//#endregion
 	): Promise<void> {
 		//#region
 		type t_fields = {
@@ -1821,13 +1779,11 @@ export class ChannelService {
 	 * @return	An empty promise.
 	 */
 	public async update_one(
-		//#region
 		updating_user_id: string,
 		channel_id: string,
 		name?: string,
 		type?: ChanType,
 		password?: string,
-		//#endregion
 	): Promise<void> {
 		//#region
 		type t_fields = {
