@@ -26,7 +26,7 @@ import {
 	ChannelPasswordUnexpectedError,
 } from "src/channel/error";
 import { g_channel_message_length_limit } from "src/channel/limit";
-import { ChatGateway } from "src/chat/chat.gateway";
+// import { ChatGateway } from "src/chat/chat.gateway";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, Logger } from "@nestjs/common";
 import { Channel, ChannelMessage, ChanType } from "@prisma/client";
@@ -39,13 +39,12 @@ export class ChannelService {
 	// REMIND: check if passing `_prisma` in readonly keep it working well
 	private _prisma: PrismaService;
 	// REMIND: check if passing `_gateway` in readonly keep it working well
-	private _gateway: ChatGateway;
+	// private _gateway: ChatGateway;
 	private readonly _logger: Logger;
 
-	constructor() {
+	constructor(prisma_service: PrismaService /* , chat_gateway: ChatGateway */) {
+		this._prisma = prisma_service;
 		//#region
-		this._prisma = new PrismaService();
-		this._gateway = new ChatGateway();
 		this._logger = new Logger(ChannelService.name);
 	}
 	//#endregion
@@ -1064,7 +1063,7 @@ export class ChannelService {
 		});
 		//#endregion
 
-		this._gateway.make_user_socket_join_room(joining_user_id, channel_id);
+		// this._gateway.make_user_socket_join_room(joining_user_id, channel_id);
 		const channel: t_join_one_fields = {
 			id: channel_tmp.id,
 			name: channel_tmp.name,
@@ -1278,7 +1277,8 @@ export class ChannelService {
 		});
 		//#endregion
 
-		this._gateway.make_user_socket_leave_room(user_id, channel_id);
+		// DONE
+		// this._gateway.make_user_socket_leave_room(user_id, channel_id);
 
 		this._logger.log(`User ${user_id} left the channel ${channel_id}`);
 	}
@@ -1634,7 +1634,7 @@ export class ChannelService {
 		});
 		//#endregion
 
-		this._gateway.broadcast_to_room(message);
+		// this._gateway.broadcast_to_room(message);
 
 		this._logger.verbose(`User ${user_id} sent a message to channel ${channel_id}`);
 

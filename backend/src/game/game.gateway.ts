@@ -7,15 +7,15 @@ import {
 	OnGatewayInit,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { GameService } from "../services/game.service";
-import { GameRoom } from "../rooms";
-import { PaddleDto } from "../dto";
-import { Results, ScoreUpdate, OpponentUpdate } from "../objects";
-import { Ball } from "../gameplay";
-import { Match } from "../aliases";
+import { GameService } from "./game.service";
+import { GameRoom } from "./rooms";
+import { PaddleDto } from "./dto";
+import { Results, ScoreUpdate, OpponentUpdate } from "./objects";
+import { Ball } from "./gameplay";
+import { Match } from "./aliases";
 import { BadRequestException, ConflictException, Logger } from "@nestjs/common";
-import { Constants } from "../constants";
-import { BadEvent } from "../exceptions";
+import { Constants } from "./constants";
+import { BadEvent } from "./exceptions";
 
 /**
  * setTimeout tracker
@@ -32,8 +32,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	@WebSocketServer()
 	public readonly server: Server;
 	private readonly game_service: GameService;
-	private timeouts: TimeoutId[];
-	private readonly logger: Logger;
+	private timeouts: TimeoutId[] = [];
+	private readonly logger: Logger = new Logger();
 
 	/* CONSTRUCTOR ============================================================= */
 

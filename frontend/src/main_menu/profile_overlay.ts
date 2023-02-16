@@ -100,7 +100,7 @@ class ProfileOverlay extends Overlay {
         editor_email.type = "text";
         editor_email.classList.add("editor-field");
         editor_email_container.appendChild(editor_email);
-        editor_email.onchange = e => {
+        editor_email.onchange = () => {
             const new_mail = editor_email.value;
 
             editor_email.disabled = true;
@@ -223,9 +223,9 @@ class ProfileOverlay extends Overlay {
                 const box_color = document.createElement("div");
                 box_color.classList.add("profile-game-box-color");
                 if (result.winner_id === me.id)
-                    box_color.style.backgroundColor = "green";
+                    box_color.style.backgroundColor = "#44FF66";
                 else
-                    box_color.style.backgroundColor = "red";
+                    box_color.style.backgroundColor = "#FF4444";
 
                 box_color.style.backgroundColor
                 game_container.appendChild(box_color);

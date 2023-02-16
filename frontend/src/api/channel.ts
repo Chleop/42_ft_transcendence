@@ -28,9 +28,9 @@ export interface Message {
      */
     content: string;
     /**
-     * The ID of the channel.
+     * The ID of the channel. Null for direct messages.
      */
-    channelId: ChannelId,
+    channelId: ChannelId | null,
     /**
      * The time of the message.
      */
@@ -50,7 +50,7 @@ export interface Channel {
      */
     name: string;
     /** The type of this channel. */
-    type: "PUBLIC"|"PROTECTED",
+    type: "PUBLIC"|"PROTECTED"|"PRIVATE",
     /** Member count. */
     members_count: number,
 }

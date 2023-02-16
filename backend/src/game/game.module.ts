@@ -1,9 +1,9 @@
 import { Module } from "@nestjs/common";
-import { GameService, SpectatorService } from "./services";
-import { GameGateway, SpectatorGateway } from "./gateways";
-import { UserService } from "src/user/user.service";
+import { GameService } from "./game.service";
+import { GameGateway } from "./game.gateway";
 
 @Module({
-	providers: [GameGateway, SpectatorGateway, GameService, SpectatorService, UserService],
+	providers: [GameGateway, GameService],
+	exports: [GameService],
 })
 export class GameModule {}

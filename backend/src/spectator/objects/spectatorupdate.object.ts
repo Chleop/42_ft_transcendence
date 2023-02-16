@@ -1,4 +1,4 @@
-import { Ball, Paddle } from "../gameplay";
+import { Ball, Paddle } from "../../game/gameplay";
 
 /**
  * Object send to spectator rooms (contains game scene data)

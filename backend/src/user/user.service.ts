@@ -5,7 +5,10 @@ import {
 	t_get_me_fields_tmp,
 	t_get_one_fields,
 	t_get_one_fields_tmp,
+	t_receiving_user_fields,
+	t_sending_user_fields,
 } from "src/user/alias";
+// import { t_user_id } from "src/chat/alias";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
@@ -27,23 +30,20 @@ import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { DirectMessage, StateType } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
-import { ChatGateway } from "src/chat/chat.gateway";
+import { t_user_status, t_user_update_event } from "./alias/user_update_event.alias";
 
 @Injectable()
 export class UserService {
 	// REMIND: would it be better to make these properties static ?
 	// REMIND: check if passing `_channel` in readonly keep it working well
 	private _channel: ChannelService;
-	// REMIND: check if passing `_gateway` in readonly keep it working well
-	private _gateway: ChatGateway;
 	// REMIND: check if passing `_prisma` in readonly keep it working well
 	private _prisma: PrismaService;
 	private readonly _logger: Logger;
 
-	constructor() {
-		this._channel = new ChannelService();
-		this._gateway = new ChatGateway();
-		this._prisma = new PrismaService();
+	constructor(channel_service: ChannelService, prisma_service: PrismaService) {
+		this._channel = channel_service;
+		this._prisma = prisma_service;
 		this._logger = new Logger(UserService.name);
 	}
 
@@ -543,6 +543,7 @@ export class UserService {
 			id: user_tmp.id,
 			login: user_tmp.login,
 			name: user_tmp.name,
+			status: t_user_status.OFFLINE, // TODO this._gateway.get_user_status(user_tmp.id),
 			email: user_tmp.email,
 			skin_id: user_tmp.skinId,
 			elo: user_tmp.elo,
@@ -722,6 +723,7 @@ export class UserService {
 			id: requested_user_tmp.id,
 			login: requested_user_tmp.login,
 			name: requested_user_tmp.name,
+			status: t_user_status.OFFLINE, //TODO this._gateway.get_user_status(requested_user_tmp.id),
 			skin_id: requested_user_tmp.skinId,
 			elo: requested_user_tmp.elo,
 			channels: requested_user_tmp.channels.map((channel): t_channels_fields => {
@@ -731,8 +733,8 @@ export class UserService {
 					type: channel.chanType,
 				};
 			}),
-			games_played_ids: requested_user_tmp.gamesPlayed.map((game): string => game.id),
-			games_won_ids: requested_user_tmp.gamesWon.map((game): string => game.id),
+			games_played: requested_user_tmp.gamesPlayed.length,
+			games_won: requested_user_tmp.gamesWon.length,
 		};
 
 		if (
@@ -1020,41 +1022,11 @@ export class UserService {
 		sending_user_id: string,
 		receiving_user_id: string,
 		content: string,
-	): Promise<void> {
-		type t_sending_user_fields = {
-			blocked: {
-				id: string;
-			}[];
-			channels: {
-				members: {
-					id: string;
-				}[];
-			}[];
-			directMessagesReceived: {
-				sender: {
-					id: string;
-				};
-			}[];
-			directMessagesSent: {
-				receiver: {
-					id: string;
-				};
-			}[];
-			friends: {
-				id: string;
-			}[];
-			gamesPlayed: {
-				players: {
-					id: string;
-				}[];
-			}[];
-		};
-		type t_receiving_user_fields = {
-			blocked: {
-				id: string;
-			}[];
-		};
-
+	): Promise<{
+		sender: t_sending_user_fields;
+		receiver: t_receiving_user_fields;
+		message: DirectMessage;
+	}> {
 		const sending_user: t_sending_user_fields = (await this._prisma.user.findUnique({
 			select: {
 				blocked: {
@@ -1160,11 +1132,17 @@ export class UserService {
 			},
 		});
 
-		if (!receiving_user.blocked.some((blocked) => blocked.id === sending_user_id)) {
-			this._gateway.forward_to_user_socket(message);
-		}
+		// DONE
+		// if (!receiving_user.blocked.some((blocked) => blocked.id === sending_user_id)) {
+		// 	// this._gateway.forward_to_user_socket(message);
+		// }
 
 		this._logger.log(`User ${sending_user_id} sent a message to user ${receiving_user_id}`);
+		return {
+			sender: sending_user,
+			receiver: receiving_user,
+			message: message,
+		};
 	}
 
 	/**
@@ -1443,6 +1421,11 @@ export class UserService {
 					},
 				},
 			});
+
+			await this.broadcast_user_update_to_many({
+				id,
+				name,
+			});
 		} catch (error) {
 			this._logger.error(`Error occured while updating user ${id}`);
 			if (error instanceof PrismaClientKnownRequestError) {
@@ -1503,11 +1486,98 @@ export class UserService {
 		}
 		try {
 			createWriteStream(join(process.cwd(), user.avatar)).write(file.buffer);
+
+			await this.broadcast_user_update_to_many({
+				id,
+				is_avatar_changed: true,
+			});
 		} catch (error) {
 			if (error instanceof Error)
 				this._logger.error(`Error occured while writing avatar to disk: ${error.message}`);
 			throw new UnknownError();
 		}
 		this._logger.log(`Updated user ${id}'s avatar`);
+	}
+
+	/**
+	 * @brief	Broadcast that a user has updated his profile to all related users.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	data: The id of the user to update + the fields that have been updated.
+	 *
+	 * @error	If no field has been provided, do nothing.
+	 *
+	 * @return	An empty promise.
+	 */
+	public async broadcast_user_update_to_many(data: t_user_update_event): Promise<void> {
+		if (
+			data.name === undefined &&
+			data.status === undefined &&
+			data.spectating === undefined &&
+			data.game_lost === undefined &&
+			data.game_won === undefined &&
+			data.is_avatar_changed === false
+		) {
+			return;
+		}
+
+		/* let users: t_user_id[] =  */ await this._prisma.user.findMany({
+			select: {
+				id: true,
+			},
+			where: {
+				OR: [
+					{
+						friends: {
+							some: {
+								id: data.id,
+							},
+						},
+					},
+					{
+						channels: {
+							some: {
+								members: {
+									some: {
+										id: data.id,
+									},
+								},
+							},
+						},
+					},
+					{
+						directMessagesSent: {
+							some: {
+								receiverId: data.id,
+							},
+						},
+					},
+					{
+						directMessagesReceived: {
+							some: {
+								senderId: data.id,
+							},
+						},
+					},
+					{
+						gamesPlayed: {
+							some: {
+								players: {
+									some: {
+										id: data.id,
+									},
+								},
+							},
+						},
+					},
+				],
+				NOT: {
+					id: data.id,
+				},
+			},
+		});
+
+		// this._gateway.broadcast_to_many("user_updated", new Set<t_user_id>(users), data);
 	}
 }

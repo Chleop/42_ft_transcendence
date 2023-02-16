@@ -1,5 +1,5 @@
 import { Socket } from "socket.io";
-import { GameRoom } from ".";
+import { GameRoom } from "../../game/rooms";
 
 /**
  * Spectated room handler.

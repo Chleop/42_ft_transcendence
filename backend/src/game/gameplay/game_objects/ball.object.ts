@@ -28,7 +28,7 @@ export class Ball {
 
 	constructor(coords?: { x: number; y: number; vx: number; vy: number }) {
 		if (coords === undefined) {
-			const angle: number = this.generateSign() * Math.random() * Math.PI * 0.25;
+			const angle: number = this.generateSign() * Math.random() * Constants.pi_4;
 			this.x = 0;
 			this.y = 0;
 			this.vx = this.generateSign() * Math.cos(angle) * Constants.initial_speed;
@@ -128,19 +128,31 @@ export class Ball {
 	 * Shifts velocity vector depending on the ball position on the paddle.
 	 */
 	private shiftBouncing(paddle_y: number): void {
-		const orig_norm: number = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+		// Compute the distance of the ball relative to the center of the paddle. The distance is
+		// normalize (-1 indicates bottom of the paddle, 1 is top of the paddle).
+		const rel_y = (this.y - paddle_y) / Constants.paddle_radius;
 
-		const oh: number = this.y - paddle_y;
+		// The speed of the ball must be preserved.
+		const was_going_left = this.vx <= 0.0;
+		const velocity = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
 
-		const vy: number = this.vy / orig_norm + 0.5 * oh;
-		const vx: number = -this.vx / orig_norm;
+		// When the ball is on top of the paddle (rel_y == 1), then it must go to that angle.
+		const MAX_ANGLE = Math.PI / 3;
 
-		const norm: number = Math.sqrt(vx * vx + vy * vy);
-		this.vy = (vy / norm) * orig_norm;
-		this.vx = (vx / norm) * orig_norm;
+		// Linearly interpolate between MAX_ANGLE and -MAX_ANGLE using the relative velociy as a
+		// base.
+		const angle = MAX_ANGLE * rel_y;
+		console.debug(angle);
+
+		const out_vel_x = Math.cos(angle) * velocity;
+		const out_vel_y = Math.sin(angle) * velocity;
+
+		// Apply the final velocity.
+		this.vx = out_vel_x * (was_going_left ? 1 : -1);
+		this.vy = out_vel_y;
 	}
 
 	private generateSign(): number {
-		return Math.random() < 5 ? 1 : -1;
+		return Math.random() < 0.5 ? 1 : -1;
 	}
 }
