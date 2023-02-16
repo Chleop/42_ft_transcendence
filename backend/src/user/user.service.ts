@@ -20,14 +20,15 @@ import {
 	UserSelfUnblockError,
 	UserSelfUnfriendError,
 } from "src/user/error";
+import { IDirectMessageSendingResponse } from "src/user/interface";
 import { ChannelService } from "src/channel/channel.service";
+import { ChatGateway } from "src/chat/chat.gateway";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, Logger, StreamableFile } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { DirectMessage, StateType } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
-import { ChatGateway } from "src/chat/chat.gateway";
 
 @Injectable()
 export class UserService {
@@ -41,11 +42,13 @@ export class UserService {
 	private readonly _logger: Logger;
 
 	constructor() {
+		//#region
 		this._channel = new ChannelService();
 		this._gateway = new ChatGateway();
 		this._prisma = new PrismaService();
 		this._logger = new Logger(UserService.name);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Check whether two users are linked through :
@@ -93,8 +96,10 @@ export class UserService {
 			}[];
 		} | null,
 	): Promise<boolean> {
+		//#region
 		if (!user0) {
 			user0 = await this._prisma.user.findUnique({
+				//#region
 				select: {
 					channels: {
 						select: {
@@ -145,6 +150,7 @@ export class UserService {
 					},
 				},
 			});
+			//#endregion
 
 			if (!user0) {
 				throw new UserNotFoundError(user0_id);
@@ -167,6 +173,7 @@ export class UserService {
 			)
 		);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user block an other user, preventing the blocking user of :
@@ -187,7 +194,9 @@ export class UserService {
 	 * @return	An empty promise.
 	 */
 	public async block_one(blocking_user_id: string, blocked_user_id: string): Promise<void> {
+		//#region
 		type t_blocking_user_fields = {
+			//#region
 			blocked: {
 				id: string;
 			}[];
@@ -198,14 +207,18 @@ export class UserService {
 				id: string;
 			}[];
 		};
+		//#endregion
 		type t_blocked_user_fields = {
+			//#region
 			id: string;
 			pendingFriendRequests: {
 				id: string;
 			}[];
 		};
+		//#endregion
 
 		const blocking_user: t_blocking_user_fields = (await this._prisma.user.findUnique({
+			//#region
 			select: {
 				blocked: {
 					select: {
@@ -230,8 +243,10 @@ export class UserService {
 				},
 			},
 		})) as t_blocking_user_fields;
+		//#endregion
 
 		const blocked_user: t_blocked_user_fields | null = await this._prisma.user.findUnique({
+			//#region
 			select: {
 				id: true,
 				pendingFriendRequests: {
@@ -247,6 +262,7 @@ export class UserService {
 				},
 			},
 		});
+		//#endregion
 
 		if (!blocked_user) {
 			throw new UserNotFoundError();
@@ -272,6 +288,7 @@ export class UserService {
 			)
 		) {
 			await this._prisma.user.update({
+				//#region
 				data: {
 					pendingFriendRequests: {
 						disconnect: {
@@ -286,6 +303,7 @@ export class UserService {
 					},
 				},
 			});
+			//#endregion
 		}
 		if (
 			blocked_user.pendingFriendRequests.some(
@@ -293,6 +311,7 @@ export class UserService {
 			)
 		) {
 			await this._prisma.user.update({
+				//#region
 				data: {
 					pendingFriendRequests: {
 						disconnect: {
@@ -307,9 +326,11 @@ export class UserService {
 					},
 				},
 			});
+			//#endregion
 		}
 
 		await this._prisma.user.update({
+			//#region
 			data: {
 				blocked: {
 					connect: {
@@ -324,8 +345,11 @@ export class UserService {
 				},
 			},
 		});
+		//#endregion
+
 		this._logger.log(`User ${blocking_user_id} blocked user ${blocked_user_id}`);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Create a new user in the database.
@@ -340,23 +364,30 @@ export class UserService {
 	 * @return	A promise containing the id of the created user.
 	 */
 	public async create_one(login: string): Promise<string> {
+		//#region
 		let user_id: string;
 
 		try {
 			let name: string = login;
 			let suffix: number = 0;
 			while (
-				await this._prisma.user.count({
+				await this._prisma.user.findUnique({
+					//#region
+					select: {
+						id: true,
+					},
 					where: {
 						name: name,
 					},
 				})
+				//#endregion
 			) {
 				name = `${login}#${suffix++}`;
 			}
 
 			user_id = (
 				await this._prisma.user.create({
+					//#region
 					data: {
 						login: login,
 						name: name,
@@ -368,6 +399,7 @@ export class UserService {
 					},
 				})
 			).id;
+			//#endregion
 			this._logger.log(`User ${user_id} created`);
 		} catch (error) {
 			if (error instanceof PrismaClientKnownRequestError) {
@@ -382,6 +414,7 @@ export class UserService {
 
 		return user_id;
 	}
+	//#endregion
 
 	/**
 	 * @brief	Change the account state of a user to DISABLED, before trully deleting them
@@ -399,7 +432,9 @@ export class UserService {
 	// REMIND: rename into disable_me (?)
 	// TODO: remove the UnknownError from potential errors
 	public async disable_one(id: string): Promise<void> {
+		//#region
 		type t_fields = {
+			//#region
 			id: string;
 			owner: {
 				id: string;
@@ -411,9 +446,11 @@ export class UserService {
 				id: string;
 			}[];
 		};
+		//#endregion
 
 		try {
 			const channels: t_fields[] = await this._prisma.channel.findMany({
+				//#region
 				select: {
 					id: true,
 					owner: {
@@ -436,12 +473,14 @@ export class UserService {
 					ownerId: id,
 				},
 			});
+			//#endregion
 
 			for (const channel of channels) {
 				await this._channel.leave_one(channel.id, id, channel);
 			}
 
 			await this._prisma.user.update({
+				//#region
 				where: {
 					idAndState: {
 						id: id,
@@ -452,6 +491,7 @@ export class UserService {
 					state: StateType.DISABLED,
 				},
 			});
+			//#endregion
 			this._logger.log(`User ${id} disabled`);
 		} catch (error) {
 			this._logger.error(`Error while disabling user ${id}`);
@@ -462,6 +502,7 @@ export class UserService {
 			throw new UnknownError();
 		}
 	}
+	//#endregion
 
 	/**
 	 * @brief	Get a user from the database.
@@ -477,7 +518,9 @@ export class UserService {
 	 */
 	// TODO: remove the UserNotFoundError from potential errors
 	public async get_me(id: string): Promise<t_get_me_fields> {
+		//#region
 		const user_tmp: t_get_me_fields_tmp | null = await this._prisma.user.findUnique({
+			//#region
 			select: {
 				id: true,
 				login: true,
@@ -534,12 +577,14 @@ export class UserService {
 				},
 			},
 		});
+		//#endregion
 
 		if (!user_tmp) {
 			throw new UserNotFoundError(id);
 		}
 
 		const user: t_get_me_fields = {
+			//#region
 			id: user_tmp.id,
 			login: user_tmp.login,
 			name: user_tmp.name,
@@ -578,10 +623,12 @@ export class UserService {
 				return blocked.id;
 			}),
 		};
+		//#endregion
 
 		this._logger.verbose(`User ${id} was successfully retrieved from the database.`);
 		return user;
 	}
+	//#endregion
 
 	/**
 	 * @brief	Get a user from the database.
@@ -603,7 +650,9 @@ export class UserService {
 		requesting_user_id: string,
 		requested_user_id: string,
 	): Promise<t_get_one_fields> {
+		//#region
 		type t_requesting_user_fields = {
+			//#region
 			channels: {
 				members: {
 					id: string;
@@ -628,8 +677,10 @@ export class UserService {
 				}[];
 			}[];
 		};
+		//#endregion
 
 		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
+			//#region
 			select: {
 				channels: {
 					select: {
@@ -680,8 +731,10 @@ export class UserService {
 				},
 			},
 		})) as t_requesting_user_fields;
+		//#endregion
 
 		const requested_user_tmp: t_get_one_fields_tmp | null = await this._prisma.user.findUnique({
+			//#region
 			select: {
 				id: true,
 				login: true,
@@ -713,12 +766,14 @@ export class UserService {
 				},
 			},
 		});
+		//#endregion
 
 		if (!requested_user_tmp) {
 			throw new UserNotFoundError(requested_user_id);
 		}
 
 		const requested_user: t_get_one_fields = {
+			//#region
 			id: requested_user_tmp.id,
 			login: requested_user_tmp.login,
 			name: requested_user_tmp.name,
@@ -734,6 +789,7 @@ export class UserService {
 			games_played_ids: requested_user_tmp.gamesPlayed.map((game): string => game.id),
 			games_won_ids: requested_user_tmp.gamesWon.map((game): string => game.id),
 		};
+		//#endregion
 
 		if (
 			requesting_user_id !== requested_user_id &&
@@ -747,6 +803,7 @@ export class UserService {
 		);
 		return requested_user;
 	}
+	//#endregion
 
 	/**
 	 * @brief	Get a user's avatar from the database.
@@ -768,7 +825,9 @@ export class UserService {
 		requesting_user_id: string,
 		requested_user_id: string,
 	): Promise<StreamableFile> {
+		//#region
 		type t_requesting_user_fields = {
+			//#region
 			channels: {
 				members: {
 					id: string;
@@ -793,14 +852,18 @@ export class UserService {
 				}[];
 			}[];
 		};
+		//#endregion
 		type t_requested_user_fields = {
+			//#region
 			avatar: string;
 			channels: {
 				id: string;
 			}[];
 		};
+		//#endregion
 
 		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
+			//#region
 			select: {
 				channels: {
 					select: {
@@ -851,8 +914,10 @@ export class UserService {
 				},
 			},
 		})) as t_requesting_user_fields;
+		//#endregion
 
 		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+			//#region
 			select: {
 				avatar: true,
 				channels: {
@@ -868,6 +933,7 @@ export class UserService {
 				},
 			},
 		});
+		//#endregion
 
 		if (!requested_user) {
 			throw new UserNotFoundError(requested_user_id);
@@ -882,6 +948,7 @@ export class UserService {
 
 		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.avatar)));
 	}
+	//#endregion
 
 	/**
 	 * @brief	Get a user's background skin from the database.
@@ -895,12 +962,17 @@ export class UserService {
 	 * @return	A promise containing the wanted background skin.
 	 */
 	public async get_ones_background(requested_user_id: string): Promise<StreamableFile> {
+		//#region
 		type t_requested_user_fields = {
+			//#region
 			skin: {
 				background: string;
 			};
 		};
+		//#endregion
+
 		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+			//#region
 			select: {
 				skin: {
 					select: {
@@ -915,11 +987,14 @@ export class UserService {
 				},
 			},
 		});
+		//#endregion
+
 		if (!requested_user) throw new UserNotFoundError(requested_user_id);
 		return new StreamableFile(
 			createReadStream(join(process.cwd(), requested_user.skin.background)),
 		);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Get a user's ball skin from the database.
@@ -933,12 +1008,17 @@ export class UserService {
 	 * @return	A promise containing the wanted ball skin.
 	 */
 	public async get_ones_ball(requested_user_id: string): Promise<StreamableFile> {
+		//#region
 		type t_requested_user_fields = {
+			//#region
 			skin: {
 				ball: string;
 			};
 		};
+		//#endregion
+
 		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+			//#region
 			select: {
 				skin: {
 					select: {
@@ -953,9 +1033,12 @@ export class UserService {
 				},
 			},
 		});
+		//#endregion
+
 		if (!requested_user) throw new UserNotFoundError(requested_user_id);
 		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.skin.ball)));
 	}
+	//#endregion
 
 	/**
 	 * @brief	Get a user's paddle skin from the database.
@@ -969,12 +1052,17 @@ export class UserService {
 	 * @return	A promise containing the wanted paddle skin.
 	 */
 	public async get_ones_paddle(requested_user_id: string): Promise<StreamableFile> {
+		//#region
 		type t_requested_user_fields = {
+			//#region
 			skin: {
 				paddle: string;
 			};
 		};
+		//#endregion
+
 		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+			//#region
 			select: {
 				skin: {
 					select: {
@@ -989,11 +1077,15 @@ export class UserService {
 				},
 			},
 		});
+		//#endregion
+
 		if (!requested_user) throw new UserNotFoundError(requested_user_id);
+
 		return new StreamableFile(
 			createReadStream(join(process.cwd(), requested_user.skin.paddle)),
 		);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user send a direct message to another user.
@@ -1020,8 +1112,10 @@ export class UserService {
 		sending_user_id: string,
 		receiving_user_id: string,
 		content: string,
-	): Promise<void> {
+	): Promise<IDirectMessageSendingResponse> {
+		//#region
 		type t_sending_user_fields = {
+			//#region
 			blocked: {
 				id: string;
 			}[];
@@ -1049,13 +1143,17 @@ export class UserService {
 				}[];
 			}[];
 		};
+		//#endregion
 		type t_receiving_user_fields = {
+			//#region
 			blocked: {
 				id: string;
 			}[];
 		};
+		//#endregion
 
 		const sending_user: t_sending_user_fields = (await this._prisma.user.findUnique({
+			//#region
 			select: {
 				blocked: {
 					select: {
@@ -1111,8 +1209,10 @@ export class UserService {
 				},
 			},
 		})) as t_sending_user_fields;
+		//#endregion
 
 		const receiving_user: t_receiving_user_fields | null = await this._prisma.user.findUnique({
+			//#region
 			select: {
 				blocked: {
 					select: {
@@ -1127,6 +1227,7 @@ export class UserService {
 				},
 			},
 		});
+		//#endregion
 
 		if (!receiving_user) {
 			throw new UserNotFoundError(receiving_user_id);
@@ -1145,6 +1246,7 @@ export class UserService {
 		}
 
 		const message: DirectMessage = await this._prisma.directMessage.create({
+			//#region
 			data: {
 				sender: {
 					connect: {
@@ -1159,13 +1261,24 @@ export class UserService {
 				content,
 			},
 		});
+		//#endregion
 
 		if (!receiving_user.blocked.some((blocked) => blocked.id === sending_user_id)) {
 			this._gateway.forward_to_user_socket(message);
 		}
 
 		this._logger.log(`User ${sending_user_id} sent a message to user ${receiving_user_id}`);
+
+		return {
+			//#region
+			id: message.id,
+			sender_id: message.senderId,
+			date_time: message.dateTime,
+			content: message.content,
+		};
+		//#endregion
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user unblock another user, ending the restrictions imposed by the block.
@@ -1185,16 +1298,22 @@ export class UserService {
 	 * @return	An empty promise.
 	 */
 	public async unblock_one(unblocking_user_id: string, unblocked_user_id: string): Promise<void> {
+		//#region
 		type t_unblocking_user_fields = {
+			//#region
 			blocked: {
 				id: string;
 			}[];
 		};
+		//#endregion
 		type t_unblocked_user_fields = {
+			//#region
 			id: string;
 		};
+		//#endregion
 
 		const unblocking_user: t_unblocking_user_fields = (await this._prisma.user.findUnique({
+			//#region
 			select: {
 				blocked: {
 					select: {
@@ -1209,8 +1328,10 @@ export class UserService {
 				},
 			},
 		})) as t_unblocking_user_fields;
+		//#endregion
 
 		const unblocked_user: t_unblocked_user_fields | null = await this._prisma.user.findUnique({
+			//#region
 			select: {
 				id: true,
 			},
@@ -1221,6 +1342,7 @@ export class UserService {
 				},
 			},
 		});
+		//#endregion
 
 		if (!unblocked_user) {
 			throw new UserNotFoundError();
@@ -1242,6 +1364,7 @@ export class UserService {
 		}
 
 		await this._prisma.user.update({
+			//#region
 			data: {
 				blocked: {
 					disconnect: {
@@ -1256,10 +1379,13 @@ export class UserService {
 				},
 			},
 		});
+		//#endregion
+
 		this._logger.log(
 			`User ${unblocked_user_id} has been unblocked by user ${unblocking_user_id}`,
 		);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user unfriend another user, removing their friendship in both directions.
@@ -1292,8 +1418,10 @@ export class UserService {
 			id: string;
 		} | null,
 	): Promise<void> {
+		//#region
 		if (!unfriending_user) {
 			unfriending_user = (await this._prisma.user.findUnique({
+				//#region
 				select: {
 					friends: {
 						select: {
@@ -1312,10 +1440,12 @@ export class UserService {
 					id: string;
 				}[];
 			};
+			//#endregion
 		}
 
 		if (!unfriended_user) {
 			unfriended_user = await this._prisma.user.findUnique({
+				//#region
 				select: {
 					id: true,
 				},
@@ -1326,6 +1456,7 @@ export class UserService {
 					},
 				},
 			});
+			//#endregion
 
 			if (!unfriended_user) {
 				throw new UserNotFoundError();
@@ -1341,6 +1472,7 @@ export class UserService {
 		}
 
 		await this._prisma.user.update({
+			//#region
 			data: {
 				friends: {
 					disconnect: {
@@ -1358,7 +1490,9 @@ export class UserService {
 				},
 			},
 		});
+		//#endregion
 		await this._prisma.user.update({
+			//#region
 			data: {
 				friends: {
 					disconnect: {
@@ -1376,10 +1510,13 @@ export class UserService {
 				},
 			},
 		});
+		//#endregion
+
 		this._logger.log(
 			`User ${unfriended_user_id} has been unfriended by user ${unfriending_user_id}`,
 		);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Update a user in the database.
@@ -1406,14 +1543,18 @@ export class UserService {
 		two_fact_auth?: boolean,
 		skin_id?: string,
 	): Promise<void> {
+		//#region
 		type t_fields = {
+			//#region
 			name: string;
 			email: string | null;
 			twoFactAuth: boolean;
 			skinId: string;
 		};
+		//#endregion
 
 		const user: t_fields = (await this._prisma.user.findUnique({
+			//#region
 			select: {
 				name: true,
 				email: true,
@@ -1427,6 +1568,7 @@ export class UserService {
 				},
 			},
 		})) as t_fields;
+		//#endregion
 
 		if (name !== undefined) user.name = name;
 		if (email !== undefined) user.email = email;
@@ -1435,6 +1577,7 @@ export class UserService {
 
 		try {
 			await this._prisma.user.update({
+				//#region
 				data: user,
 				where: {
 					idAndState: {
@@ -1443,6 +1586,7 @@ export class UserService {
 					},
 				},
 			});
+			//#endregion
 		} catch (error) {
 			this._logger.error(`Error occured while updating user ${id}`);
 			if (error instanceof PrismaClientKnownRequestError) {
@@ -1456,6 +1600,7 @@ export class UserService {
 			throw new UnknownError();
 		}
 	}
+	//#endregion
 
 	/**
 	 * @brief	Update a user's avatar in the database.
@@ -1471,11 +1616,15 @@ export class UserService {
 	 * @return	An empty promise.
 	 */
 	public async update_ones_avatar(id: string, file: Express.Multer.File): Promise<void> {
+		//#region
 		type t_fields = {
+			//#region
 			avatar: string;
 		};
+		//#endregion
 
 		const user: t_fields = (await this._prisma.user.findUnique({
+			//#region
 			select: {
 				avatar: true,
 			},
@@ -1486,10 +1635,12 @@ export class UserService {
 				},
 			},
 		})) as t_fields;
+		//#endregion
 
 		if (user.avatar === "resource/avatar/default.jpg") {
 			user.avatar = `resource/avatar/${id}.jpg`;
 			await this._prisma.user.update({
+				//#region
 				data: {
 					avatar: user.avatar,
 				},
@@ -1500,6 +1651,7 @@ export class UserService {
 					},
 				},
 			});
+			//#endregion
 		}
 		try {
 			createWriteStream(join(process.cwd(), user.avatar)).write(file.buffer);
@@ -1510,4 +1662,5 @@ export class UserService {
 		}
 		this._logger.log(`Updated user ${id}'s avatar`);
 	}
+	//#endregion
 }
