@@ -8,6 +8,7 @@ import { UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
+	UserBlockedError,
 	UserFieldUnaivalableError,
 	UserNotBlockedError,
 	UserNotFoundError,
@@ -197,7 +198,11 @@ export class UserController {
 			}
 			return object.message;
 		} catch (error) {
-			if (error instanceof UserNotFoundError || error instanceof UserSelfMessageError) {
+			if (
+				error instanceof UserNotFoundError ||
+				error instanceof UserSelfMessageError ||
+				error instanceof UserBlockedError
+			) {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
@@ -206,6 +211,7 @@ export class UserController {
 				throw new ForbiddenException(error.message);
 			}
 			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error(error);
 			throw new InternalServerErrorException();
 		}
 	}
