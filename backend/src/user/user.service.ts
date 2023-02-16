@@ -1108,6 +1108,7 @@ export class UserService {
 	 * 			- UserNotLinkedError
 	 * 			- UserBlockedError
 	 */
+	// REMIND: This way to return an object is ugly... To be changed, one day.
 	public async send_message_to_one(
 		sending_user_id: string,
 		receiving_user_id: string,
@@ -1116,6 +1117,7 @@ export class UserService {
 		receiver: t_receiving_user_fields;
 		message: DirectMessage;
 	}> {
+		//#region
 		const sending_user: t_sending_user_fields = (await this._prisma.user.findUnique({
 			//#region
 			select: {

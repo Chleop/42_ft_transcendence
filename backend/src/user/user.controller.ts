@@ -52,10 +52,12 @@ export class UserController {
 	private readonly chat_gateway: ChatGateway;
 
 	constructor(user_service: UserService, chat_gateway: ChatGateway) {
+		//#region
 		this._user_service = user_service;
 		this.chat_gateway = chat_gateway;
 		this._logger = new Logger(UserController.name);
 	}
+	//#endregion
 
 	@Patch(":id/block")
 	async block_one(
