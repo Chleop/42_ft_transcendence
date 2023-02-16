@@ -1,21 +1,18 @@
 import { Server, Socket } from "socket.io";
 import { ChannelMessage, DirectMessage } from "@prisma/client";
 import {
-	// OnGatewayConnection,
-	// OnGatewayDisconnect,
-	// OnGatewayInit,
-	// SubscribeMessage,
+	OnGatewayConnection,
+	OnGatewayDisconnect,
+	OnGatewayInit,
 	WebSocketGateway,
 	WebSocketServer,
 } from "@nestjs/websockets";
-import { Logger, UseInterceptors } from "@nestjs/common";
-import { WebSocketInterceptor } from "../websocket.interceptor";
+import { Logger } from "@nestjs/common";
 
 @WebSocketGateway({
 	namespace: "chat",
 })
-@UseInterceptors(WebSocketInterceptor)
-export class ChatGateway /* implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit */ {
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
 	@WebSocketServer()
 	public readonly _server: Server;
 	private _client_sockets: Map<string, Socket> = new Map<string, Socket>();

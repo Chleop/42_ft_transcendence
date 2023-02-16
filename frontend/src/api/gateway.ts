@@ -22,8 +22,8 @@ export class GatewayClass {
     public on_disconnected: () => void = noop;
 
     public constructor() {
-        // this.socket = <Socket>{};
-        // return;
+        this.socket = <Socket>{};
+        return;
         console.log("initiating a connection with the chat gateway...");
         this.socket = io("/chat", {
             reconnection: false,
@@ -49,6 +49,6 @@ export class GatewayClass {
         this.socket.disconnect();
     }
 }
-// /** The global gateway. */
-// const GATEWAY = new GatewayClass();
-// export default GATEWAY;
+/** The global gateway. */
+const GATEWAY = new GatewayClass();
+export default GATEWAY;

@@ -35,18 +35,12 @@ export class UserService {
 	// REMIND: would it be better to make these properties static ?
 	// REMIND: check if passing `_channel` in readonly keep it working well
 	private _channel: ChannelService;
-	// REMIND: check if passing `_gateway` in readonly keep it working well
-	// private _gateway: ChatGateway;
 	// REMIND: check if passing `_prisma` in readonly keep it working well
 	private _prisma: PrismaService;
 	private readonly _logger: Logger;
 
-	constructor(
-		channel_service: ChannelService /* , chat_gateway: ChatGateway */,
-		prisma_service: PrismaService,
-	) {
+	constructor(channel_service: ChannelService, prisma_service: PrismaService) {
 		this._channel = channel_service;
-		// this._gateway = chat_gateway;
 		this._prisma = prisma_service;
 		this._logger = new Logger(UserService.name);
 	}

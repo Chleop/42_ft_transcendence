@@ -2,9 +2,9 @@ import {
 	WebSocketGateway,
 	WebSocketServer,
 	SubscribeMessage,
-	// OnGatewayConnection,
-	// OnGatewayDisconnect,
-	// OnGatewayInit,
+	OnGatewayConnection,
+	OnGatewayDisconnect,
+	OnGatewayInit,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { GameService } from "./game.service";
@@ -13,10 +13,9 @@ import { PaddleDto } from "./dto";
 import { Results, ScoreUpdate, OpponentUpdate } from "./objects";
 import { Ball } from "./gameplay";
 import { Match } from "./aliases";
-import { BadRequestException, ConflictException, Logger, UseInterceptors } from "@nestjs/common";
+import { BadRequestException, ConflictException, Logger } from "@nestjs/common";
 import { Constants } from "./constants";
 import { BadEvent } from "./exceptions";
-import { WebSocketInterceptor } from "../websocket.interceptor";
 
 /**
  * setTimeout tracker
@@ -29,8 +28,7 @@ type TimeoutId = {
 @WebSocketGateway({
 	namespace: "game",
 })
-@UseInterceptors(WebSocketInterceptor)
-export class GameGateway /* implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit */ {
+export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
 	@WebSocketServer()
 	public readonly server: Server;
 	private readonly game_service: GameService;

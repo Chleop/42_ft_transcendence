@@ -1,5 +1,5 @@
 import { Channel, ChannelId, Message, Client, Users } from "../api";
-// import GATEWAY from "../api/gateway";
+import GATEWAY from "../api/gateway";
 import CHANNEL_LIST from "./channel_list";
 import CHANNEL_SETTINGS from "./channel_settings";
 import USER_CARD from "./user_card";
@@ -279,18 +279,18 @@ class ChatElement {
         this.selected_channel = null;
         this.channel_elements = [];
 
-        // GATEWAY.on_connected = () => {
-        //     console.log("Connected to the gateway!");
-        // };
+        GATEWAY.on_connected = () => {
+            console.log("Connected to the gateway!");
+        };
 
-        // GATEWAY.on_message = (msg: Message) => {
-        //     let ch = this.get_channel(msg.channelId);
-        //     if (ch) {
-        //         this.add_message(ch, msg);
-        //     } else {
-        //         console.warn(`received a message not meant to me:`, msg);
-        //     }
-        // };
+        GATEWAY.on_message = (msg: Message) => {
+            let ch = this.get_channel(msg.channelId);
+            if (ch) {
+                this.add_message(ch, msg);
+            } else {
+                console.warn(`received a message not meant to me:`, msg);
+            }
+        };
     }
 
     /**

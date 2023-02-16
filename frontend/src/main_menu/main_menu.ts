@@ -96,7 +96,6 @@ class MainMenuScene extends Scene {
         profile.appendChild(profile_span);
         profile.onclick = () => {
             History.push_state(PROFILE_OVERLAY);
-            new GatewayClass();
         };
         this.container.appendChild(profile);
 
