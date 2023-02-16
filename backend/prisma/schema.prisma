@@ -37,6 +37,8 @@ model User {
   // ne sont pas accessibles par le client Prisma grace a l'attribut 
   // @ignore.
   // REMIND: Pour utiliser Prisma Studio, commenter les @ignore
+  mirrorBanned                Channel[]        @relation("banned_channel_members") //@ignore
+  mirrorMuted                 Channel[]        @relation("muted_channel_members") //@ignore
   mirrorOperators             Channel[]        @relation("chanops") //@ignore
   mirrorFriends               User[]           @relation("friendship") //@ignore
   mirrorpendingFriendRequests User[]           @relation("pending friendship") //@ignore
@@ -58,6 +60,8 @@ model Channel {
   owner     User?            @relation("chanowner", fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   members   User[]           @relation("userchannels")
   operators User[]           @relation("chanops")
+  banned	User[]           @relation("banned_channel_members")
+  muted     User[]           @relation("muted_channel_members")
   messages  ChannelMessage[] @relation("channelmessage")
   // les champs ci-dessous sont neccessaires pour les relations
   // mais n'existent pas reellement dans la bdd (foreign keys)

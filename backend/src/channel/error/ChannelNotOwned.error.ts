@@ -4,7 +4,7 @@ export class ChannelNotOwnedError implements Error {
 
 	constructor(details?: string) {
 		this._name = "ChannelNotOwnedError";
-		this._message = "Channel is not owned by the user";
+		this._message = "Channel is not owned";
 
 		if (details) {
 			this._message += ` (${details})`;

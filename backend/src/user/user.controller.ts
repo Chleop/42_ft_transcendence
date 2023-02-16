@@ -325,7 +325,6 @@ export class UserController {
 				throw new BadRequestException(error.message);
 			}
 			this._logger.error("Unknow error type, this should not happen");
-			this._logger.error(error.message);
 			throw new InternalServerErrorException();
 		}
 
@@ -343,7 +342,6 @@ export class UserController {
 				throw new BadRequestException(error.message);
 			}
 			this._logger.error("Unknow error type, this should not happen");
-			this._logger.error(error.message);
 			throw new InternalServerErrorException();
 		}
 
@@ -361,7 +359,6 @@ export class UserController {
 				throw new BadRequestException(error.message);
 			}
 			this._logger.error("Unknow error type, this should not happen");
-			this._logger.error(error.message);
 			throw new InternalServerErrorException();
 		}
 

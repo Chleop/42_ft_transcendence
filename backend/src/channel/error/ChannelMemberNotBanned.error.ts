@@ -1,10 +1,10 @@
-export class ChannelUnpopulatedError implements Error {
+export class ChannelMemberNotBannedError implements Error {
 	private readonly _name: string;
 	private readonly _message: string;
 
 	constructor(details?: string) {
-		this._name = "ChannelUnpopulatedError";
-		this._message = "Channel is not populated enough";
+		this._name = "ChannelMemberNotBannedError";
+		this._message = "No such banned member in channel";
 		if (details) {
 			this._message += ` (${details})`;
 		}
