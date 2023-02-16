@@ -1,4 +1,12 @@
-import { Channel, ChannelId, Message, Client, Users } from "../api";
+import {
+    Channel,
+    ChannelId,
+    Message,
+    Client,
+    Users,
+    UserId,
+    User,
+} from "../api";
 import GATEWAY from "../api/gateway";
 import CHANNEL_LIST from "./channel_list";
 import CHANNEL_SETTINGS from "./channel_settings";
@@ -16,7 +24,11 @@ class MessageElementInternal {
     /**
      * This constructor should basically never be called outside of the module.
      */
-    public constructor(continuing: boolean, message: Message) {
+    public constructor(
+        continuing: boolean,
+        message: Message,
+        channel: Channel | null
+    ) {
         const avatar = document.createElement("avatar");
         avatar.classList.add("message-avatar");
         Users.get_avatar(message.senderId).then((url) => {
@@ -24,13 +36,13 @@ class MessageElementInternal {
         });
         avatar.onclick = () =>
             Users.get(message.senderId).then((user) =>
-                USER_CARD.show(avatar, user)
+                USER_CARD.show(avatar, user, channel)
             );
         const author = document.createElement("button");
         author.classList.add("message-author");
         author.onclick = () =>
             Users.get(message.senderId).then((user) =>
-                USER_CARD.show(author, user)
+                USER_CARD.show(author, user, channel)
             );
         Users.get(message.senderId).then(
             (user) => (author.innerText = user.name)
@@ -95,10 +107,8 @@ class ChannelElementInternal {
 
     public my_last_message: string | null = null;
 
-    /**
-     * The ID of the channel.
-     */
-    public channel_id: ChannelId;
+    public model: Channel | null;
+    public dm: User | null;
 
     /**
      * The saved value of the input field (if the user left the channel without clearing the
@@ -111,12 +121,14 @@ class ChannelElementInternal {
      */
     public constructor(
         container: ChatElement,
-        channel: Channel,
+        model: Channel | null,
+        dm: User | null,
         chat: ChatElement
     ) {
         this.tab = document.createElement("button");
         this.tab.classList.add("channel-tab");
-        this.tab.innerText = channel.name;
+        if (model) this.tab.innerText = model.name;
+        if (dm) this.tab.innerText = dm.name;
         this.tab.onclick = () => container.set_selected_channel(this);
         this.tab.onmousedown = (ev) => {
             if (ev.button === 1) {
@@ -126,18 +138,24 @@ class ChannelElementInternal {
         };
         this.tab.onmouseup = (ev) => {
             if (ev.button === 1) {
-                Client.leave_channel(channel.id).then(() => {
+                if (this.model) {
+                    Client.leave_channel(this.model.id).then(() => {
+                        chat.remove_channel(this);
+                    });
+                }
+                if (this.dm) {
                     chat.remove_channel(this);
-                });
+                }
             }
         };
 
         this.messages = document.createElement("div");
 
         this.last_message = null;
-        this.channel_id = channel.id;
 
         this.input = "";
+        this.model = model;
+        this.dm = dm;
     }
 }
 
@@ -229,13 +247,12 @@ class ChatElement {
         channel_settings_button.classList.add("circle-button");
         channel_settings_button.onclick = () => {
             if (!this.selected_channel) return;
-            const selected_channel_id = this.selected_channel.channel_id; // this is a data race!
-            Users.me().then((me) => {
-                const owner = !!me.channels_owned_ids.find(
-                    (owned_id) => owned_id === selected_channel_id
-                );
-                CHANNEL_SETTINGS.show(channel_settings_button, owner);
-            });
+            if (this.selected_channel.model) {
+                const model = this.selected_channel.model; // this is a data race! Yay!!
+                Users.me().then((me) => {
+                    CHANNEL_SETTINGS.show(channel_settings_button, me, model);
+                });
+            }
         };
         send_message_container.appendChild(channel_settings_button);
 
@@ -279,16 +296,23 @@ class ChatElement {
         this.selected_channel = null;
         this.channel_elements = [];
 
-        GATEWAY.on_connected = () => {
-            console.log("Connected to the gateway!");
-        };
-
         GATEWAY.on_message = (msg: Message) => {
-            let ch = this.get_channel(msg.channelId);
-            if (ch) {
-                this.add_message(ch, msg);
+            if (msg.channelId) {
+                let ch = this.get_channel(msg.channelId);
+                if (ch) {
+                    this.add_message(ch, msg);
+                } else {
+                    console.warn(`received a message not meant to me:`, msg);
+                }
             } else {
-                console.warn(`received a message not meant to me:`, msg);
+                let ch = this.get_dm_channel(msg.senderId);
+                if (ch) {
+                    this.add_message(ch, msg);
+                } else {
+                    Users.get(msg.senderId).then((sender) => {
+                        this.get_or_create_dm_channel(sender);
+                    });
+                }
             }
         };
     }
@@ -329,7 +353,7 @@ class ChatElement {
      * Adds a channel to the list of channels.
      */
     public add_channel(channel: Channel): ChannelElement {
-        let element = new ChannelElementInternal(this, channel, this);
+        let element = new ChannelElementInternal(this, channel, null, this);
 
         this.channel_tabs.appendChild(element.tab);
 
@@ -351,9 +375,17 @@ class ChatElement {
             throw new Error("Trying a remove a channel that does not exist.");
         channel_.tab.remove();
         this.channel_elements.splice(index, 1);
+        if (!this.selected_channel) return;
         if (
-            !this.selected_channel ||
-            this.selected_channel.channel_id !== channel_.channel_id
+            this.selected_channel.model &&
+            channel_.model &&
+            this.selected_channel.model.id !== channel_.model.id
+        )
+            return;
+        if (
+            this.selected_channel.dm &&
+            channel_.dm &&
+            this.selected_channel.dm.id !== channel_.dm.id
         )
             return;
         if (this.channel_elements.length > 0)
@@ -363,7 +395,33 @@ class ChatElement {
 
     /** Returns a channel element by ID */
     public get_channel(channel: ChannelId): undefined | ChannelElement {
-        return this.channel_elements.find((e) => e.channel_id == channel);
+        return this.channel_elements.find(
+            (e) => e.model && e.model.id === channel
+        );
+    }
+
+    public get_dm_channel(user: UserId): undefined | ChannelElement {
+        return this.channel_elements.find((e) => e.dm && e.dm.id === user);
+    }
+
+    public get_or_create_dm_channel(user: User): ChannelElement {
+        const ch = this.get_dm_channel(user.id);
+        if (ch) return ch;
+
+        let element = new ChannelElementInternal(this, null, user, this);
+
+        this.channel_tabs.appendChild(element.tab);
+
+        // Try to get the twenty last messages of the channel.
+        // TODO: get the last messages of the DM channel.
+        // Client.last_messages(channel.id, 50).then(messages => {
+        //     for (const m of messages) {
+        //         this.add_message(element, m);
+        //     }
+        // });
+
+        this.channel_elements.push(element);
+        return element;
     }
 
     /**
@@ -389,7 +447,11 @@ class ChatElement {
         // If the last child is the same author, add the `message-continuing` class.
         channel_.last_message = message;
 
-        const element = new MessageElementInternal(continuing, message);
+        const element = new MessageElementInternal(
+            continuing,
+            message,
+            channel_.model
+        );
         channel_.messages.appendChild(element.container);
         return element;
     }
@@ -398,25 +460,31 @@ class ChatElement {
      * Sends the content of the `<input id="chat-send-message">` to the currently selected
      * channel, and through the network.
      */
-    public async send_message_input(): Promise<Message | null> {
+    public async send_message_input(): Promise<void> {
         if (!this.selected_channel) {
-            return null;
+            return;
         }
 
         // Do nothing if the input contains nothing.
         if (!this.message_input.value) {
-            return null;
+            return;
         }
 
         const content = this.message_input.value.trim();
         this.message_input.value = "";
 
         if (content === "") {
-            return null;
+            return;
         }
 
         this.selected_channel.my_last_message = content;
-        return Client.send_message(this.selected_channel.channel_id, content);
+        if (this.selected_channel.model)
+            await Client.send_message(this.selected_channel.model.id, content);
+        if (this.selected_channel.dm) {
+            await Client.send_dm(this.selected_channel.dm.id, content);
+            // TODO:
+            //  Put the message itself.
+        }
     }
 
     /**

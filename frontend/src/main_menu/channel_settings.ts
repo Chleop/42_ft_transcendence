@@ -1,3 +1,4 @@
+import { Channel, PrivateUser, User } from "../api";
 
 
 class ChannelSettings {
@@ -5,6 +6,7 @@ class ChannelSettings {
     private container: HTMLDivElement;
     private when_owner: HTMLDivElement;
     private when_not_owner: HTMLDivElement;
+    private owner_priv: HTMLDivElement;
 
     public constructor() {
         const screen = document.createElement("div");
@@ -55,22 +57,35 @@ class ChannelSettings {
         not_owner_container.id = "channel-settings-not-owner";
         not_owner_container.innerText = "You are not the owner of this channel.";
 
+        const owner_priv_container = document.createElement("div");
+        owner_priv_container.id = "channel-settings-owner-priv";
+        owner_priv_container.innerText = "You are not the owner of this channel.";
+
         this.screen = screen;
         this.container = container;
         this.when_owner = owner_container;
         this.when_not_owner = not_owner_container;
+        this.owner_priv = owner_priv_container;
     }
 
-    public show(at: HTMLElement, owner: boolean) {
+    public show(at: HTMLElement, me: PrivateUser, channel: Channel) {
         const rect = at.getBoundingClientRect();
 
         this.container.style.top = `${rect.top - 20}px`;
         this.container.style.left = `${rect.left + rect.width / 2}px`;
         this.container.style.transform = "translate(-50%, -100%)";
 
+        const owner = me.channels_owned_ids.indexOf(channel.id) !== -1;
+
         while (this.container.firstChild)
             this.container.firstChild.remove();
-        if (owner) this.container.appendChild(this.when_owner);
+        if (owner) {
+            if (channel.type === "PRIVATE") {
+                this.owner_priv.innerText = channel.id;
+                this.container.appendChild(this.owner_priv);
+            }
+            else this.container.appendChild(this.when_owner);
+        }
         else this.container.appendChild(this.when_not_owner);
         document.body.appendChild(this.screen);
     }

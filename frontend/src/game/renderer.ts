@@ -2,6 +2,7 @@ import { hitbox_fragment_shader_source, hitbox_vertex_shader_source } from "./hi
 import { image_fragment_shader_source, image_vertex_shader_source } from "./image_shader";
 import { sprite_fragment_shader_source, sprite_vertex_shader_source } from "./sprite_shader";
 import { warp_fragment_shader_source, warp_vertex_shader_source } from "./warp_shader";
+import { wtf_fragment_shader_source, wtf_vertex_shader_source } from "./wtf_shader";
 
 /**
  * An exception which indicates that the WebGL2 renderer produced an error.
@@ -68,6 +69,8 @@ function get_uniform_location(gl: WebGL2RenderingContext, program: WebGLProgram,
 
 export class Framebuffer implements WithTexture {
     public texture: WebGLTexture;
+    public width: number;
+    public height: number;
     public framebuffer: WebGLFramebuffer;
 
     public constructor(gl: WebGL2RenderingContext, w: number, h: number) {
@@ -88,6 +91,8 @@ export class Framebuffer implements WithTexture {
 
         this.texture = tex;
         this.framebuffer = f;
+        this.width = w;
+        this.height = h;
     }
 }
 
@@ -179,6 +184,11 @@ export class Renderer {
 
     private warp_uniform_screen: WebGLUniformLocation;
 
+    private wtf_program: WebGLProgram;
+
+    private canvas_width: number;
+    private canvas_height: number;
+
     /**
      * The view matrix.
      */
@@ -203,6 +213,10 @@ export class Renderer {
         this.image_program = create_program(this.gl, image_vertex_shader_source, image_fragment_shader_source);
         this.warp_program = create_program(this.gl, warp_vertex_shader_source, warp_fragment_shader_source);
         this.warp_uniform_screen = get_uniform_location(this.gl, this.warp_program, "screen");
+        this.wtf_program = create_program(this.gl, wtf_vertex_shader_source, wtf_fragment_shader_source);
+
+        this.canvas_width = 1;
+        this.canvas_height = 1;
 
         this.view_matrix = [1, 0, 0, 1];
     }
@@ -214,8 +228,8 @@ export class Renderer {
      * @param height The new height of the canvas.
      */
     public notify_size_changed(width: number, height: number): void {
-        this.gl.viewport(0, 0, width, height);
-        // this.view_matrix = [1 / 8, 0, 0, (width / height) / 8];
+        this.canvas_width = width;
+        this.canvas_height = height;
     }
 
     /** Sets the global view matrix. */
@@ -272,14 +286,26 @@ export class Renderer {
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
     }
 
+    public wtf(sprite: WithTexture) {
+        this.gl.useProgram(this.wtf_program);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, sprite.texture);
+        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+    }
+
     public create_framebuffer(width: number, height: number): Framebuffer {
         return new Framebuffer(this.gl, width, height);
     }
 
     public bind_framebuffer(framebuffer: Framebuffer|null) {
         if (framebuffer)
+        {
+            this.gl.viewport(0, 0, framebuffer.width, framebuffer.height);
             this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer.framebuffer);
+        }
         else
+        {
+            this.gl.viewport(0, 0, this.canvas_width, this.canvas_height);
             this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+        }
     }
 }

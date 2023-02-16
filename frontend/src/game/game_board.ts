@@ -14,6 +14,24 @@ export class WebGL2NotSupported { }
 export interface RenderState {
     /** Whether hitboxes and other debug information should be displayed. */
     debug: boolean;
+    wtf: boolean,
+}
+
+function get_framebuffer_dims(width: number, height: number): [number, number] {
+    const BOARD_RATIO: number = Constants.board_width / Constants.board_height;
+    const aspect_ratio = width / height;
+
+    if (aspect_ratio < BOARD_RATIO) {
+        return [
+            width,
+            width / BOARD_RATIO,
+        ];
+    } else {
+        return [
+            height * BOARD_RATIO,
+            height,
+        ];
+    }
 }
 
 class GameBoardClass extends Scene {
@@ -45,15 +63,16 @@ class GameBoardClass extends Scene {
      */
     private render_state: RenderState;
 
-    private left_background: Sprite|undefined;
-    private right_background: Sprite|undefined;
-    private left_paddle: Sprite|undefined;
-    private right_paddle: Sprite|undefined;
-    private left_ball: Sprite|undefined;
-    private right_ball: Sprite|undefined;
+    private left_background: Sprite | undefined;
+    private right_background: Sprite | undefined;
+    private left_paddle: Sprite | undefined;
+    private right_paddle: Sprite | undefined;
+    private left_ball: Sprite | undefined;
+    private right_ball: Sprite | undefined;
 
     private tmp_canvas: Framebuffer;
-    
+    private warped_canvas: Framebuffer;
+
     /**
      * Creates a new `GameBoard` instance.
      */
@@ -76,12 +95,18 @@ class GameBoardClass extends Scene {
         this.last_timestamp_ms = 0;
         this.canvas = canvas;
         this.renderer = renderer;
-        this.render_state = { debug: false };
-        this.tmp_canvas = this.renderer.create_framebuffer(canvas.width, canvas.height);
+        this.render_state = { debug: false, wtf: false };
+        const [w, h] = get_framebuffer_dims(canvas.width, canvas.height);
+        this.tmp_canvas = this.renderer.create_framebuffer(w, h);
+        this.warped_canvas = this.renderer.create_framebuffer(w, h);
 
         window.addEventListener("keydown", e => {
-            if (e.key === "F10") {
+            if (e.key === "D") {
                 this.render_state.debug = !this.render_state.debug;
+                console.info("toggled debug infos: " + this.render_state.debug);
+            } else if (e.key === "G") {
+                this.render_state.wtf = !this.render_state.wtf;
+                console.info("toggled WTF shader: " + this.render_state.wtf);
             }
         });
     }
@@ -132,6 +157,13 @@ class GameBoardClass extends Scene {
         if (this.canvas.width !== window.innerWidth || this.canvas.height !== window.innerHeight) {
             this.canvas.width = window.innerWidth;
             this.canvas.height = window.innerHeight;
+
+            // Re-create the framebuffer with the correct size.
+            const [width, height] = get_framebuffer_dims(this.canvas.width, this.canvas.height);
+            this.tmp_canvas = this.renderer.create_framebuffer(width, height);
+            this.warped_canvas = this.renderer.create_framebuffer(width, height);
+
+            // Update the renderer's target size.
             this.renderer.notify_size_changed(this.canvas.width, this.canvas.height);
         }
 
@@ -147,19 +179,14 @@ class GameBoardClass extends Scene {
         // ===============
         const HEART_SIZE: number = 0.2;
         const HEART_GAP: number = 0.05;
-        const BOARD_RATIO: number = Constants.board_width / Constants.board_height;
 
         const r = this.renderer;
         const s = this.ongoing_game.game_state;
 
-        const aspect_ratio = this.canvas.width / this.canvas.height;
-        if (aspect_ratio < BOARD_RATIO)
-            r.set_view_matrix(2 / Constants.board_width, 0, 0, 2 * aspect_ratio / Constants.board_width);
-        else
-            r.set_view_matrix(2 * (1.0 / aspect_ratio) / Constants.board_height, 0, 0, 2 / Constants.board_height);
-
         r.bind_framebuffer(this.tmp_canvas);
         r.clear(0, 0, 0);
+
+        r.set_view_matrix(2.0 / Constants.board_width, 0, 0, 2.0 / Constants.board_height)
 
         // Display the background.
         if (this.left_background)
@@ -186,7 +213,7 @@ class GameBoardClass extends Scene {
         for (let i = 0; i < Constants.max_score - s.right_paddle.score; ++i) {
             r.draw_hitbox(-Constants.board_width / 2 + HEART_GAP + i * (HEART_SIZE + HEART_GAP), Constants.board_height / 2 - HEART_GAP - HEART_SIZE, HEART_SIZE, HEART_SIZE);
         }
-        
+
         // When debug information are required, hitboxes are drawn.
         if (this.render_state.debug) {
             r.draw_hitbox(-Constants.board_width / 2, -Constants.board_height / 2, Constants.board_width, Constants.board_height);
@@ -209,8 +236,20 @@ class GameBoardClass extends Scene {
             }
         }
 
+        if (this.render_state.wtf) {
+            r.bind_framebuffer(this.warped_canvas);
+            r.wtf(this.tmp_canvas);
+            r.bind_framebuffer(this.tmp_canvas);
+            r.draw_image(this.warped_canvas);
+        }
+
+        r.bind_framebuffer(this.warped_canvas);
+        r.warp(this.tmp_canvas, this.warped_canvas.width, this.warped_canvas.height);
+
         r.bind_framebuffer(null);
-        r.warp(this.tmp_canvas, this.canvas.width, this.canvas.height);
+        r.set_view_matrix(2 / this.canvas.width, 0, 0, -2 / this.canvas.height);
+        r.clear(0, 0, 0);
+        r.draw_sprite(this.warped_canvas, -this.warped_canvas.width / 2, -this.warped_canvas.height / 2, this.warped_canvas.width, this.warped_canvas.height);
     }
 
     /** Notifies the scene that it is about to leave the focus. */

@@ -1,4 +1,4 @@
-import { Client, PrivateUser, User, UserId } from ".";
+import { Client, PrivateUser, User, UserId, UserUpdate } from ".";
 import { Soon } from "../strawberry";
 
 /**
@@ -79,6 +79,25 @@ export const Users = (function() {
             const me = await Client.me();
             this.me_.resolve(me);
             return me;
+        }
+
+        public async on_user_update(user_update: UserUpdate) {
+            const usr = await this.users[user_update.id].get();
+
+            if (user_update.game_won)
+                usr.games_won = user_update.game_won;
+            if (user_update.game_lost)
+                usr.games_played = usr.games_won + user_update.game_lost;
+            if (user_update.is_avatar_changed)
+                this.invalidate_avatar(usr.id);
+            if (user_update.name)
+                usr.name = user_update.name;
+            if (user_update.status)
+            {
+                if (user_update.status === "spectating")
+                    usr.spectating = user_update.spectating;
+                usr.status = user_update.status;
+            }
         }
     }
 
