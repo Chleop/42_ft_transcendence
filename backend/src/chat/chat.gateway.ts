@@ -11,6 +11,9 @@ import { Logger } from "@nestjs/common";
 import { t_user_id } from "./alias";
 import { UserService } from "src/user/user.service";
 import { t_user_status } from "src/user/alias/user_update_event.alias";
+import { ChannelService } from "src/channel/channel.service";
+import { PrismaService } from "src/prisma/prisma.service";
+import { ConfigService } from "@nestjs/config";
 
 @WebSocketGateway({
 	namespace: "chat",
@@ -27,6 +30,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
 	constructor() {
 		this._server = new Server();
+		const tmp: PrismaService = new PrismaService(new ConfigService());
+		this._user_service = new UserService(new ChannelService(tmp), tmp);
 		this._logger = new Logger(ChatGateway.name);
 	}
 
