@@ -211,7 +211,11 @@ export class UserService {
 		});
 		//#endregion
 
-		if (!message || (message.receiverId !== user0_id && message.senderId !== user0_id)) {
+		if (
+			!message ||
+			(message.receiverId !== user0_id && message.senderId !== user0_id) ||
+			(message.receiverId !== user1_id && message.senderId !== user1_id)
+		) {
 			throw new UserMessageNotFoundError(message_id);
 		}
 
@@ -291,7 +295,11 @@ export class UserService {
 		});
 		//#endregion
 
-		if (!message || (message.receiverId !== user0_id && message.senderId !== user0_id)) {
+		if (
+			!message ||
+			(message.receiverId !== user0_id && message.senderId !== user0_id) ||
+			(message.receiverId !== user1_id && message.senderId !== user1_id)
+		) {
 			throw new UserMessageNotFoundError(message_id);
 		}
 
