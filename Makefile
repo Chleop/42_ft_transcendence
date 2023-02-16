@@ -1,4 +1,4 @@
-DOCKERCOMPOSE 	= docker compose
+DOCKERCOMPOSE 	= docker-compose
 COMPOSEFILE 	= -f docker-compose.dev.yml
 
 BUILD 			= build
@@ -11,7 +11,7 @@ REMOVEALL 		= --rmi all --volumes
 
 all:
 	rm -f frontend/tsconfig.tsbuildinfo
-	cd frontend && npm update && npx tsc && npx webpack
+	cd frontend && npm install && npm update && npx tsc && npx webpack
 	${DOCKERCOMPOSE} ${COMPOSEFILE} ${BUILD}
 
 .PHONY: start
