@@ -69,19 +69,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		socket?.emit("direct_message", message);
 	}
 
-	/**
-	 * @brief	Return the status of a user.
-	 * 			It is assumed that the provided user id is valid.
-	 * 			(user exists and is ACTIVE)
-	 */
-	public get_user_status(user_id: string): e_user_status {
-		const user: t_user_status | undefined = this._chat_service.get_user(user_id);
-		if (user === undefined) {
-			return e_user_status.OFFLINE;
-		}
-		return user.status;
-	}
-
 	/**e
 	 * @brief	Accept a new connection and store the client socket,
 	 * 			mapping it with its corresponding user id.
