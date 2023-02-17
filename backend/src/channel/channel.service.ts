@@ -20,7 +20,6 @@ import {
 	ChannelPasswordUnexpectedError,
 } from "src/channel/error";
 import { g_channel_message_length_limit } from "src/channel/limit";
-// import { ChatGateway } from "src/chat/chat.gateway";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, Logger } from "@nestjs/common";
 import { Channel, ChannelMessage, ChanType } from "@prisma/client";

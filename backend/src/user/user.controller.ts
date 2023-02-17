@@ -40,7 +40,7 @@ import {
 	ValidationPipe,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { UserMessageSendDto } from "./dto/UserMessageSend.dto";
+import { UserMessagesGetDto, UserMessageSendDto } from "src/user/dto";
 import { t_user_auth } from "src/auth/alias";
 import { DirectMessage } from "@prisma/client";
 import { ChatGateway } from "src/chat/chat.gateway";

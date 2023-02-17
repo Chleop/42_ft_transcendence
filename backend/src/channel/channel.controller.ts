@@ -5,7 +5,7 @@ import {
 	ChannelDemoteOperatorDto,
 	ChannelJoinDto,
 	ChannelKickMemberDto,
-	ChannelMessageGetDto,
+	ChannelMessagesGetDto,
 	ChannelMessageSendDto,
 	ChannelMuteMemberDto,
 	ChannelPromoteMemberDto,

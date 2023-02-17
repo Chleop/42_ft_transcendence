@@ -1,5 +1,4 @@
 import {
-	t_channels_fields,
 	t_games_played_fields,
 	t_get_me_fields,
 	t_get_me_fields_tmp,
@@ -31,6 +30,7 @@ import { DirectMessage, StateType } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
 import { t_user_status, t_user_update_event } from "./alias/user_update_event.alias";
+import { IChannel } from "src/channel/interface";
 
 @Injectable()
 export class UserService {
@@ -745,11 +745,47 @@ export class UserService {
 						id: true,
 						name: true,
 						chanType: true,
+						hash: true,
+						ownerId: true,
+						members: {
+							select: {
+								id: true,
+							},
+						},
+						operators: {
+							select: {
+								id: true,
+							},
+						},
+						banned: {
+							select: {
+								id: true,
+							},
+						},
 					},
 				},
 				channelsOwned: {
 					select: {
 						id: true,
+						name: true,
+						chanType: true,
+						hash: true,
+						ownerId: true,
+						members: {
+							select: {
+								id: true,
+							},
+						},
+						operators: {
+							select: {
+								id: true,
+							},
+						},
+						banned: {
+							select: {
+								id: true,
+							},
+						},
 					},
 				},
 				gamesPlayed: {
@@ -804,11 +840,16 @@ export class UserService {
 			skin_id: user_tmp.skinId,
 			elo: user_tmp.elo,
 			two_fact_auth: user_tmp.twoFactAuth,
-			channels: user_tmp.channels.map((channel): t_channels_fields => {
+			channels: user_tmp.channels.map((channel): IChannel => {
 				return {
 					id: channel.id,
 					name: channel.name,
 					type: channel.chanType,
+					owner_id: channel.ownerId,
+					members_count: channel.members.length,
+					operators_ids: channel.operators.map((operator): string => {
+						return operator.id;
+					}),
 				};
 			}),
 			channels_owned_ids: user_tmp.channelsOwned.map((channel): string => {
@@ -958,6 +999,23 @@ export class UserService {
 						id: true,
 						name: true,
 						chanType: true,
+						hash: true,
+						ownerId: true,
+						members: {
+							select: {
+								id: true,
+							},
+						},
+						operators: {
+							select: {
+								id: true,
+							},
+						},
+						banned: {
+							select: {
+								id: true,
+							},
+						},
 					},
 				},
 				gamesPlayed: {
@@ -992,11 +1050,16 @@ export class UserService {
 			status: t_user_status.OFFLINE, //TODO this._gateway.get_user_status(requested_user_tmp.id),
 			skin_id: requested_user_tmp.skinId,
 			elo: requested_user_tmp.elo,
-			channels: requested_user_tmp.channels.map((channel): t_channels_fields => {
+			channels: requested_user_tmp.channels.map((channel): IChannel => {
 				return {
 					id: channel.id,
 					name: channel.name,
 					type: channel.chanType,
+					owner_id: channel.ownerId,
+					members_count: channel.members.length,
+					operators_ids: channel.operators.map((operator): string => {
+						return operator.id;
+					}),
 				};
 			}),
 			games_played: requested_user_tmp.gamesPlayed.length,
@@ -1014,6 +1077,7 @@ export class UserService {
 		this._logger.verbose(
 			`User ${requested_user_id} was successfully retrieved from the database.`,
 		);
+
 		return requested_user;
 	}
 	//#endregion
