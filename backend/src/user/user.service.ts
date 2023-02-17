@@ -13,6 +13,7 @@ import {
 	UserAlreadyBlockedError,
 	UserBlockedError,
 	UserFieldUnaivalableError,
+	UserMessageNotFoundError,
 	UserNotBlockedError,
 	UserNotFoundError,
 	UserNotFriendError,
@@ -170,6 +171,218 @@ export class UserService {
 				game_played.players.some((player): boolean => player.id === user1_id),
 			)
 		);
+	}
+	//#endregion
+
+	/**
+	 * @brief	Get direct messages between two users,
+	 * 			which have been sent after a specific one from the database.
+	 *
+	 * @param	user0_id The id of the first user concerned by the wanted direct messages.
+	 * @param	user1_id The id of the second user concerned by the wanted direct messages.
+	 * @param	message_id The id of the message to get the messages after.
+	 * @param	limit The maximum number of messages to get.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserMessageNotFoundError
+	 *
+	 * @return	A promise containing the wanted messages.
+	 */
+	private async _get_ones_messages_after_a_specific_message(
+		user0_id: string,
+		user1_id: string,
+		message_id: string,
+		limit: number,
+	): Promise<DirectMessage[]> {
+		//#region
+		type t_fields = {
+			//#region
+			dateTime: Date;
+			receiverId: string;
+			senderId: string;
+		};
+		//#endregion
+
+		const message: t_fields | null = await this._prisma.directMessage.findUnique({
+			//#region
+			select: {
+				dateTime: true,
+				receiverId: true,
+				senderId: true,
+			},
+			where: {
+				id: message_id,
+			},
+		});
+		//#endregion
+
+		if (
+			!message ||
+			(message.receiverId !== user0_id && message.senderId !== user0_id) ||
+			(message.receiverId !== user1_id && message.senderId !== user1_id)
+		) {
+			throw new UserMessageNotFoundError(message_id);
+		}
+
+		const messages: DirectMessage[] = await this._prisma.directMessage.findMany({
+			//#region
+			where: {
+				AND: [
+					{
+						OR: [
+							{
+								receiverId: user0_id,
+								senderId: user1_id,
+							},
+							{
+								receiverId: user1_id,
+								senderId: user0_id,
+							},
+						],
+					},
+					{
+						dateTime: {
+							gt: message.dateTime,
+						},
+					},
+				],
+			},
+			orderBy: {
+				dateTime: "asc",
+			},
+			take: limit,
+		});
+		//#endregion
+
+		return messages;
+	}
+	//#endregion
+
+	/**
+	 * @brief	Get direct messages between two users,
+	 * 			which have been sent before a specific one from the database.
+	 *
+	 * @param	user0_id The id of the first user concerned by the wanted direct messages.
+	 * @param	user1_id The id of the second user concerned by the wanted direct messages.
+	 * @param	message_id The id of the message to get the messages before.
+	 * @param	limit The maximum number of messages to get.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- UserMessageNotFoundError
+	 *
+	 * @return	A promise containing the wanted messages.
+	 */
+	private async _get_ones_messages_before_a_specific_message(
+		user0_id: string,
+		user1_id: string,
+		message_id: string,
+		limit: number,
+	): Promise<DirectMessage[]> {
+		//#region
+		type t_fields = {
+			//#region
+			dateTime: Date;
+			receiverId: string;
+			senderId: string;
+		};
+		//#endregion
+
+		const message: t_fields | null = await this._prisma.directMessage.findUnique({
+			//#region
+			select: {
+				dateTime: true,
+				receiverId: true,
+				senderId: true,
+			},
+			where: {
+				id: message_id,
+			},
+		});
+		//#endregion
+
+		if (
+			!message ||
+			(message.receiverId !== user0_id && message.senderId !== user0_id) ||
+			(message.receiverId !== user1_id && message.senderId !== user1_id)
+		) {
+			throw new UserMessageNotFoundError(message_id);
+		}
+
+		const messages: DirectMessage[] = await this._prisma.directMessage.findMany({
+			//#region
+			where: {
+				AND: [
+					{
+						OR: [
+							{
+								receiverId: user0_id,
+								senderId: user1_id,
+							},
+							{
+								receiverId: user1_id,
+								senderId: user0_id,
+							},
+						],
+					},
+					{
+						dateTime: {
+							lt: message.dateTime,
+						},
+					},
+				],
+			},
+			orderBy: {
+				dateTime: "desc",
+			},
+			take: limit,
+		});
+		//#endregion
+
+		// Get the most ancient messages first
+		messages.reverse();
+		return messages;
+	}
+	//#endregion
+
+	/**
+	 * @brief	Get the most recent direct messages between two users.
+	 *
+	 * @param	user0_id The id of the first user concerned by the wanted direct messages.
+	 * @param	user1_id The id of the second user concerned by the wanted direct messages.
+	 * @param	limit The maximum number of messages to get.
+	 *
+	 * @return	A promise containing the wanted messages.
+	 */
+	private async _get_ones_most_recent_messages(
+		user0_id: string,
+		user1_id: string,
+		limit: number,
+	): Promise<DirectMessage[]> {
+		//#region
+		const messages: DirectMessage[] = await this._prisma.directMessage.findMany({
+			//#region
+			where: {
+				OR: [
+					{
+						receiverId: user0_id,
+						senderId: user1_id,
+					},
+					{
+						receiverId: user1_id,
+						senderId: user0_id,
+					},
+				],
+			},
+			orderBy: {
+				dateTime: "desc",
+			},
+			take: limit,
+		});
+		//#endregion
+
+		// Get the most ancient messages first
+		messages.reverse();
+		return messages;
 	}
 	//#endregion
 
@@ -1037,6 +1250,68 @@ export class UserService {
 
 		if (!requested_user) throw new UserNotFoundError(requested_user_id);
 		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.skin.ball)));
+	}
+	//#endregion
+
+	/**
+	 * @brief	Get direct messages between two users from the database.
+	 * 			It is assumed that the provided user0 id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	user0_id The id of the user who is getting the messages.
+	 * @param	user1_id The id of the user with whom the messages are exchanged.
+	 * @param	limit The maximum number of messages to get.
+	 * @param	before The id of the message to get the messages before.
+	 * @param	after The id of the message to get the messages after.
+	 *
+	 * @error	The following errors may be thrown :
+	 *			- UserSelfMessageError
+	 * 			- UserNotFoundError
+	 * 			- UserMessageNotFoundError
+	 *
+	 * @return	A promise containing the wanted messages.
+	 */
+	public async get_ones_messages(
+		user0_id: string,
+		user1_id: string,
+		limit: number,
+		before?: string,
+		after?: string,
+	): Promise<DirectMessage[]> {
+		//#region
+		if (user0_id === user1_id) {
+			throw new UserSelfMessageError();
+		}
+
+		if (
+			!(await this._prisma.user.findUnique({
+				//#region
+				where: {
+					id: user1_id,
+				},
+			}))
+			//#endregion
+		) {
+			throw new UserNotFoundError(user1_id);
+		}
+
+		if (before) {
+			return await this._get_ones_messages_before_a_specific_message(
+				user0_id,
+				user1_id,
+				before,
+				limit,
+			);
+		} else if (after) {
+			return await this._get_ones_messages_after_a_specific_message(
+				user0_id,
+				user1_id,
+				after,
+				limit,
+			);
+		} else {
+			return await this._get_ones_most_recent_messages(user0_id, user1_id, limit);
+		}
 	}
 	//#endregion
 

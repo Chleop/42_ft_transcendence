@@ -5,6 +5,7 @@ import {
 	UserAlreadyBlockedError,
 	UserBlockedError,
 	UserFieldUnaivalableError,
+	UserMessageNotFoundError,
 	UserNotBlockedError,
 	UserNotFoundError,
 	UserNotFriendError,
@@ -29,6 +30,7 @@ import {
 	Patch,
 	Post,
 	Put,
+	Query,
 	Req,
 	StreamableFile,
 	UploadedFile,
@@ -180,6 +182,43 @@ export class UserController {
 		}
 
 		return sfile;
+	}
+	//#endregion
+
+	@Get(":id/messages")
+	async get_ones_messages(
+		@Req()
+		request: {
+			user: t_user_auth;
+		},
+		@Param("id") id: string,
+		@Query() dto: UserMessagesGetDto,
+	): Promise<DirectMessage[]> {
+		//#region
+		if (dto.before && dto.after) {
+			throw new BadRequestException("Unexpected both `before` and `after` received");
+		}
+
+		try {
+			return await this._user_service.get_ones_messages(
+				request.user.id,
+				id,
+				dto.limit,
+				dto.before,
+				dto.after,
+			);
+		} catch (error) {
+			if (
+				error instanceof UserSelfMessageError ||
+				error instanceof UserNotFoundError ||
+				error instanceof UserMessageNotFoundError
+			) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
 	}
 	//#endregion
 
