@@ -1,7 +1,7 @@
 import { Transform } from "class-transformer";
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from "class-validator";
+import { IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from "class-validator";
 
-export class ChannelMessageGetDto {
+export class ChannelMessagesGetDto {
 	@IsNotEmpty()
 	@IsOptional()
 	public before?: string;
@@ -11,6 +11,7 @@ export class ChannelMessageGetDto {
 	@IsString()
 	public after?: string;
 
+	@IsInt()
 	@IsNumber()
 	@IsOptional()
 	@Min(1)

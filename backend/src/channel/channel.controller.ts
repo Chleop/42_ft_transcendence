@@ -255,17 +255,15 @@ export class ChannelController {
 			user: t_user_auth;
 		},
 		@Param("id") id: string,
-		@Query() dto: ChannelMessageGetDto,
+		@Query() dto: ChannelMessagesGetDto,
 	): Promise<ChannelMessage[]> {
 		//#region
 		if (dto.after && dto.before) {
 			throw new BadRequestException("Unexpected both `before` and `after` received");
 		}
 
-		let messages: ChannelMessage[];
-
 		try {
-			messages = await this._channel_service.get_ones_messages(
+			return await this._channel_service.get_ones_messages(
 				request.user.id,
 				id,
 				dto.limit,
@@ -275,20 +273,15 @@ export class ChannelController {
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
+				error instanceof ChannelNotJoinedError ||
 				error instanceof ChannelMessageNotFoundError
 			) {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			if (error instanceof ChannelNotJoinedError) {
-				this._logger.error(error.message);
-				throw new ForbiddenException(error.message);
-			}
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-
-		return messages;
 	}
 	//#endregion
 

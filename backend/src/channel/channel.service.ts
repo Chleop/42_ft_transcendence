@@ -227,10 +227,16 @@ export class ChannelService {
 			},
 			take: limit,
 			where: {
-				dateTime: {
-					gt: message.dateTime,
-				},
-				channelId: id,
+				AND: [
+					{
+						channelId: id,
+					},
+					{
+						dateTime: {
+							gt: message.dateTime,
+						},
+					},
+				],
 			},
 		});
 		//#endregion
@@ -972,7 +978,9 @@ export class ChannelService {
 
 		if (!channel) {
 			throw new ChannelNotFoundError(channel_id);
-		} else if (channel.members.find((member) => member.id === user_id) === undefined) {
+		}
+
+		if (channel.members.every((member) => member.id !== user_id)) {
 			throw new ChannelNotJoinedError(channel_id);
 		}
 

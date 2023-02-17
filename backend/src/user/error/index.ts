@@ -3,6 +3,7 @@ export * from "src/user/error/UserAlreadyBlocked.error";
 export * from "src/user/error/UserAlreadyFriend.error";
 export * from "src/user/error/UserBlocked.error";
 export * from "src/user/error/UserFieldUnavailable.error";
+export * from "src/user/error/UserMessageNotFound.error";
 export * from "src/user/error/UserNotBlocked.error";
 export * from "src/user/error/UserNotFound.error";
 export * from "src/user/error/UserNotFriend.error";

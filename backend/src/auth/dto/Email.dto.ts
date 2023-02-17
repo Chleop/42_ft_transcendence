@@ -4,5 +4,5 @@ export class EmailDto {
 	@IsEmail()
 	@IsNotEmpty()
 	@IsString()
-	public email: string;
+	public email: string = "";
 }
