@@ -32,11 +32,6 @@ export class ChatService {
 		return ChatService._user_map.get(id);
 	}
 
-	// get all users from map
-	public get_all_users(): Map<string, t_user_status> {
-		return ChatService._user_map;
-	}
-
 	// update user
 	public update_user(id: string, status: e_user_status, spectated_user?: string): void {
 		const user: t_user_status | undefined = ChatService._user_map.get(id);
