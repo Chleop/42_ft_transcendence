@@ -1,4 +1,3 @@
-import { t_get_all_fields } from "src/channel/alias";
 import {
 	ChannelBanMemberDto,
 	ChannelCreateDto,
@@ -34,7 +33,7 @@ import {
 	Logger,
 	ConflictException,
 } from "@nestjs/common";
-import { Channel, ChannelMessage } from "@prisma/client";
+import { ChannelMessage } from "@prisma/client";
 import {
 	ChannelAlreadyJoinedError,
 	ChannelForbiddenToJoinError,
@@ -116,12 +115,10 @@ export class ChannelController {
 			user: t_user_auth;
 		},
 		@Body() dto: ChannelCreateDto,
-	): Promise<Channel> {
+	): Promise<IChannel> {
 		//#region
-		let channel: Channel;
-
 		try {
-			channel = await this._channel_service.create_one(
+			return await this._channel_service.create_one(
 				request.user.id,
 				dto.name,
 				dto.is_private,
@@ -139,8 +136,6 @@ export class ChannelController {
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-
-		return channel;
 	}
 	//#endregion
 
@@ -241,18 +236,14 @@ export class ChannelController {
 		request: {
 			user: t_user_auth;
 		},
-	): Promise<t_get_all_fields> {
+	): Promise<IChannel[]> {
 		//#region
-		let channels: t_get_all_fields;
-
 		try {
-			channels = await this._channel_service.get_all(request.user.id);
+			return await this._channel_service.get_all(request.user.id);
 		} catch (error) {
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-
-		return channels;
 	}
 	//#endregion
 
