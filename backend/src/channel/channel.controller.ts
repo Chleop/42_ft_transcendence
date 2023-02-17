@@ -1,4 +1,19 @@
-import { t_get_all_fields, t_join_one_fields } from "src/channel/alias";
+import { t_get_all_fields } from "src/channel/alias";
+import {
+	ChannelBanMemberDto,
+	ChannelCreateDto,
+	ChannelDelegateOwnershipDto,
+	ChannelDemoteOperatorDto,
+	ChannelJoinDto,
+	ChannelKickMemberDto,
+	ChannelMessageGetDto,
+	ChannelMessageSendDto,
+	ChannelMuteMemberDto,
+	ChannelPromoteMemberDto,
+	ChannelUnbanMemberDto,
+	ChannelUpdateDto,
+} from "src/channel/dto";
+import { IChannel } from "src/channel/interface";
 import { ChannelService } from "src/channel/channel.service";
 import {
 	BadRequestException,
@@ -19,20 +34,6 @@ import {
 	Logger,
 	ConflictException,
 } from "@nestjs/common";
-import {
-	ChannelBanMemberDto,
-	ChannelCreateDto,
-	ChannelDelegateOwnershipDto,
-	ChannelDemoteOperatorDto,
-	ChannelJoinDto,
-	ChannelKickMemberDto,
-	ChannelMessagesGetDto,
-	ChannelMessageSendDto,
-	ChannelMuteMemberDto,
-	ChannelPromoteMemberDto,
-	ChannelUnbanMemberDto,
-	ChannelUpdateDto,
-} from "src/channel/dto";
 import { Channel, ChannelMessage } from "@prisma/client";
 import {
 	ChannelAlreadyJoinedError,
@@ -341,11 +342,13 @@ export class ChannelController {
 		},
 		@Param("id") id: string,
 		@Body() dto: ChannelJoinDto,
-	): Promise<t_join_one_fields> {
+	): Promise<IChannel> {
 		//#region
+		let response: IChannel;
+
 		try {
+			response = await this._channel_service.join_one(request.user.id, id, dto.password);
 			this.gateway.make_user_socket_join_room(request.user.id, id);
-			return await this._channel_service.join_one(request.user.id, id, dto.password);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
@@ -364,6 +367,8 @@ export class ChannelController {
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
+
+		return response;
 	}
 	//#endregion
 

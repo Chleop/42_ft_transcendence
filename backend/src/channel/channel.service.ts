@@ -1,9 +1,4 @@
-import {
-	t_get_all_fields,
-	t_get_all_fields_tmp,
-	t_join_one_fields,
-	t_join_one_fields_tmp,
-} from "src/channel/alias";
+import { t_get_all_fields, t_get_all_fields_tmp } from "src/channel/alias";
 import {
 	ChannelAlreadyJoinedError,
 	ChannelForbiddenToJoinError,
@@ -32,6 +27,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Channel, ChannelMessage, ChanType } from "@prisma/client";
 import * as argon2 from "argon2";
 import { ChannelMemberNotBannedError } from "./error/ChannelMemberNotBanned.error";
+import { IChannel, IChannelTmp } from "./interface";
 
 @Injectable()
 export class ChannelService {
@@ -992,9 +988,9 @@ export class ChannelService {
 		joining_user_id: string,
 		channel_id: string,
 		password?: string,
-	): Promise<t_join_one_fields> {
+	): Promise<IChannel> {
 		//#region
-		const channel_tmp: t_join_one_fields_tmp | null = await this._prisma.channel.findUnique({
+		const channel_tmp: IChannelTmp | null = await this._prisma.channel.findUnique({
 			//#region
 			select: {
 				banned: {
@@ -1011,6 +1007,11 @@ export class ChannelService {
 					},
 				},
 				name: true,
+				operators: {
+					select: {
+						id: true,
+					},
+				},
 				ownerId: true,
 			},
 
@@ -1072,11 +1073,13 @@ export class ChannelService {
 		//#endregion
 
 		// this._gateway.make_user_socket_join_room(joining_user_id, channel_id);
-		const channel: t_join_one_fields = {
+		const channel: IChannel = {
 			id: channel_tmp.id,
 			name: channel_tmp.name,
 			type: channel_tmp.chanType,
 			owner_id: (await this._inherit_ones_ownership(channel_tmp, joining_user_id)).ownerId,
+			members_count: channel_tmp.members.length + 1,
+			operators_ids: channel_tmp.operators.map((operator): string => operator.id),
 		};
 
 		this._logger.log(`User ${joining_user_id} joined the channel ${channel_id}`);
