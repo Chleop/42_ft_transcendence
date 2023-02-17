@@ -3,10 +3,8 @@ import {
 	ChannelCreateDto,
 	ChannelDelegateOwnershipDto,
 	ChannelDemoteOperatorDto,
-	ChannelJoinDto,
 	ChannelKickMemberDto,
 	ChannelMessagesGetDto,
-	ChannelMessageSendDto,
 	ChannelMuteMemberDto,
 	ChannelPromoteMemberDto,
 	ChannelUnbanMemberDto,
@@ -35,42 +33,33 @@ import {
 } from "@nestjs/common";
 import { ChannelMessage } from "@prisma/client";
 import {
-	ChannelAlreadyJoinedError,
-	ChannelForbiddenToJoinError,
 	ChannelMemberAlreadyDemotedError,
 	ChannelMemberAlreadyMutedError,
 	ChannelMemberAlreadyPromotedError,
-	ChannelMemberMutedError,
 	ChannelMemberNotBannedError,
 	ChannelMemberNotFoundError,
 	ChannelMemberNotOperatorError,
 	ChannelMessageNotFoundError,
-	ChannelMessageTooLongError,
 	ChannelNameAlreadyTakenError,
 	ChannelNotFoundError,
 	ChannelNotJoinedError,
 	ChannelNotOwnedError,
-	ChannelPasswordIncorrectError,
 	ChannelPasswordMissingError,
 	ChannelPasswordNotAllowedError,
-	ChannelPasswordUnexpectedError,
 } from "src/channel/error";
 import { Jwt2FAGuard } from "src/auth/guards";
 import { t_user_auth } from "src/auth/alias";
-import { ChatGateway } from "src/chat/chat.gateway";
 
 @UseGuards(Jwt2FAGuard)
 @Controller("channel")
 export class ChannelController {
 	// REMIND: check if passing `_channel_service` in readonly keep it working well
-	private _channel_service: ChannelService;
+	private readonly _channel_service: ChannelService;
 	private readonly _logger: Logger;
-	private readonly gateway: ChatGateway;
 
-	constructor(channel_service: ChannelService, chat_gateway: ChatGateway) {
-		this._channel_service = channel_service;
-		this.gateway = chat_gateway;
+	constructor(channel_service: ChannelService) {
 		//#region
+		this._channel_service = channel_service;
 		this._logger = new Logger(ChannelController.name);
 	}
 	//#endregion
@@ -324,45 +313,6 @@ export class ChannelController {
 	}
 	//#endregion
 
-	@Patch(":id/join")
-	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async join_one(
-		@Req()
-		request: {
-			user: t_user_auth;
-		},
-		@Param("id") id: string,
-		@Body() dto: ChannelJoinDto,
-	): Promise<IChannel> {
-		//#region
-		let response: IChannel;
-
-		try {
-			response = await this._channel_service.join_one(request.user.id, id, dto.password);
-			this.gateway.make_user_socket_join_room(request.user.id, id);
-		} catch (error) {
-			if (
-				error instanceof ChannelNotFoundError ||
-				error instanceof ChannelAlreadyJoinedError ||
-				error instanceof ChannelPasswordUnexpectedError ||
-				error instanceof ChannelPasswordMissingError ||
-				error instanceof ChannelPasswordIncorrectError
-			) {
-				this._logger.error(error.message);
-				throw new BadRequestException(error.message);
-			}
-			if (error instanceof ChannelForbiddenToJoinError) {
-				this._logger.error(error.message);
-				throw new ForbiddenException(error.message);
-			}
-			this._logger.error("Unknown error type, this should not happen");
-			throw new InternalServerErrorException();
-		}
-
-		return response;
-	}
-	//#endregion
-
 	@Patch(":id/kick")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async kick_ones_member(
@@ -396,28 +346,6 @@ export class ChannelController {
 	}
 	//#endregion
 
-	@Patch(":id/leave")
-	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async leave_one(
-		@Req()
-		request: {
-			user: t_user_auth;
-		},
-		@Param("id") id: string,
-	): Promise<void> {
-		//#region
-		try {
-			await this._channel_service.leave_one(request.user.id, id);
-			this.gateway.make_user_socket_leave_room(request.user.id, id);
-		} catch (error) {
-			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
-				this._logger.error(error.message);
-				throw new BadRequestException(error.message);
-			}
-		}
-	}
-	//#endregion
-
 	@Patch(":id/promote")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async promote_ones_member(
@@ -446,43 +374,6 @@ export class ChannelController {
 				throw new ForbiddenException(error.message);
 			}
 
-			this._logger.error("Unknown error type, this should not happen");
-			throw new InternalServerErrorException();
-		}
-	}
-	//#endregion
-
-	@Post(":id/message")
-	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async send_message_to_one(
-		@Req()
-		request: {
-			user: t_user_auth;
-		},
-		@Param("id") id: string,
-		@Body() dto: ChannelMessageSendDto,
-	): Promise<ChannelMessage> {
-		//#region
-		try {
-			const message: ChannelMessage = await this._channel_service.send_message_to_one(
-				request.user.id,
-				id,
-				dto.content,
-			);
-			this.gateway.broadcast_to_room(message);
-			return message;
-		} catch (error) {
-			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
-				this._logger.error(error.message);
-				throw new BadRequestException(error.message);
-			}
-			if (
-				error instanceof ChannelMemberMutedError ||
-				error instanceof ChannelMessageTooLongError
-			) {
-				this._logger.error(error.message);
-				throw new ForbiddenException(error.message);
-			}
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}

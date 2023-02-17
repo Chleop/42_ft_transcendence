@@ -8,7 +8,7 @@ import {
 	WebSocketServer,
 } from "@nestjs/websockets";
 import { Logger } from "@nestjs/common";
-import { t_user_id, t_user_status } from "./alias";
+import { t_user_id } from "./alias";
 import { e_user_status, t_user_update_event } from "src/user/alias/user_update_event.alias";
 import { ChatService } from "./chat.service";
 

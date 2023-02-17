@@ -1,6 +1,6 @@
-import { Body, JsonBody, FileBody } from "./body";
-import { Channel, ChannelId, Message, MessageId } from "./channel";
-import { PrivateUser, User, UserId } from "./user";
+import {Body, JsonBody, FileBody} from "./body";
+import {Channel, ChannelId, Message, MessageId} from "./channel";
+import {PrivateUser, User, UserId} from "./user";
 
 /**
  * The server returned a status code which wasn't expected.
@@ -188,11 +188,7 @@ export class RawHTTPClient {
 	/**
 	 * Requests the creation of a new channel.
 	 */
-	public async create_channel(
-		name: string,
-		priv: boolean,
-		password?: string,
-	): Promise<Channel> {
+	public async create_channel(name: string, priv: boolean, password?: string): Promise<Channel> {
 		return (
 			await this.make_request({
 				accept: "application/json",
@@ -215,7 +211,7 @@ export class RawHTTPClient {
 		const body = await this.make_request({
 			accept: "application/json",
 			method: "PATCH",
-			url: `/api/channel/${id}/join`,
+			url: `/api/chat/channel/${id}/join`,
 			body: new JsonBody({
 				password,
 			}),
@@ -230,7 +226,7 @@ export class RawHTTPClient {
 	public async leave_channel(id: ChannelId) {
 		this.make_request({
 			method: "PATCH",
-			url: `/api/channel/${id}/leave`,
+			url: `/api/chat/channel/${id}/leave`,
 		});
 	}
 
@@ -294,23 +290,27 @@ export class RawHTTPClient {
 	 * Sends a message to the specified channel.
 	 */
 	public async send_message(channel: ChannelId, content: string): Promise<Message> {
-		return (await this.make_request({
-			method: "POST",
-			success_status: 201,
-			accept: "application/json",
-			url: `/api/channel/${channel}/message`,
-			body: new JsonBody({ content }),
-		})).json();
+		return (
+			await this.make_request({
+				method: "POST",
+				success_status: 201,
+				accept: "application/json",
+				url: `/api/chat/channel/${channel}/message`,
+				body: new JsonBody({content}),
+			})
+		).json();
 	}
 
 	/** Gets the list of all available channels. */
 	public async get_all_channels(): Promise<Channel[]> {
-		return (await this.make_request({
-			method: "GET",
-			success_status: 200,
-			accept: "application/json",
-			url: `/api/channel/all`,
-		})).json();
+		return (
+			await this.make_request({
+				method: "GET",
+				success_status: 200,
+				accept: "application/json",
+				url: `/api/channel/all`,
+			})
+		).json();
 	}
 
 	/** Requests the activation of 2FA. */
@@ -319,7 +319,7 @@ export class RawHTTPClient {
 			method: "POST",
 			url: "/api/auth/42/2FAActivate",
 			success_status: 201,
-			body: new JsonBody({ email }),
+			body: new JsonBody({email}),
 		});
 	}
 
@@ -338,7 +338,7 @@ export class RawHTTPClient {
 			method: "POST",
 			success_status: 201,
 			url: "/api/auth/42/2FAValidate",
-			body: new JsonBody({ code }),
+			body: new JsonBody({code}),
 		});
 	}
 
@@ -346,7 +346,7 @@ export class RawHTTPClient {
 		await this.make_request({
 			method: "PATCH",
 			url: "/api/friend_request/send",
-			body: new JsonBody({ receiving_user_id: user }),
+			body: new JsonBody({receiving_user_id: user}),
 		});
 	}
 
@@ -354,16 +354,16 @@ export class RawHTTPClient {
 		await this.make_request({
 			method: "PATCH",
 			url: "/api/friend_request/reject",
-			body: new JsonBody({ rejected_user_id: user }),
-		})
+			body: new JsonBody({rejected_user_id: user}),
+		});
 	}
 
 	public async accept_friend(user: UserId): Promise<void> {
 		await this.make_request({
 			method: "PATCH",
 			url: "/api/friend_request/accept",
-			body: new JsonBody({ accepted_user_id: user }),
-		})
+			body: new JsonBody({accepted_user_id: user}),
+		});
 	}
 
 	public async unfriend(user: UserId): Promise<void> {
@@ -412,11 +412,11 @@ export class RawHTTPClient {
 	}
 
 	public async promote(user: UserId, channel: ChannelId): Promise<void> {
-		throw "not yet implemented."
+		throw "not yet implemented.";
 	}
 
 	public async demote(user: UserId, channel: ChannelId): Promise<void> {
-		throw "not yet implemented."
+		throw "not yet implemented.";
 	}
 
 	public async mute(user: UserId, channel: ChannelId, duration: number): Promise<void> {
@@ -426,9 +426,9 @@ export class RawHTTPClient {
 	public async send_dm(user: UserId, content: string): Promise<void> {
 		await this.make_request({
 			method: "POST",
-			url: `/api/user/${user}/message`,
+			url: `/api/chat/user/${user}/message`,
 			success_status: 201,
-			body: new JsonBody({ content }),
+			body: new JsonBody({content}),
 		});
 	}
 }

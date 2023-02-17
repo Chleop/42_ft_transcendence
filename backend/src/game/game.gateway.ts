@@ -91,15 +91,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Also removes timer if it hasn't fired yet.
 	 */
 	public async handleDisconnect(client: Socket): Promise<void> {
-		if (client.data.user.status === e_user_status.INGAME) {
-			client.data.user.status = e_user_status.ONLINE;
-			this.chat_gateway.broadcast_to_online_related_users({
-				id: client.data.user.id,
-				status: e_user_status.ONLINE,
-				game_won: client.data.user.game_won,
-				game_lost: client.data.user.game_played - client.data.user.game_won,
-			});
-		}
 		const room: GameRoom | null = this.game_service.unQueue(client);
 		if (room !== null) {
 			const index: number = this.timeouts.findIndex((obj) => {
@@ -111,6 +102,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			}
 			await this.endGameEarly(client, room);
 			this.game_service.destroyRoom(room);
+		}
+		if (client.data.user.status === e_user_status.INGAME) {
+			client.data.user.status = e_user_status.ONLINE;
+			this.chat_gateway.broadcast_to_online_related_users({
+				id: client.data.user.id,
+				status: e_user_status.ONLINE,
+				game_won: client.data.user.games_won,
+				game_lost: client.data.user.games_played - client.data.user.games_won,
+			});
 		}
 		this.logger.log(`[${client.data.user.login} disconnected]`);
 	}
@@ -208,12 +208,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				const last_score: ScoreUpdate = room.getScoreUpdate();
 
 				if (update.winner === room.match.player1.data.user.id) {
-					++room.match.player1.data.user.game_won;
+					++room.match.player1.data.user.games_won;
 				} else {
-					++room.match.player2.data.user.game_won;
+					++room.match.player2.data.user.games_won;
 				}
-				++room.match.player1.data.user.game_played;
-				++room.match.player2.data.user.game_played;
+				++room.match.player1.data.user.games_played;
+				++room.match.player2.data.user.games_played;
 				room.match.player1.emit("updateScore", last_score);
 				room.match.player2.emit("updateScore", last_score.invert());
 				const match: Match = await me.game_service.registerGameHistory(room, update);
@@ -244,6 +244,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
 			try {
 				await this.game_service.registerGameHistory(room, results);
+				if (results.winner === room.match.player1.data.user.id) {
+					++room.match.player1.data.user.games_won;
+				} else {
+					++room.match.player2.data.user.games_won;
+				}
+				++room.match.player1.data.user.games_played;
+				++room.match.player2.data.user.games_played;
 			} catch (e) {
 				if (e instanceof BadRequestException || e instanceof ConflictException) {
 					this.logger.error(e.message);

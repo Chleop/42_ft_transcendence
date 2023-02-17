@@ -1,14 +1,8 @@
-import {
-	e_user_status,
-	t_get_me_fields,
-	t_get_one_fields,
-	t_receiving_user_fields,
-} from "src/user/alias";
+import { e_user_status, t_get_me_fields, t_get_one_fields } from "src/user/alias";
 import { UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
-	UserBlockedError,
 	UserFieldUnaivalableError,
 	UserMessageNotFoundError,
 	UserNotBlockedError,
@@ -33,7 +27,6 @@ import {
 	Logger,
 	Param,
 	Patch,
-	Post,
 	Put,
 	Query,
 	Req,
@@ -45,7 +38,7 @@ import {
 	ValidationPipe,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { UserMessagesGetDto, UserMessageSendDto } from "src/user/dto";
+import { UserMessagesGetDto } from "src/user/dto";
 import { t_user_auth } from "src/auth/alias";
 import { DirectMessage } from "@prisma/client";
 import { ChatGateway } from "src/chat/chat.gateway";
@@ -58,13 +51,13 @@ export class UserController {
 	// REMIND: Check if passing `_user_service` in readonly keep it working well
 	private _user_service: UserService;
 	private readonly _chat_service: ChatService;
-	private readonly chat_gateway: ChatGateway;
+	private readonly _chat_gateway: ChatGateway;
 	private readonly _logger: Logger;
 
 	constructor(user_service: UserService, chat_gateway: ChatGateway, chat_service: ChatService) {
 		//#region
 		this._user_service = user_service;
-		this.chat_gateway = chat_gateway;
+		this._chat_gateway = chat_gateway;
 		this._chat_service = chat_service;
 		this._logger = new Logger(UserController.name);
 	}
@@ -257,50 +250,6 @@ export class UserController {
 	}
 	//#endregion
 
-	@Post(":id/message")
-	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async send_message_to_one(
-		@Req()
-		request: {
-			user: t_user_auth;
-		},
-		@Param("id") id: string,
-		@Body() dto: UserMessageSendDto,
-	): Promise<DirectMessage> {
-		//#region
-		let object: {
-			receiver: t_receiving_user_fields;
-			message: DirectMessage;
-		};
-
-		try {
-			object = await this._user_service.send_message_to_one(request.user.id, id, dto.content);
-
-			if (!object.receiver.blocked.some((blocked) => blocked.id === request.user.id)) {
-				this.chat_gateway.forward_to_user_socket(object.message);
-			}
-		} catch (error) {
-			if (
-				error instanceof UserNotFoundError ||
-				error instanceof UserSelfMessageError ||
-				error instanceof UserBlockedError
-			) {
-				this._logger.error(error.message);
-				throw new BadRequestException(error.message);
-			}
-			if (error instanceof UserNotLinkedError) {
-				this._logger.error(error.message);
-				throw new ForbiddenException(error.message);
-			}
-			this._logger.error("Unknow error type, this should not happen");
-			this._logger.error(error);
-			throw new InternalServerErrorException();
-		}
-
-		return object.message;
-	}
-	//#endregion
-
 	@Patch(":id/unblock")
 	async unblock_one(
 		@Req()
@@ -371,7 +320,7 @@ export class UserController {
 				dto.two_fact_auth,
 				dto.skin_id,
 			);
-			await this.chat_gateway.broadcast_to_online_related_users({
+			await this._chat_gateway.broadcast_to_online_related_users({
 				id: request.user.id,
 				name: dto.name,
 			});
@@ -406,7 +355,7 @@ export class UserController {
 		}
 		try {
 			await this._user_service.update_ones_avatar(request.user.id, file);
-			await this.chat_gateway.broadcast_to_online_related_users({
+			await this._chat_gateway.broadcast_to_online_related_users({
 				id: request.user.id,
 				is_avatar_changed: true,
 			});
