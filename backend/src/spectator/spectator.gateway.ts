@@ -23,6 +23,7 @@ import { e_user_status } from "src/user/alias";
 
 @WebSocketGateway({
 	namespace: "spectate",
+	path: "/api/spectate_socket/socket.io",
 })
 export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
 	@WebSocketServer()

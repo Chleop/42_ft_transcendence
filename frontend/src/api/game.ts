@@ -165,6 +165,7 @@ export class SpecSocket {
      */
     public constructor(user_id: UserId) {
         this.socket = io("/spectate", {
+        	path: "/api/spectate_socket/socket.io",
             auth: {
                 token: Client.access_token,
                 user_id, // hello, this is good.
