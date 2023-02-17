@@ -38,7 +38,7 @@ export const Users = (function() {
             delete this.avatars[id];
         }
 
-        public async patch_name(id: UserId|null, name: string) {
+        public async patch_name(id: UserId | null, name: string) {
             const m = await this.me();
             if (!id)
                 id = m.id;
@@ -82,7 +82,7 @@ export const Users = (function() {
         }
 
         public async on_user_update(user_update: UserUpdate) {
-            const usr = await this.users[user_update.id].get();
+            const usr = await this.get(user_update.id);
 
             if (user_update.game_won)
                 usr.games_won = user_update.game_won;
@@ -92,8 +92,7 @@ export const Users = (function() {
                 this.invalidate_avatar(usr.id);
             if (user_update.name)
                 usr.name = user_update.name;
-            if (user_update.status)
-            {
+            if (user_update.status) {
                 if (user_update.status === "spectating")
                     usr.spectating = user_update.spectating;
                 usr.status = user_update.status;
