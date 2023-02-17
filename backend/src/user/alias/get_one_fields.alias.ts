@@ -1,4 +1,4 @@
-import { t_channels_fields, t_channels_fields_tmp } from "src/user/alias";
+import { IChannel, IChannelTmp } from "src/channel/interface";
 
 export type t_get_one_fields = {
 	id: string;
@@ -6,7 +6,7 @@ export type t_get_one_fields = {
 	name: string;
 	skin_id: string;
 	elo: number;
-	channels: t_channels_fields[];
+	channels: IChannel[];
 	games_played: number;
 	games_won: number;
 };
@@ -17,7 +17,7 @@ export type t_get_one_fields_tmp = {
 	name: string;
 	skinId: string;
 	elo: number;
-	channels: t_channels_fields_tmp[];
+	channels: IChannelTmp[];
 	gamesPlayed: t_games_fields_tmp[];
 	gamesWon: t_games_fields_tmp[];
 };

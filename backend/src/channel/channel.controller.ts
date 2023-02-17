@@ -1,4 +1,18 @@
-import { t_get_all_fields, t_join_one_fields } from "src/channel/alias";
+import {
+	ChannelBanMemberDto,
+	ChannelCreateDto,
+	ChannelDelegateOwnershipDto,
+	ChannelDemoteOperatorDto,
+	ChannelJoinDto,
+	ChannelKickMemberDto,
+	ChannelMessagesGetDto,
+	ChannelMessageSendDto,
+	ChannelMuteMemberDto,
+	ChannelPromoteMemberDto,
+	ChannelUnbanMemberDto,
+	ChannelUpdateDto,
+} from "src/channel/dto";
+import { IChannel } from "src/channel/interface";
 import { ChannelService } from "src/channel/channel.service";
 import {
 	BadRequestException,
@@ -19,21 +33,7 @@ import {
 	Logger,
 	ConflictException,
 } from "@nestjs/common";
-import {
-	ChannelBanMemberDto,
-	ChannelCreateDto,
-	ChannelDelegateOwnershipDto,
-	ChannelDemoteOperatorDto,
-	ChannelJoinDto,
-	ChannelKickMemberDto,
-	ChannelMessageGetDto,
-	ChannelMessageSendDto,
-	ChannelMuteMemberDto,
-	ChannelPromoteMemberDto,
-	ChannelUnbanMemberDto,
-	ChannelUpdateDto,
-} from "src/channel/dto";
-import { Channel, ChannelMessage } from "@prisma/client";
+import { ChannelMessage } from "@prisma/client";
 import {
 	ChannelAlreadyJoinedError,
 	ChannelForbiddenToJoinError,
@@ -115,12 +115,10 @@ export class ChannelController {
 			user: t_user_auth;
 		},
 		@Body() dto: ChannelCreateDto,
-	): Promise<Channel> {
+	): Promise<IChannel> {
 		//#region
-		let channel: Channel;
-
 		try {
-			channel = await this._channel_service.create_one(
+			return await this._channel_service.create_one(
 				request.user.id,
 				dto.name,
 				dto.is_private,
@@ -138,8 +136,6 @@ export class ChannelController {
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-
-		return channel;
 	}
 	//#endregion
 
@@ -240,18 +236,14 @@ export class ChannelController {
 		request: {
 			user: t_user_auth;
 		},
-	): Promise<t_get_all_fields> {
+	): Promise<IChannel[]> {
 		//#region
-		let channels: t_get_all_fields;
-
 		try {
-			channels = await this._channel_service.get_all(request.user.id);
+			return await this._channel_service.get_all(request.user.id);
 		} catch (error) {
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-
-		return channels;
 	}
 	//#endregion
 
@@ -263,17 +255,15 @@ export class ChannelController {
 			user: t_user_auth;
 		},
 		@Param("id") id: string,
-		@Query() dto: ChannelMessageGetDto,
+		@Query() dto: ChannelMessagesGetDto,
 	): Promise<ChannelMessage[]> {
 		//#region
 		if (dto.after && dto.before) {
 			throw new BadRequestException("Unexpected both `before` and `after` received");
 		}
 
-		let messages: ChannelMessage[];
-
 		try {
-			messages = await this._channel_service.get_ones_messages(
+			return await this._channel_service.get_ones_messages(
 				request.user.id,
 				id,
 				dto.limit,
@@ -283,20 +273,15 @@ export class ChannelController {
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
+				error instanceof ChannelNotJoinedError ||
 				error instanceof ChannelMessageNotFoundError
 			) {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			if (error instanceof ChannelNotJoinedError) {
-				this._logger.error(error.message);
-				throw new ForbiddenException(error.message);
-			}
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-
-		return messages;
 	}
 	//#endregion
 
@@ -348,11 +333,13 @@ export class ChannelController {
 		},
 		@Param("id") id: string,
 		@Body() dto: ChannelJoinDto,
-	): Promise<t_join_one_fields> {
+	): Promise<IChannel> {
 		//#region
+		let response: IChannel;
+
 		try {
+			response = await this._channel_service.join_one(request.user.id, id, dto.password);
 			this.gateway.make_user_socket_join_room(request.user.id, id);
-			return await this._channel_service.join_one(request.user.id, id, dto.password);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
@@ -371,6 +358,8 @@ export class ChannelController {
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
+
+		return response;
 	}
 	//#endregion
 
