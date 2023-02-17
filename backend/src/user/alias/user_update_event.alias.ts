@@ -1,4 +1,4 @@
-export enum t_user_status {
+export enum e_user_status {
 	ONLINE = "online",
 	OFFLINE = "offline",
 	INGAME = "ingame",
@@ -8,7 +8,7 @@ export enum t_user_status {
 export type t_user_update_event = {
 	id: string;
 	name?: string;
-	status?: t_user_status;
+	status?: e_user_status;
 	spectating?: string;
 	game_won?: number;
 	game_lost?: number;

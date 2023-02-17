@@ -1,4 +1,9 @@
-import { t_get_me_fields, t_get_one_fields, t_receiving_user_fields } from "src/user/alias";
+import {
+	e_user_status,
+	t_get_me_fields,
+	t_get_one_fields,
+	t_receiving_user_fields,
+} from "src/user/alias";
 import { UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
@@ -44,19 +49,23 @@ import { UserMessagesGetDto, UserMessageSendDto } from "src/user/dto";
 import { t_user_auth } from "src/auth/alias";
 import { DirectMessage } from "@prisma/client";
 import { ChatGateway } from "src/chat/chat.gateway";
+import { ChatService } from "src/chat/chat.service";
+import { t_user_status } from "src/chat/alias";
 
 @Controller("user")
 @UseGuards(Jwt2FAGuard)
 export class UserController {
 	// REMIND: Check if passing `_user_service` in readonly keep it working well
 	private _user_service: UserService;
-	private readonly _logger: Logger;
+	private readonly _chat_service: ChatService;
 	private readonly chat_gateway: ChatGateway;
+	private readonly _logger: Logger;
 
-	constructor(user_service: UserService, chat_gateway: ChatGateway) {
+	constructor(user_service: UserService, chat_gateway: ChatGateway, chat_service: ChatService) {
 		//#region
 		this._user_service = user_service;
 		this.chat_gateway = chat_gateway;
+		this._chat_service = chat_service;
 		this._logger = new Logger(UserController.name);
 	}
 	//#endregion
@@ -114,16 +123,30 @@ export class UserController {
 		request: {
 			user: t_user_auth;
 		},
-	): Promise<t_get_me_fields> {
+	): Promise<t_get_me_fields & { status: e_user_status; spectating?: string }> {
 		//#region
 		try {
-			return await this._user_service.get_me(request.user.id);
+			const user: t_get_me_fields = await this._user_service.get_me(request.user.id);
+
+			const tmp_user: t_user_status | undefined = this._chat_service.get_user(
+				request.user.id,
+			);
+			let status: e_user_status | undefined = tmp_user?.status;
+			if (status === undefined) {
+				status = e_user_status.OFFLINE;
+			}
+
+			return {
+				status,
+				spectating: tmp_user?.spectated_user,
+				...user,
+			};
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -136,10 +159,22 @@ export class UserController {
 			user: t_user_auth;
 		},
 		@Param("id") id: string,
-	): Promise<t_get_one_fields> {
+	): Promise<t_get_one_fields & { status: e_user_status; spectating?: string }> {
 		//#region
 		try {
-			return await this._user_service.get_one(request.user.id, id);
+			const user: t_get_one_fields = await this._user_service.get_one(request.user.id, id);
+
+			const tmp_user: t_user_status | undefined = this._chat_service.get_user(id);
+			let status: e_user_status | undefined = tmp_user?.status;
+			if (status === undefined) {
+				status = e_user_status.OFFLINE;
+			}
+
+			return {
+				status,
+				spectating: tmp_user?.spectated_user,
+				...user,
+			};
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				this._logger.error(error.message);
@@ -149,7 +184,7 @@ export class UserController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -336,6 +371,10 @@ export class UserController {
 				dto.two_fact_auth,
 				dto.skin_id,
 			);
+			await this.chat_gateway.broadcast_to_online_related_users({
+				id: request.user.id,
+				name: dto.name,
+			});
 		} catch (error) {
 			if (error instanceof UserFieldUnaivalableError) {
 				this._logger.error(error.message);
@@ -367,6 +406,10 @@ export class UserController {
 		}
 		try {
 			await this._user_service.update_ones_avatar(request.user.id, file);
+			await this.chat_gateway.broadcast_to_online_related_users({
+				id: request.user.id,
+				is_avatar_changed: true,
+			});
 		} catch (error) {
 			if (error instanceof UnknownError) {
 				this._logger.error(error.message);

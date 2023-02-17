@@ -16,6 +16,8 @@ import { Match } from "./aliases";
 import { BadRequestException, ConflictException, Logger } from "@nestjs/common";
 import { Constants } from "./constants";
 import { BadEvent } from "./exceptions";
+import { ChatGateway } from "src/chat/chat.gateway";
+import { e_user_status } from "src/user/alias";
 
 /**
  * setTimeout tracker
@@ -32,14 +34,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	@WebSocketServer()
 	public readonly server: Server;
 	private readonly game_service: GameService;
+	private readonly chat_gateway: ChatGateway;
 	private timeouts: TimeoutId[] = [];
 	private readonly logger: Logger = new Logger();
 
 	/* CONSTRUCTOR ============================================================= */
 
-	constructor(game_service: GameService) {
+	constructor(game_service: GameService, chat_gateway: ChatGateway) {
 		this.server = new Server();
 		this.game_service = game_service;
+		this.chat_gateway = chat_gateway;
 		this.timeouts = [];
 		this.logger = new Logger(GameGateway.name);
 	}
@@ -87,6 +91,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Also removes timer if it hasn't fired yet.
 	 */
 	public async handleDisconnect(client: Socket): Promise<void> {
+		if (client.data.user.status === e_user_status.INGAME) {
+			client.data.user.status = e_user_status.ONLINE;
+			this.chat_gateway.broadcast_to_online_related_users({
+				id: client.data.user.id,
+				status: e_user_status.ONLINE,
+				game_won: client.data.user.game_won,
+				game_lost: client.data.user.game_played - client.data.user.game_won,
+			});
+		}
 		const room: GameRoom | null = this.game_service.unQueue(client);
 		if (room !== null) {
 			const index: number = this.timeouts.findIndex((obj) => {
@@ -137,7 +150,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	private matchmake(game_room: GameRoom): void {
 		game_room.match.player1.emit("matchFound", game_room.match.player2.data.user);
 		game_room.match.player2.emit("matchFound", game_room.match.player1.data.user);
-
+		game_room.match.player1.data.user.status = e_user_status.INGAME;
+		game_room.match.player2.data.user.status = e_user_status.INGAME;
+		this.chat_gateway.broadcast_to_online_related_users({
+			id: game_room.match.player1.data.user.id,
+			status: e_user_status.INGAME,
+		});
+		this.chat_gateway.broadcast_to_online_related_users({
+			id: game_room.match.player2.data.user.id,
+			status: e_user_status.INGAME,
+		});
 		this.timeouts.push({
 			match: game_room.match.name,
 			timer: setTimeout(this.startGame, 3000, this, game_room),
@@ -184,6 +206,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				room.has_updated_score = false;
 				room.is_ongoing = false;
 				const last_score: ScoreUpdate = room.getScoreUpdate();
+
+				if (update.winner === room.match.player1.data.user.id) {
+					++room.match.player1.data.user.game_won;
+				} else {
+					++room.match.player2.data.user.game_won;
+				}
+				++room.match.player1.data.user.game_played;
+				++room.match.player2.data.user.game_played;
 				room.match.player1.emit("updateScore", last_score);
 				room.match.player2.emit("updateScore", last_score.invert());
 				const match: Match = await me.game_service.registerGameHistory(room, update);

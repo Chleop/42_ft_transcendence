@@ -8,7 +8,6 @@ import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { ConfigService } from "@nestjs/config";
 import { UserNotFoundError } from "src/user/error";
-import { AuthController } from "../auth.controller";
 import { t_payload, t_user_auth } from "../alias";
 import { AuthService } from "../auth.service";
 
@@ -24,7 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
 			secretOrKey: config_service.get("JWT_SECRET"),
 		});
 		this._authService = auth_service;
-		this._logger = new Logger(AuthController.name);
+		this._logger = new Logger(JwtStrategy.name);
 	}
 
 	public async validate(payload: t_payload): Promise<t_user_auth> {
