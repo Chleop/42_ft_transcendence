@@ -14,6 +14,7 @@ import { ChatService } from "./chat.service";
 
 @WebSocketGateway({
 	namespace: "chat",
+	path: "/api/chat_socket/socket.io",
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
 	@WebSocketServer()
@@ -69,7 +70,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		socket?.emit("direct_message", message);
 	}
 
-	/**e
+	/**
 	 * @brief	Accept a new connection and store the client socket,
 	 * 			mapping it with its corresponding user id.
 	 * 			Make the client socket join the socket rooms
