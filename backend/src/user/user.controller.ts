@@ -1,10 +1,5 @@
-import {
-	t_get_me_fields,
-	t_get_one_fields,
-	t_receiving_user_fields,
-	t_sending_user_fields,
-} from "src/user/alias";
-import { UserMessagesGetDto, UserUpdateDto } from "src/user/dto";
+import { t_get_me_fields, t_get_one_fields, t_receiving_user_fields } from "src/user/alias";
+import { UserUpdateDto } from "src/user/dto";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
@@ -59,10 +54,12 @@ export class UserController {
 	private readonly chat_gateway: ChatGateway;
 
 	constructor(user_service: UserService, chat_gateway: ChatGateway) {
+		//#region
 		this._user_service = user_service;
 		this.chat_gateway = chat_gateway;
 		this._logger = new Logger(UserController.name);
 	}
+	//#endregion
 
 	@Patch(":id/block")
 	async block_one(
@@ -72,6 +69,7 @@ export class UserController {
 		},
 		@Param("id") id: string,
 	): Promise<void> {
+		//#region
 		try {
 			await this._user_service.block_one(request.user.id, id);
 		} catch (error) {
@@ -87,6 +85,7 @@ export class UserController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Delete("@me")
 	async disable_me(
@@ -95,6 +94,7 @@ export class UserController {
 			user: t_user_auth;
 		},
 	): Promise<void> {
+		//#region
 		try {
 			await this._user_service.disable_one(request.user.id);
 		} catch (error) {
@@ -106,6 +106,7 @@ export class UserController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Get("@me")
 	async get_me(
@@ -114,6 +115,7 @@ export class UserController {
 			user: t_user_auth;
 		},
 	): Promise<t_get_me_fields> {
+		//#region
 		try {
 			return await this._user_service.get_me(request.user.id);
 		} catch (error) {
@@ -125,6 +127,7 @@ export class UserController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Get(":id")
 	async get_one(
@@ -134,6 +137,7 @@ export class UserController {
 		},
 		@Param("id") id: string,
 	): Promise<t_get_one_fields> {
+		//#region
 		try {
 			return await this._user_service.get_one(request.user.id, id);
 		} catch (error) {
@@ -149,6 +153,7 @@ export class UserController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Get(":id/avatar")
 	async get_ones_avatar(
@@ -158,6 +163,7 @@ export class UserController {
 		},
 		@Param("id") id: string,
 	): Promise<StreamableFile> {
+		//#region
 		let sfile: StreamableFile;
 
 		try {
@@ -177,6 +183,7 @@ export class UserController {
 
 		return sfile;
 	}
+	//#endregion
 
 	@Get(":id/messages")
 	async get_ones_messages(
@@ -225,17 +232,18 @@ export class UserController {
 		@Param("id") id: string,
 		@Body() dto: UserMessageSendDto,
 	): Promise<DirectMessage> {
+		//#region
+		let object: {
+			receiver: t_receiving_user_fields;
+			message: DirectMessage;
+		};
+
 		try {
-			const object: {
-				sender: t_sending_user_fields;
-				receiver: t_receiving_user_fields;
-				message: DirectMessage;
-			} = await this._user_service.send_message_to_one(request.user.id, id, dto.content);
+			object = await this._user_service.send_message_to_one(request.user.id, id, dto.content);
 
 			if (!object.receiver.blocked.some((blocked) => blocked.id === request.user.id)) {
 				this.chat_gateway.forward_to_user_socket(object.message);
 			}
-			return object.message;
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||
@@ -253,7 +261,10 @@ export class UserController {
 			this._logger.error(error);
 			throw new InternalServerErrorException();
 		}
+
+		return object.message;
 	}
+	//#endregion
 
 	@Patch(":id/unblock")
 	async unblock_one(
@@ -263,6 +274,7 @@ export class UserController {
 		},
 		@Param("id") id: string,
 	): Promise<void> {
+		//#region
 		try {
 			await this._user_service.unblock_one(request.user.id, id);
 		} catch (error) {
@@ -278,6 +290,7 @@ export class UserController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Patch(":id/unfriend")
 	async unfriend_one(
@@ -287,6 +300,7 @@ export class UserController {
 		},
 		@Param("id") id: string,
 	): Promise<void> {
+		//#region
 		try {
 			await this._user_service.unfriend_two(request.user.id, id);
 		} catch (error) {
@@ -302,6 +316,7 @@ export class UserController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Patch("@me")
 	@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
@@ -312,6 +327,7 @@ export class UserController {
 		},
 		@Body() dto: UserUpdateDto,
 	): Promise<void> {
+		//#region
 		try {
 			await this._user_service.update_one(
 				request.user.id,
@@ -333,6 +349,7 @@ export class UserController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Put("@me/avatar")
 	@UseInterceptors(FileInterceptor("file"))
@@ -343,6 +360,7 @@ export class UserController {
 		},
 		@UploadedFile() file?: Express.Multer.File,
 	): Promise<void> {
+		//#region
 		if (!file) {
 			this._logger.error("No file provided while updating avatar");
 			throw new BadRequestException("No file provided");
@@ -358,9 +376,11 @@ export class UserController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Get(":id/skin/background")
 	async get_background_skin(@Param("id") id: string): Promise<StreamableFile> {
+		//#region
 		let sfile: StreamableFile;
 		try {
 			sfile = await this._user_service.get_ones_background(id);
@@ -375,9 +395,11 @@ export class UserController {
 
 		return sfile;
 	}
+	//#endregion
 
 	@Get(":id/skin/ball")
 	async get_ball_skin(@Param("id") id: string): Promise<StreamableFile> {
+		//#region
 		let sfile: StreamableFile;
 		try {
 			sfile = await this._user_service.get_ones_ball(id);
@@ -392,9 +414,11 @@ export class UserController {
 
 		return sfile;
 	}
+	//#endregion
 
 	@Get(":id/skin/paddle")
 	async get_paddle_skin(@Param("id") id: string): Promise<StreamableFile> {
+		//#region
 		let sfile: StreamableFile;
 		try {
 			sfile = await this._user_service.get_ones_paddle(id);
@@ -409,4 +433,5 @@ export class UserController {
 
 		return sfile;
 	}
+	//#endregion
 }
