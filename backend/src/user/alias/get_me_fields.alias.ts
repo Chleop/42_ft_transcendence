@@ -1,5 +1,5 @@
-import { ChanType } from "@prisma/client";
-import { t_user_status } from "./user_update_event.alias";
+import { IChannel, IChannelTmp } from "src/channel/interface";
+import { t_user_status } from "src/user/alias";
 
 export type t_get_me_fields = {
 	id: string;
@@ -10,7 +10,7 @@ export type t_get_me_fields = {
 	skin_id: string;
 	elo: number;
 	two_fact_auth: boolean;
-	channels: t_channels_fields[];
+	channels: IChannel[];
 	channels_owned_ids: string[];
 	games_played: t_games_played_fields[];
 	friends_ids: string[];
@@ -26,18 +26,12 @@ export type t_get_me_fields_tmp = {
 	skinId: string;
 	elo: number;
 	twoFactAuth: boolean;
-	channels: t_channels_fields_tmp[];
-	channelsOwned: t_channels_owned_fields_tmp[];
+	channels: IChannelTmp[];
+	channelsOwned: IChannelTmp[];
 	gamesPlayed: t_games_played_fields_tmp[];
 	friends: t_related_user_fields_tmp[];
 	pendingFriendRequests: t_related_user_fields_tmp[];
 	blocked: t_related_user_fields_tmp[];
-};
-
-export type t_channels_fields = {
-	id: string;
-	name: string;
-	type: ChanType;
 };
 
 export type t_games_played_fields = {
@@ -46,16 +40,6 @@ export type t_games_played_fields = {
 	scores: [number, number];
 	date_time: Date;
 	winner_id: string;
-};
-
-export type t_channels_fields_tmp = {
-	id: string;
-	name: string;
-	chanType: ChanType;
-};
-
-type t_channels_owned_fields_tmp = {
-	id: string;
 };
 
 type t_games_played_fields_tmp = {
