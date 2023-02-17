@@ -41,6 +41,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	}
 
 	public async broadcast_to_online_related_users(data: t_user_update_event): Promise<void> {
+		if (data.status !== undefined)
+			this._chat_service.update_user(data.id, data.status, data.spectating);
+
 		const users: t_user_id[] = await this._chat_service.get_online_related_users(data.id);
 		for (const user of users) {
 			const socket: Socket | undefined = this._chat_service.get_user(user.id)?.socket;
@@ -96,15 +99,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			client.join(channel.id);
 		}
 
-		// TODO: broadcast to all users
 		this.broadcast_to_online_related_users({
 			id: client.data.user.id,
 			status: e_user_status.ONLINE,
 		});
-		// this._user_service.broadcast_user_update_to_many({
-		// 	id: client.data.user.id,
-		// 	status: e_user_status.ONLINE,
-		// });
 	}
 
 	/**
@@ -115,15 +113,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	public handleDisconnect(client: Socket): void {
 		this._chat_service.remove_user(client.data.user.id);
 
-		// TODO: broadcast to all users
 		this.broadcast_to_online_related_users({
 			id: client.data.user.id,
 			status: e_user_status.OFFLINE,
 		});
-		// this._user_service.broadcast_user_update_to_many({
-		// 	id: client.data.user.id,
-		// 	status: e_user_status.OFFLINE,
-		// });
+
 		this._logger.log(
 			`Client ${client.id} (${client.data.user.login}) disconnected from chat gateway`,
 		);

@@ -116,49 +116,29 @@ export class UserController {
 		request: {
 			user: t_user_auth;
 		},
-	): Promise</* t_get_me_fields & { status: e_user_status; spectated_user?: string } */ any> {
+	): Promise<t_get_me_fields & { status: e_user_status; spectating?: string }> {
 		try {
 			const user: t_get_me_fields = await this._user_service.get_me(request.user.id);
 
 			const tmp_user: t_user_status | undefined = this._chat_service.get_user(
 				request.user.id,
 			);
-			this._logger.debug(tmp_user);
-			const status: e_user_status | undefined = this._chat_service.get_user(
-				request.user.id,
-			)?.status;
-			this._logger.debug(`User status: ${status}`);
+			let status: e_user_status | undefined = tmp_user?.status;
+			if (status === undefined) {
+				status = e_user_status.OFFLINE;
+			}
 
 			return {
-				id: user.id,
-				login: user.login,
-				name: user.name,
-				email: user.email,
-				skin_id: user.skin_id,
-				elo: user.elo,
-				two_fact_auth: user.two_fact_auth,
-				channels: user.channels,
-				channels_owned_ids: user.channels_owned_ids,
-				games_played: user.games_played,
-				friends_ids: user.friends_ids,
-				pending_friends_ids: user.pending_friends_ids,
-				blocked_ids: user.blocked_ids,
-				status: status,
+				status,
 				spectating: tmp_user?.spectated_user,
+				...user,
 			};
-
-			// return {
-			// 	...user,
-			// 	status: this._chat_service.get_user(request.user.id)!.status,
-			// 	spectated_user: this._chat_service.get_user(request.user.id)!.spectated_user,
-			// };
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			this._logger.error("Unknow error type, this should not happen");
-			this._logger.error(error);
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -170,14 +150,20 @@ export class UserController {
 			user: t_user_auth;
 		},
 		@Param("id") id: string,
-	): Promise<t_get_one_fields & { status: e_user_status; spectated_user?: string }> {
+	): Promise<t_get_one_fields & { status: e_user_status; spectating?: string }> {
 		try {
 			const user: t_get_one_fields = await this._user_service.get_one(request.user.id, id);
 
+			const tmp_user: t_user_status | undefined = this._chat_service.get_user(id);
+			let status: e_user_status | undefined = tmp_user?.status;
+			if (status === undefined) {
+				status = e_user_status.OFFLINE;
+			}
+
 			return {
+				status,
+				spectating: tmp_user?.spectated_user,
 				...user,
-				status: this._chat_service.get_user(id)!.status,
-				spectated_user: this._chat_service.get_user(id)!.spectated_user,
 			};
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
@@ -188,7 +174,7 @@ export class UserController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}

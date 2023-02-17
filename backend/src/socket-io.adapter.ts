@@ -1,4 +1,4 @@
-import { t_get_me_fields /* , t_get_one_fields */ } from "src/user/alias";
+import { /*  t_get_me_fields , */ t_get_one_fields } from "src/user/alias";
 import { UserService } from "src/user/user.service";
 import { ForbiddenException, INestApplicationContext, Logger } from "@nestjs/common";
 import { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.interface";
@@ -7,8 +7,8 @@ import { JwtService } from "@nestjs/jwt";
 import { IoAdapter } from "@nestjs/platform-socket.io";
 import { Server, ServerOptions, Socket } from "socket.io";
 
-// type UserData = t_get_one_fields;
-type UserData = t_get_me_fields;
+type UserData = t_get_one_fields;
+// type UserData = t_get_me_fields;
 
 /**
  * Allows gateway to have dynamic ports (imported from env)
@@ -87,8 +87,8 @@ const websocketMiddleware =
 				throw new Error("No token provided");
 			}
 			const payload: { sub: string } = jwt_service.verify(token, { secret });
-			// const user: UserData = await user_service.get_one(payload.sub, payload.sub);
-			const user: UserData = await user_service.get_me(payload.sub);
+			const user: UserData = await user_service.get_one(payload.sub, payload.sub);
+			// const user: UserData = await user_service.get_me(payload.sub);
 			client.data.user = user;
 			next();
 		} catch (e) {

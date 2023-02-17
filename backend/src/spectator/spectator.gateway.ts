@@ -18,6 +18,8 @@ import { SpectatorService } from "./spectator.service";
 import { SpectatedRoom } from "./rooms";
 import { RoomData } from "./aliases";
 import { SpectatorUpdate } from "./objects";
+import { ChatGateway } from "src/chat/chat.gateway";
+import { e_user_status } from "src/user/alias";
 
 @WebSocketGateway({
 	namespace: "spectate",
@@ -25,14 +27,20 @@ import { SpectatorUpdate } from "./objects";
 export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
 	@WebSocketServer()
 	public readonly server: Server;
+	private readonly chat_gateway: ChatGateway;
 	private readonly game_service: GameService;
 	private readonly spectator_service: SpectatorService;
 	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
 
-	constructor(game_service: GameService, spectator_service: SpectatorService) {
+	constructor(
+		game_service: GameService,
+		spectator_service: SpectatorService,
+		chat_gateway: ChatGateway,
+	) {
 		this.server = new Server();
+		this.chat_gateway = chat_gateway;
 		this.game_service = game_service;
 		this.spectator_service = spectator_service;
 		this.logger = new Logger(SpectatorGateway.name);
@@ -109,6 +117,12 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	private async startStreaming(client: Socket, game_room: GameRoom): Promise<void> {
 		client.join(game_room.match.name);
 
+		this.chat_gateway.broadcast_to_online_related_users({
+			id: client.data.user.id,
+			status: e_user_status.SPECTATING,
+			spectating: client.handshake.auth.user_id,
+		});
+
 		const spectated_room: SpectatedRoom | null = this.spectator_service.getRoom(
 			game_room.match.name,
 		);
@@ -159,16 +173,20 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 
 		if (room === null) return;
 
-		me.kickEveryone(room);
+		me.kickEveryone(room, me);
 		me.spectator_service.destroyRoom(room_name);
 	}
 
 	/**
 	 * Kick clients of a room.
 	 */
-	private kickEveryone(room: SpectatedRoom): void {
+	private kickEveryone(room: SpectatedRoom, me?: SpectatorGateway): void {
 		for (const client of room.spectators) {
 			client.data.valid_uid = false;
+			me?.chat_gateway.broadcast_to_online_related_users({
+				id: client.data.user.id,
+				status: e_user_status.ONLINE,
+			});
 			client.disconnect();
 		}
 	}
