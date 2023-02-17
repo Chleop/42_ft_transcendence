@@ -224,10 +224,16 @@ export class ChannelService {
 		const messages: ChannelMessage[] = await this._prisma.channelMessage.findMany({
 			//#region
 			where: {
-				channelId: id,
-				dateTime: {
-					gt: message.dateTime,
-				},
+				AND: [
+					{
+						channelId: id,
+					},
+					{
+						dateTime: {
+							gt: message.dateTime,
+						},
+					},
+				],
 			},
 			orderBy: {
 				dateTime: "asc",
@@ -934,7 +940,9 @@ export class ChannelService {
 
 		if (!channel) {
 			throw new ChannelNotFoundError(channel_id);
-		} else if (channel.members.find((member) => member.id === user_id) === undefined) {
+		}
+
+		if (channel.members.every((member) => member.id !== user_id)) {
 			throw new ChannelNotJoinedError(channel_id);
 		}
 
