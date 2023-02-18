@@ -36,7 +36,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	public readonly server: Server;
 	private readonly game_service: GameService;
 	private readonly chat_gateway: ChatGateway;
-	private timeouts: TimeoutId[] = [];
+	private timeouts: Map<string, NodeJS.Timer>;
 	private readonly logger: Logger = new Logger();
 
 	/* CONSTRUCTOR ============================================================= */
@@ -45,7 +45,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		this.server = new Server();
 		this.game_service = game_service;
 		this.chat_gateway = chat_gateway;
-		this.timeouts = [];
+		this.timeouts = new Map<string, NodeJS.Timer>();
 		this.logger = new Logger(GameGateway.name);
 	}
 
@@ -94,12 +94,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	public async handleDisconnect(client: Socket): Promise<void> {
 		const room: GameRoom | null = this.game_service.unQueue(client);
 		if (room !== null) {
-			const index: number = this.timeouts.findIndex((obj) => {
-				return obj.match === room.match.name;
-			});
-			if (index >= 0) {
-				clearTimeout(this.timeouts[index].timer);
-				this.timeouts.splice(index, 1);
+			// const index: number = this.timeouts.findIndex((obj) => {
+			// 	return obj.match === room.match.name;
+			// });
+			// if (index >= 0) {
+			// 	clearTimeout(this.timeouts[index].timer);
+			// 	this.timeouts.splice(index, 1);
+			// }
+			const timer: NodeJS.Timer | undefined = this.timeouts.get(room.match.name);
+			if (timer !== undefined) {
+				clearTimeout(timer);
+				this.timeouts.delete(room.match.name);
 			}
 			await this.endGameEarly(client, room);
 			this.game_service.destroyRoom(room);
@@ -161,10 +166,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			id: game_room.match.player2.data.user.id,
 			status: e_user_status.INGAME,
 		});
-		this.timeouts.push({
-			match: game_room.match.name,
-			timer: setTimeout(this.startGame, 3000, this, game_room),
-		});
+		this.timeouts.set(game_room.match.name, setTimeout(this.startGame, 3000, this, game_room));
 	}
 
 	/**

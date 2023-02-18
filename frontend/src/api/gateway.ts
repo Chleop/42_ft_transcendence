@@ -28,7 +28,7 @@ export class GatewayClass {
     public constructor() {
         console.log("initiating a connection with the chat gateway...");
         this.socket = io("/chat", {
-        	path: "/api/chat_socket/socket.io",
+            path: "/api/chat_socket/socket.io",
             auth: { token: get_cookie("access_token") },
         });
 
