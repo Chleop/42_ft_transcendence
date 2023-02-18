@@ -5,6 +5,7 @@ import { e_user_status } from "src/user/enum";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
+	UserAvatarFileFormatError,
 	UserFieldUnaivalableError,
 	UserMessageNotFoundError,
 	UserNotBlockedError,
@@ -420,11 +421,15 @@ export class UserController {
 				is_avatar_changed: true,
 			});
 		} catch (error) {
+			if (error instanceof UserAvatarFileFormatError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
 			if (error instanceof UnknownError) {
 				this._logger.error(error.message);
 				throw new InternalServerErrorException(error.message);
 			}
-			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
 	}
