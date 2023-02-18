@@ -1,4 +1,4 @@
-import { IUserPublic } from "src/user/interface";
+import { IUserPrivate } from "src/user/interface";
 import { UserService } from "src/user/user.service";
 import { ForbiddenException, INestApplicationContext, Logger } from "@nestjs/common";
 import { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.interface";
@@ -84,8 +84,7 @@ const websocketMiddleware =
 				throw new Error("No token provided");
 			}
 			const payload: { sub: string } = jwt_service.verify(token, { secret });
-			const user: IUserPublic = await user_service.get_one(payload.sub, payload.sub);
-			// const user: UserData = await user_service.get_me(payload.sub);
+			const user: IUserPrivate = await user_service.get_me(payload.sub);
 			client.data.user = user;
 			next();
 		} catch (e) {
