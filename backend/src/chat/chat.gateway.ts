@@ -1,5 +1,8 @@
-import { Server, Socket } from "socket.io";
-import { ChannelMessage, DirectMessage } from "@prisma/client";
+import { t_user_id } from "src/chat/alias";
+import { t_user_update_event } from "src/user/alias";
+import { e_user_status } from "src/user/enum";
+import { ChatService } from "src/chat/chat.service";
+import { Logger } from "@nestjs/common";
 import {
 	OnGatewayConnection,
 	OnGatewayDisconnect,
@@ -7,10 +10,8 @@ import {
 	WebSocketGateway,
 	WebSocketServer,
 } from "@nestjs/websockets";
-import { Logger } from "@nestjs/common";
-import { t_user_id } from "./alias";
-import { e_user_status, t_user_update_event } from "src/user/alias/user_update_event.alias";
-import { ChatService } from "./chat.service";
+import { Server, Socket } from "socket.io";
+import { ChannelMessage, DirectMessage } from "@prisma/client";
 
 @WebSocketGateway({
 	namespace: "chat",

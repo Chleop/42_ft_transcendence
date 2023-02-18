@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { Socket } from "socket.io";
 import { PrismaService } from "src/prisma/prisma.service";
-import { e_user_status } from "src/user/alias";
-import { t_user_id, t_user_status } from "./alias";
+import { e_user_status } from "src/user/enum";
+import { t_user_id, t_user_status } from "src/chat/alias";
 
 @Injectable()
 export class ChatService {
