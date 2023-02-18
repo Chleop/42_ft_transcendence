@@ -55,20 +55,20 @@ export class Gameplay {
 		const ret: number = this.ball.refresh(delta_time);
 
 		switch (ret) {
-			case BallRefreshResult.nothing:
+			case BallRefreshResult.NOTHING:
 				break;
 
-			case BallRefreshResult.oneOutside:
-				if (this.ball.isOutside()) return this.oneWon();
-				break;
-			case BallRefreshResult.twoOutside:
+			case BallRefreshResult.ONE_IS_OUTSIDE:
 				if (this.ball.isOutside()) return this.twoWon();
 				break;
+			case BallRefreshResult.TWO_IS_OUTSIDE:
+				if (this.ball.isOutside()) return this.oneWon();
+				break;
 
-			case BallRefreshResult.oneCollide:
+			case BallRefreshResult.ONE_COLLIDES:
 				this.ball.checkPaddleCollision(this.paddle1.position);
 				break;
-			case BallRefreshResult.twoCollide:
+			case BallRefreshResult.TWO_COLLIDES:
 				this.ball.checkPaddleCollision(this.paddle2.position);
 				break;
 		}
