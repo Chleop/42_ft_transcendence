@@ -79,7 +79,7 @@ export const Users = (function () {
 		}
 
 		public async on_user_update(user_update: UserUpdate) {
-			const usr = await this.users[user_update.id].get();
+			const usr = await this.get(user_update.id);
 
 			if (user_update.game_won) usr.games_won_count = user_update.game_won;
 			if (user_update.game_lost)

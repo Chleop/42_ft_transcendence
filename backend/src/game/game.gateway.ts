@@ -29,6 +29,7 @@ type TimeoutId = {
 
 @WebSocketGateway({
 	namespace: "game",
+	path: "/api/game_socket/socket.io",
 })
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
 	@WebSocketServer()
