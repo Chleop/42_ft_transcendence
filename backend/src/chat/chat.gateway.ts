@@ -1,5 +1,8 @@
-import { Server, Socket } from "socket.io";
-import { ChannelMessage, DirectMessage } from "@prisma/client";
+import { t_user_id } from "src/chat/alias";
+import { t_user_update_event } from "src/user/alias";
+import { e_user_status } from "src/user/enum";
+import { ChatService } from "src/chat/chat.service";
+import { Logger } from "@nestjs/common";
 import {
 	OnGatewayConnection,
 	OnGatewayDisconnect,
@@ -7,13 +10,12 @@ import {
 	WebSocketGateway,
 	WebSocketServer,
 } from "@nestjs/websockets";
-import { Logger } from "@nestjs/common";
-import { t_user_id } from "./alias";
-import { e_user_status, t_user_update_event } from "src/user/alias/user_update_event.alias";
-import { ChatService } from "./chat.service";
+import { Server, Socket } from "socket.io";
+import { ChannelMessage, DirectMessage } from "@prisma/client";
 
 @WebSocketGateway({
 	namespace: "chat",
+	path: "/api/chat_socket/socket.io",
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
 	@WebSocketServer()
@@ -69,7 +71,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		socket?.emit("direct_message", message);
 	}
 
-	/**e
+	/**
 	 * @brief	Accept a new connection and store the client socket,
 	 * 			mapping it with its corresponding user id.
 	 * 			Make the client socket join the socket rooms

@@ -19,10 +19,11 @@ import { SpectatedRoom } from "./rooms";
 import { RoomData } from "./aliases";
 import { SpectatorUpdate } from "./objects";
 import { ChatGateway } from "src/chat/chat.gateway";
-import { e_user_status } from "src/user/alias";
+import { e_user_status } from "src/user/enum";
 
 @WebSocketGateway({
 	namespace: "spectate",
+	path: "/api/spectate_socket/socket.io",
 })
 export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
 	@WebSocketServer()

@@ -142,7 +142,6 @@ export class Ball {
 		// Linearly interpolate between MAX_ANGLE and -MAX_ANGLE using the relative velociy as a
 		// base.
 		const angle = MAX_ANGLE * rel_y;
-		console.debug(angle);
 
 		const out_vel_x = Math.cos(angle) * velocity;
 		const out_vel_y = Math.sin(angle) * velocity;

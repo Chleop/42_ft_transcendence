@@ -1,12 +1,4 @@
-import {
-	t_games_played_fields,
-	t_get_me_fields,
-	t_get_me_fields_tmp,
-	t_get_one_fields,
-	t_get_one_fields_tmp,
-	t_receiving_user_fields,
-	t_sending_user_fields,
-} from "src/user/alias";
+import { t_receiving_user_fields } from "src/user/alias";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
@@ -22,6 +14,8 @@ import {
 	UserSelfUnblockError,
 	UserSelfUnfriendError,
 } from "src/user/error";
+import { IUserPrivate, IUserPrivateTmp, IUserPublic, IUserPublicTmp } from "src/user/interface";
+import { IGame } from "src/game/interface";
 import { ChannelService } from "src/channel/channel.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, Logger, StreamableFile } from "@nestjs/common";
@@ -34,10 +28,8 @@ import { IChannel } from "src/channel/interface";
 @Injectable()
 export class UserService {
 	// REMIND: would it be better to make these properties static ?
-	// REMIND: check if passing `_channel` in readonly keep it working well
-	private _channel: ChannelService;
-	// REMIND: check if passing `_prisma` in readonly keep it working well
-	private _prisma: PrismaService;
+	private readonly _channel: ChannelService;
+	private readonly _prisma: PrismaService;
 	private readonly _logger: Logger;
 
 	constructor(channel_service: ChannelService, prisma_service: PrismaService) {
@@ -634,13 +626,9 @@ export class UserService {
 	 *
 	 * @param	id The id of the user to delete.
 	 *
-	 * @error	The following errors may be thrown :
-	 * 			- UnknownError
-	 *
 	 * @return	An empty promise.
 	 */
 	// REMIND: rename into disable_me (?)
-	// TODO: remove the UnknownError from potential errors
 	public async disable_one(id: string): Promise<void> {
 		//#region
 		type t_fields = {
@@ -658,59 +646,51 @@ export class UserService {
 		};
 		//#endregion
 
-		try {
-			const channels: t_fields[] = await this._prisma.channel.findMany({
-				//#region
-				select: {
-					id: true,
-					owner: {
-						select: {
-							id: true,
-						},
-					},
-					members: {
-						select: {
-							id: true,
-						},
-					},
-					operators: {
-						select: {
-							id: true,
-						},
+		const channels: t_fields[] = await this._prisma.channel.findMany({
+			//#region
+			select: {
+				id: true,
+				owner: {
+					select: {
+						id: true,
 					},
 				},
-				where: {
-					ownerId: id,
+				members: {
+					select: {
+						id: true,
+					},
 				},
-			});
-			//#endregion
+				operators: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				ownerId: id,
+			},
+		});
+		//#endregion
 
-			for (const channel of channels) {
-				await this._channel.leave_one(channel.id, id, channel);
-			}
-
-			await this._prisma.user.update({
-				//#region
-				where: {
-					idAndState: {
-						id: id,
-						state: StateType.ACTIVE,
-					},
-				},
-				data: {
-					state: StateType.DISABLED,
-				},
-			});
-			//#endregion
-			this._logger.log(`User ${id} disabled`);
-		} catch (error) {
-			this._logger.error(`Error while disabling user ${id}`);
-			if (error instanceof PrismaClientKnownRequestError) {
-				this._logger.error(`PrismaClientKnownRequestError code was ${error.code}`);
-			}
-
-			throw new UnknownError();
+		for (const channel of channels) {
+			await this._channel.leave_one(channel.id, id, channel);
 		}
+
+		await this._prisma.user.update({
+			//#region
+			where: {
+				idAndState: {
+					id: id,
+					state: StateType.ACTIVE,
+				},
+			},
+			data: {
+				state: StateType.DISABLED,
+			},
+		});
+		//#endregion
+
+		this._logger.log(`User ${id} has been disabled`);
 	}
 	//#endregion
 
@@ -721,15 +701,11 @@ export class UserService {
 	 *
 	 * @param	id The id of the user to get.
 	 *
-	 * @error	The following errors may be thrown :
-	 * 			- UserNotFoundError
-	 *
 	 * @return	A promise containing the wanted user.
 	 */
-	// TODO: remove the UserNotFoundError from potential errors
-	public async get_me(id: string): Promise<t_get_me_fields> {
+	public async get_me(id: string): Promise<IUserPrivate> {
 		//#region
-		const user_tmp: t_get_me_fields_tmp | null = await this._prisma.user.findUnique({
+		const user_tmp: IUserPrivateTmp = (await this._prisma.user.findUnique({
 			//#region
 			select: {
 				id: true,
@@ -737,7 +713,6 @@ export class UserService {
 				name: true,
 				email: true,
 				skinId: true,
-				elo: true,
 				twoFactAuth: true,
 				channels: {
 					select: {
@@ -766,25 +741,6 @@ export class UserService {
 				channelsOwned: {
 					select: {
 						id: true,
-						name: true,
-						chanType: true,
-						hash: true,
-						ownerId: true,
-						members: {
-							select: {
-								id: true,
-							},
-						},
-						operators: {
-							select: {
-								id: true,
-							},
-						},
-						banned: {
-							select: {
-								id: true,
-							},
-						},
 					},
 				},
 				gamesPlayed: {
@@ -798,6 +754,11 @@ export class UserService {
 						scores: true,
 						dateTime: true,
 						winnerId: true,
+					},
+				},
+				gamesWon: {
+					select: {
+						id: true,
 					},
 				},
 				friends: {
@@ -817,26 +778,18 @@ export class UserService {
 				},
 			},
 			where: {
-				idAndState: {
-					id: id,
-					state: StateType.ACTIVE,
-				},
+				id: id,
 			},
-		});
+		})) as IUserPrivateTmp;
 		//#endregion
 
-		if (!user_tmp) {
-			throw new UserNotFoundError(id);
-		}
-
-		const user: t_get_me_fields = {
+		const user: IUserPrivate = {
 			//#region
 			id: user_tmp.id,
 			login: user_tmp.login,
 			name: user_tmp.name,
 			email: user_tmp.email,
 			skin_id: user_tmp.skinId,
-			elo: user_tmp.elo,
 			two_fact_auth: user_tmp.twoFactAuth,
 			channels: user_tmp.channels.map((channel): IChannel => {
 				return {
@@ -853,7 +806,7 @@ export class UserService {
 			channels_owned_ids: user_tmp.channelsOwned.map((channel): string => {
 				return channel.id;
 			}),
-			games_played: user_tmp.gamesPlayed.map((game): t_games_played_fields => {
+			games_played: user_tmp.gamesPlayed.map((game): IGame => {
 				return {
 					id: game.id,
 					players_ids: game.players.map((player): string => {
@@ -864,6 +817,8 @@ export class UserService {
 					winner_id: game.winnerId,
 				};
 			}),
+			games_played_count: user_tmp.gamesPlayed.length,
+			games_won_count: user_tmp.gamesWon.length,
 			friends_ids: user_tmp.friends.map((friend): string => {
 				return friend.id;
 			}),
@@ -900,7 +855,7 @@ export class UserService {
 	public async get_one(
 		requesting_user_id: string,
 		requested_user_id: string,
-	): Promise<t_get_one_fields> {
+	): Promise<IUserPublic> {
 		//#region
 		type t_requesting_user_fields = {
 			//#region
@@ -984,14 +939,12 @@ export class UserService {
 		})) as t_requesting_user_fields;
 		//#endregion
 
-		const requested_user_tmp: t_get_one_fields_tmp | null = await this._prisma.user.findUnique({
+		const requested_user_tmp: IUserPublicTmp | null = await this._prisma.user.findUnique({
 			//#region
 			select: {
 				id: true,
-				login: true,
 				name: true,
 				skinId: true,
-				elo: true,
 				channels: {
 					select: {
 						id: true,
@@ -1040,13 +993,11 @@ export class UserService {
 			throw new UserNotFoundError(requested_user_id);
 		}
 
-		const requested_user: t_get_one_fields = {
+		const requested_user: IUserPublic = {
 			//#region
 			id: requested_user_tmp.id,
-			login: requested_user_tmp.login,
 			name: requested_user_tmp.name,
 			skin_id: requested_user_tmp.skinId,
-			elo: requested_user_tmp.elo,
 			channels: requested_user_tmp.channels.map((channel): IChannel => {
 				return {
 					id: channel.id,
@@ -1059,8 +1010,8 @@ export class UserService {
 					}),
 				};
 			}),
-			games_played: requested_user_tmp.gamesPlayed.length,
-			games_won: requested_user_tmp.gamesWon.length,
+			games_played_count: requested_user_tmp.gamesPlayed.length,
+			games_won_count: requested_user_tmp.gamesWon.length,
 		};
 		//#endregion
 
@@ -1454,6 +1405,37 @@ export class UserService {
 		message: DirectMessage;
 	}> {
 		//#region
+		type t_sending_user_fields = {
+			//#region
+			blocked: {
+				id: string;
+			}[];
+			channels: {
+				members: {
+					id: string;
+				}[];
+			}[];
+			directMessagesReceived: {
+				sender: {
+					id: string;
+				};
+			}[];
+			directMessagesSent: {
+				receiver: {
+					id: string;
+				};
+			}[];
+			friends: {
+				id: string;
+			}[];
+			gamesPlayed: {
+				players: {
+					id: string;
+				}[];
+			}[];
+		};
+		//#endregion
+
 		const sending_user: t_sending_user_fields = (await this._prisma.user.findUnique({
 			//#region
 			select: {
