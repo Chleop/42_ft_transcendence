@@ -11,7 +11,9 @@ import {
 	WebSocketServer,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { ChannelMessage, DirectMessage } from "@prisma/client";
+import { ChannelMessage } from "@prisma/client";
+import { IUserPrivate, IUserPublic } from "src/user/interface";
+import { UserService } from "src/user/user.service";
 
 @WebSocketGateway({
 	namespace: "chat",
@@ -21,11 +23,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	@WebSocketServer()
 	public readonly _server: Server;
 	private readonly _chat_service: ChatService;
+	private readonly _user_service: UserService;
 	private readonly _logger: Logger;
 
-	constructor(chat_service: ChatService) {
+	constructor(chat_service: ChatService, user_service: UserService) {
 		this._server = new Server();
 		this._chat_service = chat_service;
+		this._user_service = user_service;
 		this._logger = new Logger(ChatGateway.name);
 	}
 
@@ -42,33 +46,39 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		this._server.to(message.channelId).emit("channel_message", message);
 	}
 
-	public async broadcast_to_online_related_users(data: t_user_update_event): Promise<void> {
-		if (data.status !== undefined)
-			this._chat_service.update_user(data.id, data.status, data.spectating);
+	public async broadcast_to_online_related_users(
+		user_updated: t_user_update_event,
+	): Promise<void> {
+		if (user_updated.status !== undefined)
+			this._chat_service.update_user(
+				user_updated.id,
+				user_updated.status,
+				user_updated.spectating,
+			);
 
-		const users: t_user_id[] = await this._chat_service.get_online_related_users(data.id);
-		for (const user of users) {
-			const socket: Socket | undefined = this._chat_service.get_user(user.id)?.socket;
+		const users: t_user_id[] = await this._chat_service.get_online_related_users(
+			user_updated.id,
+		);
+		for (const user_to_notify of users) {
+			const socket: Socket | undefined = this._chat_service.get_user(
+				user_to_notify.id,
+			)?.socket;
 
 			if (socket) {
+				let data: IUserPrivate | IUserPublic;
+				if (user_updated.id === user_to_notify.id)
+					data = await this._user_service.get_me(user_to_notify.id);
+				else data = await this._user_service.get_one(user_to_notify.id, user_to_notify.id);
 				socket.emit("user_updated", data);
 			}
 		}
 	}
 
-	/**
-	 * @brief	Forward a message to a specific user through its socket.
-	 * 			It is assumed that the receiving user id which is stored in the message
-	 * 			corresponds to a valid socket.
-	 * 			(connected to the chat gateway)
-	 *
-	 * @param	message The message to forward.
-	 */
-	public forward_to_user_socket(message: DirectMessage): void {
-		const socket: Socket | undefined = this._chat_service.get_user(message.receiverId)?.socket;
+	public forward_to_user_socket(event: string, user_id: string, data: any): void {
+		const socket: Socket | undefined = this._chat_service.get_user(user_id)?.socket;
 
 		// if (socket === undefined) return;
-		socket?.emit("direct_message", message);
+		socket?.emit(event, data);
 	}
 
 	/**

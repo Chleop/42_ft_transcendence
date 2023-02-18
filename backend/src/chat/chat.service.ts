@@ -94,9 +94,9 @@ export class ChatService {
 						},
 					},
 				],
-				NOT: {
-					id,
-				},
+				// NOT: {
+				// 	id,
+				// },
 			},
 		});
 

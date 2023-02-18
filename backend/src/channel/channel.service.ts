@@ -1691,8 +1691,6 @@ export class ChannelService {
 		});
 		//#endregion
 
-		// this._gateway.broadcast_to_room(message);
-
 		this._logger.verbose(`User ${user_id} sent a message to channel ${channel_id}`);
 
 		return message;

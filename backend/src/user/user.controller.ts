@@ -383,7 +383,6 @@ export class UserController {
 			);
 			await this._chat_gateway.broadcast_to_online_related_users({
 				id: request.user.id,
-				name: dto.name,
 			});
 		} catch (error) {
 			if (error instanceof UserFieldUnaivalableError) {
@@ -418,7 +417,6 @@ export class UserController {
 			await this._user_service.update_ones_avatar(request.user.id, file);
 			await this._chat_gateway.broadcast_to_online_related_users({
 				id: request.user.id,
-				is_avatar_changed: true,
 			});
 		} catch (error) {
 			if (error instanceof UserAvatarFileFormatError) {
