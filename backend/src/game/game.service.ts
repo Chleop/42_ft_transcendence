@@ -77,15 +77,6 @@ export class GameService {
 	 * Trying to match client with another player.
 	 */
 	public queueUp(client: Socket): GameRoom | null {
-		// const index: number = this.findUserRoomIndex(client);
-		// if (index >= 0) {
-		// 	this.destroyRoom(this.game_rooms[index]);
-		// 	throw new BadEvent("Player already in game");
-		// }
-		// let room: GameRoom | undefined;
-		// for (const obj of this.game_rooms) {
-		// 	if (obj.match.player1)
-		// }
 		const room: GameRoom | null = this.findUserRoom(client);
 		if (room !== null) {
 			this.destroyRoom(room);
@@ -118,7 +109,6 @@ export class GameService {
 		if (room === null) return null;
 
 		/* Client was in an ongoing game */
-		// const room: GameRoom = this.game_rooms[index];
 		if (room.is_ongoing) {
 			this.logger.verbose(`Game '${room.match.name}' was ongoing`);
 			return room;
@@ -130,11 +120,7 @@ export class GameService {
 	 * Removes game room from list.
 	 */
 	public destroyRoom(room: GameRoom): void {
-		// const index: number = this.game_rooms.indexOf(room);
-		// if (index < 0) return;
 		if (this.game_rooms.delete(room)) this.logger.verbose(`Destroying room ${room.match.name}`);
-		// room.destroyPlayerPing();
-		// this.game_rooms.splice(index, 1);
 	}
 
 	/**
@@ -146,9 +132,6 @@ export class GameService {
 		const room: GameRoom | null = this.findUserRoom(client);
 		if (room === null) throw new BadEvent("Paddle update received but not in game");
 		return room.updatePaddle(client);
-		// const index: number = this.findUserRoomIndex(client);
-		// if (index < 0) throw new BadEvent("Paddle update received but not in game");
-		// return this.game_rooms[index].updatePaddle(client);
 	}
 
 	/**
@@ -163,30 +146,17 @@ export class GameService {
 				return obj;
 		}
 		throw new WrongData("Room does not exist");
-		// const room: GameRoom | undefined = this.game_rooms.find((obj) => {
-		// 	return (
-		// 		obj.match.player1.data.user.id === user_id ||
-		// 		obj.match.player2.data.user.id === user_id
-		// 	);
-		// });
-		// if (room === undefined) throw new WrongData("Room does not exist");
-		// return room;
 	}
 
 	/* PRIVATE ================================================================= */
 
 	/**
-	 * Returns index of room if client is in it.
+	 * Returns room if client is in it.
 	 */
-	// private findUserRoomIndex(client: Socket): GameRoom | null {
 	private findUserRoom(client: Socket): GameRoom | null {
 		for (const obj of this.game_rooms) {
 			if (obj.isSocketInRoom(client)) return obj;
 		}
 		return null;
-		// const index: number = this.game_rooms.findIndex((obj) => {
-		// 	return obj.isSocketInRoom(client);
-		// });
-		// return index;
 	}
 }

@@ -23,10 +23,6 @@ export class ScoreUpdate {
 			this.you = score_1;
 			this.opponent = score_2;
 		}
-		// this.opponent = score_1;
-		// this.you = score_2;
-		// if (left) this.just_scored = "you";
-		// else this.just_scored = "opponent";
 		if (score_1 === Constants.max_score) this.is_ongoing = false;
 		else this.is_ongoing = true;
 	}
