@@ -1,6 +1,7 @@
 export * from "src/user/error/Unknown.error";
 export * from "src/user/error/UserAlreadyBlocked.error";
 export * from "src/user/error/UserAlreadyFriend.error";
+export * from "src/user/error/UserAvatarFileFormat.error";
 export * from "src/user/error/UserBlocked.error";
 export * from "src/user/error/UserFieldUnavailable.error";
 export * from "src/user/error/UserMessageNotFound.error";

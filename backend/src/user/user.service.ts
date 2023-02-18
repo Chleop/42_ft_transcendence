@@ -10,6 +10,7 @@ import {
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
+	UserAvatarFileFormatError,
 	UserBlockedError,
 	UserFieldUnaivalableError,
 	UserMessageNotFoundError,
@@ -30,6 +31,7 @@ import { DirectMessage, StateType } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
 import { IChannel } from "src/channel/interface";
+import * as jimp from "jimp";
 
 @Injectable()
 export class UserService {
@@ -1895,6 +1897,8 @@ export class UserService {
 
 			throw new UnknownError();
 		}
+
+		this._logger.log(`User ${id} has been updated`);
 	}
 	//#endregion
 
@@ -1907,6 +1911,7 @@ export class UserService {
 	 * @param	file The file containing the new avatar.
 	 *
 	 * @error	The following errors may be thrown :
+	 * 			- UserAvatarFileFormatError
 	 * 			- UnknownError
 	 *
 	 * @return	An empty promise.
@@ -1918,6 +1923,16 @@ export class UserService {
 			avatar: string;
 		};
 		//#endregion
+
+		try {
+			const mime: string = (await jimp.read(file.buffer)).getMIME();
+
+			if (mime !== jimp.MIME_JPEG) {
+				throw new UserAvatarFileFormatError(mime);
+			}
+		} catch (error) {
+			throw new UserAvatarFileFormatError();
+		}
 
 		const user: t_fields = (await this._prisma.user.findUnique({
 			//#region
@@ -1949,6 +1964,7 @@ export class UserService {
 			});
 			//#endregion
 		}
+
 		try {
 			createWriteStream(join(process.cwd(), user.avatar)).write(file.buffer);
 		} catch (error) {
@@ -1956,7 +1972,8 @@ export class UserService {
 				this._logger.error(`Error occured while writing avatar to disk: ${error.message}`);
 			throw new UnknownError();
 		}
-		this._logger.log(`Updated user ${id}'s avatar`);
+
+		this._logger.log(`User ${id} updated their avatar`);
 	}
 	//#endregion
 }
