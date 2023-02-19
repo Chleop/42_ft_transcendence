@@ -1,8 +1,11 @@
-import { e_user_status, t_get_me_fields, t_get_one_fields } from "src/user/alias";
-import { UserUpdateDto } from "src/user/dto";
+import { t_user_auth } from "src/auth/alias";
+import { t_user_status } from "src/chat/alias";
+import { UserMessagesGetDto, UserUpdateDto } from "src/user/dto";
+import { e_user_status } from "src/user/enum";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
+	UserAvatarFileFormatError,
 	UserFieldUnaivalableError,
 	UserMessageNotFoundError,
 	UserNotBlockedError,
@@ -15,6 +18,9 @@ import {
 	UserSelfUnfriendError,
 } from "src/user/error";
 import { Jwt2FAGuard } from "src/auth/guards";
+import { IUserPrivate, IUserPublic } from "src/user/interface";
+import { ChatGateway } from "src/chat/chat.gateway";
+import { ChatService } from "src/chat/chat.service";
 import { UserService } from "src/user/user.service";
 import {
 	BadRequestException,
@@ -38,12 +44,7 @@ import {
 	ValidationPipe,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { UserMessagesGetDto } from "src/user/dto";
-import { t_user_auth } from "src/auth/alias";
 import { DirectMessage } from "@prisma/client";
-import { ChatGateway } from "src/chat/chat.gateway";
-import { ChatService } from "src/chat/chat.service";
-import { t_user_status } from "src/chat/alias";
 
 @Controller("user")
 @UseGuards(Jwt2FAGuard)
@@ -116,10 +117,10 @@ export class UserController {
 		request: {
 			user: t_user_auth;
 		},
-	): Promise<t_get_me_fields & { status: e_user_status; spectating?: string }> {
+	): Promise<{ status: e_user_status; spectating?: string } & IUserPrivate> {
 		//#region
 		try {
-			const user: t_get_me_fields = await this._user_service.get_me(request.user.id);
+			const user: IUserPrivate = await this._user_service.get_me(request.user.id);
 
 			const tmp_user: t_user_status | undefined = this._chat_service.get_user(
 				request.user.id,
@@ -152,10 +153,10 @@ export class UserController {
 			user: t_user_auth;
 		},
 		@Param("id") id: string,
-	): Promise<t_get_one_fields & { status: e_user_status; spectating?: string }> {
+	): Promise<{ status: e_user_status; spectating?: string } & IUserPublic> {
 		//#region
 		try {
-			const user: t_get_one_fields = await this._user_service.get_one(request.user.id, id);
+			const user: IUserPublic = await this._user_service.get_one(request.user.id, id);
 
 			const tmp_user: t_user_status | undefined = this._chat_service.get_user(id);
 			let status: e_user_status | undefined = tmp_user?.status;
@@ -247,6 +248,66 @@ export class UserController {
 			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
+	}
+	//#endregion
+
+	// TODO: check whether the requesting user is linked to the requested user
+	@Get(":id/skin/background")
+	async get_ones_skin_of_background(@Param("id") id: string): Promise<StreamableFile> {
+		//#region
+		let sfile: StreamableFile;
+		try {
+			sfile = await this._user_service.get_ones_background(id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+
+		return sfile;
+	}
+	//#endregion
+
+	// TODO: check whether the requesting user is linked to the requested user
+	@Get(":id/skin/ball")
+	async get_ones_skin_of_ball(@Param("id") id: string): Promise<StreamableFile> {
+		//#region
+		let sfile: StreamableFile;
+		try {
+			sfile = await this._user_service.get_ones_ball(id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+
+		return sfile;
+	}
+	//#endregion
+
+	// TODO: check whether the requesting user is linked to the requested user
+	@Get(":id/skin/paddle")
+	async get_ones_skin_of_paddle(@Param("id") id: string): Promise<StreamableFile> {
+		//#region
+		let sfile: StreamableFile;
+		try {
+			sfile = await this._user_service.get_ones_paddle(id);
+		} catch (error) {
+			if (error instanceof UserNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			this._logger.error("Unknow error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+
+		return sfile;
 	}
 	//#endregion
 
@@ -360,70 +421,17 @@ export class UserController {
 				is_avatar_changed: true,
 			});
 		} catch (error) {
+			if (error instanceof UserAvatarFileFormatError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
 			if (error instanceof UnknownError) {
 				this._logger.error(error.message);
 				throw new InternalServerErrorException(error.message);
 			}
-			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-	}
-	//#endregion
-
-	@Get(":id/skin/background")
-	async get_background_skin(@Param("id") id: string): Promise<StreamableFile> {
-		//#region
-		let sfile: StreamableFile;
-		try {
-			sfile = await this._user_service.get_ones_background(id);
-		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				this._logger.error(error.message);
-				throw new BadRequestException(error.message);
-			}
-			this._logger.error("Unknow error type, this should not happen");
-			throw new InternalServerErrorException();
-		}
-
-		return sfile;
-	}
-	//#endregion
-
-	@Get(":id/skin/ball")
-	async get_ball_skin(@Param("id") id: string): Promise<StreamableFile> {
-		//#region
-		let sfile: StreamableFile;
-		try {
-			sfile = await this._user_service.get_ones_ball(id);
-		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				this._logger.error(error.message);
-				throw new BadRequestException(error.message);
-			}
-			this._logger.error("Unknow error type, this should not happen");
-			throw new InternalServerErrorException();
-		}
-
-		return sfile;
-	}
-	//#endregion
-
-	@Get(":id/skin/paddle")
-	async get_paddle_skin(@Param("id") id: string): Promise<StreamableFile> {
-		//#region
-		let sfile: StreamableFile;
-		try {
-			sfile = await this._user_service.get_ones_paddle(id);
-		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				this._logger.error(error.message);
-				throw new BadRequestException(error.message);
-			}
-			this._logger.error("Unknow error type, this should not happen");
-			throw new InternalServerErrorException();
-		}
-
-		return sfile;
 	}
 	//#endregion
 }

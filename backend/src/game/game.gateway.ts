@@ -17,7 +17,7 @@ import { BadRequestException, ConflictException, Logger } from "@nestjs/common";
 import { Constants } from "./constants";
 import { BadEvent } from "./exceptions";
 import { ChatGateway } from "src/chat/chat.gateway";
-import { e_user_status } from "src/user/alias";
+import { e_user_status } from "src/user/enum";
 
 /**
  * setTimeout tracker
@@ -29,6 +29,7 @@ type TimeoutId = {
 
 @WebSocketGateway({
 	namespace: "game",
+	path: "/api/game_socket/socket.io",
 })
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
 	@WebSocketServer()

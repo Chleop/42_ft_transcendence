@@ -84,23 +84,27 @@ export class GameSocket {
      */
     public on_score_updated: (scores: ScoreStateUpdate) => void = noop;
 
+    public on_error: (err: any) => void = noop;
+    
     /**
      * Creates a new GameSocket.
      */
     public constructor() {
         console.log("initiating a connection with the game gateway...");
         this.socket = io("/game", {
+        	path: "/api/game_socket/socket.io",
             reconnection: false,
             auth: {
                 token: Client.access_token,
             },
         });
 
-        this.socket.on("connect_error", err => {
-            console.error(err);
-            this.disconnect();
-            throw new ConnectError();
-        });
+        this.socket.on("connect_error", (err) => this.on_error(err))
+        // this.socket.on("connect_error", err => {
+        //     console.error(err);
+        //     this.disconnect();
+        //     throw new ConnectError();
+        // });
         this.socket.on("connect", () => this.on_connected());
         this.socket.on("disconnect", () => this.on_disconnected());
         this.socket.on("matchFound", (state: MatchFound) => this.on_match_found(state));
@@ -161,6 +165,7 @@ export class SpecSocket {
      */
     public constructor(user_id: UserId) {
         this.socket = io("/spectate", {
+        	path: "/api/spectate_socket/socket.io",
             auth: {
                 token: Client.access_token,
                 user_id, // hello, this is good.

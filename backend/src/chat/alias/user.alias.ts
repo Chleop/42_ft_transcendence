@@ -1,5 +1,5 @@
 import { Socket } from "socket.io";
-import { e_user_status } from "src/user/alias";
+import { e_user_status } from "src/user/enum";
 
 export type t_user_id = {
 	id: string;
