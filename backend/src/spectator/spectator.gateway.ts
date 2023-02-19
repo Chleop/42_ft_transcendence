@@ -68,6 +68,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 */
 	public async handleConnection(client: Socket): Promise<void> {
 		this.logger.log(`[${client.data.user.login} connected]`);
+		client.data.valid_uid = false;
 		try {
 			const user_id: string | string[] | undefined = client.handshake.auth.user_id;
 			if (typeof user_id !== "string") throw new WrongData("Room not properly specified");
@@ -77,8 +78,8 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		} catch (e) {
 			if (e instanceof WrongData) {
 				this.logger.error(e.message);
-				client.data.valid_uid = false;
 				this.sendError(client, e);
+				this.handleDisconnect(client);
 				client.disconnect();
 				return;
 			}
@@ -159,6 +160,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	private updateGame(me: SpectatorGateway, room: GameRoom): void {
 		const update: SpectatorUpdate | ScoreUpdate | null = room.getSpectatorUpdate();
 		if (update === null) {
+			me.logger.debug("Kicking from room");
 			me.server.to(room.match.name).emit("endOfGame");
 			me.stopStreaming(me, room.match.name);
 		} else {

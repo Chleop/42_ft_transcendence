@@ -6,6 +6,6 @@ export type t_user_update_event = {
 	status?: e_user_status;
 	spectating?: string;
 	game_won?: number;
-	game_lost?: number;
+	game_played?: number;
 	is_avatar_changed?: boolean;
 };

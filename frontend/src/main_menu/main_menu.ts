@@ -61,12 +61,11 @@ class MainMenuScene extends Scene {
 
                 this.game_socket.on_error = (err) => {
                     console.error(err);
-                    if (this.game_socket === null)
-                        return;
-                    // this.game_socket.disconnect();
+                    if (this.game_socket === null) return;
+                    this.game_socket.disconnect();
                     throw new ConnectError();
                 };
-                
+
                 this.game_socket.on_connected = () => {
                     console.log("Connected to the server!");
                 };

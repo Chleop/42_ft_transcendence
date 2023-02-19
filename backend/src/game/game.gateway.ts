@@ -68,6 +68,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			if (e instanceof BadEvent) {
 				this.logger.error(e.message);
 				this.sendError(client, e);
+				this.handleDisconnect(client);
 				client.disconnect();
 				return;
 			}
@@ -98,7 +99,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			id: client.data.user.id,
 			status: e_user_status.ONLINE,
 			game_won: client.data.user.games_won_count,
-			game_lost: client.data.user.games_played_count - client.data.user.games_won_count,
+			game_played: client.data.user.games_played_count,
 		});
 		this.logger.log(`[${client.data.user.login} disconnected]`);
 	}
