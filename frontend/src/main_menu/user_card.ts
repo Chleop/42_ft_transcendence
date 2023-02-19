@@ -1,6 +1,7 @@
 import { Channel, Client, User, Users } from "../api";
 import GAME_BOARD from "../game/game_board";
 import { SpectatingGame } from "../game/spectating_game";
+import { History } from "../strawberry";
 import { Rank, rank_to_image, ratio_to_rank } from "../utility";
 import CHAT_ELEMENT from "./chat";
 
@@ -122,6 +123,7 @@ class UserCardElement {
                 this.status.innerText = "IN GAME";
                 this.status.onclick = () => {
                     GAME_BOARD.start_game(new SpectatingGame(user.id));
+                    History.push_state(GAME_BOARD);
                 };
                 this.status.style.cursor = "pointer";
             } else if (user.status === "spectating")

@@ -72,8 +72,8 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		try {
 			const user_id: string | string[] | undefined = client.handshake.auth.user_id;
 			if (typeof user_id !== "string") throw new WrongData("Room not properly specified");
-			client.data.valid_uid = true;
 			const game_room: GameRoom = this.game_service.findUserGame(user_id);
+			client.data.valid_uid = true;
 			return this.startStreaming(client, game_room);
 		} catch (e) {
 			if (e instanceof WrongData) {
@@ -83,6 +83,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 				client.disconnect();
 				return;
 			}
+			this.logger.verbose("here");
 			throw e;
 		}
 	}
@@ -95,16 +96,24 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 * if they sent a valid uid.
 	 */
 	public handleDisconnect(client: Socket): void {
-		if (client.data.valid_uid) {
+		if (client.data.valid_uid === true) {
 			const user_id: string = client.handshake.auth.user_id;
-			const game_room: GameRoom = this.game_service.findUserGame(user_id);
-			const spectated_room: SpectatedRoom | null = this.spectator_service.getRoom(
-				game_room.match.name,
-			);
-			if (spectated_room instanceof SpectatedRoom) {
-				spectated_room.removeSpectator(client);
-				if (spectated_room.isEmpty())
-					this.stopStreaming(this, spectated_room.game_room.match.name);
+			try {
+				const game_room: GameRoom = this.game_service.findUserGame(user_id);
+				const spectated_room: SpectatedRoom | null = this.spectator_service.getRoom(
+					game_room.match.name,
+				);
+				if (spectated_room instanceof SpectatedRoom) {
+					spectated_room.removeSpectator(client);
+					if (spectated_room.isEmpty())
+						this.stopStreaming(this, spectated_room.game_room.match.name);
+				}
+			} catch (e) {
+				if (e instanceof WrongData) {
+					this.logger.error(e.message);
+					return;
+				}
+				throw e;
 			}
 		}
 		this.logger.log(`[${client.data.user.login} disconnected]`);
@@ -163,8 +172,10 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 			me.logger.debug("Kicking from room");
 			me.server.to(room.match.name).emit("endOfGame");
 			me.stopStreaming(me, room.match.name);
-		} else {
+		} else if (update instanceof SpectatorUpdate) {
 			me.server.to(room.match.name).emit("updateGame", update);
+		} else {
+			me.server.to(room.match.name).emit("updateScore", update);
 		}
 	}
 

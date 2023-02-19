@@ -44,6 +44,7 @@ export class SpectatingGame extends OngoingGame {
             console.log(`connected to spectator socket`);
         socket.on_disconnected = () => this.on_disconnected();
         socket.on_update = (st) => this.on_spec_update(st);
+        socket.on_score_update = (st) => this.on_score_updated(st);
 
         this.game_started = false;
         this.socket = socket;
@@ -54,13 +55,12 @@ export class SpectatingGame extends OngoingGame {
         this.right_id = user_id;
     }
 
+    private on_score_updated(state: ScoreStateUpdate) {
+        this.state.left_paddle.score = state.you;
+        this.state.right_paddle.score = state.opponent;
+    }
+
     private on_spec_update(state: SpectatorStateUpdate) {
-        /* | ScoreStateUpdate) {
-        if (state.player1 === undefined) {
-
-        } else {
-
-        } */
         this.state.left_paddle.position = state.player1.position;
         this.state.left_paddle.velocity = state.player1.velocity;
         this.state.right_paddle.position = state.player2.position;
