@@ -1,5 +1,11 @@
-import { Constants, OngoingGame, Paddle, SkinUrls, } from ".";
-import { Client, SpecSocket, SpectatorStateUpdate, UserId } from "../api";
+import { Constants, OngoingGame, Paddle, SkinUrls } from ".";
+import {
+    Client,
+    ScoreStateUpdate,
+    SpecSocket,
+    SpectatorStateUpdate,
+    UserId,
+} from "../api";
 import { History } from "../strawberry";
 
 /** An onging game that we are spectating. */
@@ -34,9 +40,10 @@ export class SpectatingGame extends OngoingGame {
         console.log(`spectating room '${user_id}'`);
 
         const socket = new SpecSocket(user_id);
-        socket.on_connected = () => console.log(`connected to spectator socket`);
+        socket.on_connected = () =>
+            console.log(`connected to spectator socket`);
         socket.on_disconnected = () => this.on_disconnected();
-        socket.on_update = st => this.on_spec_update(st);
+        socket.on_update = (st) => this.on_spec_update(st);
 
         this.game_started = false;
         this.socket = socket;
@@ -48,6 +55,12 @@ export class SpectatingGame extends OngoingGame {
     }
 
     private on_spec_update(state: SpectatorStateUpdate) {
+        /* | ScoreStateUpdate) {
+        if (state.player1 === undefined) {
+
+        } else {
+
+        } */
         this.state.left_paddle.position = state.player1.position;
         this.state.left_paddle.velocity = state.player1.velocity;
         this.state.right_paddle.position = state.player2.position;
@@ -63,13 +76,11 @@ export class SpectatingGame extends OngoingGame {
 
         this.flow = "break";
 
-        if (!this.has_left)
-            History.go_back();
+        if (!this.has_left) History.go_back();
     }
 
     public tick(delta_time: number): void {
-        if (!this.game_started)
-            return; // The game has not started yet.
+        if (!this.game_started) return; // The game has not started yet.
 
         let s = this.state;
 
@@ -118,10 +129,18 @@ export class SpectatingGame extends OngoingGame {
 function move_paddle(dt: number, paddle: Paddle) {
     paddle.position += dt * paddle.velocity;
 
-    if (paddle.position - Constants.paddle_height / 2 < -Constants.board_height / 2) {
-        paddle.position = -Constants.board_height / 2 + Constants.paddle_height / 2;
+    if (
+        paddle.position - Constants.paddle_height / 2 <
+        -Constants.board_height / 2
+    ) {
+        paddle.position =
+            -Constants.board_height / 2 + Constants.paddle_height / 2;
     }
-    if (paddle.position + Constants.paddle_height / 2 >= Constants.board_height / 2) {
-        paddle.position = Constants.board_height / 2 - Constants.paddle_height / 2;
+    if (
+        paddle.position + Constants.paddle_height / 2 >=
+        Constants.board_height / 2
+    ) {
+        paddle.position =
+            Constants.board_height / 2 - Constants.paddle_height / 2;
     }
 }
