@@ -1,33 +1,20 @@
-import {
-	BadRequestException,
-	ForbiddenException,
-	Injectable,
-	InternalServerErrorException,
-	StreamableFile,
-} from "@nestjs/common";
-import { Socket } from "socket.io";
-
+import { Injectable } from "@nestjs/common";
 import { GameRoom } from "../game/rooms";
-
 import { SpectatedRoom } from "./rooms";
-import { PlayerInfos } from "./objects";
-import { RoomData } from "./aliases";
-
-import { UserService } from "src/user/user.service";
-import { UserNotFoundError, UserNotLinkedError } from "src/user/error";
+import { RoomData } from "./objects";
+// import { Socket } from "socket.io";
+// import { IUserPrivate } from "src/user/interface";
 
 /**
  * Spectated rooms handler.
  */
 @Injectable()
 export class SpectatorService {
-	private readonly user_service: UserService;
 	private rooms: Set<SpectatedRoom>;
 
 	/* CONSTRUCTOR ============================================================= */
 
-	constructor(user_service: UserService) {
-		this.user_service = user_service;
+	constructor() {
 		this.rooms = new Set<SpectatedRoom>();
 	}
 
@@ -36,21 +23,21 @@ export class SpectatorService {
 	/**
 	 * Retrieves each players infos, to be sent to the spectator.
 	 */
-	public async retrieveRoomData(game_room: GameRoom, spectated_id: string): Promise<RoomData> {
-		try {
-			// const player1: Socket = game_room.match.player1;
-			// const player2: Socket = game_room.match.player2;
-			// const player_infos1: PlayerInfos = new PlayerInfos(player1.data.user, avatar1);
-			// const player_infos2: PlayerInfos = new PlayerInfos(player2.data.user, avatar2);
-			// return { player1: player_infos1, player2: player_infos2 };
-		} catch (e) {
-			if (e instanceof UserNotFoundError) {
-				throw new BadRequestException(e.message);
-			} else if (e instanceof UserNotLinkedError) {
-				throw new ForbiddenException(e.message);
-			}
-			throw new InternalServerErrorException();
-		}
+	public retrieveRoomData(spectated_id: string, game_room: GameRoom): RoomData {
+		// try {
+		// const player1: Socket = game_room.match.player1;
+		// const player2: Socket = game_room.match.player2;
+		// if (player1.data.user.id === spectated_id)
+		return new RoomData(spectated_id, game_room);
+		// return { player1: player_infos1, player2: player_infos2 };
+		// } catch (e) {
+		// 	if (e instanceof UserNotFoundError) {
+		// 		throw new BadRequestException(e.message);
+		// 	} else if (e instanceof UserNotLinkedError) {
+		// 		throw new ForbiddenException(e.message);
+		// 	}
+		// 	throw new InternalServerErrorException();
+		// }
 	}
 
 	/**
