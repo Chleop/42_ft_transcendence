@@ -102,7 +102,7 @@ export class ChannelListElement {
         const channel_name = document.createElement("input");
         channel_name.type = "text";
         channel_name.classList.add("editor-field");
-        channel_name.onchange = () => {
+        channel_name.onkeydown = () => {
             if (channel_name.value === "") {
                 new_channel_title.disabled = true;
                 new_channel_title.classList.remove("ready");
@@ -184,7 +184,7 @@ export class ChannelListElement {
             let password: string | undefined = undefined;
             if (!priv && channel_password.value !== "")
                 password = channel_password.value;
-            console.log(channel_name.name, priv, password);
+            // TODO: Catch 409: confilct
             Client.create_channel(channel_name.value, priv, password).then(channel => {
                 const ch = CHAT_ELEMENT.add_channel(channel);
                 CHAT_ELEMENT.set_selected_channel(ch);

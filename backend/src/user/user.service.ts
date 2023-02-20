@@ -947,30 +947,6 @@ export class UserService {
 				id: true,
 				name: true,
 				skinId: true,
-				channels: {
-					select: {
-						id: true,
-						name: true,
-						chanType: true,
-						hash: true,
-						ownerId: true,
-						members: {
-							select: {
-								id: true,
-							},
-						},
-						operators: {
-							select: {
-								id: true,
-							},
-						},
-						banned: {
-							select: {
-								id: true,
-							},
-						},
-					},
-				},
 				gamesPlayed: {
 					select: {
 						id: true,
@@ -1000,18 +976,6 @@ export class UserService {
 			id: requested_user_tmp.id,
 			name: requested_user_tmp.name,
 			skin_id: requested_user_tmp.skinId,
-			channels: requested_user_tmp.channels.map((channel): IChannel => {
-				return {
-					id: channel.id,
-					name: channel.name,
-					type: channel.chanType,
-					owner_id: channel.ownerId,
-					members_count: channel.members.length,
-					operators_ids: channel.operators.map((operator): string => {
-						return operator.id;
-					}),
-				};
-			}),
 			games_played_count: requested_user_tmp.gamesPlayed.length,
 			games_won_count: requested_user_tmp.gamesWon.length,
 		};
