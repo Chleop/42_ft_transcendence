@@ -95,11 +95,11 @@ export class ChannelListElement {
         const channel_name_container = document.createElement("div");
         channel_name_container.classList.add("editor-field-container");
         new_channel_edit_row.appendChild(channel_name_container);
-        
+
         const channel_name = document.createElement("input");
         channel_name.type = "text";
         channel_name.classList.add("editor-field");
-        channel_name.onchange = () => {
+        channel_name.onkeydown = () => {
             if (channel_name.value === "") {
                 new_channel_title.disabled = true;
                 new_channel_title.classList.remove("ready");
@@ -118,7 +118,7 @@ export class ChannelListElement {
         const channel_password_container = document.createElement("div");
         channel_password_container.classList.add("editor-field-container");
         new_channel_edit_row.appendChild(channel_password_container);
-        
+
         const channel_password = document.createElement("input");
         channel_password.type = "password";
         channel_password.classList.add("editor-field");
@@ -168,18 +168,22 @@ export class ChannelListElement {
                 const ch = CHAT_ELEMENT.add_channel(chan);
                 CHAT_ELEMENT.set_selected_channel(ch);
                 this.hide();
-            }).catch(() => {});
+            }).catch(() => { });
         };
-        
-        add_priv_channel_input.onpaste = join_chan;
-        add_priv_channel_input.onchange = join_chan;
+
+        add_priv_channel_input.onpaste = (ev) => {
+            const a = ev.clipboardData?.getData("Text");
+            if (a)
+                add_priv_channel_input.value = a;
+            join_chan();
+        };
 
         new_channel_title.onclick = () => {
             const priv = channel_private.classList.contains("active");
-            let password: string|undefined = undefined;
+            let password: string | undefined = undefined;
             if (!priv && channel_password.value !== "")
                 password = channel_password.value;
-            console.log(channel_name.name, priv, password);
+            // TODO: Catch 409: confilct
             Client.create_channel(channel_name.value, priv, password).then(channel => {
                 const ch = CHAT_ELEMENT.add_channel(channel);
                 CHAT_ELEMENT.set_selected_channel(ch);
