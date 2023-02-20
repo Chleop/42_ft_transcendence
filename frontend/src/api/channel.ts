@@ -37,20 +37,16 @@ export interface Message {
     dateTime: string,
 }
 
+export type ChanType = "PROTECTED" | "PUBLIC" | "PRIVATE";
+
 /**
  * Information about a channel.
  */
 export interface Channel {
-    /**
-     * The ID of the channel.
-     */
-    id: ChannelId;
-    /**
-     * The name of the channel.
-     */
+    id: string;
     name: string;
-    /** The type of this channel. */
-    type: "PUBLIC"|"PROTECTED"|"PRIVATE",
-    /** Member count. */
-    members_count: number,
+    type: ChanType;
+    owner_id: string | null;
+    members_count: number;
+    operators_ids: string[];
 }

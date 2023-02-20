@@ -1,6 +1,6 @@
 import CHAT_ELEMENT from "./chat";
 import { Scene, History, State } from "../strawberry";
-import { GameSocket, Users } from "../api";
+import { GameSocket, User, Users } from "../api";
 import { PlayingGame } from "../game";
 import { rank_to_image, ratio_to_rank } from "../utility";
 import PROFILE_OVERLAY from "./profile_overlay";
@@ -84,10 +84,12 @@ class MainMenuScene extends Scene {
                     const s: GameSocket | null = this.game_socket;
                     if (s === null) return;
                     Users.me().then((me) => {
-                        GAME_BOARD.start_game(
-                            new PlayingGame(s, me.id, found.id)
-                        );
-                        History.push_state(GAME_BOARD);
+                        Users.get(found.id).then(user => {
+                            GAME_BOARD.start_game(
+                                new PlayingGame(s, me, user)
+                            );
+                            History.push_state(GAME_BOARD);
+                        });
                     });
                     this.game_socket = null;
                     find_game_span.innerText = "Find Game";

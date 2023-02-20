@@ -1,9 +1,11 @@
 import { Constants, OngoingGame, Paddle, SkinUrls } from ".";
 import {
     Client,
+    RoomData,
     ScoreStateUpdate,
     SpecSocket,
     SpectatorStateUpdate,
+    User,
     UserId,
 } from "../api";
 import { History } from "../strawberry";
@@ -31,8 +33,7 @@ export class SpectatingGame extends OngoingGame {
     /** Becomes `true` when the player left by himself. */
     private has_left: boolean;
 
-    private left_id: UserId;
-    private right_id: UserId;
+    private future_game: Promise<RoomData>;
 
     public constructor(user_id: UserId) {
         super();
@@ -46,13 +47,17 @@ export class SpectatingGame extends OngoingGame {
         socket.on_update = (st) => this.on_spec_update(st);
         socket.on_score_update = (st) => this.on_score_updated(st);
 
+        this.future_game = new Promise(resolve => {
+            socket.on_room_data = resolve;
+        });
+
+        new Promise(() => { });
+
         this.game_started = false;
         this.socket = socket;
         this.has_left = false;
         this.user_id = user_id;
 
-        this.left_id = user_id;
-        this.right_id = user_id;
     }
 
     private on_score_updated(state: ScoreStateUpdate) {
@@ -115,13 +120,14 @@ export class SpectatingGame extends OngoingGame {
     }
 
     public get_skins(): SkinUrls {
+        // TODO: sync variable names with back
         return {
-            left_background: Client.get_background(this.left_id),
-            right_background: Client.get_background(this.right_id),
-            left_paddle: Client.get_paddle(this.left_id),
-            right_paddle: Client.get_paddle(this.right_id),
-            left_ball: Client.get_ball(this.left_id),
-            right_ball: Client.get_ball(this.right_id),
+            left_background: this.future_game.then(d => Client.get_background(d.spectated.skin_id)),
+            right_background: this.future_game.then(d => Client.get_background(d.opponent.skin_id)),
+            left_paddle: this.future_game.then(d => Client.get_paddle(d.spectated.skin_id)),
+            right_paddle: this.future_game.then(d => Client.get_paddle(d.opponent.skin_id)),
+            left_ball: this.future_game.then(d => Client.get_ball(d.spectated.skin_id)),
+            right_ball: this.future_game.then(d => Client.get_ball(d.opponent.skin_id)),
         };
     }
 }
