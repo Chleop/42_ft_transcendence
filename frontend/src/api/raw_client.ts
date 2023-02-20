@@ -460,7 +460,7 @@ export class RawHTTPClient {
 	public async ban(id: ChannelId, user: UserId): Promise<void> {
 		await this.make_request({
 			method: "PATCH",
-			url: `/api/channel/${id}/bin`,
+			url: `/api/channel/${id}/ban`,
 			body: new JsonBody({ user_id: user }),
 		});
 	}
