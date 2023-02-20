@@ -27,16 +27,26 @@ import {
 	Logger,
 } from "@nestjs/common";
 import { t_user_auth } from "src/auth/alias";
+import { ChatGateway } from "src/chat/chat.gateway";
+import { UserService } from "src/user/user.service";
 
 @Controller("friend_request")
 @UseGuards(Jwt2FAGuard)
 export class FriendRequestController {
 	// REMIND: check if passing `_friend_request_service` in readonly keep it working well
+	private readonly _chat_gateway: ChatGateway;
 	private _friend_request_service: FriendRequestService;
+	private readonly _user_service: UserService;
 	private readonly _logger: Logger;
 
-	constructor(friend_request_service: FriendRequestService) {
+	constructor(
+		chat_gateway: ChatGateway,
+		friend_request_service: FriendRequestService,
+		user_service: UserService,
+	) {
+		this._chat_gateway = chat_gateway;
 		this._friend_request_service = friend_request_service;
+		this._user_service = user_service;
 		this._logger = new Logger(FriendRequestController.name);
 	}
 
@@ -51,6 +61,11 @@ export class FriendRequestController {
 	): Promise<void> {
 		try {
 			await this._friend_request_service.accept_one(request.user.id, dto.accepted_user_id);
+			this._chat_gateway.forward_to_user_socket(
+				"user_updated",
+				dto.accepted_user_id,
+				this._user_service.get_me(dto.accepted_user_id),
+			);
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||
@@ -102,6 +117,11 @@ export class FriendRequestController {
 	): Promise<void> {
 		try {
 			await this._friend_request_service.send_one(request.user.id, dto.receiving_user_id);
+			this._chat_gateway.forward_to_user_socket(
+				"user_updated",
+				dto.receiving_user_id,
+				this._user_service.get_me(dto.receiving_user_id),
+			);
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||

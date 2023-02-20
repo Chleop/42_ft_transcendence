@@ -94,11 +94,31 @@ export class ChatService {
 						},
 					},
 				],
-				NOT: {
-					id,
-				},
+				// NOT: {
+				// 	id,
+				// },
 			},
 		});
+
+		return users.filter((user: t_user_id) => {
+			return ChatService._user_map.has(user.id);
+		});
+	}
+
+	// get all users that are in a channel and connected
+	public async get_online_users_in_channel(channel_id: string): Promise<t_user_id[]> {
+		const users: t_user_id[] = (await this._prisma_service.channel.findUnique({
+			select: {
+				members: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		}))!.members;
 
 		return users.filter((user: t_user_id) => {
 			return ChatService._user_map.has(user.id);

@@ -179,7 +179,7 @@ export class ChatController {
 			object = await this._user_service.send_message_to_one(request.user.id, id, dto.content);
 
 			if (!object.receiver.blocked.some((blocked) => blocked.id === request.user.id)) {
-				this._chat_gateway.forward_to_user_socket(object.message);
+				this._chat_gateway.forward_to_user_socket("direct_message", id, object.message);
 			}
 		} catch (error) {
 			if (

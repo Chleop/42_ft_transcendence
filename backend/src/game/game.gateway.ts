@@ -98,8 +98,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		this.chat_gateway.broadcast_to_online_related_users({
 			id: client.data.user.id,
 			status: e_user_status.ONLINE,
-			game_won: client.data.user.games_won_count,
-			game_played: client.data.user.games_played_count,
 		});
 		this.logger.log(`[${client.data.user.login} disconnected]`);
 	}
