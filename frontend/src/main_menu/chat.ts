@@ -92,7 +92,7 @@ export interface MessageElement { }
 /**
  * A channel that has been instanciated in the DOM.
  */
-class ChannelElementInternal {
+export class ChannelElement {
     /**
      * The `<button>` element representing the tab.
      */
@@ -201,10 +201,10 @@ class ChatElement {
     /**
      * Information about the channel that is currently selected.
      */
-    private selected_channel: null | ChannelElementInternal;
+    private selected_channel: null | ChannelElement;
 
     /** The channels elements. */
-    private channel_elements: ChannelElementInternal[];
+    private channel_elements: ChannelElement[];
 
     /**
      * Creates a new `ChatContainer` element.
@@ -248,9 +248,9 @@ class ChatElement {
         channel_settings_button.onclick = () => {
             if (!this.selected_channel) return;
             if (this.selected_channel.model) {
-                const model = this.selected_channel.model; // this is a data race! Yay!!
+                const selected_channel = this.selected_channel; // this is a data race! Yay!!
                 Users.me().then((me) => {
-                    CHANNEL_SETTINGS.show(channel_settings_button, me, model);
+                    CHANNEL_SETTINGS.show(channel_settings_button, me, selected_channel);
                 });
             }
         };
@@ -321,7 +321,7 @@ class ChatElement {
      * Sets the currently selected channel.
      */
     public set_selected_channel(element: ChannelElement | null) {
-        const element_ = element as ChannelElementInternal | null;
+        const element_ = element as ChannelElement | null;
 
         if (this.selected_channel) {
             this.selected_channel.tab.classList.remove("active-channel-tab");
@@ -349,7 +349,7 @@ class ChatElement {
      * Adds a channel to the list of channels.
      */
     public add_channel(channel: Channel): ChannelElement {
-        let element = new ChannelElementInternal(this, channel, null, this);
+        let element = new ChannelElement(this, channel, null, this);
 
         this.channel_tabs.appendChild(element.tab);
 
@@ -365,23 +365,22 @@ class ChatElement {
     }
 
     public remove_channel(channel: ChannelElement) {
-        const channel_ = <ChannelElementInternal>channel;
-        const index = this.channel_elements.indexOf(channel_);
+        const index = this.channel_elements.indexOf(channel);
         if (index === -1)
             throw new Error("Trying a remove a channel that does not exist.");
-        channel_.tab.remove();
+        channel.tab.remove();
         this.channel_elements.splice(index, 1);
         if (!this.selected_channel) return;
         if (
             this.selected_channel.model &&
-            channel_.model &&
-            this.selected_channel.model.id !== channel_.model.id
+            channel.model &&
+            this.selected_channel.model.id !== channel.model.id
         )
             return;
         if (
             this.selected_channel.dm &&
-            channel_.dm &&
-            this.selected_channel.dm.id !== channel_.dm.id
+            channel.dm &&
+            this.selected_channel.dm.id !== channel.dm.id
         )
             return;
         if (this.channel_elements.length > 0)
@@ -404,7 +403,7 @@ class ChatElement {
         const ch = this.get_dm_channel(user.id);
         if (ch) return ch;
 
-        let element = new ChannelElementInternal(this, null, user, this);
+        let element = new ChannelElement(this, null, user, this);
 
         this.channel_tabs.appendChild(element.tab);
 
@@ -427,7 +426,7 @@ class ChatElement {
         channel: ChannelElement,
         message: Message
     ): MessageElement {
-        const channel_ = channel as ChannelElementInternal;
+        const channel_ = channel as ChannelElement;
 
         let continuing = false;
         if (channel_.last_message) {
