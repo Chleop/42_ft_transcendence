@@ -123,6 +123,8 @@ export class Sprite implements WithTexture {
         image.onload = () => {
             gl.bindTexture(gl.TEXTURE_2D, texture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
             gl.generateMipmap(gl.TEXTURE_2D);
 
             console.log(`loaded image '${image.src}' (${image.width}x${image.height})`);
@@ -179,7 +181,7 @@ export class Renderer {
     private hitbox_uniform_view_transform: WebGLUniformLocation;
 
     private image_program: WebGLProgram;
-    
+
     private warp_program: WebGLProgram;
 
     private warp_uniform_screen: WebGLUniformLocation;
@@ -219,6 +221,10 @@ export class Renderer {
         this.canvas_height = 1;
 
         this.view_matrix = [1, 0, 0, 1];
+
+        // support opacity.
+        this.gl.enable(this.gl.BLEND);
+        this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
     }
 
     /**

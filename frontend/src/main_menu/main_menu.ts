@@ -1,5 +1,5 @@
 import CHAT_ELEMENT from "./chat";
-import { Scene, History } from "../strawberry";
+import { Scene, History, State } from "../strawberry";
 import { GameSocket, Users } from "../api";
 import { PlayingGame } from "../game";
 import { rank_to_image, ratio_to_rank } from "../utility";
@@ -7,6 +7,7 @@ import PROFILE_OVERLAY from "./profile_overlay";
 import GAME_BOARD from "../game/game_board";
 
 import { ConnectError } from "../api";
+import USER_CARD from "./user_card";
 
 /**
  * The scene that contains the main menu.
@@ -61,12 +62,11 @@ class MainMenuScene extends Scene {
 
                 this.game_socket.on_error = (err) => {
                     console.error(err);
-                    if (this.game_socket === null)
-                        return;
-                    // this.game_socket.disconnect();
+                    if (this.game_socket === null) return;
+                    this.game_socket.disconnect();
                     throw new ConnectError();
                 };
-                
+
                 this.game_socket.on_connected = () => {
                     console.log("Connected to the server!");
                 };
@@ -144,6 +144,12 @@ class MainMenuScene extends Scene {
         });
 
         this.game_socket = null;
+    }
+
+    public on_left(prev: State): void {
+        USER_CARD.hide();
+
+        super.on_left(prev);
     }
 
     public get location(): string {

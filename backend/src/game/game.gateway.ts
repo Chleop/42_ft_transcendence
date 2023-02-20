@@ -19,14 +19,6 @@ import { BadEvent } from "./exceptions";
 import { ChatGateway } from "src/chat/chat.gateway";
 import { e_user_status } from "src/user/enum";
 
-/**
- * setTimeout tracker
- */
-type TimeoutId = {
-	match: string;
-	timer: NodeJS.Timer;
-};
-
 @WebSocketGateway({
 	namespace: "game",
 	path: "/api/game_socket/socket.io",
@@ -36,8 +28,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	public readonly server: Server;
 	private readonly game_service: GameService;
 	private readonly chat_gateway: ChatGateway;
-	private timeouts: TimeoutId[] = [];
-	private readonly logger: Logger = new Logger();
+	private timeouts: Map<string, NodeJS.Timer>;
+	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
 
@@ -45,7 +37,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		this.server = new Server();
 		this.game_service = game_service;
 		this.chat_gateway = chat_gateway;
-		this.timeouts = [];
+		this.timeouts = new Map<string, NodeJS.Timer>();
 		this.logger = new Logger(GameGateway.name);
 	}
 
@@ -76,6 +68,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			if (e instanceof BadEvent) {
 				this.logger.error(e.message);
 				this.sendError(client, e);
+				this.handleDisconnect(client);
 				client.disconnect();
 				return;
 			}
@@ -94,25 +87,20 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	public async handleDisconnect(client: Socket): Promise<void> {
 		const room: GameRoom | null = this.game_service.unQueue(client);
 		if (room !== null) {
-			const index: number = this.timeouts.findIndex((obj) => {
-				return obj.match === room.match.name;
-			});
-			if (index >= 0) {
-				clearTimeout(this.timeouts[index].timer);
-				this.timeouts.splice(index, 1);
+			const timer: NodeJS.Timer | undefined = this.timeouts.get(room.match.name);
+			if (timer !== undefined) {
+				clearTimeout(timer);
+				this.timeouts.delete(room.match.name);
 			}
 			await this.endGameEarly(client, room);
 			this.game_service.destroyRoom(room);
 		}
-		if (client.data.user.status === e_user_status.INGAME) {
-			client.data.user.status = e_user_status.ONLINE;
-			this.chat_gateway.broadcast_to_online_related_users({
-				id: client.data.user.id,
-				status: e_user_status.ONLINE,
-				game_won: client.data.user.games_won,
-				game_lost: client.data.user.games_played - client.data.user.games_won,
-			});
-		}
+		this.chat_gateway.broadcast_to_online_related_users({
+			id: client.data.user.id,
+			status: e_user_status.ONLINE,
+			game_won: client.data.user.games_won_count,
+			game_played: client.data.user.games_played_count,
+		});
 		this.logger.log(`[${client.data.user.login} disconnected]`);
 	}
 
@@ -161,10 +149,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			id: game_room.match.player2.data.user.id,
 			status: e_user_status.INGAME,
 		});
-		this.timeouts.push({
-			match: game_room.match.name,
-			timer: setTimeout(this.startGame, 3000, this, game_room),
-		});
+		this.timeouts.set(game_room.match.name, setTimeout(this.startGame, 3000, this, game_room));
 	}
 
 	/**
@@ -177,11 +162,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		room.match.player2.emit("gameStart", initial_game_state);
 		room.setPlayerPingId(setInterval(me.sendGameUpdates, Constants.ping, me, room));
 
-		const index: number = me.timeouts.findIndex((obj) => {
-			return obj.match === room.match.name;
-		});
-		if (index < 0) return;
-		me.timeouts.splice(index, 1);
+		me.timeouts.delete(room.match.name);
 	}
 
 	/**
@@ -206,15 +187,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				room.destroyPlayerPing();
 				room.has_updated_score = false;
 				room.is_ongoing = false;
-				const last_score: ScoreUpdate = room.getScoreUpdate();
 
-				if (update.winner === room.match.player1.data.user.id) {
-					++room.match.player1.data.user.games_won;
-				} else {
-					++room.match.player2.data.user.games_won;
-				}
-				++room.match.player1.data.user.games_played;
-				++room.match.player2.data.user.games_played;
+				const is_winner_left: boolean = update.winner === room.match.player1.data.user.id;
+				me.updateSocketScore(room.match.player1, is_winner_left);
+				me.updateSocketScore(room.match.player2, !is_winner_left);
+
+				const last_score: ScoreUpdate = room.getScoreUpdate();
 				room.match.player1.emit("updateScore", last_score);
 				room.match.player2.emit("updateScore", last_score.invert());
 				const match: Match = await me.game_service.registerGameHistory(room, update);
@@ -245,13 +223,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
 			try {
 				await this.game_service.registerGameHistory(room, results);
-				if (results.winner === room.match.player1.data.user.id) {
-					++room.match.player1.data.user.games_won;
-				} else {
-					++room.match.player2.data.user.games_won;
-				}
-				++room.match.player1.data.user.games_played;
-				++room.match.player2.data.user.games_played;
+				const is_winner_left: boolean = results.winner === room.match.player1.data.user.id;
+				this.updateSocketScore(room.match.player1, is_winner_left);
+				this.updateSocketScore(room.match.player2, !is_winner_left);
 			} catch (e) {
 				if (e instanceof BadRequestException || e instanceof ConflictException) {
 					this.logger.error(e.message);
@@ -279,5 +253,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	private disconnectRoom(match: Match): void {
 		match.player1.disconnect();
 		match.player2.disconnect();
+	}
+
+	/**
+	 * Changes the game data of the socket, switches back status.
+	 */
+	private updateSocketScore(client: Socket, has_won: boolean): void {
+		if (has_won === true) ++client.data.user.games_won_count;
+		++client.data.user.games_played_count;
+		client.data.user.status = e_user_status.ONLINE;
 	}
 }
