@@ -130,7 +130,7 @@ export class ChannelElement {
         if (model) this.tab.innerText = model.name;
         if (dm) this.tab.innerText = dm.name;
         this.tab.onclick = () => container.set_selected_channel(this);
-        this.tab.onmousedown = (ev) => {
+        this.tab.onauxclick = (ev) => {
             if (ev.button === 1) {
                 ev.preventDefault();
                 ev.stopPropagation();
@@ -158,6 +158,11 @@ export class ChannelElement {
         this.dm = dm;
     }
 }
+
+/**
+ * A channel that has been instanciated.
+ */
+export interface ChannelElement { }
 
 /**
  * Stores the state of the chat.
