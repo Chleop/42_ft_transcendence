@@ -147,6 +147,31 @@ class ProfileOverlay extends Overlay {
         editor_email_label.classList.add("editor-field-label");
         editor_email_container.appendChild(editor_email_label);
 
+        const skin_picker = document.createElement("div");
+        skin_picker.id = "profile-skin-picker";
+
+        const skin_ids = [
+            'test',
+            'test2',
+            'test3',
+            'test',
+            'test2',
+            'test3',
+            'test',
+            'test2',
+            'test3',
+        ];
+
+        for (const _skin_id of skin_ids) {
+            const skin_button = document.createElement("button");
+            skin_button.classList.add("profile-skin-button");
+
+            skin_button.style.backgroundImage = `url('https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Image_created_with_a_mobile_phone.png/250px-Image_created_with_a_mobile_phone.png')`;
+            skin_picker.appendChild(skin_button);
+        }
+
+        card.appendChild(skin_picker);
+
         const game_history = document.createElement("ul");
         game_history.id = "profile-game-history";
         game_history.classList.add("custom-scrollbar");
