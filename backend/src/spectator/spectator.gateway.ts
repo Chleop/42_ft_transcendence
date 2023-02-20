@@ -16,8 +16,7 @@ import { Constants } from "../game/constants";
 
 import { SpectatorService } from "./spectator.service";
 import { SpectatedRoom } from "./rooms";
-import { RoomData } from "./aliases";
-import { SpectatorUpdate } from "./objects";
+import { SpectatorUpdate, RoomData } from "./objects";
 import { ChatGateway } from "src/chat/chat.gateway";
 import { e_user_status } from "src/user/enum";
 
@@ -136,7 +135,11 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		);
 
 		try {
-			const room_data: RoomData = await this.spectator_service.retrieveRoomData(game_room);
+			const user_id: string = client.handshake.auth.user_id;
+			const room_data: RoomData = await this.spectator_service.retrieveRoomData(
+				user_id,
+				game_room,
+			);
 			client.emit("roomData", room_data);
 		} catch (e) {
 			this.logger.error(e.message);
