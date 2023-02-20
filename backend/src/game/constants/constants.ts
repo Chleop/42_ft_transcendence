@@ -70,7 +70,8 @@ export const limit_x: number = max_x - ball_radius; // = 6.8
  */
 export const limit_y: number = h_2 - ball_radius; // = 4.5 - 0.2 = 4.3
 
-
+/**
+ * Pi subdivisions.
+ */
 export const pi_4: number = Math.PI * 0.25;
-
-export const cos_pi4: number = Math.cos(pi_4);
+export const pi_3: number = Math.PI * 0.33;

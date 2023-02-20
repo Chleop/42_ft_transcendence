@@ -77,11 +77,13 @@ export class GameService {
 	 * Trying to match client with another player.
 	 */
 	public queueUp(client: Socket): GameRoom | null {
-		const room: GameRoom | null = this.findUserRoom(client);
-		if (room !== null) {
-			this.destroyRoom(room);
+		try {
+			this.findUserGame(client.data.user.id);
 			throw new BadEvent("Player already in game");
+		} catch (e) {
+			if (e instanceof BadEvent) throw e;
 		}
+		this.logger.verbose(`${client.data.user.login} entering matchmaking.`);
 		const new_game_room: GameRoom | null = this.matchmaking.queueUp(client);
 		if (new_game_room === null) {
 			this.logger.verbose(`${client.data.user.login} was queued up.`);
