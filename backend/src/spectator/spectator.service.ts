@@ -77,10 +77,6 @@ export class SpectatorService {
 		if (room === null) return;
 		clearInterval(room.ping_id);
 		this.rooms.delete(room);
-		// const index: number = this.getRoomIndex(room_name);
-		// if (index < 0) return;
-		// clearInterval(this.rooms[index].ping_id);
-		// this.rooms.splice(index, 1);
 	}
 
 	/* ------------------------------------------------------------------------- */
@@ -94,16 +90,4 @@ export class SpectatorService {
 		}
 		return null;
 	}
-	// 	const room: SpectatedRoom | undefined = this.rooms.find((obj) => {
-	// 		return obj.getName() === name;
-	// 	});
-	// 	if (room === undefined) return null;
-	// 	return room;
-	// }
-
-	// public getRoomIndex(name: string): number {
-	// 	return this.rooms.findIndex((obj) => {
-	// 		return obj.getName() === name;
-	// 	});
-	// }
 }
