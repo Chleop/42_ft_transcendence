@@ -450,11 +450,26 @@ export class RawHTTPClient {
 	}
 
 	public async patch_channel(id: ChannelId, channel: { name?: string, type?: "PUBLIC" | "PRIVATE" | "PROTECTED", password: undefined | null | string }) {
-		console.log(channel);
 		await this.make_request({
 			method: "PATCH",
 			url: `/api/channel/${id}`,
 			body: new JsonBody(channel),
+		});
+	}
+
+	public async ban(id: ChannelId, user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: `/api/channel/${id}/bin`,
+			body: new JsonBody({ user_id: user }),
+		});
+	}
+
+	public async unban(id: ChannelId, user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: `/api/channel/${id}/unban`,
+			body: new JsonBody({ user_id: user }),
 		});
 	}
 }

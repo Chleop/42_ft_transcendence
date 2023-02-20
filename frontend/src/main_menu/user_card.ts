@@ -1,6 +1,7 @@
 import { Channel, Client, User, Users } from "../api";
 import GAME_BOARD from "../game/game_board";
 import { SpectatingGame } from "../game/spectating_game";
+import { NOTIFICATIONS } from "../notification";
 import { History } from "../strawberry";
 import { Rank, rank_to_image, ratio_to_rank } from "../utility";
 import CHAT_ELEMENT from "./chat";
@@ -19,6 +20,7 @@ class UserCardElement {
     private send_message_button: HTMLButtonElement;
     private promote_button: HTMLButtonElement;
     private mute_button: HTMLButtonElement;
+    private ban_button: HTMLButtonElement;
 
     public constructor() {
         const screen = document.createElement("div");
@@ -94,6 +96,11 @@ class UserCardElement {
         mute_button.innerText = "Mute";
         menu.appendChild(mute_button);
 
+        const ban_button = document.createElement("button");
+        ban_button.classList.add("user-card-menu-button");
+        ban_button.innerText = "Ban";
+        menu.appendChild(ban_button);
+
         this.screen = screen;
         this.card = card;
         this.banner = banner;
@@ -107,6 +114,7 @@ class UserCardElement {
         this.send_message_button = send_message_button;
         this.promote_button = promote_button;
         this.mute_button = mute_button;
+        this.ban_button = ban_button;
     }
 
     public show(elem: HTMLElement | null, user: User, channel: Channel | null) {
@@ -160,6 +168,7 @@ class UserCardElement {
                 this.send_message_button.style.display = "none";
                 this.mute_button.style.display = "none";
                 this.promote_button.style.display = "none";
+                this.ban_button.style.display = "none";
                 return;
             }
 
@@ -190,6 +199,9 @@ class UserCardElement {
                         const index = me.friends_ids.indexOf(user.id);
                         if (index !== -1) me.friends_ids.splice(index, 1);
                         this.show(null, user, channel);
+                        NOTIFICATIONS.spawn_notification("green", "failed to remove this friend");
+                    }).catch(() => {
+                        NOTIFICATIONS.spawn_notification("red", "failed to remove this friend");
                     });
             } else if (pending) {
                 this.friend_button.innerText = "Accept Friend";
@@ -197,12 +209,18 @@ class UserCardElement {
                     Client.accept_friend(user.id).then(() => {
                         me.friends_ids.push(user.id);
                         this.show(null, user, channel);
+                        NOTIFICATIONS.spawn_notification("green", "Friend request accepted.");
+                    }).catch(() => {
+                        NOTIFICATIONS.spawn_notification("red", "failed to accept the friend request");
                     });
             } else {
                 this.friend_button.innerText = "Add Friend";
                 this.friend_button.onclick = () =>
                     Client.request_friend(user.id).then(() => {
                         this.show(null, user, channel);
+                        NOTIFICATIONS.spawn_notification("green", "I hope they respond...");
+                    }).catch(() => {
+                        NOTIFICATIONS.spawn_notification("orange", "I already asked them out...");
                     });
             }
 
@@ -213,6 +231,9 @@ class UserCardElement {
                         const index = me.blocked_ids.indexOf(user.id);
                         if (index !== -1) me.blocked_ids.splice(index, 1);
                         this.show(null, user, channel);
+                        NOTIFICATIONS.spawn_notification("green", "are you guys cool now?");
+                    }).catch(() => {
+                        NOTIFICATIONS.spawn_notification("red", "failed to block this user");
                     });
                 this.friend_button.style.display = "none";
             } else {
@@ -221,6 +242,9 @@ class UserCardElement {
                     Client.block(user.id).then(() => {
                         me.blocked_ids.push(user.id);
                         this.show(null, user, channel);
+                        NOTIFICATIONS.spawn_notification("green", "this user won't bother you no more");
+                    }).catch(() => {
+                        NOTIFICATIONS.spawn_notification("red", "failed to block the user");
                     });
                 this.friend_button.style.display = "block";
             }
@@ -236,6 +260,9 @@ class UserCardElement {
                         Client.promote(user.id, channel.id).then(() => {
                             channel.operators_ids.push(user.id);
                             this.show(null, user, channel);
+                            NOTIFICATIONS.spawn_notification("green", "User promoted to channel operator.");
+                        }).catch(() => {
+                            NOTIFICATIONS.spawn_notification("orange", "this user is no longer present in this channel");
                         });
                     };
                 } else {
@@ -248,6 +275,9 @@ class UserCardElement {
                             else
                                 console.error("tried to demote a user that wasn't an operator - and it worked?");
                             this.show(null, user, channel);
+                            NOTIFICATIONS.spawn_notification("green", "User demoted from channel operators.");
+                        }).catch(() => {
+                            NOTIFICATIONS.spawn_notification("orange", "this user is no longer present in this channel");
                         });
                     };
                 }
@@ -257,6 +287,7 @@ class UserCardElement {
 
             if (i_am_admin && !is_admin) {
                 this.mute_button.style.display = "block";
+                this.ban_button.style.display = "block";
                 this.mute_button.onclick = () => {
                     let time = 0;
                     while (true) {
@@ -265,10 +296,26 @@ class UserCardElement {
                         time = parseFloat(input);
                         if (!isNaN(time) && time !== 0) break;
                     }
-                    Client.mute(user.id, channel.id, time);
+                    Client.mute(user.id, channel.id, time)
+                        .then(() => {
+                            NOTIFICATIONS.spawn_notification("green", "user muted.");
+                        })
+                        .catch(() => {
+                            NOTIFICATIONS.spawn_notification("orange", "this user is no longer present in this channel");
+                        });
+                };
+                this.ban_button.onclick = () => {
+                    Client.ban(user.id, channel.id)
+                        .then(() => {
+                            NOTIFICATIONS.spawn_notification("green", "user banned.");
+                        })
+                        .catch(() => {
+                            NOTIFICATIONS.spawn_notification("orange", "this user is no longer present in this channel");
+                        });
                 };
             } else {
                 this.mute_button.style.display = "none";
+                this.ban_button.style.display = "none";
             }
         });
         Users.get_avatar(user.id).then((url) => {
