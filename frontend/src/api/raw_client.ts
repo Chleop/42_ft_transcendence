@@ -1,6 +1,6 @@
-import {Body, JsonBody, FileBody} from "./body";
-import {Channel, ChannelId, Message, MessageId} from "./channel";
-import {PrivateUser, User, UserId} from "./user";
+import { Body, JsonBody, FileBody } from "./body";
+import { Channel, ChannelId, Message, MessageId } from "./channel";
+import { PrivateUser, User, UserId } from "./user";
 
 /**
  * The server returned a status code which wasn't expected.
@@ -112,7 +112,7 @@ export class RawHTTPClient {
 					try {
 						await this.validate_2fa(code);
 						break;
-					} catch (e) {}
+					} catch (e) { }
 				}
 
 				return this.make_request(request);
@@ -296,7 +296,7 @@ export class RawHTTPClient {
 				success_status: 201,
 				accept: "application/json",
 				url: `/api/chat/channel/${channel}/message`,
-				body: new JsonBody({content}),
+				body: new JsonBody({ content }),
 			})
 		).json();
 	}
@@ -319,7 +319,7 @@ export class RawHTTPClient {
 			method: "POST",
 			url: "/api/auth/42/2FAActivate",
 			success_status: 201,
-			body: new JsonBody({email}),
+			body: new JsonBody({ email }),
 		});
 	}
 
@@ -338,7 +338,7 @@ export class RawHTTPClient {
 			method: "POST",
 			success_status: 201,
 			url: "/api/auth/42/2FAValidate",
-			body: new JsonBody({code}),
+			body: new JsonBody({ code }),
 		});
 	}
 
@@ -346,7 +346,7 @@ export class RawHTTPClient {
 		await this.make_request({
 			method: "PATCH",
 			url: "/api/friend_request/send",
-			body: new JsonBody({receiving_user_id: user}),
+			body: new JsonBody({ receiving_user_id: user }),
 		});
 	}
 
@@ -354,7 +354,7 @@ export class RawHTTPClient {
 		await this.make_request({
 			method: "PATCH",
 			url: "/api/friend_request/reject",
-			body: new JsonBody({rejected_user_id: user}),
+			body: new JsonBody({ rejected_user_id: user }),
 		});
 	}
 
@@ -362,7 +362,7 @@ export class RawHTTPClient {
 		await this.make_request({
 			method: "PATCH",
 			url: "/api/friend_request/accept",
-			body: new JsonBody({accepted_user_id: user}),
+			body: new JsonBody({ accepted_user_id: user }),
 		});
 	}
 
@@ -428,7 +428,16 @@ export class RawHTTPClient {
 			method: "POST",
 			url: `/api/chat/user/${user}/message`,
 			success_status: 201,
-			body: new JsonBody({content}),
+			body: new JsonBody({ content }),
+		});
+	}
+
+	public async patch_channel(id: ChannelId, channel: { name?: string, type?: "PUBLIC" | "PRIVATE" | "PROTECTED", password: undefined | null | string }) {
+		console.log(channel);
+		await this.make_request({
+			method: "PATCH",
+			url: `/api/channel/${id}`,
+			body: new JsonBody(channel),
 		});
 	}
 }
