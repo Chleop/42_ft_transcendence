@@ -336,10 +336,6 @@ class ChatElement {
             element_.tab.classList.add("active-channel-tab");
             this.messages.appendChild(element_.messages);
 
-            // FIXME:
-            //  When we want to support upward scrolling, messages should be queried once here if
-            //  we can fit some more.
-
             this.selected_channel = element_;
 
             this.message_input.value = element_.input;

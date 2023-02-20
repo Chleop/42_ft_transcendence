@@ -13,11 +13,16 @@ export class ScoreUpdate {
 
 	/* CONSTRUCTOR ============================================================= */
 
-	constructor(score_1: number, score_2: number, left: boolean) {
-		this.opponent = score_1;
-		this.you = score_2;
-		if (left) this.just_scored = "you";
-		else this.just_scored = "opponent";
+	constructor(score_1: number, score_2: number, is_left: boolean) {
+		if (is_left === true) {
+			this.just_scored = "you";
+			this.you = score_2;
+			this.opponent = score_1;
+		} else {
+			this.just_scored = "opponent";
+			this.you = score_1;
+			this.opponent = score_2;
+		}
 		if (score_1 === Constants.max_score) this.is_ongoing = false;
 		else this.is_ongoing = true;
 	}

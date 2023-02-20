@@ -1,4 +1,4 @@
-import { Scene, State } from "../strawberry";
+import { History, Scene, State } from "../strawberry";
 import { Constants, OngoingGame } from ".";
 import { Renderer, Sprite, Framebuffer } from "./renderer";
 
@@ -70,6 +70,8 @@ class GameBoardClass extends Scene {
     private left_ball: Sprite | undefined;
     private right_ball: Sprite | undefined;
 
+    private heart: Sprite;
+
     private tmp_canvas: Framebuffer;
     private warped_canvas: Framebuffer;
 
@@ -99,6 +101,8 @@ class GameBoardClass extends Scene {
         const [w, h] = get_framebuffer_dims(canvas.width, canvas.height);
         this.tmp_canvas = this.renderer.create_framebuffer(w, h);
         this.warped_canvas = this.renderer.create_framebuffer(w, h);
+
+        this.heart = this.renderer.create_sprite("/heart.png");
 
         window.addEventListener("keydown", e => {
             if (e.key === "D") {
@@ -177,8 +181,8 @@ class GameBoardClass extends Scene {
         // ===============
         // Render The Game
         // ===============
-        const HEART_SIZE: number = 0.2;
-        const HEART_GAP: number = 0.05;
+        const HEART_SIZE: number = 0.6
+        const HEART_GAP: number = 0.03;
 
         const r = this.renderer;
         const s = this.ongoing_game.game_state;
@@ -206,12 +210,12 @@ class GameBoardClass extends Scene {
 
         // Display the health of the opponent.
         for (let i = 0; i < Constants.max_score - s.left_paddle.score; ++i) {
-            r.draw_hitbox(Constants.board_width / 2 - (i + 1) * (HEART_SIZE + HEART_GAP), Constants.board_height / 2 - HEART_GAP - HEART_SIZE, HEART_SIZE, HEART_SIZE);
+            r.draw_sprite(this.heart, -0.5 + Constants.board_width / 2 - (i + 1) * (HEART_SIZE + HEART_GAP), -0.5 + Constants.board_height / 2 - HEART_GAP - HEART_SIZE, HEART_SIZE, HEART_SIZE);
         }
 
         // Display the health of the player.
         for (let i = 0; i < Constants.max_score - s.right_paddle.score; ++i) {
-            r.draw_hitbox(-Constants.board_width / 2 + HEART_GAP + i * (HEART_SIZE + HEART_GAP), Constants.board_height / 2 - HEART_GAP - HEART_SIZE, HEART_SIZE, HEART_SIZE);
+            r.draw_sprite(this.heart, 0.5 + -Constants.board_width / 2 + HEART_GAP + i * (HEART_SIZE + HEART_GAP), -0.5 + Constants.board_height / 2 - HEART_GAP - HEART_SIZE, HEART_SIZE, HEART_SIZE);
         }
 
         // When debug information are required, hitboxes are drawn.
@@ -224,16 +228,6 @@ class GameBoardClass extends Scene {
 
             // Display the ball.
             r.draw_hitbox(s.ball.x - Constants.ball_radius / 2, s.ball.y - Constants.ball_radius / 2, Constants.ball_radius, Constants.ball_radius);
-
-            // Display the health of the opponent.
-            for (let i = 0; i < Constants.max_score - s.left_paddle.score; ++i) {
-                r.draw_hitbox(Constants.board_width / 2 - (i + 1) * (HEART_SIZE + HEART_GAP), Constants.board_height / 2 - HEART_GAP - HEART_SIZE, HEART_SIZE, HEART_SIZE);
-            }
-
-            // Display the health of the player.
-            for (let i = 0; i < Constants.max_score - s.right_paddle.score; ++i) {
-                r.draw_hitbox(-Constants.board_width / 2 + HEART_GAP + i * (HEART_SIZE + HEART_GAP), Constants.board_height / 2 - HEART_GAP - HEART_SIZE, HEART_SIZE, HEART_SIZE);
-            }
         }
 
         if (this.render_state.wtf) {
@@ -259,6 +253,12 @@ class GameBoardClass extends Scene {
             this.ongoing_game = null;
         }
         super.on_left(new_state);
+    }
+
+    public on_entered(prev: State): void {
+        if (!this.ongoing_game)
+            History.go_back();
+        super.on_entered(prev);
     }
 
     /**

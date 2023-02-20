@@ -105,7 +105,7 @@ export const History = (function () {
                     this.replace_state(this.default_state);
                 return;
             }
-        
+
             // const prev_state = this.state_stack[this.state_stack_index];
             // const new_state = this.state_stack[this.state_stack_index - 1];
 
