@@ -53,7 +53,6 @@ import { t_user_auth } from "src/auth/alias";
 @UseGuards(Jwt2FAGuard)
 @Controller("channel")
 export class ChannelController {
-	// REMIND: check if passing `_channel_service` in readonly keep it working well
 	private readonly _channel_service: ChannelService;
 	private readonly _logger: Logger;
 
