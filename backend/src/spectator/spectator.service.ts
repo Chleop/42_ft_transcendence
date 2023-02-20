@@ -22,13 +22,13 @@ import { UserNotFoundError, UserNotLinkedError } from "src/user/error";
 @Injectable()
 export class SpectatorService {
 	private readonly user_service: UserService;
-	private rooms: SpectatedRoom[];
+	private rooms: Set<SpectatedRoom>;
 
 	/* CONSTRUCTOR ============================================================= */
 
 	constructor(user_service: UserService) {
 		this.user_service = user_service;
-		this.rooms = [];
+		this.rooms = new Set<SpectatedRoom>();
 	}
 
 	/* PUBLIC ================================================================== */
@@ -66,17 +66,21 @@ export class SpectatorService {
 	 * Observes a new room.
 	 */
 	public add(new_room: SpectatedRoom): void {
-		this.rooms.push(new_room);
+		this.rooms.add(new_room);
 	}
 
 	/**
 	 * Removes a streaming room.
 	 */
 	public destroyRoom(room_name: string): void {
-		const index: number = this.getRoomIndex(room_name);
-		if (index < 0) return;
-		clearInterval(this.rooms[index].ping_id);
-		this.rooms.splice(index, 1);
+		const room: SpectatedRoom | null = this.getRoom(room_name);
+		if (room === null) return;
+		clearInterval(room.ping_id);
+		this.rooms.delete(room);
+		// const index: number = this.getRoomIndex(room_name);
+		// if (index < 0) return;
+		// clearInterval(this.rooms[index].ping_id);
+		// this.rooms.splice(index, 1);
 	}
 
 	/* ------------------------------------------------------------------------- */
@@ -85,16 +89,21 @@ export class SpectatorService {
 	 * Returns room by name.
 	 */
 	public getRoom(name: string): SpectatedRoom | null {
-		const room: SpectatedRoom | undefined = this.rooms.find((obj) => {
-			return obj.getName() === name;
-		});
-		if (room === undefined) return null;
-		return room;
+		for (const obj of this.rooms) {
+			if (obj.getName() === name) return obj;
+		}
+		return null;
 	}
+	// 	const room: SpectatedRoom | undefined = this.rooms.find((obj) => {
+	// 		return obj.getName() === name;
+	// 	});
+	// 	if (room === undefined) return null;
+	// 	return room;
+	// }
 
-	public getRoomIndex(name: string): number {
-		return this.rooms.findIndex((obj) => {
-			return obj.getName() === name;
-		});
-	}
+	// public getRoomIndex(name: string): number {
+	// 	return this.rooms.findIndex((obj) => {
+	// 		return obj.getName() === name;
+	// 	});
+	// }
 }
