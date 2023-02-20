@@ -70,12 +70,9 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		this.logger.log(`[${client.data.user.login} connected]`);
 		client.data.valid_uid = false;
 		try {
-			this.logger.debug("connect");
 			const user_id: string | string[] | undefined = client.handshake.auth.user_id;
 			if (typeof user_id !== "string") throw new WrongData("Room not properly specified");
-			this.logger.debug("passed check type");
 			const game_room: GameRoom = this.game_service.findUserGame(user_id);
-			this.logger.debug("passed check room");
 			client.data.valid_uid = true;
 			return this.startStreaming(client, game_room);
 		} catch (e) {
@@ -127,7 +124,6 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 */
 	private async startStreaming(client: Socket, game_room: GameRoom): Promise<void> {
 		client.join(game_room.match.name);
-		this.logger.debug("passed streaming");
 
 		this.chat_gateway.broadcast_to_online_related_users({
 			id: client.data.user.id,
@@ -140,10 +136,8 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		);
 
 		try {
-			this.logger.debug("retrieving room data");
 			const room_data: RoomData = await this.spectator_service.retrieveRoomData(game_room);
 			client.emit("roomData", room_data);
-			this.logger.debug("retrieved room data");
 		} catch (e) {
 			this.logger.error(e.message);
 			this.sendError(client, e);
@@ -186,7 +180,6 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 
 		if (room === null) return;
 
-		me.logger.debug("stop streamin");
 		me.kickEveryone(room, me);
 		me.spectator_service.destroyRoom(room_name);
 		me.logger.log(`Removing streaming room: ${room_name}`);
