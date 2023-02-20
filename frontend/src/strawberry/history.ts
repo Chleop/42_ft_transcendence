@@ -34,7 +34,7 @@ export class EmptyState extends State {
 /**
  * Wraps methods to manipulate the history.
  */
-export const History = (function () {
+export const History = (function() {
     class HistoryClass {
         /**
          * The current state stack. It's not possible to use the window's state system because it
@@ -47,7 +47,7 @@ export const History = (function () {
          */
         private state_stack_index: number;
 
-        public default_state: State|null = null;
+        public default_state: State | null = null;
 
         /**
          * Creates a new `HistoryClass` instance.
@@ -58,8 +58,10 @@ export const History = (function () {
 
                 if (typeof ev.state === "number")
                     this.state_stack_index = ev.state;
-                old_state.on_left(this.current_state);
-                this.current_state.on_entered(old_state);
+                if (this.state_stack_index < this.state_stack.length) {
+                    old_state.on_left(this.current_state);
+                    this.current_state.on_entered(old_state);
+                }
             };
 
             this.state_stack = [new EmptyState()];
@@ -99,8 +101,7 @@ export const History = (function () {
          * Pops the current state.
          */
         public go_back() {
-            if (this.state_stack_index == 0)
-            {
+            if (this.state_stack_index == 0) {
                 if (this.default_state)
                     this.replace_state(this.default_state);
                 return;
