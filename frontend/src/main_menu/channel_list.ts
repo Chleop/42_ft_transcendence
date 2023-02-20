@@ -1,4 +1,5 @@
 import { Channel, Client, Users } from "../api";
+import { NOTIFICATIONS } from "../notification";
 import CHAT_ELEMENT from "./chat";
 
 /** Information about a channel to be added. */
@@ -31,7 +32,9 @@ export class ChannelResultElement {
                 });
                 CHAT_ELEMENT.set_selected_channel(elem);
                 CHANNEL_LIST.hide();
-            }).catch(() => { })
+            }).catch(() => {
+                NOTIFICATIONS.spawn_notification("red", "invalid password");
+            });
         };
         root.appendChild(header);
 
@@ -168,15 +171,13 @@ export class ChannelListElement {
                 const ch = CHAT_ELEMENT.add_channel(chan);
                 CHAT_ELEMENT.set_selected_channel(ch);
                 this.hide();
-            }).catch(() => { });
+            }).catch(() => {
+                NOTIFICATIONS.spawn_notification("red", "unknown channel ID");
+            });
         };
 
-        add_priv_channel_input.onpaste = (ev) => {
-            const a = ev.clipboardData?.getData("Text");
-            if (a)
-                add_priv_channel_input.value = a;
-            join_chan();
-        };
+        add_priv_channel_input.onpaste = join_chan;
+        add_priv_channel_input.onchange = join_chan;
 
         new_channel_title.onclick = () => {
             const priv = channel_private.classList.contains("active");
@@ -189,6 +190,8 @@ export class ChannelListElement {
                 CHAT_ELEMENT.set_selected_channel(ch);
                 Users.me().then(me => me.channels_owned_ids.push(channel.id));
                 this.hide();
+            }).catch(() => {
+                NOTIFICATIONS.spawn_notification("red", "channel name already taken");
             });
         }
 
