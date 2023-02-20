@@ -169,7 +169,6 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	private updateGame(me: SpectatorGateway, room: GameRoom): void {
 		const update: SpectatorUpdate | ScoreUpdate | null = room.getSpectatorUpdate();
 		if (update === null) {
-			me.logger.debug("Kicking from room");
 			me.server.to(room.match.name).emit("endOfGame");
 			me.stopStreaming(me, room.match.name);
 		} else if (update instanceof SpectatorUpdate) {
