@@ -321,7 +321,7 @@ class UserCardElement {
         Users.get_avatar(user.id).then((url) => {
             this.avatar.style.backgroundImage = `url(\"${url}\")`;
         });
-        Client.get_background(user.id).then((url) => {
+        Client.get_background(user.skin_id).then((url) => {
             this.banner.style.backgroundImage = `url(\"${url}\")`;
         });
 

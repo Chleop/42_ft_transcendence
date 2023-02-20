@@ -7,12 +7,16 @@ import MAIN_MENU from "./main_menu";
 class ProfileOverlay extends Overlay {
     private html: HTMLDivElement;
 
+    private current_skin: HTMLButtonElement;
+
     public get parent_state(): State {
         return MAIN_MENU;
     }
 
     public constructor() {
         super();
+
+        this.current_skin = document.createElement("button");
 
         this.html = document.createElement("div");
         this.html.id = "profile";
@@ -150,12 +154,50 @@ class ProfileOverlay extends Overlay {
         editor_email_label.classList.add("editor-field-label");
         editor_email_container.appendChild(editor_email_label);
 
+        const skin_picker = document.createElement("div");
+        skin_picker.id = "profile-skin-picker";
+
+        card.appendChild(skin_picker);
+
         const game_history = document.createElement("ul");
         game_history.id = "profile-game-history";
         game_history.classList.add("custom-scrollbar");
         card.appendChild(game_history);
 
         Users.me().then((me) => {
+            Client.get_all_skins().then(skins => {
+                for (const skin of skins) {
+                    const skin_button = document.createElement("button");
+                    skin_button.classList.add("profile-skin-button");
+
+                    if (skin.id === me.skin_id) {
+                        skin_button.classList.add("profile-current-skin");
+                        this.current_skin = skin_button;
+                    }
+
+                    const content = document.createElement("div");
+                    content.classList.add("profile-skin-content");
+                    content.innerText = skin.name;
+                    skin_button.appendChild(content);
+
+                    Client.get_background(skin.id).then(url => {
+                        skin_button.style.backgroundImage = `url('${url}')`;
+                    });
+
+                    skin_picker.appendChild(skin_button);
+
+                    skin_button.onclick = () => {
+                        Client.patch_user({
+                            skin_id: skin.id,
+                        }).then(() => {
+                            this.current_skin.classList.remove("profile-current-skin");
+                            this.current_skin = skin_button;
+                            this.current_skin.classList.add("profile-current-skin");
+                        });
+                    };
+                }
+            });
+
             Users.get_avatar(me.id).then(url => {
                 avatar.style.backgroundImage = `url(\"${url}\")`;
             });

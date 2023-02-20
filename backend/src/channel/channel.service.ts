@@ -30,15 +30,12 @@ import { IChannel, IChannelTmp } from "./interface";
 @Injectable()
 export class ChannelService {
 	// REMIND: would it be better to make these properties static ?
-	// REMIND: check if passing `_prisma` in readonly keep it working well
-	private _prisma: PrismaService;
-	// REMIND: check if passing `_gateway` in readonly keep it working well
-	// private _gateway: ChatGateway;
+	private readonly _prisma_service: PrismaService;
 	private readonly _logger: Logger;
 
 	constructor(prisma_service: PrismaService /* , chat_gateway: ChatGateway */) {
-		this._prisma = prisma_service;
 		//#region
+		this._prisma_service = prisma_service;
 		this._logger = new Logger(ChannelService.name);
 	}
 	//#endregion
@@ -72,7 +69,7 @@ export class ChannelService {
 		//#region
 		for (const operator of channel.operators) {
 			if (operator.id !== channel.owner!.id) {
-				await this._prisma.channel.update({
+				await this._prisma_service.channel.update({
 					//#region
 					data: {
 						owner: {
@@ -94,7 +91,7 @@ export class ChannelService {
 		}
 		for (const member of channel.members) {
 			if (member.id !== channel.owner!.id) {
-				await this._prisma.channel.update({
+				await this._prisma_service.channel.update({
 					//#region
 					data: {
 						owner: {
@@ -138,7 +135,7 @@ export class ChannelService {
 	): Promise<void> {
 		//#region
 		if (!channel) {
-			channel = await this._prisma.channel.findUnique({
+			channel = await this._prisma_service.channel.findUnique({
 				//#region
 				select: {
 					owner: {
@@ -162,7 +159,7 @@ export class ChannelService {
 			throw new ChannelMissingOwnerError(id);
 		}
 
-		await this._prisma.channel.update({
+		await this._prisma_service.channel.update({
 			//#region
 			data: {
 				owner: {
@@ -203,7 +200,7 @@ export class ChannelService {
 		};
 		//#endregion
 
-		const message: t_fields | null = await this._prisma.channelMessage.findUnique({
+		const message: t_fields | null = await this._prisma_service.channelMessage.findUnique({
 			//#region
 			select: {
 				dateTime: true,
@@ -219,7 +216,7 @@ export class ChannelService {
 			throw new ChannelMessageNotFoundError(message_id);
 		}
 
-		const messages: ChannelMessage[] = await this._prisma.channelMessage.findMany({
+		const messages: ChannelMessage[] = await this._prisma_service.channelMessage.findMany({
 			//#region
 			orderBy: {
 				dateTime: "asc",
@@ -269,7 +266,7 @@ export class ChannelService {
 		};
 		//#endregion
 
-		const message: t_fields | null = await this._prisma.channelMessage.findUnique({
+		const message: t_fields | null = await this._prisma_service.channelMessage.findUnique({
 			//#region
 			select: {
 				channelId: true,
@@ -285,7 +282,7 @@ export class ChannelService {
 			throw new ChannelMessageNotFoundError(message_id);
 		}
 
-		const messages: ChannelMessage[] = await this._prisma.channelMessage.findMany({
+		const messages: ChannelMessage[] = await this._prisma_service.channelMessage.findMany({
 			//#region
 			orderBy: {
 				dateTime: "desc",
@@ -319,7 +316,7 @@ export class ChannelService {
 		limit: number,
 	): Promise<ChannelMessage[]> {
 		//#region
-		const messages: ChannelMessage[] = await this._prisma.channelMessage.findMany({
+		const messages: ChannelMessage[] = await this._prisma_service.channelMessage.findMany({
 			//#region
 			orderBy: {
 				dateTime: "desc",
@@ -349,7 +346,7 @@ export class ChannelService {
 	private async _inherit_ones_ownership(channel: Channel, user_id: string): Promise<Channel> {
 		//#region
 		if (!channel.ownerId) {
-			channel = await this._prisma.channel.update({
+			channel = await this._prisma_service.channel.update({
 				//#region
 				data: {
 					owner: {
@@ -411,7 +408,7 @@ export class ChannelService {
 		};
 		//#endregion
 
-		const channel: t_fields | null = await this._prisma.channel.findUnique({
+		const channel: t_fields | null = await this._prisma_service.channel.findUnique({
 			//#region
 			select: {
 				owner: {
@@ -441,7 +438,7 @@ export class ChannelService {
 		}
 
 		await this.kick_ones_member(banning_user_id, channel_id, banned_user_id, channel);
-		await this._prisma.channel.update({
+		await this._prisma_service.channel.update({
 			//#region
 			data: {
 				banned: {
@@ -499,7 +496,7 @@ export class ChannelService {
 		}
 
 		if (
-			await this._prisma.channel.findUnique({
+			await this._prisma_service.channel.findUnique({
 				//#region
 				where: {
 					name: name,
@@ -510,7 +507,7 @@ export class ChannelService {
 			throw new ChannelNameAlreadyTakenError(name);
 		}
 
-		const channel_tmp: IChannelTmp = await this._prisma.channel.create({
+		const channel_tmp: IChannelTmp = await this._prisma_service.channel.create({
 			//#region
 			data: {
 				name: name,
@@ -603,7 +600,7 @@ export class ChannelService {
 		};
 		//#endregion
 
-		const channel: t_fields | null = await this._prisma.channel.findUnique({
+		const channel: t_fields | null = await this._prisma_service.channel.findUnique({
 			//#region
 			select: {
 				owner: {
@@ -641,7 +638,7 @@ export class ChannelService {
 			);
 		}
 
-		await this._prisma.channel.update({
+		await this._prisma_service.channel.update({
 			//#region
 			data: {
 				owner: {
@@ -691,7 +688,7 @@ export class ChannelService {
 		};
 		//#endregion
 
-		const channel: t_fields | null = await this._prisma.channel.findUnique({
+		const channel: t_fields | null = await this._prisma_service.channel.findUnique({
 			//#region
 			select: {
 				owner: {
@@ -723,7 +720,7 @@ export class ChannelService {
 			throw new ChannelNotOwnedError(`user: ${user_id} | channel: ${channel_id}`);
 		}
 
-		await this._prisma.channel.delete({
+		await this._prisma_service.channel.delete({
 			//#region
 			where: {
 				id: channel_id,
@@ -774,7 +771,7 @@ export class ChannelService {
 		};
 		//#endregion
 
-		const channel: t_fields | null = await this._prisma.channel.findUnique({
+		const channel: t_fields | null = await this._prisma_service.channel.findUnique({
 			//#region
 			select: {
 				owner: {
@@ -828,7 +825,7 @@ export class ChannelService {
 			);
 		}
 
-		await this._prisma.channel.update({
+		await this._prisma_service.channel.update({
 			//#region
 			data: {
 				operators: {
@@ -861,7 +858,7 @@ export class ChannelService {
 	 */
 	public async get_all(user_id: string): Promise<IChannel[]> {
 		//#region
-		const channels_tmp: IChannelTmp[] = await this._prisma.channel.findMany({
+		const channels_tmp: IChannelTmp[] = await this._prisma_service.channel.findMany({
 			//#region
 			select: {
 				id: true,
@@ -960,7 +957,7 @@ export class ChannelService {
 		};
 		//#endregion
 
-		const channel: t_fields | null = await this._prisma.channel.findUnique({
+		const channel: t_fields | null = await this._prisma_service.channel.findUnique({
 			//#region
 			select: {
 				members: {
@@ -1027,7 +1024,7 @@ export class ChannelService {
 		password?: string,
 	): Promise<IChannel> {
 		//#region
-		const channel_tmp: IChannelTmp | null = await this._prisma.channel.findUnique({
+		const channel_tmp: IChannelTmp | null = await this._prisma_service.channel.findUnique({
 			//#region
 			select: {
 				id: true,
@@ -1094,7 +1091,7 @@ export class ChannelService {
 			);
 		}
 
-		await this._prisma.channel.update({
+		await this._prisma_service.channel.update({
 			//#region
 			data: {
 				members: {
@@ -1163,7 +1160,7 @@ export class ChannelService {
 	): Promise<void> {
 		//#region
 		if (!channel) {
-			channel = await this._prisma.channel.findUnique({
+			channel = await this._prisma_service.channel.findUnique({
 				//#region
 				select: {
 					owner: {
@@ -1212,7 +1209,7 @@ export class ChannelService {
 			);
 		}
 
-		await this._prisma.channel.update({
+		await this._prisma_service.channel.update({
 			//#region
 			data: {
 				members: {
@@ -1265,7 +1262,7 @@ export class ChannelService {
 	): Promise<void> {
 		//#region
 		if (!channel) {
-			channel = await this._prisma.channel.findUnique({
+			channel = await this._prisma_service.channel.findUnique({
 				//#region
 				select: {
 					owner: {
@@ -1307,7 +1304,7 @@ export class ChannelService {
 			}
 		}
 
-		await this._prisma.channel.update({
+		await this._prisma_service.channel.update({
 			//#region
 			data: {
 				members: {
@@ -1378,7 +1375,7 @@ export class ChannelService {
 		};
 		//#endregion
 
-		const channel: t_fields | null = await this._prisma.channel.findUnique({
+		const channel: t_fields | null = await this._prisma_service.channel.findUnique({
 			//#region
 			select: {
 				owner: {
@@ -1435,7 +1432,7 @@ export class ChannelService {
 			);
 		}
 
-		await this._prisma.channel.update({
+		await this._prisma_service.channel.update({
 			//#region
 			data: {
 				muted: {
@@ -1451,7 +1448,7 @@ export class ChannelService {
 		//#endregion
 
 		setTimeout(async () => {
-			await this._prisma.channel.update({
+			await this._prisma_service.channel.update({
 				//#region
 				data: {
 					muted: {
@@ -1519,7 +1516,7 @@ export class ChannelService {
 		};
 		//#endregion
 
-		const channel: t_fields | null = await this._prisma.channel.findUnique({
+		const channel: t_fields | null = await this._prisma_service.channel.findUnique({
 			//#region
 			select: {
 				owner: {
@@ -1573,7 +1570,7 @@ export class ChannelService {
 			);
 		}
 
-		await this._prisma.channel.update({
+		await this._prisma_service.channel.update({
 			//#region
 			data: {
 				operators: {
@@ -1628,7 +1625,7 @@ export class ChannelService {
 		};
 		//#endregion
 
-		const channel: t_fields | null = await this._prisma.channel.findUnique({
+		const channel: t_fields | null = await this._prisma_service.channel.findUnique({
 			//#region
 			select: {
 				members: {
@@ -1666,7 +1663,7 @@ export class ChannelService {
 			);
 		}
 
-		const message: ChannelMessage = await this._prisma.channelMessage.create({
+		const message: ChannelMessage = await this._prisma_service.channelMessage.create({
 			//#region
 			data: {
 				sender: {
@@ -1740,7 +1737,7 @@ export class ChannelService {
 		};
 		//#endregion
 
-		const channel: t_fields | null = await this._prisma.channel.findUnique({
+		const channel: t_fields | null = await this._prisma_service.channel.findUnique({
 			//#region
 			select: {
 				owner: {
@@ -1793,7 +1790,7 @@ export class ChannelService {
 			);
 		}
 
-		await this._prisma.channel.update({
+		await this._prisma_service.channel.update({
 			//#region
 			data: {
 				banned: {
@@ -1858,7 +1855,7 @@ export class ChannelService {
 		};
 		//#endregion
 
-		const channel: t_fields | null = await this._prisma.channel.findUnique({
+		const channel: t_fields | null = await this._prisma_service.channel.findUnique({
 			//#region
 			select: {
 				name: true,
@@ -1895,7 +1892,7 @@ export class ChannelService {
 
 		if (name !== undefined) {
 			const id: string | undefined = (
-				await this._prisma.channel.findUnique({
+				await this._prisma_service.channel.findUnique({
 					//#region
 					select: {
 						id: true,
@@ -1930,7 +1927,7 @@ export class ChannelService {
 			throw new ChannelPasswordNotAllowedError();
 		}
 
-		await this._prisma.channel.update({
+		await this._prisma_service.channel.update({
 			//#region
 			data: {
 				name: channel.name,
