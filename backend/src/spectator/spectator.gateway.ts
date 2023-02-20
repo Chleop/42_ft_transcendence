@@ -99,25 +99,22 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 * if they sent a valid uid.
 	 */
 	public handleDisconnect(client: Socket): void {
-		if (client.data.valid_uid === true) {
-			const user_id: string = client.handshake.auth.user_id;
-			try {
-				const game_room: GameRoom = this.game_service.findUserGame(user_id);
-				const spectated_room: SpectatedRoom | null = this.spectator_service.getRoom(
-					game_room.match.name,
-				);
-				if (spectated_room instanceof SpectatedRoom) {
-					spectated_room.removeSpectator(client);
-					if (spectated_room.isEmpty())
-						this.stopStreaming(this, spectated_room.game_room.match.name);
-				}
-			} catch (e) {
-				if (e instanceof WrongData) {
-					this.logger.error(e.message);
-					return;
-				}
-				throw e;
+		const user_id: string = client.handshake.auth.user_id;
+		try {
+			const game_room: GameRoom = this.game_service.findUserGame(user_id);
+			const spectated_room: SpectatedRoom | null = this.spectator_service.getRoom(
+				game_room.match.name,
+			);
+			if (spectated_room instanceof SpectatedRoom) {
+				spectated_room.removeSpectator(client);
+				if (spectated_room.isEmpty())
+					this.stopStreaming(this, spectated_room.game_room.match.name);
 			}
+		} catch (e) {
+			if (e instanceof WrongData && client.data.valid_uid === true) {
+				return;
+			}
+			throw e;
 		}
 		this.logger.log(`[${client.data.user.login} disconnected]`);
 	}
@@ -192,7 +189,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		me.logger.debug("stop streamin");
 		me.kickEveryone(room, me);
 		me.spectator_service.destroyRoom(room_name);
-		me.logger.debug("removing streaming room");
+		me.logger.log(`Removing streaming room: ${room_name}`);
 	}
 
 	/**
@@ -200,7 +197,6 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 */
 	private kickEveryone(room: SpectatedRoom, me?: SpectatorGateway): void {
 		for (const client of room.spectators) {
-			client.data.valid_uid = false;
 			me?.chat_gateway.broadcast_to_online_related_users({
 				id: client.data.user.id,
 				status: e_user_status.ONLINE,
