@@ -119,7 +119,7 @@ export class RawHTTPClient {
 				return this.make_request(request);
 			} else {
 				document.location.pathname = "/api/auth/42/login";
-				throw "user not connected";
+				return new Promise(() => { });
 			}
 		}
 

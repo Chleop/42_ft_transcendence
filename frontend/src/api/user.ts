@@ -10,7 +10,7 @@ export type UserId = Id;
 /**
  * Stores private information about a user.
  */
-export interface PrivateUser {
+export interface PrivateUser extends User {
     /**
      * The ID of the user.
      */

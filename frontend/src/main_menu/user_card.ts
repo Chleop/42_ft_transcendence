@@ -113,7 +113,7 @@ class UserCardElement {
         Users.me().then((me) => {
             this.name.innerText = user.name;
 
-            this.status.onclick = () => {};
+            this.status.onclick = () => { };
             this.status.style.cursor = "normal";
 
             if (user.status === "online") this.status.innerText = "ONLINE";
@@ -253,7 +253,7 @@ class UserCardElement {
         Users.get_avatar(user.id).then((url) => {
             this.avatar.style.backgroundImage = `url(\"${url}\")`;
         });
-        Client.get_background(user.id).then((url) => {
+        Client.get_background(user.skin_id).then((url) => {
             this.banner.style.backgroundImage = `url(\"${url}\")`;
         });
 
@@ -270,9 +270,8 @@ class UserCardElement {
         setTimeout(() => {
             const box2 = this.card.getBoundingClientRect();
             if (box2.bottom >= window.innerHeight - 20)
-                this.card.style.top = `${
-                    window.innerHeight - 20 - box2.height
-                }px`;
+                this.card.style.top = `${window.innerHeight - 20 - box2.height
+                    }px`;
         });
     }
 

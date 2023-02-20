@@ -99,5 +99,8 @@ export abstract class OngoingGame {
     /** Returns the location of the `GameBoard` scene. */
     abstract get location(): string;
 
+    /**
+     * Returns the skins that the `GameBoard` should use to display each side.
+     */
     abstract get_skins(): SkinUrls;
 }
