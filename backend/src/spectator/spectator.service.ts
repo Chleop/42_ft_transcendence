@@ -36,22 +36,13 @@ export class SpectatorService {
 	/**
 	 * Retrieves each players infos, to be sent to the spectator.
 	 */
-	public async retrieveRoomData(game_room: GameRoom): Promise<RoomData> {
+	public async retrieveRoomData(game_room: GameRoom, spectated_id: string): Promise<RoomData> {
 		try {
-			const player1: Socket = game_room.match.player1;
-			const player2: Socket = game_room.match.player2;
-			const avatar1: StreamableFile = await this.user_service.get_ones_avatar(
-				player1.data.user.id,
-				player1.data.user.id,
-			);
-			const avatar2: StreamableFile = await this.user_service.get_ones_avatar(
-				player2.data.user.id,
-				player2.data.user.id,
-			);
-
-			const player_infos1: PlayerInfos = new PlayerInfos(player1.data.user, avatar1);
-			const player_infos2: PlayerInfos = new PlayerInfos(player2.data.user, avatar2);
-			return { player1: player_infos1, player2: player_infos2 };
+			// const player1: Socket = game_room.match.player1;
+			// const player2: Socket = game_room.match.player2;
+			// const player_infos1: PlayerInfos = new PlayerInfos(player1.data.user, avatar1);
+			// const player_infos2: PlayerInfos = new PlayerInfos(player2.data.user, avatar2);
+			// return { player1: player_infos1, player2: player_infos2 };
 		} catch (e) {
 			if (e instanceof UserNotFoundError) {
 				throw new BadRequestException(e.message);
