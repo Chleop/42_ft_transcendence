@@ -79,6 +79,9 @@ export class ChannelController {
 		//#region
 		try {
 			await this._channel_service.ban_ones_member(request.user.id, id, dto.user_id);
+			this._chat_gateway.forward_to_user_socket("user_banned", dto.user_id, {
+				channel: id,
+			});
 			this._chat_gateway.broadcast_to_online_channel_members(id);
 		} catch (error) {
 			if (
