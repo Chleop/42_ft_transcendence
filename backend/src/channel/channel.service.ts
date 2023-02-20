@@ -966,6 +966,7 @@ export class ChannelService {
 			owner_id: channel_tmp.ownerId,
 			members_count: channel_tmp.members.length,
 			operators_ids: channel_tmp.operators.map((operator): string => operator.id),
+			banned_ids: channel_tmp.banned.map((banned): string => banned.id),
 		};
 		//#endregion
 
