@@ -33,7 +33,7 @@ export class ChannelService {
 	private readonly _prisma_service: PrismaService;
 	private readonly _logger: Logger;
 
-	constructor(prisma_service: PrismaService /* , chat_gateway: ChatGateway */) {
+	constructor(prisma_service: PrismaService) {
 		//#region
 		this._prisma_service = prisma_service;
 		this._logger = new Logger(ChannelService.name);
@@ -922,6 +922,55 @@ export class ChannelService {
 		return channels;
 	}
 	//#endregion
+
+	// TODO: Jo commente ça! it is assumed that the channel is valid
+	public async get_one(channel_id: string): Promise<IChannel> {
+		//#region
+		const channel_tmp: IChannelTmp = (await this._prisma_service.channel.findUnique({
+			//#region
+			select: {
+				id: true,
+				name: true,
+				chanType: true,
+				hash: true,
+				ownerId: true,
+				members: {
+					select: {
+						id: true,
+					},
+				},
+				operators: {
+					select: {
+						id: true,
+					},
+				},
+				banned: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			where: {
+				id: channel_id,
+			},
+		})) as IChannelTmp;
+		//#endregion
+
+		const channel: IChannel = {
+			//#region
+			id: channel_tmp.id,
+			name: channel_tmp.name,
+			type: channel_tmp.chanType,
+			owner_id: channel_tmp.ownerId,
+			members_count: channel_tmp.members.length,
+			operators_ids: channel_tmp.operators.map((operator): string => operator.id),
+		};
+		//#endregion
+
+		this._logger.verbose(`Channel ${channel_id} has been retrieved`);
+
+		return channel;
+	}
 
 	/**
 	 * @brief	Get channel's messages from the database.

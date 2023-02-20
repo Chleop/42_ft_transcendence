@@ -14,6 +14,8 @@ import { Server, Socket } from "socket.io";
 import { ChannelMessage } from "@prisma/client";
 import { IUserPrivate, IUserPublic } from "src/user/interface";
 import { UserService } from "src/user/user.service";
+import { IChannel } from "src/channel/interface";
+import { ChannelService } from "src/channel/channel.service";
 
 @WebSocketGateway({
 	namespace: "chat",
@@ -22,12 +24,18 @@ import { UserService } from "src/user/user.service";
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
 	@WebSocketServer()
 	public readonly _server: Server;
+	private readonly _channel_service: ChannelService;
 	private readonly _chat_service: ChatService;
 	private readonly _user_service: UserService;
 	private readonly _logger: Logger;
 
-	constructor(chat_service: ChatService, user_service: UserService) {
+	constructor(
+		channel_service: ChannelService,
+		chat_service: ChatService,
+		user_service: UserService,
+	) {
 		this._server = new Server();
+		this._channel_service = channel_service;
 		this._chat_service = chat_service;
 		this._user_service = user_service;
 		this._logger = new Logger(ChatGateway.name);
@@ -70,6 +78,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 					data = await this._user_service.get_me(user_to_notify.id);
 				else data = await this._user_service.get_one(user_to_notify.id, user_to_notify.id);
 				socket.emit("user_updated", data);
+			}
+		}
+	}
+
+	public async broadcast_to_online_channel_members(channel_id: string): Promise<void> {
+		const users: t_user_id[] = await this._chat_service.get_online_users_in_channel(channel_id);
+		for (const user_to_notify of users) {
+			const socket: Socket | undefined = this._chat_service.get_user(
+				user_to_notify.id,
+			)?.socket;
+
+			if (socket) {
+				const data: IChannel = await this._channel_service.get_one(channel_id);
+				socket.emit("channel_updated", data);
 			}
 		}
 	}
