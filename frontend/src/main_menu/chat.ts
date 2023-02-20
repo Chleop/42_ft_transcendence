@@ -87,7 +87,7 @@ class MessageElementInternal {
 /**
  * A message that has been instanciated.
  */
-export interface MessageElement {}
+export interface MessageElement { }
 
 /**
  * A channel that has been instanciated in the DOM.
@@ -130,7 +130,7 @@ class ChannelElementInternal {
         if (model) this.tab.innerText = model.name;
         if (dm) this.tab.innerText = dm.name;
         this.tab.onclick = () => container.set_selected_channel(this);
-        this.tab.onmousedown = (ev) => {
+        this.tab.onauxclick = (ev) => {
             if (ev.button === 1) {
                 ev.preventDefault();
                 ev.stopPropagation();
@@ -162,7 +162,7 @@ class ChannelElementInternal {
 /**
  * A channel that has been instanciated.
  */
-export interface ChannelElement {}
+export interface ChannelElement { }
 
 /**
  * Stores the state of the chat.
@@ -434,8 +434,8 @@ class ChatElement {
             if (
                 channel_.last_message.senderId === message.senderId &&
                 Date.parse(message.dateTime) -
-                    Date.parse(channel_.last_message.dateTime) <
-                    10 * 1000
+                Date.parse(channel_.last_message.dateTime) <
+                10 * 1000
             )
                 continuing = true;
         }
