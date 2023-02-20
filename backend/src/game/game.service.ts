@@ -16,7 +16,7 @@ import { BadEvent, WrongData } from "./exceptions";
 @Injectable()
 export class GameService {
 	private readonly prisma_service: PrismaService;
-	private game_rooms: GameRoom[];
+	private game_rooms: Set<GameRoom>;
 	private readonly matchmaking: Matchmaking;
 	private readonly logger: Logger;
 
@@ -25,7 +25,7 @@ export class GameService {
 	constructor(prisma: PrismaService) {
 		this.prisma_service = prisma;
 		this.matchmaking = new Matchmaking();
-		this.game_rooms = [];
+		this.game_rooms = new Set<GameRoom>();
 		this.logger = new Logger(GameService.name);
 	}
 
@@ -77,9 +77,9 @@ export class GameService {
 	 * Trying to match client with another player.
 	 */
 	public queueUp(client: Socket): GameRoom | null {
-		const index: number = this.findUserRoomIndex(client);
-		if (index >= 0) {
-			this.destroyRoom(this.game_rooms[index]);
+		const room: GameRoom | null = this.findUserRoom(client);
+		if (room !== null) {
+			this.destroyRoom(room);
 			throw new BadEvent("Player already in game");
 		}
 		const new_game_room: GameRoom | null = this.matchmaking.queueUp(client);
@@ -90,7 +90,7 @@ export class GameService {
 
 		this.logger.verbose(`Room ${new_game_room.match.name} created.`);
 
-		this.game_rooms.push(new_game_room);
+		this.game_rooms.add(new_game_room);
 		return new_game_room;
 	}
 
@@ -103,13 +103,12 @@ export class GameService {
 		/* Client was in matchmaking */
 		if (this.matchmaking.unQueue(client)) return null;
 
-		const index: number = this.findUserRoomIndex(client);
+		const room: GameRoom | null = this.findUserRoom(client);
 
 		/* Client is not in a gameroom */
-		if (index < 0) return null;
+		if (room === null) return null;
 
 		/* Client was in an ongoing game */
-		const room: GameRoom = this.game_rooms[index];
 		if (room.is_ongoing) {
 			this.logger.verbose(`Game '${room.match.name}' was ongoing`);
 			return room;
@@ -121,11 +120,7 @@ export class GameService {
 	 * Removes game room from list.
 	 */
 	public destroyRoom(room: GameRoom): void {
-		const index: number = this.game_rooms.indexOf(room);
-		if (index < 0) return;
-		this.logger.verbose(`Destroying room ${room.match.name}`);
-		room.destroyPlayerPing();
-		this.game_rooms.splice(index, 1);
+		if (this.game_rooms.delete(room)) this.logger.verbose(`Destroying room ${room.match.name}`);
 	}
 
 	/**
@@ -134,34 +129,34 @@ export class GameService {
 	 * Returns updated paddle and the opponent of the sender.
 	 */
 	public updateOpponent(client: Socket): OpponentUpdate {
-		const index: number = this.findUserRoomIndex(client);
-		if (index < 0) throw new BadEvent("Paddle update received but not in game");
-		return this.game_rooms[index].updatePaddle(client);
+		const room: GameRoom | null = this.findUserRoom(client);
+		if (room === null) throw new BadEvent("Paddle update received but not in game");
+		return room.updatePaddle(client);
 	}
 
 	/**
 	 * Returns game room with associated user_id.
 	 */
 	public findUserGame(user_id: string): GameRoom {
-		const room: GameRoom | undefined = this.game_rooms.find((obj) => {
-			return (
+		for (const obj of this.game_rooms) {
+			if (
 				obj.match.player1.data.user.id === user_id ||
 				obj.match.player2.data.user.id === user_id
-			);
-		});
-		if (room === undefined) throw new WrongData("Room does not exist");
-		return room;
+			)
+				return obj;
+		}
+		throw new WrongData("Room does not exist");
 	}
 
 	/* PRIVATE ================================================================= */
 
 	/**
-	 * Returns index of room if client is in it.
+	 * Returns room if client is in it.
 	 */
-	private findUserRoomIndex(client: Socket): number {
-		const index: number = this.game_rooms.findIndex((obj) => {
-			return obj.isSocketInRoom(client);
-		});
-		return index;
+	private findUserRoom(client: Socket): GameRoom | null {
+		for (const obj of this.game_rooms) {
+			if (obj.isSocketInRoom(client)) return obj;
+		}
+		return null;
 	}
 }

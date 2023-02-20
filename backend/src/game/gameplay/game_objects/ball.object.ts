@@ -8,11 +8,11 @@ import { Constants } from "../../constants";
  * else it is not in a specific state.
  */
 export enum BallRefreshResult {
-	oneCollide,
-	twoCollide,
-	oneOutside,
-	twoOutside,
-	nothing,
+	ONE_COLLIDES,
+	TWO_COLLIDES,
+	ONE_IS_OUTSIDE,
+	TWO_IS_OUTSIDE,
+	NOTHING,
 }
 
 /**
@@ -50,11 +50,11 @@ export class Ball {
 		this.refreshX(delta_time);
 		this.refreshY(delta_time);
 
-		if (this.x > Constants.max_x) return BallRefreshResult.twoOutside;
-		else if (this.x > Constants.limit_x) return BallRefreshResult.twoCollide;
-		else if (this.x < -Constants.max_x) return BallRefreshResult.oneOutside;
-		else if (this.x < -Constants.limit_x) return BallRefreshResult.oneCollide;
-		return BallRefreshResult.nothing;
+		if (this.x > Constants.max_x) return BallRefreshResult.TWO_IS_OUTSIDE;
+		else if (this.x > Constants.limit_x) return BallRefreshResult.TWO_COLLIDES;
+		else if (this.x < -Constants.max_x) return BallRefreshResult.ONE_IS_OUTSIDE;
+		else if (this.x < -Constants.limit_x) return BallRefreshResult.ONE_COLLIDES;
+		return BallRefreshResult.NOTHING;
 	}
 
 	/**

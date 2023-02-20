@@ -8,13 +8,13 @@ export class ConnectError {}
  */
 export interface BallStateUpdate {
     /** The X coordinate of the ball. */
-    x: number,
+    x: number;
     /** The Y coordinate of the ball. */
-    y: number,
+    y: number;
     /** The horizontal velocity of the ball. */
-    vx: number,
+    vx: number;
     /** The vertical velocity of the ball. */
-    vy: number,
+    vy: number;
 }
 
 /**
@@ -22,9 +22,9 @@ export interface BallStateUpdate {
  */
 export interface PlayerStateUpdate {
     /** The position of the paddle. */
-    position: number,
+    position: number;
     /** The current velocity of the paddle. */
-    velocity: number,
+    velocity: number;
 }
 
 /**
@@ -32,18 +32,18 @@ export interface PlayerStateUpdate {
  */
 export interface ScoreStateUpdate {
     /** The score of the opponent. */
-    opponent: number,
+    opponent: number;
     /** The score of the local player. */
-    you: number,
+    you: number;
     /** The person that just scored. */
-    just_scored: "you"|"opponent",
+    just_scored: "you" | "opponent";
 }
 
 export interface MatchFound {
-    id: UserId,
+    id: UserId;
 }
 
-function noop(): void { }
+function noop(): void {}
 
 export class GameSocket {
     /** The inner socket. */
@@ -85,21 +85,21 @@ export class GameSocket {
     public on_score_updated: (scores: ScoreStateUpdate) => void = noop;
 
     public on_error: (err: any) => void = noop;
-    
+
     /**
      * Creates a new GameSocket.
      */
     public constructor() {
         console.log("initiating a connection with the game gateway...");
         this.socket = io("/game", {
-        	path: "/api/game_socket/socket.io",
+            path: "/api/game_socket/socket.io",
             reconnection: false,
             auth: {
                 token: Client.access_token,
             },
         });
 
-        this.socket.on("connect_error", (err) => this.on_error(err))
+        this.socket.on("connect_error", (err) => this.on_error(err));
         // this.socket.on("connect_error", err => {
         //     console.error(err);
         //     this.disconnect();
@@ -107,12 +107,20 @@ export class GameSocket {
         // });
         this.socket.on("connect", () => this.on_connected());
         this.socket.on("disconnect", () => this.on_disconnected());
-        this.socket.on("matchFound", (state: MatchFound) => this.on_match_found(state));
+        this.socket.on("matchFound", (state: MatchFound) =>
+            this.on_match_found(state)
+        );
 
         this.socket.on("gameStart", () => this.on_game_start());
-        this.socket.on("updateOpponent", (state: PlayerStateUpdate) => this.on_opponent_updated(state));
-        this.socket.on("updateBall", (state: BallStateUpdate) => this.on_ball_updated(state));
-        this.socket.on("updateScore", (state: ScoreStateUpdate) => this.on_score_updated(state));
+        this.socket.on("updateOpponent", (state: PlayerStateUpdate) =>
+            this.on_opponent_updated(state)
+        );
+        this.socket.on("updateBall", (state: BallStateUpdate) =>
+            this.on_ball_updated(state)
+        );
+        this.socket.on("updateScore", (state: ScoreStateUpdate) =>
+            this.on_score_updated(state)
+        );
     }
 
     /** Initiates the connection with the server. */
@@ -133,9 +141,9 @@ export class GameSocket {
 
 /* The information provided by the server when something happens in the game in real-time. */
 export interface SpectatorStateUpdate {
-    ball: BallStateUpdate,
-    player1: PlayerStateUpdate,
-    player2: PlayerStateUpdate,
+    ball: BallStateUpdate;
+    player1: PlayerStateUpdate;
+    player2: PlayerStateUpdate;
 }
 
 /* Wraps a Socket.IO socket to handle spectator-specific events. */
@@ -158,6 +166,8 @@ export class SpecSocket {
      */
     public on_update: (state: SpectatorStateUpdate) => void = noop;
 
+    public on_score_update: (state: ScoreStateUpdate) => void = noop;
+
     /**
      * Creates a new GameSocket.
      *
@@ -165,21 +175,23 @@ export class SpecSocket {
      */
     public constructor(user_id: UserId) {
         this.socket = io("/spectate", {
-        	path: "/api/spectate_socket/socket.io",
+            reconnection: false,
+            path: "/api/spectate_socket/socket.io",
             auth: {
                 token: Client.access_token,
                 user_id, // hello, this is good.
             },
         });
 
-        this.socket.on("connect_error", err => {
+        this.socket.on("connect_error", (err) => {
             console.error(err);
             this.disconnect();
             throw new ConnectError();
         });
         this.socket.on("connect", () => this.on_connected());
         this.socket.on("disconnect", () => this.on_disconnected());
-        this.socket.on("updateGame", st => this.on_update(st));
+        this.socket.on("updateGame", (st) => this.on_update(st));
+        this.socket.on("updateScore", (st) => this.on_score_update(st));
     }
 
     /** Initiates the connection with the server. */

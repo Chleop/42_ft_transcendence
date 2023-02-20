@@ -38,17 +38,13 @@ export class SocketIOAdapter extends IoAdapter {
 
 		if (port_str === undefined) {
 			this.logger.log("Port not specified in .env file. Using default value.");
-			client_port = 3000;
+			client_port = 8080;
 		} else {
 			client_port = parseInt(port_str);
 		}
 
 		const cors: CorsOptions = {
-			origin: [
-				"*",
-				`http://localhost:${client_port}`,
-				new RegExp(`/^http:\/\/192\.168\.1\.([1-9]|[1-9]\d):${client_port}$/`),
-			],
+			origin: [new RegExp(`/^http:\/\/192\.168\.1\.([1-9]|[1-9]\d):${client_port}$/`)],
 		};
 		this.logger.log(`Cors options origin port is set to: ${client_port}`);
 
