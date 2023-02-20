@@ -305,7 +305,7 @@ class UserCardElement {
                         });
                 };
                 this.ban_button.onclick = () => {
-                    Client.ban(user.id, channel.id)
+                    Client.ban(channel.id, user.id)
                         .then(() => {
                             NOTIFICATIONS.spawn_notification("green", "user banned.");
                         })
