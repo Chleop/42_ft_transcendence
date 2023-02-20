@@ -555,7 +555,8 @@ export class ChannelService {
 			type: channel_tmp.chanType,
 			owner_id: channel_tmp.ownerId,
 			members_count: channel_tmp.members.length,
-			operators_ids: channel_tmp.operators.map((operator) => operator.id),
+			operators_ids: channel_tmp.operators.map((operator): string => operator.id),
+			banned_ids: channel_tmp.banned.map((banned): string => banned.id),
 		};
 		//#endregion
 
@@ -912,6 +913,7 @@ export class ChannelService {
 				owner_id: channel.ownerId,
 				members_count: channel.members.length,
 				operators_ids: channel.operators.map((operator): string => operator.id),
+				banned_ids: channel.banned.map((banned): string => banned.id),
 			};
 			//#endregion
 		});
@@ -1115,6 +1117,7 @@ export class ChannelService {
 			owner_id: (await this._inherit_ones_ownership(channel_tmp, joining_user_id)).ownerId,
 			members_count: channel_tmp.members.length + 1,
 			operators_ids: channel_tmp.operators.map((operator): string => operator.id),
+			banned_ids: channel_tmp.banned.map((ban): string => ban.id),
 		};
 		//#endregion
 
