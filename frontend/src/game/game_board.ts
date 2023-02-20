@@ -1,4 +1,4 @@
-import { Scene, State } from "../strawberry";
+import { History, Scene, State } from "../strawberry";
 import { Constants, OngoingGame } from ".";
 import { Renderer, Sprite, Framebuffer } from "./renderer";
 
@@ -181,8 +181,8 @@ class GameBoardClass extends Scene {
         // ===============
         // Render The Game
         // ===============
-        const HEART_SIZE: number = 0.8
-        const HEART_GAP: number = 0.08;
+        const HEART_SIZE: number = 0.6
+        const HEART_GAP: number = 0.03;
 
         const r = this.renderer;
         const s = this.ongoing_game.game_state;
@@ -253,6 +253,12 @@ class GameBoardClass extends Scene {
             this.ongoing_game = null;
         }
         super.on_left(new_state);
+    }
+
+    public on_entered(prev: State): void {
+        if (!this.ongoing_game)
+            History.go_back();
+        super.on_entered(prev);
     }
 
     /**
