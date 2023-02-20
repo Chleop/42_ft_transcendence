@@ -7,3 +7,4 @@ export * from "./user";
 export * from "./game";
 export * from "./users";
 export * from "./gateway";
+export * from "./skin";

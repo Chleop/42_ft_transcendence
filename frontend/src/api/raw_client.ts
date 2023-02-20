@@ -1,5 +1,6 @@
 import { Body, JsonBody, FileBody } from "./body";
 import { Channel, ChannelId, Message, MessageId } from "./channel";
+import { Skin, SkinId } from "./skin";
 import { PrivateUser, User, UserId } from "./user";
 
 /**
@@ -388,26 +389,26 @@ export class RawHTTPClient {
 		});
 	}
 
-	public async get_background(user: UserId): Promise<string> {
+	public async get_background(skin: SkinId): Promise<string> {
 		const img = await this.make_request({
 			method: "GET",
-			url: `/api/user/${user}/skin/background`,
+			url: `/api/skin/${skin}/background`,
 		});
 		return URL.createObjectURL(await img.blob());
 	}
 
-	public async get_paddle(user: UserId): Promise<string> {
+	public async get_paddle(id: SkinId): Promise<string> {
 		const img = await this.make_request({
 			method: "GET",
-			url: `/api/user/${user}/skin/paddle`,
+			url: `/api/skin/${id}/paddle`,
 		});
 		return URL.createObjectURL(await img.blob());
 	}
 
-	public async get_ball(user: UserId): Promise<string> {
+	public async get_ball(id: SkinId): Promise<string> {
 		const img = await this.make_request({
 			method: "GET",
-			url: `/api/user/${user}/skin/ball`,
+			url: `/api/skin/${id}/ball`,
 		});
 		return URL.createObjectURL(await img.blob());
 	}
@@ -440,5 +441,13 @@ export class RawHTTPClient {
 			url: `/api/channel/${id}`,
 			body: new JsonBody(channel),
 		});
+	}
+
+	public async get_all_skins(): Promise<Skin[]> {
+		const response = await this.make_request({
+			method: "GET",
+			url: `/api/skin/all`,
+		});
+		return response.json();
 	}
 }

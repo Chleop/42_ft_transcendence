@@ -153,25 +153,20 @@ class ProfileOverlay extends Overlay {
         const skin_picker = document.createElement("div");
         skin_picker.id = "profile-skin-picker";
 
-        const skin_ids = [
-            'test',
-            'test2',
-            'test3',
-            'test',
-            'test2',
-            'test3',
-            'test',
-            'test2',
-            'test3',
-        ];
+        Client.get_all_skins().then(skins => {
+            for (const skin of skins) {
+                const skin_button = document.createElement("button");
+                skin_button.classList.add("profile-skin-button");
 
-        for (const _skin_id of skin_ids) {
-            const skin_button = document.createElement("button");
-            skin_button.classList.add("profile-skin-button");
+                const content = document.createElement("div");
+                content.classList.add("profile-skin-content");
+                content.innerText = skin.name;
+                skin_button.appendChild(content);
 
-            skin_button.style.backgroundImage = `url('https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Image_created_with_a_mobile_phone.png/250px-Image_created_with_a_mobile_phone.png')`;
-            skin_picker.appendChild(skin_button);
-        }
+                skin_button.style.backgroundImage = `url('${Client.get_paddle(skin.id)}')`;
+                skin_picker.appendChild(skin_button);
+            }
+        });
 
         card.appendChild(skin_picker);
 
