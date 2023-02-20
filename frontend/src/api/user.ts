@@ -1,5 +1,6 @@
 import { Channel } from "./channel";
 import { Id } from "./id";
+import { SkinId } from "./skin";
 
 /**
  * The ID of a user.
@@ -9,7 +10,7 @@ export type UserId = Id;
 /**
  * Stores private information about a user.
  */
-export interface PrivateUser {
+export interface PrivateUser extends User {
     /**
      * The ID of the user.
      */
@@ -56,6 +57,10 @@ export interface PrivateUser {
      * The friends of this user.
      */
     friends_ids: UserId[];
+    /**
+     * The ID of the skin of this user.
+     */
+    skin_id: SkinId,
 }
 
 /** Information about the result of a game. */
@@ -112,4 +117,5 @@ export interface User {
     games_won_count: number;
     status: UserStatus;
     spectating: UserId | undefined;
+    skin_id: SkinId,
 }
