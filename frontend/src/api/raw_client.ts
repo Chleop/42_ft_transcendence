@@ -413,15 +413,31 @@ export class RawHTTPClient {
 	}
 
 	public async promote(user: UserId, channel: ChannelId): Promise<void> {
-		throw "not yet implemented.";
+		await this.make_request({
+			url: `/api/channel/${channel}/promote`,
+			method: "PATCH",
+			body: new JsonBody({ user_id: user }),
+		});
 	}
 
 	public async demote(user: UserId, channel: ChannelId): Promise<void> {
-		throw "not yet implemented.";
+		await this.make_request({
+			url: `/api/channel/${channel}/demote`,
+			method: "PATCH",
+			body: new JsonBody({ user_id: user }),
+		});
 	}
 
 	public async mute(user: UserId, channel: ChannelId, duration: number): Promise<void> {
-		throw "not yet implemented";
+		await this.make_request({
+			url: `/api/channel/${channel}/mute`,
+			method: "PATCH",
+			success_status: 200,
+			body: new JsonBody({
+				user_id: user,
+				duration,
+			}),
+		});
 	}
 
 	public async send_dm(user: UserId, content: string): Promise<void> {

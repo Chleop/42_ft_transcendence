@@ -87,7 +87,7 @@ class UserCardElement {
         const promote_button = document.createElement("button");
         promote_button.classList.add("user-card-menu-button");
         promote_button.innerText = "Promote";
-        menu.appendChild(send_message_button);
+        menu.appendChild(promote_button);
 
         const mute_button = document.createElement("button");
         mute_button.classList.add("user-card-menu-button");
@@ -113,21 +113,32 @@ class UserCardElement {
         Users.me().then((me) => {
             this.name.innerText = user.name;
 
-            this.status.onclick = () => {};
+            this.status.onclick = () => { };
             this.status.style.cursor = "normal";
 
-            if (user.status === "online") this.status.innerText = "ONLINE";
-            else if (user.status === "offline")
+            if (user.status === "online") { this.status.innerText = "ONLINE"; }
+            else if (user.status === "offline") {
                 this.status.innerText = "OFFLINE";
+            }
             else if (user.status === "ingame") {
                 this.status.innerText = "IN GAME";
+                this.status.style.cursor = "pointer";
                 this.status.onclick = () => {
                     GAME_BOARD.start_game(new SpectatingGame(user.id));
                     History.push_state(GAME_BOARD);
                 };
                 this.status.style.cursor = "pointer";
-            } else if (user.status === "spectating")
+            } else if (user.status === "spectating") {
                 this.status.innerText = "SPECTATING";
+                if (user.spectating) {
+                    const spec = user.spectating;
+                    this.status.style.cursor = "pointer";
+                    this.status.onclick = () => {
+                        GAME_BOARD.start_game(new SpectatingGame(spec));
+                        History.push_state(GAME_BOARD);
+                    };
+                }
+            }
 
             const wins = user.games_won_count;
             const losses = user.games_played_count - wins;
@@ -142,35 +153,35 @@ class UserCardElement {
             this.rank.style.backgroundImage = `url('${url}')`;
             this.wins.innerText = `${wins} W / ${losses} L / ${percent_f}%`;
 
-            const is_me = user.id === me.id;
+            // If the user we are inspecting is ourselves, there is nothing more to see.
+            if (user.id === me.id) {
+                this.friend_button.style.display = "none";
+                this.blocked_button.style.display = "none";
+                this.send_message_button.style.display = "none";
+                this.mute_button.style.display = "none";
+                this.promote_button.style.display = "none";
+                return;
+            }
+
             const friend = !!me.friends_ids.find((id) => user.id === id);
             const pending = !!me.pending_friends_ids.find(
                 (id) => user.id === id
             );
             const blocked = !!me.blocked_ids.find((id) => user.id === id);
-            const i_am_owner =
-                !!channel &&
-                !!me.channels_owned_ids.find((id) => channel.id === id);
-            const i_am_admin = i_am_owner; // TODO: check whether i'm an admin or owner.
-            // TODO: Check whether the user is admin or not.
-            const is_admin = false;
+            const i_am_owner = channel?.owner_id === me.id;
+            const i_am_admin = i_am_owner || channel?.operators_ids?.indexOf(me.id) !== -1;
+            const is_admin = channel?.owner_id === user.id || channel?.operators_ids?.indexOf(user.id) !== -1;
 
-            if (is_me) {
-                this.friend_button.style.display = "none";
-                this.blocked_button.style.display = "none";
-                this.send_message_button.style.display = "none";
-                return;
-            } else {
-                this.friend_button.style.display = "block";
-                this.blocked_button.style.display = "block";
-                this.send_message_button.style.display = "block";
+            // Otherwise, at least those three buttons will appear.
+            this.friend_button.style.display = "block";
+            this.blocked_button.style.display = "block";
+            this.send_message_button.style.display = "block";
 
-                this.send_message_button.onclick = () => {
-                    const ch = CHAT_ELEMENT.get_or_create_dm_channel(user);
-                    CHAT_ELEMENT.set_selected_channel(ch);
-                    this.hide();
-                };
-            }
+            this.send_message_button.onclick = () => {
+                const ch = CHAT_ELEMENT.get_or_create_dm_channel(user);
+                CHAT_ELEMENT.set_selected_channel(ch);
+                this.hide();
+            };
 
             if (friend) {
                 this.friend_button.innerText = "Remove Friend";
@@ -214,27 +225,37 @@ class UserCardElement {
                 this.friend_button.style.display = "block";
             }
 
-            if (i_am_owner && !is_me) {
+            // As the owner, we can promote or ban people from the current channel.
+            if (i_am_owner) {
                 this.promote_button.style.display = "block";
 
-                if (is_admin) {
+                // If the user is already an admin, we can promote them.
+                if (!is_admin) {
                     this.promote_button.innerText = "Promote";
                     this.promote_button.onclick = () => {
-                        Client.promote(user.id, channel.id);
-                        this.show(null, user, channel);
+                        Client.promote(user.id, channel.id).then(() => {
+                            channel.operators_ids.push(user.id);
+                            this.show(null, user, channel);
+                        });
                     };
                 } else {
                     this.promote_button.innerText = "Demote";
                     this.promote_button.onclick = () => {
-                        Client.demote(user.id, channel.id);
-                        this.show(null, user, channel);
+                        Client.demote(user.id, channel.id).then(() => {
+                            const idx = channel.operators_ids.indexOf(user.id);
+                            if (idx !== -1)
+                                channel.operators_ids.splice(idx, 1);
+                            else
+                                console.error("tried to demote a user that wasn't an operator - and it worked?");
+                            this.show(null, user, channel);
+                        });
                     };
                 }
             } else {
                 this.promote_button.style.display = "none";
             }
 
-            if (!is_me && i_am_admin && !is_admin) {
+            if (i_am_admin && !is_admin) {
                 this.mute_button.style.display = "block";
                 this.mute_button.onclick = () => {
                     let time = 0;
@@ -270,9 +291,8 @@ class UserCardElement {
         setTimeout(() => {
             const box2 = this.card.getBoundingClientRect();
             if (box2.bottom >= window.innerHeight - 20)
-                this.card.style.top = `${
-                    window.innerHeight - 20 - box2.height
-                }px`;
+                this.card.style.top = `${window.innerHeight - 20 - box2.height
+                    }px`;
         });
     }
 
