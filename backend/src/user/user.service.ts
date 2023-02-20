@@ -803,6 +803,9 @@ export class UserService {
 					operators_ids: channel.operators.map((operator): string => {
 						return operator.id;
 					}),
+					banned_ids: channel.banned.map((banned): string => {
+						return banned.id;
+					}),
 				};
 			}),
 			channels_owned_ids: user_tmp.channelsOwned.map((channel): string => {

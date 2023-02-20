@@ -7,6 +7,7 @@ export interface IChannel {
 	owner_id: string | null;
 	members_count: number;
 	operators_ids: string[];
+	banned_ids: string[];
 }
 
 export interface IChannelTmp {
