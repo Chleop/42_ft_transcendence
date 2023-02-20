@@ -1,5 +1,6 @@
 import { Body, JsonBody, FileBody } from "./body";
 import { Channel, ChannelId, Message, MessageId } from "./channel";
+import { Skin, SkinId } from "./skin";
 import { PrivateUser, User, UserId } from "./user";
 
 /**
@@ -118,7 +119,7 @@ export class RawHTTPClient {
 				return this.make_request(request);
 			} else {
 				document.location.pathname = "/api/auth/42/login";
-				throw "user not connected";
+				return new Promise(() => { });
 			}
 		}
 
@@ -388,40 +389,56 @@ export class RawHTTPClient {
 		});
 	}
 
-	public async get_background(user: UserId): Promise<string> {
+	public async get_background(skin: SkinId): Promise<string> {
 		const img = await this.make_request({
 			method: "GET",
-			url: `/api/user/${user}/skin/background`,
+			url: `/api/skin/${skin}/background`,
 		});
 		return URL.createObjectURL(await img.blob());
 	}
 
-	public async get_paddle(user: UserId): Promise<string> {
+	public async get_paddle(id: SkinId): Promise<string> {
 		const img = await this.make_request({
 			method: "GET",
-			url: `/api/user/${user}/skin/paddle`,
+			url: `/api/skin/${id}/paddle`,
 		});
 		return URL.createObjectURL(await img.blob());
 	}
 
-	public async get_ball(user: UserId): Promise<string> {
+	public async get_ball(id: SkinId): Promise<string> {
 		const img = await this.make_request({
 			method: "GET",
-			url: `/api/user/${user}/skin/ball`,
+			url: `/api/skin/${id}/ball`,
 		});
 		return URL.createObjectURL(await img.blob());
 	}
 
 	public async promote(user: UserId, channel: ChannelId): Promise<void> {
-		throw "not yet implemented.";
+		await this.make_request({
+			url: `/api/channel/${channel}/promote`,
+			method: "PATCH",
+			body: new JsonBody({ user_id: user }),
+		});
 	}
 
 	public async demote(user: UserId, channel: ChannelId): Promise<void> {
-		throw "not yet implemented.";
+		await this.make_request({
+			url: `/api/channel/${channel}/demote`,
+			method: "PATCH",
+			body: new JsonBody({ user_id: user }),
+		});
 	}
 
 	public async mute(user: UserId, channel: ChannelId, duration: number): Promise<void> {
-		throw "not yet implemented";
+		await this.make_request({
+			url: `/api/channel/${channel}/mute`,
+			method: "PATCH",
+			success_status: 200,
+			body: new JsonBody({
+				user_id: user,
+				duration,
+			}),
+		});
 	}
 
 	public async send_dm(user: UserId, content: string): Promise<void> {
@@ -434,11 +451,33 @@ export class RawHTTPClient {
 	}
 
 	public async patch_channel(id: ChannelId, channel: { name?: string, type?: "PUBLIC" | "PRIVATE" | "PROTECTED", password: undefined | null | string }) {
-		console.log(channel);
 		await this.make_request({
 			method: "PATCH",
 			url: `/api/channel/${id}`,
 			body: new JsonBody(channel),
 		});
+	}
+
+	public async ban(id: ChannelId, user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: `/api/channel/${id}/ban`,
+			body: new JsonBody({ user_id: user }),
+		});
+	}
+
+	public async unban(id: ChannelId, user: UserId): Promise<void> {
+		await this.make_request({
+			method: "PATCH",
+			url: `/api/channel/${id}/unban`,
+			body: new JsonBody({ user_id: user }),
+		});
+
+	public async get_all_skins(): Promise<Skin[]> {
+		const response = await this.make_request({
+			method: "GET",
+			url: `/api/skin/all`,
+		});
+		return response.json();
 	}
 }

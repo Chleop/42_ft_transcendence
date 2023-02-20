@@ -8,6 +8,7 @@ import {
     User,
 } from "../api";
 import GATEWAY from "../api/gateway";
+import { NOTIFICATIONS } from "../notification";
 import CHANNEL_LIST from "./channel_list";
 import CHANNEL_SETTINGS from "./channel_settings";
 import USER_CARD from "./user_card";
@@ -474,7 +475,9 @@ class ChatElement {
 
         this.selected_channel.my_last_message = content;
         if (this.selected_channel.model)
-            await Client.send_message(this.selected_channel.model.id, content);
+            await Client.send_message(this.selected_channel.model.id, content).catch(() => {
+                NOTIFICATIONS.spawn_notification("red", "your are not allowed to speak in this channel");
+            });
         if (this.selected_channel.dm) {
             await Client.send_dm(this.selected_channel.dm.id, content);
             // TODO:

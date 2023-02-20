@@ -1,7 +1,7 @@
 import { Socket, io } from "socket.io-client";
-import { Client, UserId } from ".";
+import { Client, User, UserId } from ".";
 
-export class ConnectError {}
+export class ConnectError { }
 
 /**
  * The payload of the `updateBall` event.
@@ -43,7 +43,7 @@ export interface MatchFound {
     id: UserId;
 }
 
-function noop(): void {}
+function noop(): void { }
 
 export class GameSocket {
     /** The inner socket. */
@@ -146,6 +146,11 @@ export interface SpectatorStateUpdate {
     player2: PlayerStateUpdate;
 }
 
+export interface RoomData {
+    spectated: User;
+    opponent: User;
+}
+
 /* Wraps a Socket.IO socket to handle spectator-specific events. */
 export class SpecSocket {
     /** The inner socket. */
@@ -167,6 +172,8 @@ export class SpecSocket {
     public on_update: (state: SpectatorStateUpdate) => void = noop;
 
     public on_score_update: (state: ScoreStateUpdate) => void = noop;
+
+    public on_room_data: (state: RoomData) => void = noop;
 
     /**
      * Creates a new GameSocket.
@@ -192,6 +199,7 @@ export class SpecSocket {
         this.socket.on("disconnect", () => this.on_disconnected());
         this.socket.on("updateGame", (st) => this.on_update(st));
         this.socket.on("updateScore", (st) => this.on_score_update(st));
+        this.socket.on("roomData", (st) => this.on_room_data(st));
     }
 
     /** Initiates the connection with the server. */

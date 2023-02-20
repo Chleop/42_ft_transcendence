@@ -1,5 +1,5 @@
 import { Constants, OngoingGame, Paddle, SkinUrls, } from ".";
-import { BallStateUpdate, Client, GameSocket, PlayerStateUpdate, ScoreStateUpdate, UserId } from "../api";
+import { BallStateUpdate, Client, GameSocket, PlayerStateUpdate, ScoreStateUpdate, User, UserId } from "../api";
 import { History } from "../strawberry";
 
 /** An onging game that we are playing in. */
@@ -23,10 +23,10 @@ export class PlayingGame extends OngoingGame {
     /** Becomes `true` when the player left by himself. */
     private has_left: boolean;
 
-    private left_id: UserId;
-    private right_id: UserId;
-    
-    public constructor(socket: GameSocket, my_id: UserId, other_id: UserId) {
+    private left: User;
+    private right: User;
+
+    public constructor(socket: GameSocket, me: User, other: User) {
         super();
 
         socket.on_ball_updated = st => this.on_ball_updated(st);
@@ -36,13 +36,13 @@ export class PlayingGame extends OngoingGame {
         socket.on_score_updated = st => this.on_score_updated(st);
         window.onkeydown = key => this.on_key(key.key, true);
         window.onkeyup = key => this.on_key(key.key, false);
-           
+
         this.game_started = false;
         this.buttons = { up: false, down: false };
         this.socket = socket;
         this.has_left = false;
-        this.left_id = my_id;
-        this.right_id = other_id;
+        this.left = me;
+        this.right = other;
     }
 
     private on_ball_updated(state: BallStateUpdate) {
@@ -137,12 +137,12 @@ export class PlayingGame extends OngoingGame {
 
     public get_skins(): SkinUrls {
         return {
-            left_background: Client.get_background(this.left_id),
-            right_background: Client.get_background(this.right_id),
-            left_paddle: Client.get_paddle(this.left_id),
-            right_paddle: Client.get_paddle(this.right_id),
-            left_ball: Client.get_ball(this.left_id),
-            right_ball: Client.get_ball(this.right_id),
+            left_background: Client.get_background(this.left.skin_id),
+            right_background: Client.get_background(this.right.skin_id),
+            left_paddle: Client.get_paddle(this.left.skin_id),
+            right_paddle: Client.get_paddle(this.right.skin_id),
+            left_ball: Client.get_ball(this.left.skin_id),
+            right_ball: Client.get_ball(this.right.skin_id),
         };
     }
 }
