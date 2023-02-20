@@ -5,8 +5,6 @@ import { SpectatingGame } from "./game/spectating_game";
 import PROFILE_OVERLAY from "./main_menu/profile_overlay";
 import GAME_BOARD from "./game/game_board";
 
-export let AUTHENTICATING: boolean = false;
-
 /**
  * The entry point of the application.
  */
@@ -15,8 +13,8 @@ function entry_point() {
 
 	const router = new Router<(data: RouteData) => void>();
 
-    router.register_route("/", () => History.replace_state(MAIN_MENU));
-    router.register_route("/profile", () => {
+	router.register_route("/", () => History.replace_state(MAIN_MENU));
+	router.register_route("/profile", () => {
 		History.replace_state(MAIN_MENU);
 		History.push_state(PROFILE_OVERLAY);
 	});

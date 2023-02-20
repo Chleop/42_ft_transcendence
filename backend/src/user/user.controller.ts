@@ -49,8 +49,7 @@ import { DirectMessage } from "@prisma/client";
 @Controller("user")
 @UseGuards(Jwt2FAGuard)
 export class UserController {
-	// REMIND: Check if passing `_user_service` in readonly keep it working well
-	private _user_service: UserService;
+	private readonly _user_service: UserService;
 	private readonly _chat_service: ChatService;
 	private readonly _chat_gateway: ChatGateway;
 	private readonly _logger: Logger;
