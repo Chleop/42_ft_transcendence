@@ -171,8 +171,12 @@ export class ChannelListElement {
             }).catch(() => { });
         };
 
-        add_priv_channel_input.onpaste = join_chan;
-        add_priv_channel_input.onchange = join_chan;
+        add_priv_channel_input.onpaste = (ev) => {
+            const a = ev.clipboardData?.getData("Text");
+            if (a)
+                add_priv_channel_input.value = a;
+            join_chan();
+        };
 
         new_channel_title.onclick = () => {
             const priv = channel_private.classList.contains("active");

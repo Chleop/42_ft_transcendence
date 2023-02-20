@@ -189,6 +189,7 @@ export class RawHTTPClient {
 	 * Requests the creation of a new channel.
 	 */
 	public async create_channel(name: string, priv: boolean, password?: string): Promise<Channel> {
+		console.log(name, priv, password);
 		return (
 			await this.make_request({
 				accept: "application/json",
@@ -197,7 +198,7 @@ export class RawHTTPClient {
 				url: "/api/channel",
 				body: new JsonBody({
 					name,
-					private: priv,
+					is_private: priv,
 					password,
 				}),
 			})
