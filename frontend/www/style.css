@@ -981,6 +981,7 @@ body {
   padding-right: 20px;
 }
 
+<<<<<<< HEAD
 #profile-skin-picker {
   display: flex;
   flex-flow: row nowrap;  
@@ -1014,4 +1015,25 @@ body {
 
 .profile-skin-button:active {
   transform: scale(0.95);
+
+#notification-container {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 20px;
+}
+
+.notification-block {
+  border-left: solid 4px var(--notif-color);
+
+  background-color: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(15px);
+
+  padding: 20px;
+  border-radius: 10px;
+
+  color: white;
 }

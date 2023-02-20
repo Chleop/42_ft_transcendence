@@ -137,7 +137,7 @@ export class Ball {
 		const velocity = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
 
 		// When the ball is on top of the paddle (rel_y == 1), then it must go to that angle.
-		const MAX_ANGLE = Math.PI / 3;
+		const MAX_ANGLE = Constants.pi_3;
 
 		// Linearly interpolate between MAX_ANGLE and -MAX_ANGLE using the relative velociy as a
 		// base.

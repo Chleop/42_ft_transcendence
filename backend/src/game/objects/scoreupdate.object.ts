@@ -14,14 +14,12 @@ export class ScoreUpdate {
 	/* CONSTRUCTOR ============================================================= */
 
 	constructor(score_1: number, score_2: number, is_left: boolean) {
+		this.you = score_1;
+		this.opponent = score_2;
 		if (is_left === true) {
 			this.just_scored = "you";
-			this.you = score_2;
-			this.opponent = score_1;
 		} else {
 			this.just_scored = "opponent";
-			this.you = score_1;
-			this.opponent = score_2;
 		}
 		if (score_1 === Constants.max_score) this.is_ongoing = false;
 		else this.is_ongoing = true;
@@ -31,6 +29,6 @@ export class ScoreUpdate {
 
 	public invert(): ScoreUpdate {
 		const who: boolean = this.just_scored === "you" ? false : true;
-		return new ScoreUpdate(this.you, this.opponent, who);
+		return new ScoreUpdate(this.opponent, this.you, who);
 	}
 }

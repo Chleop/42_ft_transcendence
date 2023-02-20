@@ -1,4 +1,5 @@
 import { Client, Users } from "../api";
+import { NOTIFICATIONS } from "../notification";
 import { History, Overlay, State } from "../strawberry";
 import { rank_to_image, ratio_to_rank } from "../utility";
 import MAIN_MENU from "./main_menu";
@@ -138,6 +139,8 @@ class ProfileOverlay extends Overlay {
                 }).catch(() => {
                     editor_email.value = "";
                     editor_email.disabled = false;
+
+                    NOTIFICATIONS.spawn_notification("red", "invalid EMAIL");
                 });
             }
         };
