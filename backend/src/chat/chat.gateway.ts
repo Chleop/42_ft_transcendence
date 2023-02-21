@@ -1,4 +1,4 @@
-import { t_user_id } from "src/chat/alias";
+import { t_user_id, t_user_status } from "src/chat/alias";
 import { t_user_update_event } from "src/user/alias";
 import { e_user_status } from "src/user/enum";
 import { ChatService } from "src/chat/chat.service";
@@ -68,16 +68,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			user_updated.id,
 		);
 		for (const user_to_notify of users) {
-			const socket: Socket | undefined = this._chat_service.get_user(
+			// const socket: Socket | undefined = this._chat_service.get_user(
+			// 	user_to_notify.id,
+			// )?.socket;
+			const is_user_in_map: t_user_status | undefined = this._chat_service.get_user(
 				user_to_notify.id,
-			)?.socket;
+			);
 
-			if (socket) {
+			if (is_user_in_map !== undefined) {
 				let data: IUserPrivate | IUserPublic;
 				if (user_updated.id === user_to_notify.id)
 					data = await this._user_service.get_me(user_to_notify.id);
 				else data = await this._user_service.get_one(user_to_notify.id, user_updated.id);
-				socket.emit("user_updated", data);
+				this._server.to(user_to_notify.login).emit("user_updated", data);
+				// socket.emit("user_updated", data);
 			}
 		}
 	}
@@ -85,22 +89,30 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	public async broadcast_to_online_channel_members(channel_id: string): Promise<void> {
 		const users: t_user_id[] = await this._chat_service.get_online_users_in_channel(channel_id);
 		for (const user_to_notify of users) {
-			const socket: Socket | undefined = this._chat_service.get_user(
+			// const socket: Socket | undefined = this._chat_service.get_user(
+			// 	user_to_notify.id,
+			// )?.socket;
+			const is_user_in_map: t_user_status | undefined = this._chat_service.get_user(
 				user_to_notify.id,
-			)?.socket;
+			);
 
-			if (socket) {
+			if (is_user_in_map !== undefined) {
 				const data: IChannel = await this._channel_service.get_one(channel_id);
-				socket.emit("channel_updated", data);
+				this._server.to(user_to_notify.login).emit("channel_updated", data);
+				// socket.emit("channel_updated", data);
 			}
 		}
 	}
 
 	public forward_to_user_socket(event: string, user_id: string, data: any): void {
-		const socket: Socket | undefined = this._chat_service.get_user(user_id)?.socket;
+		const user: t_user_status | undefined = this._chat_service.get_user(user_id);
+
+		if (user !== undefined) {
+			this._server.to(user.login).emit(event, data);
+		}
 
 		// if (socket === undefined) return;
-		socket?.emit(event, data);
+		// socket?.emit(event, data);
 	}
 
 	/**

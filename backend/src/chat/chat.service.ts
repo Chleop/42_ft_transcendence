@@ -15,16 +15,28 @@ export class ChatService {
 
 	// add user to map
 	public add_user(socket: Socket): void {
-		ChatService._user_map.set(socket.data.user.id, {
-			socket: socket,
-			status: e_user_status.ONLINE,
-			spectated_user: undefined,
-		});
+		const user: t_user_status | undefined = ChatService._user_map.get(socket.data.user.id);
+		if (user !== undefined) {
+			socket.join(user.login);
+			user.nb_socket_in_room++;
+		} else {
+			ChatService._user_map.set(socket.data.user.id, {
+				nb_socket_in_room: 1,
+				login: socket.data.user.login,
+				status: e_user_status.ONLINE,
+				spectated_user: undefined,
+			});
+		}
 	}
 
 	// remove user from map
-	public remove_user(id: string): void {
-		ChatService._user_map.delete(id);
+	public remove_user(socket: Socket): void {
+		const user: t_user_status | undefined = ChatService._user_map.get(socket.data.user.id);
+		if (user !== undefined) {
+			socket.leave(socket.data.user.login);
+			user.nb_socket_in_room--;
+			if (user.nb_socket_in_room === 0) ChatService._user_map.delete(socket.data.user.id);
+		}
 	}
 
 	// get user from map
@@ -47,6 +59,7 @@ export class ChatService {
 		const users: t_user_id[] = await this._prisma_service.user.findMany({
 			select: {
 				id: true,
+				login: true,
 			},
 			where: {
 				OR: [
@@ -112,6 +125,7 @@ export class ChatService {
 				members: {
 					select: {
 						id: true,
+						login: true,
 					},
 				},
 			},
