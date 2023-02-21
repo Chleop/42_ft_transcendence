@@ -27,6 +27,7 @@ import { join } from "path";
 import { IChannel } from "src/channel/interface";
 import * as jimp from "jimp";
 import { ChatService } from "src/chat/chat.service";
+import { e_user_status } from "./enum";
 
 @Injectable()
 export class UserService {
@@ -793,6 +794,11 @@ export class UserService {
 		})) as IUserPrivateTmp;
 		//#endregion
 
+		let status: e_user_status | undefined = this._chat_service.get_user(id)?.status;
+		if (status === undefined) {
+			status = e_user_status.OFFLINE;
+		}
+
 		const user: IUserPrivate = {
 			//#region
 			id: user_tmp.id,
@@ -841,7 +847,7 @@ export class UserService {
 			blocked_ids: user_tmp.blocked.map((blocked): string => {
 				return blocked.id;
 			}),
-			status: this._chat_service.get_user(id)!.status,
+			status,
 		};
 		//#endregion
 
@@ -983,6 +989,12 @@ export class UserService {
 			throw new UserNotFoundError(requested_user_id);
 		}
 
+		let status: e_user_status | undefined =
+			this._chat_service.get_user(requested_user_id)?.status;
+		if (status === undefined) {
+			status = e_user_status.OFFLINE;
+		}
+
 		const requested_user: IUserPublic = {
 			//#region
 			id: requested_user_tmp.id,
@@ -990,7 +1002,7 @@ export class UserService {
 			skin_id: requested_user_tmp.skinId,
 			games_played_count: requested_user_tmp.gamesPlayed.length,
 			games_won_count: requested_user_tmp.gamesWon.length,
-			status: this._chat_service.get_user(requested_user_id)!.status,
+			status,
 		};
 		//#endregion
 
