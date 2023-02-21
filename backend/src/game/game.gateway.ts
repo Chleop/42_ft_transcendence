@@ -225,6 +225,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				const is_winner_left: boolean = results.winner === room.match.player1.data.user.id;
 				this.updateSocketScore(room.match.player1, is_winner_left);
 				this.updateSocketScore(room.match.player2, !is_winner_left);
+				// this.chat_gateway.broadcast_to_online_related_users({
+				// 	id: room.match.player1.data.user.id,
+				// 	status: e_user_status.ONLINE,
+				// });
+				// this.chat_gateway.broadcast_to_online_related_users({
+				// 	id: room.match.player1.data.user.id,
+				// 	status: e_user_status.ONLINE,
+				// });
 			} catch (e) {
 				if (e instanceof BadRequestException || e instanceof ConflictException) {
 					this.logger.error(e.message);
@@ -250,7 +258,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Disconnect players matched.
 	 */
 	private disconnectRoom(match: Match): void {
+		// this.handleDisconnect(match.player1);
 		match.player1.disconnect();
+		// this.handleDisconnect(match.player2);
 		match.player2.disconnect();
 	}
 
