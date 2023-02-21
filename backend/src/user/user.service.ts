@@ -822,9 +822,6 @@ export class UserService {
 					}),
 				};
 			}),
-			channels_owned_ids: user_tmp.channelsOwned.map((channel): string => {
-				return channel.id;
-			}),
 			games_played: user_tmp.gamesPlayed.map((game): IGame => {
 				return {
 					id: game.id,
