@@ -385,6 +385,9 @@ class ChatElement {
         this.selected_channel = null;
         this.channel_elements = [];
 
+        let my_id: UserId | undefined;
+        Users.me().then(me => my_id = me.id);
+
         GATEWAY.on_message = (msg: Message) => {
             if (msg.channelId) {
                 let ch = this.get_channel(msg.channelId);
@@ -393,8 +396,13 @@ class ChatElement {
                 } else {
                     console.warn(`received a message not meant to me:`, msg);
                 }
-            } else {
-                let ch = this.get_dm_channel(msg.senderId);
+            }
+            if (msg.receiverId) {
+                let ch;
+                if (my_id === msg.senderId)
+                    ch = this.get_dm_channel(msg.receiverId);
+                else
+                    ch = this.get_dm_channel(msg.senderId);
                 if (ch) {
                     this.add_message(ch, msg);
                 } else {

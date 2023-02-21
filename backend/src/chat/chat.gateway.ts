@@ -156,7 +156,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	public make_user_socket_join_room(user_id: string, room_id: string): void {
 		const client: Socket | undefined = this._chat_service.get_user(user_id)?.socket;
 
-		// if (client === undefined) return;
 		client?.join(room_id);
 	}
 
@@ -173,7 +172,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	public make_user_socket_leave_room(user_id: string, room_id: string): void {
 		const client: Socket | undefined = this._chat_service.get_user(user_id)?.socket;
 
-		// if (client === undefined) return;
 		client?.leave(room_id);
 	}
 }
