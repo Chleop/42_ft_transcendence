@@ -15,7 +15,7 @@ import { Ball } from "./gameplay";
 import { Match } from "./aliases";
 import { BadRequestException, ConflictException, Logger } from "@nestjs/common";
 import { Constants } from "./constants";
-import { BadEvent } from "./exceptions";
+import { BadEvent, WrongData } from "./exceptions";
 import { ChatGateway } from "src/chat/chat.gateway";
 import { e_user_status } from "src/user/enum";
 
@@ -65,7 +65,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			const game_room: GameRoom | null = this.game_service.queueUp(client);
 			if (game_room !== null) this.matchmake(game_room);
 		} catch (e) {
-			if (e instanceof BadEvent) {
+			if (e instanceof BadEvent || e instanceof WrongData) {
 				this.sendError(client, e);
 				this.handleDisconnect(client);
 				client.disconnect();
