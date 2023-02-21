@@ -99,18 +99,18 @@ export const Users = (function() {
         public async on_user_update(user_update: User | PrivateUser) {
             const me = await this.me();
 
+            const u = await this.get(user_update.id);
+            Object.assign(u, user_update);
+
+            const subs = this.subs.get(user_update.id);
+            if (subs) {
+                for (const sub of subs) {
+                    sub(u);
+                }
+            }
+
             if (me.id === user_update.id) {
                 Object.assign(me, user_update);
-            } else {
-                const u = await this.get(user_update.id);
-                Object.assign(u, user_update);
-
-                const subs = this.subs.get(user_update.id);
-                if (subs) {
-                    for (const sub of subs) {
-                        sub(u);
-                    }
-                }
             }
         }
     }
