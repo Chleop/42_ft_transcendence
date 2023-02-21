@@ -1,5 +1,5 @@
-import {Channel, Client, UnexpectedStatusCode, Users} from "../api";
-import {NOTIFICATIONS} from "../notification";
+import { Channel, Client, UnexpectedStatusCode, Users } from "../api";
+import { NOTIFICATIONS } from "../notification";
 import CHAT_ELEMENT from "./chat";
 
 /** Information about a channel to be added. */
@@ -167,8 +167,6 @@ export class ChannelListElement {
 		add_priv_channel_input.classList.add("editor-field");
 		add_priv_channel_input.id = "add-priv-channel-id";
 		add_priv_channel_container.appendChild(add_priv_channel_input);
-
-		const join_chan = () => {};
 
 		add_priv_channel_input.onkeydown = (ev) => {
 			if (ev.key !== "Enter") return;

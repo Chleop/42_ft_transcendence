@@ -35,12 +35,10 @@ export class Matchmaking {
 		if (this.queue?.data.user.id === client.data.user.id) {
 			throw new BadEvent(`${client.data.user.login} already in the queue`);
 		}
-
 		if (client.handshake.auth.friend !== undefined) {
 			// Awaiting for a friend
 			if (typeof client.handshake.auth.friend !== "string")
 				throw new WrongData("Bad friend data format");
-
 			const player: Socket | null = this.findPendingUser(client.data.user.id);
 			if (player !== null) {
 				// Already awaiting: remove it
@@ -49,10 +47,15 @@ export class Matchmaking {
 				this.logger.verbose(
 					`${client.data.user.login} is awaiting ${client.data.user.login}.`,
 				);
-			} else {
-				// Match with friend
-				return this.matchWithFriend(client);
+				return null;
 			}
+			const friend: Socket | null = this.findPendingUser(client.handshake.auth.friend);
+			if (friend !== null) {
+				// Friend is in queue
+				return this.matchWithFriend(client, friend);
+			}
+			this.awaiting_players.add(client);
+			this.logger.verbose(`${client.data.user.login} is awaiting ${client.data.user.login}.`);
 			return null;
 		} else {
 			// Traditional matchmaking
@@ -90,11 +93,7 @@ export class Matchmaking {
 
 	/* PRIVATE ================================================================= */
 
-	private matchWithFriend(client: Socket): GameRoom {
-		const player: Socket | null = this.findPendingUser(client.handshake.auth.friend);
-		if (player === null) {
-			throw new BadEvent("No such user awaiting for a game");
-		}
+	private matchWithFriend(client: Socket, player: Socket): GameRoom {
 		const match: Match = {
 			name: player.data.user.id + client.data.user.id,
 			player1: player,
