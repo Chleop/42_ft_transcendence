@@ -1,4 +1,4 @@
-import { Client, PrivateUser, User, UserId, UserUpdate } from ".";
+import { Client, PrivateUser, User, UserId } from ".";
 import { Soon } from "../strawberry";
 
 /**
@@ -8,6 +8,7 @@ export const Users = (function() {
     class UsersClass {
         private users: Record<UserId, Soon<User>>;
         private avatars: Record<UserId, Soon<string>>;
+        private subs: Map<UserId, Set<(usr: User) => void>>;
 
         private me_: Soon<PrivateUser> | undefined;
 
@@ -15,6 +16,7 @@ export const Users = (function() {
             this.users = {};
             this.avatars = {};
             this.me_ = undefined;
+            this.subs = new Map();
         }
 
         /**
@@ -31,6 +33,22 @@ export const Users = (function() {
             const user = await Client.user(id);
             this.users[id].resolve(user);
             return user;
+        }
+
+        /**
+         * Requests a function to be called when a user changes.
+         */
+        public subscribe(id: UserId, sub: (usr: User) => void): () => void {
+            let subs = this.subs.get(id);
+            if (!subs) {
+                subs = new Set();
+                this.subs.set(id, subs);
+            }
+            subs.add(sub);
+            return () => {
+                if (subs)
+                    subs.delete(sub);
+            };
         }
 
         /** Invalidates the provided avatar, effectively removing it from the cache. */
@@ -86,6 +104,13 @@ export const Users = (function() {
             } else {
                 const u = await this.get(user_update.id);
                 Object.assign(u, user_update);
+
+                const subs = this.subs.get(user_update.id);
+                if (subs) {
+                    for (const sub of subs) {
+                        sub(u);
+                    }
+                }
             }
         }
     }

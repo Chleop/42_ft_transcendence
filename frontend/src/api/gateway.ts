@@ -1,7 +1,7 @@
 import { Socket, io } from "socket.io-client";
 import { Message } from "./channel";
 import { get_cookie } from "./client";
-import { PrivateUser, User, UserUpdate } from "./user";
+import { PrivateUser, User } from "./user";
 import { Users } from "./users";
 
 /** Does nothing. */

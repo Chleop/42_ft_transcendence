@@ -117,213 +117,225 @@ class UserCardElement {
         this.ban_button = ban_button;
     }
 
+    private unsub: (() => void) | undefined;
+
     public show(elem: HTMLElement | null, user: User, channel: Channel | null) {
-        Users.me().then((me) => {
-            this.name.innerText = user.name;
+        const re_draw = (user: User) => {
 
-            this.status.onclick = () => { };
-            this.status.style.cursor = "normal";
+            Users.me().then((me) => {
+                this.name.innerText = user.name;
 
-            if (user.status === "online") { this.status.innerText = "ONLINE"; }
-            else if (user.status === "offline") {
-                this.status.innerText = "OFFLINE";
-            }
-            else if (user.status === "ingame") {
-                this.status.innerText = "IN GAME";
-                this.status.style.cursor = "pointer";
-                this.status.onclick = () => {
-                    GAME_BOARD.start_game(new SpectatingGame(user.id));
-                    History.push_state(GAME_BOARD);
-                };
-                this.status.style.cursor = "pointer";
-            } else if (user.status === "spectating") {
-                this.status.innerText = "SPECTATING";
-                if (user.spectating) {
-                    const spec = user.spectating;
+                this.status.onclick = () => { };
+                this.status.style.cursor = "normal";
+
+                if (user.status === "online") { this.status.innerText = "ONLINE"; }
+                else if (user.status === "offline") {
+                    this.status.innerText = "OFFLINE";
+                }
+                else if (user.status === "ingame") {
+                    this.status.innerText = "IN GAME";
                     this.status.style.cursor = "pointer";
                     this.status.onclick = () => {
-                        GAME_BOARD.start_game(new SpectatingGame(spec));
+                        GAME_BOARD.start_game(new SpectatingGame(user.id));
                         History.push_state(GAME_BOARD);
                     };
+                    this.status.style.cursor = "pointer";
+                } else if (user.status === "spectating") {
+                    this.status.innerText = "SPECTATING";
+                    if (user.spectating) {
+                        const spec = user.spectating;
+                        this.status.style.cursor = "pointer";
+                        this.status.onclick = () => {
+                            GAME_BOARD.start_game(new SpectatingGame(spec));
+                            History.push_state(GAME_BOARD);
+                        };
+                    }
                 }
-            }
 
-            const wins = user.games_won_count;
-            const losses = user.games_played_count - wins;
-            let percent_f = 0;
-            if (wins + losses !== 0) {
-                const percent = (wins / user.games_played_count) * 100.0;
-                percent_f = Math.floor(percent * 10) / 10;
-            }
-            const rank: Rank = ratio_to_rank(wins, losses);
-            const url = rank_to_image(rank);
+                const wins = user.games_won_count;
+                const losses = user.games_played_count - wins;
+                let percent_f = 0;
+                if (wins + losses !== 0) {
+                    const percent = (wins / user.games_played_count) * 100.0;
+                    percent_f = Math.floor(percent * 10) / 10;
+                }
+                const rank: Rank = ratio_to_rank(wins, losses);
+                const url = rank_to_image(rank);
 
-            this.rank.style.backgroundImage = `url('${url}')`;
-            this.wins.innerText = `${wins} W / ${losses} L / ${percent_f}%`;
+                this.rank.style.backgroundImage = `url('${url}')`;
+                this.wins.innerText = `${wins} W / ${losses} L / ${percent_f}%`;
 
-            // If the user we are inspecting is ourselves, there is nothing more to see.
-            if (user.id === me.id) {
-                this.friend_button.style.display = "none";
-                this.blocked_button.style.display = "none";
-                this.send_message_button.style.display = "none";
-                this.mute_button.style.display = "none";
-                this.promote_button.style.display = "none";
-                this.ban_button.style.display = "none";
-                return;
-            }
+                // If the user we are inspecting is ourselves, there is nothing more to see.
+                if (user.id === me.id) {
+                    this.friend_button.style.display = "none";
+                    this.blocked_button.style.display = "none";
+                    this.send_message_button.style.display = "none";
+                    this.mute_button.style.display = "none";
+                    this.promote_button.style.display = "none";
+                    this.ban_button.style.display = "none";
+                    return;
+                }
 
-            const friend = !!me.friends_ids.find((id) => user.id === id);
-            const pending = !!me.pending_friends_ids.find(
-                (id) => user.id === id
-            );
-            const blocked = !!me.blocked_ids.find((id) => user.id === id);
-            const i_am_owner = channel?.owner_id === me.id;
-            const i_am_admin = i_am_owner || channel?.operators_ids?.indexOf(me.id) !== -1;
-            const is_admin = channel?.owner_id === user.id || channel?.operators_ids?.indexOf(user.id) !== -1;
+                const friend = !!me.friends_ids.find((id) => user.id === id);
+                const pending = !!me.pending_friends_ids.find(
+                    (id) => user.id === id
+                );
+                const blocked = !!me.blocked_ids.find((id) => user.id === id);
+                const i_am_owner = channel?.owner_id === me.id;
+                const i_am_admin = i_am_owner || channel?.operators_ids?.indexOf(me.id) !== -1;
+                const is_admin = channel?.owner_id === user.id || channel?.operators_ids?.indexOf(user.id) !== -1;
 
-            // Otherwise, at least those three buttons will appear.
-            this.friend_button.style.display = "block";
-            this.blocked_button.style.display = "block";
-            this.send_message_button.style.display = "block";
-
-            this.send_message_button.onclick = () => {
-                const ch = CHAT_ELEMENT.get_or_create_dm_channel(user);
-                CHAT_ELEMENT.set_selected_channel(ch);
-                this.hide();
-            };
-
-            if (friend) {
-                this.friend_button.innerText = "Remove Friend";
-                this.friend_button.onclick = () =>
-                    Client.unfriend(user.id).then(() => {
-                        const index = me.friends_ids.indexOf(user.id);
-                        if (index !== -1) me.friends_ids.splice(index, 1);
-                        this.show(null, user, channel);
-                        NOTIFICATIONS.spawn_notification("green", "failed to remove this friend");
-                    }).catch(() => {
-                        NOTIFICATIONS.spawn_notification("red", "failed to remove this friend");
-                    });
-            } else if (pending) {
-                this.friend_button.innerText = "Accept Friend";
-                this.friend_button.onclick = () =>
-                    Client.accept_friend(user.id).then(() => {
-                        me.friends_ids.push(user.id);
-                        this.show(null, user, channel);
-                        NOTIFICATIONS.spawn_notification("green", "Friend request accepted.");
-                    }).catch(() => {
-                        NOTIFICATIONS.spawn_notification("red", "failed to accept the friend request");
-                    });
-            } else {
-                this.friend_button.innerText = "Add Friend";
-                this.friend_button.onclick = () =>
-                    Client.request_friend(user.id).then(() => {
-                        this.show(null, user, channel);
-                        NOTIFICATIONS.spawn_notification("green", "I hope they respond...");
-                    }).catch(() => {
-                        NOTIFICATIONS.spawn_notification("orange", "I already asked them out...");
-                    });
-            }
-
-            if (blocked) {
-                this.blocked_button.innerText = "Unblock User";
-                this.blocked_button.onclick = () =>
-                    Client.unblock(user.id).then(() => {
-                        const index = me.blocked_ids.indexOf(user.id);
-                        if (index !== -1) me.blocked_ids.splice(index, 1);
-                        this.show(null, user, channel);
-                        NOTIFICATIONS.spawn_notification("green", "are you guys cool now?");
-                    }).catch(() => {
-                        NOTIFICATIONS.spawn_notification("red", "failed to block this user");
-                    });
-                this.friend_button.style.display = "none";
-            } else {
-                this.blocked_button.innerText = "Block User";
-                this.blocked_button.onclick = () =>
-                    Client.block(user.id).then(() => {
-                        me.blocked_ids.push(user.id);
-                        this.show(null, user, channel);
-                        NOTIFICATIONS.spawn_notification("green", "this user won't bother you no more");
-                    }).catch(() => {
-                        NOTIFICATIONS.spawn_notification("red", "failed to block the user");
-                    });
+                // Otherwise, at least those three buttons will appear.
                 this.friend_button.style.display = "block";
-            }
+                this.blocked_button.style.display = "block";
+                this.send_message_button.style.display = "block";
 
-            // As the owner, we can promote or ban people from the current channel.
-            if (i_am_owner) {
-                this.promote_button.style.display = "block";
+                this.send_message_button.onclick = () => {
+                    const ch = CHAT_ELEMENT.get_or_create_dm_channel(user);
+                    CHAT_ELEMENT.set_selected_channel(ch);
+                    this.hide();
+                };
 
-                // If the user is already an admin, we can promote them.
-                if (!is_admin) {
-                    this.promote_button.innerText = "Promote";
-                    this.promote_button.onclick = () => {
-                        Client.promote(user.id, channel.id).then(() => {
-                            channel.operators_ids.push(user.id);
+                if (friend) {
+                    this.friend_button.innerText = "Remove Friend";
+                    this.friend_button.onclick = () =>
+                        Client.unfriend(user.id).then(() => {
+                            const index = me.friends_ids.indexOf(user.id);
+                            if (index !== -1) me.friends_ids.splice(index, 1);
                             this.show(null, user, channel);
-                            NOTIFICATIONS.spawn_notification("green", "User promoted to channel operator.");
+                            NOTIFICATIONS.spawn_notification("green", "failed to remove this friend");
                         }).catch(() => {
-                            NOTIFICATIONS.spawn_notification("orange", "this user is no longer present in this channel");
+                            NOTIFICATIONS.spawn_notification("red", "failed to remove this friend");
                         });
+                } else if (pending) {
+                    this.friend_button.innerText = "Accept Friend";
+                    this.friend_button.onclick = () =>
+                        Client.accept_friend(user.id).then(() => {
+                            me.friends_ids.push(user.id);
+                            this.show(null, user, channel);
+                            NOTIFICATIONS.spawn_notification("green", "Friend request accepted.");
+                        }).catch(() => {
+                            NOTIFICATIONS.spawn_notification("red", "failed to accept the friend request");
+                        });
+                } else {
+                    this.friend_button.innerText = "Add Friend";
+                    this.friend_button.onclick = () =>
+                        Client.request_friend(user.id).then(() => {
+                            this.show(null, user, channel);
+                            NOTIFICATIONS.spawn_notification("green", "I hope they respond...");
+                        }).catch(() => {
+                            NOTIFICATIONS.spawn_notification("orange", "I already asked them out...");
+                        });
+                }
+
+                if (blocked) {
+                    this.blocked_button.innerText = "Unblock User";
+                    this.blocked_button.onclick = () =>
+                        Client.unblock(user.id).then(() => {
+                            const index = me.blocked_ids.indexOf(user.id);
+                            if (index !== -1) me.blocked_ids.splice(index, 1);
+                            this.show(null, user, channel);
+                            NOTIFICATIONS.spawn_notification("green", "are you guys cool now?");
+                        }).catch(() => {
+                            NOTIFICATIONS.spawn_notification("red", "failed to block this user");
+                        });
+                    this.friend_button.style.display = "none";
+                } else {
+                    this.blocked_button.innerText = "Block User";
+                    this.blocked_button.onclick = () =>
+                        Client.block(user.id).then(() => {
+                            me.blocked_ids.push(user.id);
+                            this.show(null, user, channel);
+                            NOTIFICATIONS.spawn_notification("green", "this user won't bother you no more");
+                        }).catch(() => {
+                            NOTIFICATIONS.spawn_notification("red", "failed to block the user");
+                        });
+                    this.friend_button.style.display = "block";
+                }
+
+                // As the owner, we can promote or ban people from the current channel.
+                if (i_am_owner) {
+                    this.promote_button.style.display = "block";
+
+                    // If the user is already an admin, we can promote them.
+                    if (!is_admin) {
+                        this.promote_button.innerText = "Promote";
+                        this.promote_button.onclick = () => {
+                            Client.promote(user.id, channel.id).then(() => {
+                                channel.operators_ids.push(user.id);
+                                this.show(null, user, channel);
+                                NOTIFICATIONS.spawn_notification("green", "User promoted to channel operator.");
+                            }).catch(() => {
+                                NOTIFICATIONS.spawn_notification("orange", "this user is no longer present in this channel");
+                            });
+                        };
+                    } else {
+                        this.promote_button.innerText = "Demote";
+                        this.promote_button.onclick = () => {
+                            Client.demote(user.id, channel.id).then(() => {
+                                const idx = channel.operators_ids.indexOf(user.id);
+                                if (idx !== -1)
+                                    channel.operators_ids.splice(idx, 1);
+                                else
+                                    console.error("tried to demote a user that wasn't an operator - and it worked?");
+                                this.show(null, user, channel);
+                                NOTIFICATIONS.spawn_notification("green", "User demoted from channel operators.");
+                            }).catch(() => {
+                                NOTIFICATIONS.spawn_notification("orange", "this user is no longer present in this channel");
+                            });
+                        };
+                    }
+                } else {
+                    this.promote_button.style.display = "none";
+                }
+
+                if (i_am_admin && !is_admin) {
+                    this.mute_button.style.display = "block";
+                    this.ban_button.style.display = "block";
+                    this.mute_button.onclick = () => {
+                        let time = 0;
+                        while (true) {
+                            const input = prompt("cb 2 tmp?");
+                            if (!input) return;
+                            time = parseFloat(input);
+                            if (!isNaN(time) && time !== 0) break;
+                        }
+                        Client.mute(user.id, channel.id, time)
+                            .then(() => {
+                                NOTIFICATIONS.spawn_notification("green", "user muted.");
+                            })
+                            .catch(() => {
+                                NOTIFICATIONS.spawn_notification("orange", "this user is no longer present in this channel");
+                            });
+                    };
+                    this.ban_button.onclick = () => {
+                        Client.ban(channel.id, user.id)
+                            .then(() => {
+                                NOTIFICATIONS.spawn_notification("green", "user banned.");
+                            })
+                            .catch(() => {
+                                NOTIFICATIONS.spawn_notification("orange", "this user is no longer present in this channel");
+                            });
                     };
                 } else {
-                    this.promote_button.innerText = "Demote";
-                    this.promote_button.onclick = () => {
-                        Client.demote(user.id, channel.id).then(() => {
-                            const idx = channel.operators_ids.indexOf(user.id);
-                            if (idx !== -1)
-                                channel.operators_ids.splice(idx, 1);
-                            else
-                                console.error("tried to demote a user that wasn't an operator - and it worked?");
-                            this.show(null, user, channel);
-                            NOTIFICATIONS.spawn_notification("green", "User demoted from channel operators.");
-                        }).catch(() => {
-                            NOTIFICATIONS.spawn_notification("orange", "this user is no longer present in this channel");
-                        });
-                    };
+                    this.mute_button.style.display = "none";
+                    this.ban_button.style.display = "none";
                 }
-            } else {
-                this.promote_button.style.display = "none";
-            }
+            });
+            Users.get_avatar(user.id).then((url) => {
+                this.avatar.style.backgroundImage = `url(\"${url}\")`;
+            });
+            Client.get_background(user.skin_id).then((url) => {
+                this.banner.style.backgroundImage = `url(\"${url}\")`;
+            });
+        };
 
-            if (i_am_admin && !is_admin) {
-                this.mute_button.style.display = "block";
-                this.ban_button.style.display = "block";
-                this.mute_button.onclick = () => {
-                    let time = 0;
-                    while (true) {
-                        const input = prompt("cb 2 tmp?");
-                        if (!input) return;
-                        time = parseFloat(input);
-                        if (!isNaN(time) && time !== 0) break;
-                    }
-                    Client.mute(user.id, channel.id, time)
-                        .then(() => {
-                            NOTIFICATIONS.spawn_notification("green", "user muted.");
-                        })
-                        .catch(() => {
-                            NOTIFICATIONS.spawn_notification("orange", "this user is no longer present in this channel");
-                        });
-                };
-                this.ban_button.onclick = () => {
-                    Client.ban(channel.id, user.id)
-                        .then(() => {
-                            NOTIFICATIONS.spawn_notification("green", "user banned.");
-                        })
-                        .catch(() => {
-                            NOTIFICATIONS.spawn_notification("orange", "this user is no longer present in this channel");
-                        });
-                };
-            } else {
-                this.mute_button.style.display = "none";
-                this.ban_button.style.display = "none";
-            }
-        });
-        Users.get_avatar(user.id).then((url) => {
-            this.avatar.style.backgroundImage = `url(\"${url}\")`;
-        });
-        Client.get_background(user.skin_id).then((url) => {
-            this.banner.style.backgroundImage = `url(\"${url}\")`;
-        });
+        if (this.unsub) {
+            this.unsub();
+        }
+
+        this.unsub = Users.subscribe(user.id, re_draw);
+        re_draw(user);
 
         if (elem) {
             const box = elem.getBoundingClientRect();
@@ -344,6 +356,11 @@ class UserCardElement {
     }
 
     public hide() {
+        if (this.unsub) {
+            this.unsub();
+            delete this.unsub;
+        }
+
         this.screen.remove();
     }
 }
