@@ -1043,6 +1043,7 @@ body {
   display: flex;
   flex-flow: column nowrap;
   gap: 20px;
+  z-index: 10000;
 }
 
 .notification-block {
