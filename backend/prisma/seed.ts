@@ -14,7 +14,7 @@ async function main() {
 		id: string;
 	};
 
-	// Create default skin
+	// Create skins
 	const skin_id: string = (
 		await prisma.skin.create({
 			data: {
@@ -31,6 +31,14 @@ async function main() {
 			background: "resource/skin/background/snow.png",
 			ball: "resource/skin/ball/snow.png",
 			paddle: "resource/skin/paddle/snow.png",
+		},
+	});
+	await prisma.skin.create({
+		data: {
+			name: "hamster",
+			background: "resource/skin/background/hamster.png",
+			ball: "resource/skin/ball/hamster.png",
+			paddle: "resource/skin/paddle/hamster.png",
 		},
 	});
 
