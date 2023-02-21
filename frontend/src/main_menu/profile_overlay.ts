@@ -307,5 +307,10 @@ class ProfileOverlay extends Overlay {
     }
 }
 
-const PROFILE_OVERLAY = new ProfileOverlay();
+
+let PROFILE_OVERLAY = new ProfileOverlay();
 export default PROFILE_OVERLAY;
+
+export function refresh_overlay() {
+    PROFILE_OVERLAY = new ProfileOverlay();
+}
