@@ -990,6 +990,7 @@ body {
   padding: 0px 20px;
 
   overflow-x: scroll;
+  overflow-y: hidden;
 }
 
 .profile-skin-button {
