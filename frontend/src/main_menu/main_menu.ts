@@ -49,50 +49,15 @@ class MainMenuScene extends Scene {
                 console.log("Cancelled matchmaking.");
                 GLOBAL_GAME_SOCKET.disconnect();
                 set_global_game_socket(null);
+                find_game_span.innerText = "Find Game";
                 return;
             }
 
             console.log("Looking for a game.");
             find_game_span.innerText = "Searching...";
 
-
             // Start looking for a game.
             set_global_game_socket(new GameSocket());
-            let socket = GLOBAL_GAME_SOCKET!;
-
-            socket.on_error = (err) => {
-                console.error(err);
-                if (socket === null) return;
-                socket.disconnect();
-                throw new ConnectError();
-            };
-
-            socket.on_connected = () => {
-                console.log("Connected to the server!");
-            };
-
-            socket.on_disconnected = () => {
-                console.log("Disconnected!");
-
-                set_global_game_socket(null);
-                find_game_span.innerText = "Find Game";
-            };
-
-            socket.on_match_found = (found) => {
-                console.log("Match found!");
-
-                if (socket === null) return;
-                Users.me().then((me) => {
-                    Users.get(found.id).then(user => {
-                        GAME_BOARD.start_game(
-                            new PlayingGame(socket, me, user)
-                        );
-                        History.push_state(GAME_BOARD);
-                    });
-                });
-                set_global_game_socket(null);
-                find_game_span.innerText = "Find Game";
-            };
         };
         this.container.appendChild(find_game);
 

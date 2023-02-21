@@ -1,5 +1,9 @@
 import { Socket, io } from "socket.io-client";
-import { Client, User, UserId } from ".";
+import { Client, User, UserId, Users } from ".";
+import { PlayingGame } from "../game";
+import GAME_BOARD from "../game/game_board";
+import MAIN_MENU from "../main_menu/main_menu";
+import { History } from "../strawberry";
 
 export class ConnectError { }
 
@@ -100,19 +104,30 @@ export class GameSocket {
             },
         });
 
-        this.socket.on("connect_error", (err) => this.on_error(err));
-        // this.socket.on("connect_error", err => {
-        //     console.error(err);
-        //     this.disconnect();
-        //     throw new ConnectError();
-        // });
         this.socket.on("connect", () => this.on_connected());
-        this.socket.on("disconnect", () => this.on_disconnected());
-        this.socket.on("matchFound", (state: MatchFound) =>
-            this.on_match_found(state)
-        );
+        this.socket.on("disconnect", () => {
+            console.log("Disconnected!");
+
+            MAIN_MENU.set_game_span("Find Game");
+
+            this.on_disconnected();
+            set_global_game_socket(null);
+        });
+        this.socket.on("matchFound", (found: MatchFound) => {
+            Users.me().then((me) => {
+                Users.get(found.id).then(user => {
+                    GAME_BOARD.start_game(
+                        new PlayingGame(this, me, user)
+                    );
+                    History.push_state(GAME_BOARD);
+                });
+            });
+
+            MAIN_MENU.set_game_span("Find Game");
+        });
 
         this.socket.on("gameStart", () => this.on_game_start());
+
         this.socket.on("updateOpponent", (state: PlayerStateUpdate) =>
             this.on_opponent_updated(state)
         );
