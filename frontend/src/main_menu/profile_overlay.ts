@@ -9,6 +9,8 @@ class ProfileOverlay extends Overlay {
 
     private current_skin: HTMLButtonElement;
 
+    private game_history: HTMLDListElement;
+
     public get parent_state(): State {
         return MAIN_MENU;
     }
@@ -235,12 +237,21 @@ class ProfileOverlay extends Overlay {
                 }
             };
 
+        });
+
+        this.html.appendChild(container);
+
+        this.game_history = game_history;
+    }
+
+    public on_entered(prev: State): void {
+        Users.me().then((me) => {
             for (const result of me.games_played) {
                 const my_idx = (me.id === result.players_ids[0]) ? 0 : 1;
 
                 const game_container = document.createElement("li");
                 game_container.classList.add("profile-game-container");
-                game_history.prepend(game_container);
+                this.game_history.prepend(game_container);
 
                 const my_avatar = document.createElement("div");
                 my_avatar.classList.add("profile-game-avatar");
@@ -297,7 +308,7 @@ class ProfileOverlay extends Overlay {
             }
         });
 
-        this.html.appendChild(container);
+        super.on_entered(prev);
     }
 
     public get root_html_element(): HTMLElement {
@@ -309,10 +320,5 @@ class ProfileOverlay extends Overlay {
     }
 }
 
-
 let PROFILE_OVERLAY = new ProfileOverlay();
 export default PROFILE_OVERLAY;
-
-export function refresh_overlay() {
-    PROFILE_OVERLAY = new ProfileOverlay();
-}

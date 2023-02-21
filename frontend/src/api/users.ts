@@ -19,6 +19,10 @@ export const Users = (function() {
             this.subs = new Map();
         }
 
+        public invalidate_me() {
+            delete this.me_;
+        }
+
         /**
          * Gets information about a user.
          *
@@ -89,6 +93,8 @@ export const Users = (function() {
          */
         public async me(): Promise<PrivateUser> {
             if (this.me_) return this.me_.get();
+
+            console.log("getting me...");
 
             this.me_ = new Soon();
             const me = await Client.me();
