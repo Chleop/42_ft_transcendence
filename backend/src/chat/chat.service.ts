@@ -26,6 +26,7 @@ export class ChatService {
 				status: e_user_status.ONLINE,
 				spectated_user: undefined,
 			});
+			socket.join(socket.data.user.login);
 		}
 	}
 
@@ -42,6 +43,11 @@ export class ChatService {
 	// get user from map
 	public get_user(id: string): t_user_status | undefined {
 		return ChatService._user_map.get(id);
+	}
+
+	// check if user is in map
+	public is_user_in_map(id: string): boolean {
+		return ChatService._user_map.has(id);
 	}
 
 	// update user
@@ -107,9 +113,6 @@ export class ChatService {
 						},
 					},
 				],
-				// NOT: {
-				// 	id,
-				// },
 			},
 		});
 

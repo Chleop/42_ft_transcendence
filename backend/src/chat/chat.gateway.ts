@@ -1,6 +1,5 @@
 import { t_user_id, t_user_status } from "src/chat/alias";
 import { t_user_update_event } from "src/user/alias";
-import { e_user_status } from "src/user/enum";
 import { ChatService } from "src/chat/chat.service";
 import { Logger } from "@nestjs/common";
 import {
@@ -63,25 +62,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				user_updated.status,
 				user_updated.spectating,
 			);
-
 		const users: t_user_id[] = await this._chat_service.get_online_related_users(
 			user_updated.id,
 		);
 		for (const user_to_notify of users) {
-			// const socket: Socket | undefined = this._chat_service.get_user(
-			// 	user_to_notify.id,
-			// )?.socket;
-			const is_user_in_map: t_user_status | undefined = this._chat_service.get_user(
-				user_to_notify.id,
-			);
-
-			if (is_user_in_map !== undefined) {
+			if (this._chat_service.is_user_in_map(user_to_notify.id)) {
 				let data: IUserPrivate | IUserPublic;
 				if (user_updated.id === user_to_notify.id)
 					data = await this._user_service.get_me(user_to_notify.id);
 				else data = await this._user_service.get_one(user_to_notify.id, user_updated.id);
 				this._server.to(user_to_notify.login).emit("user_updated", data);
-				// socket.emit("user_updated", data);
 			}
 		}
 	}
@@ -89,17 +79,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	public async broadcast_to_online_channel_members(channel_id: string): Promise<void> {
 		const users: t_user_id[] = await this._chat_service.get_online_users_in_channel(channel_id);
 		for (const user_to_notify of users) {
-			// const socket: Socket | undefined = this._chat_service.get_user(
-			// 	user_to_notify.id,
-			// )?.socket;
-			const is_user_in_map: t_user_status | undefined = this._chat_service.get_user(
-				user_to_notify.id,
-			);
-
-			if (is_user_in_map !== undefined) {
+			if (this._chat_service.is_user_in_map(user_to_notify.id)) {
 				const data: IChannel = await this._channel_service.get_one(channel_id);
 				this._server.to(user_to_notify.login).emit("channel_updated", data);
-				// socket.emit("channel_updated", data);
 			}
 		}
 	}
@@ -110,9 +92,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		if (user !== undefined) {
 			this._server.to(user.login).emit(event, data);
 		}
-
-		// if (socket === undefined) return;
-		// socket?.emit(event, data);
 	}
 
 	/**
@@ -134,7 +113,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
 		this.broadcast_to_online_related_users({
 			id: client.data.user.id,
-			status: e_user_status.ONLINE,
 		});
 	}
 
@@ -144,11 +122,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * @param	client The socket that just disconnected.
 	 */
 	public handleDisconnect(client: Socket): void {
-		this._chat_service.remove_user(client.data.user.id);
+		this._chat_service.remove_user(client);
 
 		this.broadcast_to_online_related_users({
 			id: client.data.user.id,
-			status: e_user_status.OFFLINE,
 		});
 
 		this._logger.log(
@@ -166,10 +143,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * @param	room_id The id of the room to join.
 	 */
 	public make_user_socket_join_room(user_id: string, room_id: string): void {
-		const client: Socket | undefined = this._chat_service.get_user(user_id)?.socket;
+		const user: t_user_status | undefined = this._chat_service.get_user(user_id);
 
-		// if (client === undefined) return;
-		client?.join(room_id);
+		if (user !== undefined) this._server.in(user.login).socketsJoin(room_id);
 	}
 
 	/**
@@ -183,9 +159,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * @param	room_id The id of the room to leave.
 	 */
 	public make_user_socket_leave_room(user_id: string, room_id: string): void {
-		const client: Socket | undefined = this._chat_service.get_user(user_id)?.socket;
+		const user: t_user_status | undefined = this._chat_service.get_user(user_id);
 
-		// if (client === undefined) return;
-		client?.leave(room_id);
+		if (user !== undefined) this._server.in(user.login).socketsLeave(room_id);
 	}
 }
