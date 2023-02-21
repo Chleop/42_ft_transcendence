@@ -228,6 +228,11 @@ export class ChatController {
 				dto.content,
 			);
 
+			this._chat_gateway.forward_to_user_socket(
+				"direct_message",
+				request.user.id,
+				object.message,
+			);
 			if (!object.receiver.blocked.some((blocked) => blocked.id === request.user.id)) {
 				this._chat_gateway.forward_to_user_socket("direct_message", id, object.message);
 			}

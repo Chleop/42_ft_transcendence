@@ -31,6 +31,7 @@ export interface Message {
      * The ID of the channel. Null for direct messages.
      */
     channelId: ChannelId | null,
+    receiverId: ChannelId | null,
     /**
      * The time of the message.
      */
