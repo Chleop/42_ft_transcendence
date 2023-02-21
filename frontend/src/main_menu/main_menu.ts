@@ -3,7 +3,7 @@ import { Scene, History, State } from "../strawberry";
 import { GameSocket, GLOBAL_GAME_SOCKET, set_global_game_socket, Users } from "../api";
 import { PlayingGame } from "../game";
 import { rank_to_image, ratio_to_rank } from "../utility";
-import PROFILE_OVERLAY, { refresh_overlay } from "./profile_overlay";
+import PROFILE_OVERLAY from "./profile_overlay";
 import GAME_BOARD from "../game/game_board";
 
 import { ConnectError } from "../api";
@@ -68,7 +68,6 @@ class MainMenuScene extends Scene {
         profile_span.innerText = "Profile";
         profile.appendChild(profile_span);
         profile.onclick = () => {
-            refresh_overlay();
             History.push_state(PROFILE_OVERLAY);
         };
         this.container.appendChild(profile);
