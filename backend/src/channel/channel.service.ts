@@ -925,10 +925,23 @@ export class ChannelService {
 	}
 	//#endregion
 
-	// TODO: Jo commente ça! it is assumed that the channel is valid
-	public async get_one(channel_id: string): Promise<IChannel> {
+	/**
+	 * @brief	Make a user retrieve the data of a channel from the database.
+	 * 			It is assumed that the provided user id is valid.
+	 * 			(user exists and is ACTIVE)
+	 *
+	 * @param	user_id The id of the user who is getting the channel.
+	 * @param	channel_id The id of the channel to get.
+	 *
+	 * @error	The following errors may be thrown :
+	 * 			- ChannelNotFoundError
+	 * 			- ChannelNotJoinedError
+	 *
+	 * @return	A promise containing the wanted channel's data.
+	 */
+	public async get_one(user_id: string, channel_id: string): Promise<IChannel> {
 		//#region
-		const channel_tmp: IChannelTmp = (await this._prisma_service.channel.findUnique({
+		const channel_tmp: IChannelTmp | null = await this._prisma_service.channel.findUnique({
 			//#region
 			select: {
 				id: true,
@@ -955,8 +968,16 @@ export class ChannelService {
 			where: {
 				id: channel_id,
 			},
-		})) as IChannelTmp;
+		});
 		//#endregion
+
+		if (!channel_tmp) {
+			throw new ChannelNotFoundError(channel_id);
+		}
+
+		if (channel_tmp.members.every((member): boolean => member.id !== user_id)) {
+			throw new ChannelNotJoinedError(`user: ${user_id} | channel: ${channel_id}`);
+		}
 
 		const channel: IChannel = {
 			//#region
@@ -970,7 +991,7 @@ export class ChannelService {
 		};
 		//#endregion
 
-		this._logger.verbose(`Channel ${channel_id} has been retrieved`);
+		this._logger.verbose(`User ${user_id} retrieved the data of the channel ${channel_id}`);
 
 		return channel;
 	}
