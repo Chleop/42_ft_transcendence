@@ -460,6 +460,8 @@ class ChatElement {
         if (index === -1)
             throw new Error("Trying a remove a channel that does not exist.");
         channel.tab.remove();
+        if (channel.unsub)
+            channel.unsub();
         this.channel_elements.splice(index, 1);
         if (!this.selected_channel) return;
         if (
