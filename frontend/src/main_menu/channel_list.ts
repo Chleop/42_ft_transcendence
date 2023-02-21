@@ -105,13 +105,15 @@ export class ChannelListElement {
 		channel_name.type = "text";
 		channel_name.classList.add("editor-field");
 		channel_name.onkeydown = () => {
-			if (channel_name.value === "") {
-				new_channel_title.disabled = true;
-				new_channel_title.classList.remove("ready");
-			} else {
-				new_channel_title.disabled = false;
-				new_channel_title.classList.add("ready");
-			}
+			setInterval(() => {
+				if (channel_name.value === "") {
+					new_channel_title.disabled = true;
+					new_channel_title.classList.remove("ready");
+				} else {
+					new_channel_title.disabled = false;
+					new_channel_title.classList.add("ready");
+				}
+			});
 		};
 		channel_name_container.appendChild(channel_name);
 
