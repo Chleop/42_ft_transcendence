@@ -210,6 +210,12 @@ export class ChannelElement {
                 ev.stopPropagation();
             }
         };
+        this.tab.onmousedown = ev => {
+            if (ev.button === 1) {
+                ev.preventDefault();
+                ev.stopPropagation();
+            }
+        };
         this.tab.onmouseup = (ev) => {
             if (ev.button === 1) {
                 if (this.model) {
@@ -220,6 +226,9 @@ export class ChannelElement {
                 if (this.dm) {
                     chat.remove_channel(this);
                 }
+
+                ev.preventDefault();
+                ev.stopPropagation();
             }
         };
 
@@ -394,7 +403,7 @@ class ChatElement {
                 if (ch) {
                     this.add_message(ch, msg);
                 } else {
-                    console.warn(`received a message not meant to me:`, msg);
+
                 }
             }
             if (msg.receiverId) {
