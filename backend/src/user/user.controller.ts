@@ -250,66 +250,6 @@ export class UserController {
 	}
 	//#endregion
 
-	// TODO: check whether the requesting user is linked to the requested user
-	@Get(":id/skin/background")
-	async get_ones_skin_of_background(@Param("id") id: string): Promise<StreamableFile> {
-		//#region
-		let sfile: StreamableFile;
-		try {
-			sfile = await this._user_service.get_ones_background(id);
-		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				this._logger.error(error.message);
-				throw new BadRequestException(error.message);
-			}
-			this._logger.error("Unknow error type, this should not happen");
-			throw new InternalServerErrorException();
-		}
-
-		return sfile;
-	}
-	//#endregion
-
-	// TODO: check whether the requesting user is linked to the requested user
-	@Get(":id/skin/ball")
-	async get_ones_skin_of_ball(@Param("id") id: string): Promise<StreamableFile> {
-		//#region
-		let sfile: StreamableFile;
-		try {
-			sfile = await this._user_service.get_ones_ball(id);
-		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				this._logger.error(error.message);
-				throw new BadRequestException(error.message);
-			}
-			this._logger.error("Unknow error type, this should not happen");
-			throw new InternalServerErrorException();
-		}
-
-		return sfile;
-	}
-	//#endregion
-
-	// TODO: check whether the requesting user is linked to the requested user
-	@Get(":id/skin/paddle")
-	async get_ones_skin_of_paddle(@Param("id") id: string): Promise<StreamableFile> {
-		//#region
-		let sfile: StreamableFile;
-		try {
-			sfile = await this._user_service.get_ones_paddle(id);
-		} catch (error) {
-			if (error instanceof UserNotFoundError) {
-				this._logger.error(error.message);
-				throw new BadRequestException(error.message);
-			}
-			this._logger.error("Unknow error type, this should not happen");
-			throw new InternalServerErrorException();
-		}
-
-		return sfile;
-	}
-	//#endregion
-
 	@Patch(":id/unblock")
 	async unblock_one(
 		@Req()
