@@ -1,6 +1,6 @@
-import {Channel, ChannelId, Message, Client, Users, UserId, User} from "../api";
+import { Channel, ChannelId, Message, Client, Users, UserId, User } from "../api";
 import GATEWAY from "../api/gateway";
-import {NOTIFICATIONS} from "../notification";
+import { NOTIFICATIONS } from "../notification";
 import CHANNEL_LIST from "./channel_list";
 import CHANNEL_SETTINGS from "./channel_settings";
 import USER_CARD from "./user_card";
@@ -80,7 +80,7 @@ class MessageElementInternal {
 /**
  * A message that has been instanciated.
  */
-export interface MessageElement {}
+export interface MessageElement { }
 
 /**
  * A channel that has been instanciated in the DOM.
@@ -261,7 +261,7 @@ export class ChannelElement {
 /**
  * A channel that has been instanciated.
  */
-export interface ChannelElement {}
+export interface ChannelElement { }
 
 /**
  * Stores the state of the chat.
@@ -402,12 +402,9 @@ class ChatElement {
 
 		GATEWAY.on_message = (msg: Message) => {
 			if (msg.channelId) {
-				let ch = this.get_channel(msg.channelId);
-				if (ch) {
-					this.add_message(ch, msg);
-				} else {
-					console.warn(`received a message not meant to me:`, msg);
-				}
+				this.get_or_create_channel(msg.channelId).then(elem => {
+					this.add_message(elem, msg);
+				});
 			}
 			if (msg.receiverId) {
 				let ch;
@@ -416,9 +413,11 @@ class ChatElement {
 				if (ch) {
 					this.add_message(ch, msg);
 				} else {
-					Users.get(msg.senderId).then((sender) => {
-						this.get_or_create_dm_channel(sender);
-					});
+					if (my_id !== msg.senderId) {
+						Users.get(msg.senderId).then((sender) => {
+							this.get_or_create_dm_channel(sender);
+						});
+					}
 				}
 			}
 		};
@@ -506,6 +505,18 @@ class ChatElement {
 	/** Returns a channel element by ID */
 	public get_channel(channel: ChannelId): undefined | ChannelElement {
 		return this.channel_elements.find((e) => e.model && e.model.id === channel);
+	}
+
+	public async get_or_create_channel(channel: ChannelId): Promise<ChannelElement> {
+		const ch = this.get_channel(channel);
+		if (ch) return ch;
+
+		const model = await Client.get_channel(channel);
+
+		const element = new ChannelElement(this, model, null, this);
+		this.channel_tabs.appendChild(element.tab);
+		this.channel_elements.push(element);
+		return element;
 	}
 
 	public get_dm_channel(user: UserId): undefined | ChannelElement {

@@ -54,8 +54,8 @@ void main() {
     vignette = clamp(vignette, 0.0f, 1.0f);
 
     // Cool Lines.
-    fragment_color.y *= (sin(coords.y * screen.y * 0.5f) + 1.0f) * 0.15f + 0.8f;
-    fragment_color.xz *= (cos(coords.y * screen.y * 0.5f) + 1.0f) * 0.135f + 0.8f;
+    fragment_color.y *= (sin(coords.y * screen.y * 0.5f) + 1.0f) * 0.15f + 1.0f;
+    fragment_color.xz *= (cos(coords.y * screen.y * 0.5f) + 1.0f) * 0.135f + 1.0f;
 
     fragment_color.xyz = clamp(fragment_color.xyz, 0.0f, 1.0f) * vignette.x * vignette.y;
 }
