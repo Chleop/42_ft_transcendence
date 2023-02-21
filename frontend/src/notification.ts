@@ -21,7 +21,7 @@ export class Notifications {
         const notif = new Notification(color, message);
         this.html.appendChild(notif.root);
 
-        setInterval(() => {
+        setTimeout(() => {
             notif.root.remove();
         }, 5000);
     }

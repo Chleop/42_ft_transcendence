@@ -108,7 +108,7 @@ export class ChannelListElement {
 		channel_name.type = "text";
 		channel_name.classList.add("editor-field");
 		channel_name.onkeydown = () => {
-			setInterval(() => {
+			setTimeout(() => {
 				if (channel_name.value === "") {
 					new_channel_title.disabled = true;
 					new_channel_title.classList.remove("ready");
@@ -116,7 +116,7 @@ export class ChannelListElement {
 					new_channel_title.disabled = false;
 					new_channel_title.classList.add("ready");
 				}
-			});
+			}, 1);
 		};
 		channel_name_container.appendChild(channel_name);
 

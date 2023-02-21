@@ -371,7 +371,7 @@ class ChatElement {
 		if (window.localStorage.getItem("chat-hidden") === "true") {
 			setTimeout(() => {
 				this.container.classList.add("chat-hidden");
-			}, 0);
+			}, 1);
 		}
 		this.container.appendChild(handle);
 
