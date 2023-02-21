@@ -210,6 +210,32 @@ export class ChannelController {
 	}
 	//#endregion
 
+	@Get(":id")
+	async get_one(
+		@Req()
+		request: {
+			user: t_user_auth;
+		},
+		@Param("id") id: string,
+	): Promise<IChannel> {
+		//#region
+		try {
+			return await this._channel_service.get_one(request.user.id, id);
+		} catch (error) {
+			if (error instanceof ChannelNotFoundError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelNotJoinedError) {
+				this._logger.error(error.message);
+				throw new ForbiddenException(error.message);
+			}
+			this._logger.error("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+	}
+	//#endregion
+
 	@Get(":id/messages")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async get_ones_messages(

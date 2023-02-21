@@ -78,9 +78,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
 	public async broadcast_to_online_channel_members(channel_id: string): Promise<void> {
 		const users: t_user_id[] = await this._chat_service.get_online_users_in_channel(channel_id);
+		const data: IChannel = await this._channel_service.get_one(users[0]?.id, channel_id);
 		for (const user_to_notify of users) {
 			if (this._chat_service.is_user_in_map(user_to_notify.id)) {
-				const data: IChannel = await this._channel_service.get_one(channel_id);
 				this._server.to(user_to_notify.login).emit("channel_updated", data);
 			}
 		}
