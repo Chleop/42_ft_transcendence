@@ -48,6 +48,7 @@ export class GatewayClass {
                 content: msg.content,
                 channelId: null,
                 senderId: msg.senderId,
+                receiverId: msg.receiverId,
             })
         );
         this.socket.on("user_updated", (user_update: PrivateUser | User) =>
