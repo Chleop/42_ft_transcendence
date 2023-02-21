@@ -21,6 +21,10 @@ uniform sampler2D target;
 
 out vec4 fragment_color;
 
+float luminance(vec3 base) {
+    return 0.2126 * base.x + 0.7152 * base.y + 0.0722 * base.z;
+}
+
 void main() {
     vec2 coords = tex_coords;
     coords = coords * 2.0f - 1.0f;
@@ -40,8 +44,8 @@ void main() {
         );
 
         vec4 base = texture(target, (coords * 0.95f) * 0.5f + 0.5f);
-        float grayscale = (base.x + base.y + base.z) / 3.0f;
-        fragment_color.xyz += grayscale * grayscale * 0.2f;
+        float lum = luminance(base.xyz);
+        fragment_color.xyz += lum * lum * 0.3;
     }
 
     // Vignette.
@@ -50,8 +54,8 @@ void main() {
     vignette = clamp(vignette, 0.0f, 1.0f);
 
     // Cool Lines.
-    fragment_color.y *= (sin(coords.y * screen.y * 0.5f) + 1.0f) * 0.15f + 1.0f;
-    fragment_color.xz *= (cos(coords.y * screen.y * 0.5f) + 1.0f) * 0.135f + 1.0f; 
+    fragment_color.y *= (sin(coords.y * screen.y * 0.5f) + 1.0f) * 0.15f + 0.8f;
+    fragment_color.xz *= (cos(coords.y * screen.y * 0.5f) + 1.0f) * 0.135f + 0.8f;
 
     fragment_color.xyz = clamp(fragment_color.xyz, 0.0f, 1.0f) * vignette.x * vignette.y;
 }
