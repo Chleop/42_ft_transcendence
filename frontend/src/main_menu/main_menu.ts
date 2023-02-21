@@ -1,6 +1,6 @@
 import CHAT_ELEMENT from "./chat";
 import { Scene, History, State } from "../strawberry";
-import { GameSocket, Users } from "../api";
+import { GameSocket, GLOBAL_GAME_SOCKET, set_global_game_socket, Users } from "../api";
 import { PlayingGame } from "../game";
 import { rank_to_image, ratio_to_rank } from "../utility";
 import PROFILE_OVERLAY, { refresh_overlay } from "./profile_overlay";
@@ -19,16 +19,10 @@ class MainMenuScene extends Scene {
     private container: HTMLDivElement;
 
     /**
-     * When the user is looking for a game, the matchmaking socket is stored here.
-     */
-    private game_socket: GameSocket | null;
-
-    /**
      * Creatse a new `MainMenuElement` instance.
      */
     public constructor() {
         super();
-        this.game_socket = null;
         this.container = document.createElement("div");
         this.container.id = "main-menu-container";
 
@@ -48,51 +42,54 @@ class MainMenuScene extends Scene {
         find_game_span.innerText = "Find Game";
         find_game.appendChild(find_game_span);
         find_game.onclick = () => {
-            if (this.game_socket) {
+            if (GLOBAL_GAME_SOCKET) {
                 console.log("Cancelled matchmaking.");
-                this.game_socket.disconnect();
-            } else {
-                console.log("Looking for a game.");
-                find_game_span.innerText = "Searching...";
-
-                // Start looking for a game.
-                this.game_socket = new GameSocket();
-
-                this.game_socket.on_error = (err) => {
-                    console.error(err);
-                    if (this.game_socket === null) return;
-                    this.game_socket.disconnect();
-                    throw new ConnectError();
-                };
-
-                this.game_socket.on_connected = () => {
-                    console.log("Connected to the server!");
-                };
-
-                this.game_socket.on_disconnected = () => {
-                    console.log("Disconnected!");
-
-                    this.game_socket = null;
-                    find_game_span.innerText = "Find Game";
-                };
-
-                this.game_socket.on_match_found = (found) => {
-                    console.log("Match found!");
-
-                    const s: GameSocket | null = this.game_socket;
-                    if (s === null) return;
-                    Users.me().then((me) => {
-                        Users.get(found.id).then(user => {
-                            GAME_BOARD.start_game(
-                                new PlayingGame(s, me, user)
-                            );
-                            History.push_state(GAME_BOARD);
-                        });
-                    });
-                    this.game_socket = null;
-                    find_game_span.innerText = "Find Game";
-                };
+                GLOBAL_GAME_SOCKET.disconnect();
+                set_global_game_socket(null);
+                return;
             }
+
+            console.log("Looking for a game.");
+            find_game_span.innerText = "Searching...";
+
+
+            // Start looking for a game.
+            set_global_game_socket(new GameSocket());
+            let socket = GLOBAL_GAME_SOCKET!;
+
+            socket.on_error = (err) => {
+                console.error(err);
+                if (socket === null) return;
+                socket.disconnect();
+                throw new ConnectError();
+            };
+
+            socket.on_connected = () => {
+                console.log("Connected to the server!");
+            };
+
+            socket.on_disconnected = () => {
+                console.log("Disconnected!");
+
+                set_global_game_socket(null);
+                find_game_span.innerText = "Find Game";
+            };
+
+            socket.on_match_found = (found) => {
+                console.log("Match found!");
+
+                if (socket === null) return;
+                Users.me().then((me) => {
+                    Users.get(found.id).then(user => {
+                        GAME_BOARD.start_game(
+                            new PlayingGame(socket, me, user)
+                        );
+                        History.push_state(GAME_BOARD);
+                    });
+                });
+                set_global_game_socket(null);
+                find_game_span.innerText = "Find Game";
+            };
         };
         this.container.appendChild(find_game);
 
@@ -143,8 +140,6 @@ class MainMenuScene extends Scene {
                 }
             }
         });
-
-        this.game_socket = null;
     }
 
     public on_left(prev: State): void {

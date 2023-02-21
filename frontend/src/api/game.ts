@@ -217,3 +217,9 @@ export class SpecSocket {
         this.socket.emit("update", state);
     }
 }
+
+export let GLOBAL_GAME_SOCKET: null | GameSocket = null;
+
+export function set_global_game_socket(g: GameSocket | null) {
+    GLOBAL_GAME_SOCKET = g;
+}
