@@ -14,14 +14,14 @@ async function main() {
 		id: string;
 	};
 
-	// Create default skin
+	// Create skins
 	const skin_id: string = (
 		await prisma.skin.create({
 			data: {
 				name: "default",
-				background: "resource/skin/background/pixelart.png",
-				ball: "resource/skin/ball/pixelart.png",
-				paddle: "resource/skin/paddle/pixelart.png",
+				background: "resource/skin/background/default.png",
+				ball: "resource/skin/ball/default.png",
+				paddle: "resource/skin/paddle/default.png",
 			},
 		})
 	).id;
@@ -31,6 +31,14 @@ async function main() {
 			background: "resource/skin/background/snow.png",
 			ball: "resource/skin/ball/snow.png",
 			paddle: "resource/skin/paddle/snow.png",
+		},
+	});
+	await prisma.skin.create({
+		data: {
+			name: "hamster",
+			background: "resource/skin/background/hamster.png",
+			ball: "resource/skin/ball/hamster.png",
+			paddle: "resource/skin/paddle/hamster.png",
 		},
 	});
 
