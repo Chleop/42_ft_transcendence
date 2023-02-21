@@ -7,7 +7,6 @@ export interface IUserPrivate extends IUserPublic {
 	email: string | null;
 	two_fact_auth: boolean;
 	channels: IChannel[];
-	channels_owned_ids: string[];
 	games_played: IGame[];
 	friends_ids: string[];
 	pending_friends_ids: string[];

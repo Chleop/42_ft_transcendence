@@ -25,7 +25,7 @@ export class ChannelResultElement {
 			}
 
 			promise
-				.then(() => {
+				.then((ch) => {
 					const elem = CHAT_ELEMENT.add_channel(channel);
 					Client.last_messages(channel.id, 50).then((messages) => {
 						for (const msg of messages) {
@@ -34,9 +34,12 @@ export class ChannelResultElement {
 					});
 					CHAT_ELEMENT.set_selected_channel(elem);
 					CHANNEL_LIST.hide();
+
+					CHAT_ELEMENT.update_channel(ch);
 				})
-				.catch(() => {
-					NOTIFICATIONS.spawn_notification("red", "invalid password");
+				.catch((err) => {
+					if (err instanceof UnexpectedStatusCode)
+						NOTIFICATIONS.spawn_notification("red", err.message || "Unknown error");
 				});
 		};
 		root.appendChild(header);
@@ -105,13 +108,15 @@ export class ChannelListElement {
 		channel_name.type = "text";
 		channel_name.classList.add("editor-field");
 		channel_name.onkeydown = () => {
-			if (channel_name.value === "") {
-				new_channel_title.disabled = true;
-				new_channel_title.classList.remove("ready");
-			} else {
-				new_channel_title.disabled = false;
-				new_channel_title.classList.add("ready");
-			}
+			setInterval(() => {
+				if (channel_name.value === "") {
+					new_channel_title.disabled = true;
+					new_channel_title.classList.remove("ready");
+				} else {
+					new_channel_title.disabled = false;
+					new_channel_title.classList.add("ready");
+				}
+			});
 		};
 		channel_name_container.appendChild(channel_name);
 
@@ -190,16 +195,15 @@ export class ChannelListElement {
 			const priv = channel_private.classList.contains("active");
 			let password: string | undefined = undefined;
 			if (!priv && channel_password.value !== "") password = channel_password.value;
-			// TODO: Catch 409: confilct
 			Client.create_channel(channel_name.value, priv, password)
 				.then((channel) => {
 					const ch = CHAT_ELEMENT.add_channel(channel);
 					CHAT_ELEMENT.set_selected_channel(ch);
-					Users.me().then((me) => me.channels_owned_ids.push(channel.id));
 					this.hide();
 				})
-				.catch(() => {
-					NOTIFICATIONS.spawn_notification("red", "channel name already taken");
+				.catch((err) => {
+					if (err instanceof UnexpectedStatusCode)
+						NOTIFICATIONS.spawn_notification("red", err.message || "Unknown error");
 				});
 		};
 
