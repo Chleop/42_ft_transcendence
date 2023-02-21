@@ -89,16 +89,6 @@ export interface GameResult {
 
 export type UserStatus = "online" | "offline" | "ingame" | "spectating";
 
-export type UserUpdate = {
-    id: string;
-    name?: string;
-    status?: UserStatus;
-    spectating?: string;
-    game_won?: number;
-    game_played?: number;
-    is_avatar_changed?: boolean;
-};
-
 /**
  * Stores public information about a user.
  */

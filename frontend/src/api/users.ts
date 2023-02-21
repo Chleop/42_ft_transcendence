@@ -4,7 +4,7 @@ import { Soon } from "../strawberry";
 /**
  * Stores and caches information about users.
  */
-export const Users = (function () {
+export const Users = (function() {
     class UsersClass {
         private users: Record<UserId, Soon<User>>;
         private avatars: Record<UserId, Soon<string>>;
@@ -78,19 +78,14 @@ export const Users = (function () {
             return me;
         }
 
-        public async on_user_update(user_update: UserUpdate) {
-            const usr = await this.get(user_update.id);
+        public async on_user_update(user_update: User | PrivateUser) {
+            const me = await this.me();
 
-            if (user_update.game_won)
-                usr.games_won_count = user_update.game_won;
-            if (user_update.game_played)
-                usr.games_played_count = user_update.game_played;
-            if (user_update.is_avatar_changed) this.invalidate_avatar(usr.id);
-            if (user_update.name) usr.name = user_update.name;
-            if (user_update.status) {
-                if (user_update.status === "spectating")
-                    usr.spectating = user_update.spectating;
-                usr.status = user_update.status;
+            if (me.id === user_update.id) {
+                Object.assign(me, user_update);
+            } else {
+                const u = await this.get(user_update.id);
+                Object.assign(u, user_update);
             }
         }
     }

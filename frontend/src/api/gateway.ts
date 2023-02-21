@@ -1,11 +1,11 @@
 import { Socket, io } from "socket.io-client";
 import { Message } from "./channel";
 import { get_cookie } from "./client";
-import { UserUpdate } from "./user";
+import { PrivateUser, User, UserUpdate } from "./user";
 import { Users } from "./users";
 
 /** Does nothing. */
-function noop(): void {}
+function noop(): void { }
 
 interface DirectMessage {
     id: string;
@@ -50,7 +50,7 @@ export class GatewayClass {
                 senderId: msg.senderId,
             })
         );
-        this.socket.on("user_updated", (user_update: UserUpdate) =>
+        this.socket.on("user_updated", (user_update: PrivateUser | User) =>
             Users.on_user_update(user_update)
         );
     }
