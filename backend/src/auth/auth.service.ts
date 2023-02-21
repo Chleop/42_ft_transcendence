@@ -29,8 +29,12 @@ export class AuthService {
 	/* ************************************************************************** */
 	/*                               CONSTRUCTOR                                  */
 	/* ************************************************************************** */
-	constructor(user_service: UserService, jwt_service: JwtService, config_service: ConfigService,
-		prisma_service: PrismaService) {
+	constructor(
+		user_service: UserService,
+		jwt_service: JwtService,
+		config_service: ConfigService,
+		prisma_service: PrismaService,
+	) {
 		this._user = user_service;
 		this._jwt = jwt_service;
 		this._config = config_service;

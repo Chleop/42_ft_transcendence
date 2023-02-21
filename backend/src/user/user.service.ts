@@ -597,7 +597,7 @@ export class UserService {
 						name: name,
 						skin: {
 							connect: {
-								id: "default",
+								name: "default",
 							},
 						},
 					},
@@ -613,6 +613,7 @@ export class UserService {
 				}
 				this._logger.error(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
+			this._logger.debug(error);
 			throw new UnknownError();
 		}
 
@@ -1141,96 +1142,6 @@ export class UserService {
 		}
 
 		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.avatar)));
-	}
-	//#endregion
-
-	/**
-	 * @brief	Get a user's background skin from the database.
-	 * 			Requested user must be active.
-	 *
-	 * @param	requested_user_id The id of the user to get the skin from.
-	 *
-	 * @error	The following errors may be thrown :
-	 * 			- UserNotFoundError
-	 *
-	 * @return	A promise containing the wanted background skin.
-	 */
-	public async get_ones_background(requested_user_id: string): Promise<StreamableFile> {
-		//#region
-		type t_requested_user_fields = {
-			//#region
-			skin: {
-				background: string;
-			};
-		};
-		//#endregion
-
-		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
-			//#region
-			select: {
-				skin: {
-					select: {
-						background: true,
-					},
-				},
-			},
-			where: {
-				idAndState: {
-					id: requested_user_id,
-					state: StateType.ACTIVE,
-				},
-			},
-		});
-		//#endregion
-
-		if (!requested_user) throw new UserNotFoundError(requested_user_id);
-		return new StreamableFile(
-			createReadStream(join(process.cwd(), requested_user.skin.background)),
-		);
-	}
-	//#endregion
-
-	/**
-	 * @brief	Get a user's ball skin from the database.
-	 * 			Requested user must be active.
-	 *
-	 * @param	requested_user_id The id of the user to get the skin from.
-	 *
-	 * @error	The following errors may be thrown :
-	 * 			- UserNotFoundError
-	 *
-	 * @return	A promise containing the wanted ball skin.
-	 */
-	public async get_ones_ball(requested_user_id: string): Promise<StreamableFile> {
-		//#region
-		type t_requested_user_fields = {
-			//#region
-			skin: {
-				ball: string;
-			};
-		};
-		//#endregion
-
-		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
-			//#region
-			select: {
-				skin: {
-					select: {
-						ball: true,
-					},
-				},
-			},
-			where: {
-				idAndState: {
-					id: requested_user_id,
-					state: StateType.ACTIVE,
-				},
-			},
-		});
-		//#endregion
-
-		if (!requested_user) throw new UserNotFoundError(requested_user_id);
-		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.skin.ball)));
 	}
 	//#endregion
 
