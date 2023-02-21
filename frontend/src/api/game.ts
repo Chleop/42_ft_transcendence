@@ -89,13 +89,14 @@ export class GameSocket {
     /**
      * Creates a new GameSocket.
      */
-    public constructor() {
+    public constructor(friend?: string) {
         console.log("initiating a connection with the game gateway...");
         this.socket = io("/game", {
             path: "/api/game_socket/socket.io",
             reconnection: false,
             auth: {
                 token: Client.access_token,
+                friend,
             },
         });
 

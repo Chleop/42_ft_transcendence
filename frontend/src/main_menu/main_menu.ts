@@ -18,6 +18,8 @@ class MainMenuScene extends Scene {
      */
     private container: HTMLDivElement;
 
+    private play_button: HTMLElement;
+
     /**
      * Creatse a new `MainMenuElement` instance.
      */
@@ -39,6 +41,7 @@ class MainMenuScene extends Scene {
         find_game.id = "main-menu-find-game";
         find_game.classList.add("main-menu-button");
         const find_game_span = document.createElement("div");
+        this.play_button = find_game_span;
         find_game_span.innerText = "Find Game";
         find_game.appendChild(find_game_span);
         find_game.onclick = () => {
@@ -140,6 +143,10 @@ class MainMenuScene extends Scene {
                 }
             }
         });
+    }
+
+    public set_game_span(text: string) {
+        this.play_button.innerText = text;
     }
 
     public on_left(prev: State): void {

@@ -1,10 +1,11 @@
-import { Channel, Client, User, Users } from "../api";
+import { Channel, Client, GameSocket, GLOBAL_GAME_SOCKET, set_global_game_socket, User, Users } from "../api";
 import GAME_BOARD from "../game/game_board";
 import { SpectatingGame } from "../game/spectating_game";
 import { NOTIFICATIONS } from "../notification";
 import { History } from "../strawberry";
 import { Rank, rank_to_image, ratio_to_rank } from "../utility";
 import CHAT_ELEMENT from "./chat";
+import MAIN_MENU from "./main_menu";
 
 class UserCardElement {
     private screen: HTMLDivElement;
@@ -21,6 +22,7 @@ class UserCardElement {
     private promote_button: HTMLButtonElement;
     private mute_button: HTMLButtonElement;
     private ban_button: HTMLButtonElement;
+    private play_button: HTMLButtonElement;
 
     public constructor() {
         const screen = document.createElement("div");
@@ -77,6 +79,11 @@ class UserCardElement {
         friend_button.classList.add("user-card-menu-button");
         menu.appendChild(friend_button);
 
+        const play_button = document.createElement("button");
+        play_button.classList.add("user-card-menu-button");
+        play_button.innerText = "Invite To Play";
+        menu.appendChild(play_button);
+
         const blocked_button = document.createElement("button");
         blocked_button.classList.add("user-card-menu-button");
         menu.appendChild(blocked_button);
@@ -115,6 +122,7 @@ class UserCardElement {
         this.promote_button = promote_button;
         this.mute_button = mute_button;
         this.ban_button = ban_button;
+        this.play_button = play_button;
     }
 
     private unsub: (() => void) | undefined;
@@ -176,6 +184,7 @@ class UserCardElement {
                 this.mute_button.style.display = "none";
                 this.promote_button.style.display = "none";
                 this.ban_button.style.display = "none";
+                this.play_button.style.display = "none";
                 return;
             }
 
@@ -192,6 +201,18 @@ class UserCardElement {
             this.friend_button.style.display = "block";
             this.blocked_button.style.display = "block";
             this.send_message_button.style.display = "block";
+            this.play_button.style.display = "block";
+
+            this.play_button.onclick = () => {
+                if (GLOBAL_GAME_SOCKET) {
+                    NOTIFICATIONS.spawn_notification("red", "YOU ARE ALREADY IN QUEUE (dummass)");
+                    return;
+                }
+
+                set_global_game_socket(new GameSocket(user.id));
+                NOTIFICATIONS.spawn_notification("green", "I hope they let me win...");
+                MAIN_MENU.set_game_span(`Waiting...`);
+            };
 
             this.send_message_button.onclick = () => {
                 const ch = CHAT_ELEMENT.get_or_create_dm_channel(user);
