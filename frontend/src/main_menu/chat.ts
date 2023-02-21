@@ -13,6 +13,11 @@ import CHANNEL_LIST from "./channel_list";
 import CHANNEL_SETTINGS from "./channel_settings";
 import USER_CARD from "./user_card";
 
+function should_continuing(prev: Message, next: Message): boolean {
+    return prev.senderId === next.senderId &&
+        Date.parse(next.dateTime) - Date.parse(prev.dateTime) < 10 * 1000;
+}
+
 /**
  * A message that has been instanciated in the DOM.
  */
@@ -22,6 +27,8 @@ class MessageElementInternal {
      */
     public container: HTMLDivElement;
 
+    public model: Message;
+
     /**
      * This constructor should basically never be called outside of the module.
      */
@@ -30,6 +37,7 @@ class MessageElementInternal {
         message: Message,
         channel: Channel | null
     ) {
+        this.model = message;
         const avatar = document.createElement("avatar");
         avatar.classList.add("message-avatar");
         Users.get_avatar(message.senderId).then((url) => {
@@ -111,11 +119,76 @@ export class ChannelElement {
     public model: Channel | null;
     public dm: User | null;
 
+    public oldest_message: MessageElementInternal | null;
+
     /**
      * The saved value of the input field (if the user left the channel without clearing the
      * prompt).
      */
     public input: string;
+
+    public no_more_messages: boolean;
+    public requesting_more: boolean;
+
+    public unsub: undefined | (() => void);
+
+    public async fill_to_top(container: HTMLElement) {
+        if (this.no_more_messages || this.requesting_more)
+            return;
+
+        this.requesting_more = true;
+
+        while (!this.no_more_messages && container.scrollHeight + container.scrollTop < 2 * container.clientHeight) {
+            const QUERY_SIZE: number = 30;
+
+            let messages;
+            if (this.model) {
+                if (this.oldest_message) {
+                    messages = await Client.messages_before(this.model.id, this.oldest_message.model.id, QUERY_SIZE);
+                } else {
+                    messages = await Client.last_messages(this.model.id, QUERY_SIZE);
+                }
+            }
+            if (this.dm) {
+                if (this.oldest_message) {
+                    messages = await Client.direct_messages_before(this.dm.id, this.oldest_message.model.id, QUERY_SIZE);
+                } else {
+                    messages = await Client.last_direct_messages(this.dm.id, QUERY_SIZE);
+                }
+            }
+
+            if (!messages)
+                return;
+
+            if (messages.length < QUERY_SIZE)
+                this.no_more_messages = true;
+
+            messages.reverse();
+            for (const msg of messages) {
+                this.unshift_message(msg);
+            }
+        };
+
+        this.requesting_more = false;
+    }
+
+    public unshift_message(message: Message): MessageElementInternal {
+        if (this.oldest_message && should_continuing(message, this.oldest_message.model)) {
+            this.oldest_message.container.classList.add('message-continuing');
+        }
+        const elem = new MessageElementInternal(false, message, this.model);
+        this.messages.prepend(elem.container);
+        this.oldest_message = elem;
+        return elem;
+    }
+
+    public push_message(message: Message): MessageElementInternal {
+        const cont = !!this.last_message && should_continuing(this.last_message, message);
+        const elem = new MessageElementInternal(cont, message, this.model);
+        this.messages.append(elem.container);
+        this.last_message = message;
+        return elem;
+    }
 
     /**
      * This constructor should basically never be called outside of the module.
@@ -150,6 +223,7 @@ export class ChannelElement {
             }
         };
 
+
         this.messages = document.createElement("div");
 
         this.last_message = null;
@@ -157,6 +231,16 @@ export class ChannelElement {
         this.input = "";
         this.model = model;
         this.dm = dm;
+
+        this.oldest_message = null;
+        this.requesting_more = false;
+        this.no_more_messages = false;
+
+        if (dm) {
+            this.unsub = Users.subscribe(dm.id, (usr) => {
+                this.tab.innerText = usr.name;
+            });
+        }
     }
 }
 
@@ -238,6 +322,10 @@ class ChatElement {
         this.messages.id = "chat-messages";
         this.messages.classList.add("custom-scrollbar");
         this.container.appendChild(this.messages);
+        this.messages.onscroll = () => {
+            if (this.selected_channel)
+                this.selected_channel.fill_to_top(this.messages);
+        }
 
         const send_message_container = document.createElement("div");
         send_message_container.id = "chat-send-message-container";
@@ -341,6 +429,8 @@ class ChatElement {
 
             this.message_input.value = element_.input;
             this.message_input.focus();
+
+            element_.fill_to_top(this.messages);
         } else {
             while (this.messages.firstChild) this.messages.firstChild.remove();
         }
@@ -355,11 +445,11 @@ class ChatElement {
         this.channel_tabs.appendChild(element.tab);
 
         // Try to get the twenty last messages of the channel.
-        Client.last_messages(channel.id, 50).then((messages) => {
-            for (const m of messages) {
-                this.add_message(element, m);
-            }
-        });
+        // Client.last_messages(channel.id, 50).then((messages) => {
+        //     for (const m of messages) {
+        //         this.add_message(element, m);
+        //     }
+        // });
 
         this.channel_elements.push(element);
         return element;
@@ -370,6 +460,8 @@ class ChatElement {
         if (index === -1)
             throw new Error("Trying a remove a channel that does not exist.");
         channel.tab.remove();
+        if (channel.unsub)
+            channel.unsub();
         this.channel_elements.splice(index, 1);
         if (!this.selected_channel) return;
         if (
@@ -428,28 +520,7 @@ class ChatElement {
         message: Message
     ): MessageElement {
         const channel_ = channel as ChannelElement;
-
-        let continuing = false;
-        if (channel_.last_message) {
-            if (
-                channel_.last_message.senderId === message.senderId &&
-                Date.parse(message.dateTime) -
-                Date.parse(channel_.last_message.dateTime) <
-                10 * 1000
-            )
-                continuing = true;
-        }
-
-        // If the last child is the same author, add the `message-continuing` class.
-        channel_.last_message = message;
-
-        const element = new MessageElementInternal(
-            continuing,
-            message,
-            channel_.model
-        );
-        channel_.messages.appendChild(element.container);
-        return element;
+        return channel_.push_message(message);
     }
 
     /**

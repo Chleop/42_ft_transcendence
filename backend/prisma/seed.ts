@@ -25,6 +25,14 @@ async function main() {
 			},
 		})
 	).id;
+	await prisma.skin.create({
+		data: {
+			name: "snow",
+			background: "resource/skin/background/snow.png",
+			ball: "resource/skin/ball/snow.png",
+			paddle: "resource/skin/paddle/snow.png",
+		},
+	});
 
 	// Create default users
 	const jodufour: t_user_fields = await prisma.user.create({
