@@ -14,7 +14,7 @@ all: init build
 .PHONY: init
 init:
 	rm -f frontend/tsconfig.tsbuildinfo
-	cd frontend && npm update && npx tsc && npx webpack
+	cd frontend && npm install && npm update && npx tsc && npx webpack
 
 .PHONY: build
 build:
