@@ -193,6 +193,8 @@ class ProfileOverlay extends Overlay {
                             this.current_skin.classList.remove("profile-current-skin");
                             this.current_skin = skin_button;
                             this.current_skin.classList.add("profile-current-skin");
+
+                            me.skin_id = skin.id;
                         });
                     };
                 }
@@ -307,5 +309,10 @@ class ProfileOverlay extends Overlay {
     }
 }
 
-const PROFILE_OVERLAY = new ProfileOverlay();
+
+let PROFILE_OVERLAY = new ProfileOverlay();
 export default PROFILE_OVERLAY;
+
+export function refresh_overlay() {
+    PROFILE_OVERLAY = new ProfileOverlay();
+}

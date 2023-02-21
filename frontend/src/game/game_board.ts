@@ -70,6 +70,9 @@ class GameBoardClass extends Scene {
     private left_ball: Sprite | undefined;
     private right_ball: Sprite | undefined;
 
+    private current_ball: boolean;
+
+    private separator: Sprite;
     private heart: Sprite;
 
     private tmp_canvas: Framebuffer;
@@ -103,6 +106,7 @@ class GameBoardClass extends Scene {
         this.warped_canvas = this.renderer.create_framebuffer(w, h);
 
         this.heart = this.renderer.create_sprite("/heart.png");
+        this.separator = this.renderer.create_sprite("/separator.png");
 
         window.addEventListener("keydown", e => {
             if (e.key === "D") {
@@ -113,6 +117,8 @@ class GameBoardClass extends Scene {
                 console.info("toggled WTF shader: " + this.render_state.wtf);
             }
         });
+
+        this.current_ball = false;
     }
 
     /** Starts the game with a specific controller. */
@@ -194,9 +200,11 @@ class GameBoardClass extends Scene {
 
         // Display the background.
         if (this.left_background)
-            r.draw_sprite(this.left_background, -Constants.board_width / 2, -Constants.board_height / 2, Constants.board_width / 2, Constants.board_height);
+            r.draw_sprite_part(this.left_background, 0, 0, 0.5, 1, -Constants.board_width / 2, -Constants.board_height / 2, Constants.board_width / 2, Constants.board_height);
         if (this.right_background)
-            r.draw_sprite(this.right_background, Constants.board_width / 2, -Constants.board_height / 2, -Constants.board_width / 2, Constants.board_height);
+            r.draw_sprite_part(this.right_background, 0.5, 0, 0.5, 1, 0.0, -Constants.board_height / 2, Constants.board_width / 2, Constants.board_height);
+
+        // r.draw_sprite(this.separator, -1.0, -Constants.board_height / 2, 2.0, Constants.board_height);
 
         // Display the player and its opponent.
         if (this.left_paddle)
