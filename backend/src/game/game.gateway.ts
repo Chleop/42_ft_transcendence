@@ -66,7 +66,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			if (game_room !== null) this.matchmake(game_room);
 		} catch (e) {
 			if (e instanceof BadEvent) {
-				this.logger.error(e.message);
 				this.sendError(client, e);
 				this.handleDisconnect(client);
 				client.disconnect();
@@ -120,6 +119,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			if (e instanceof BadEvent) {
 				this.logger.error(e.message);
 				this.sendError(client, e);
+				this.handleDisconnect(client);
 				client.disconnect();
 				return;
 			}
@@ -194,6 +194,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				room.match.player1.emit("updateScore", last_score);
 				room.match.player2.emit("updateScore", last_score.invert());
 				const match: Match = await me.game_service.registerGameHistory(room, update);
+				me.game_service.destroyRoom(room);
 				return me.disconnectRoom(match);
 			}
 		} catch (e) {
