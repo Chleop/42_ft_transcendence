@@ -130,6 +130,8 @@ export class ChannelElement {
     public no_more_messages: boolean;
     public requesting_more: boolean;
 
+    public unsub: undefined | (() => void);
+
     public async fill_to_top(container: HTMLElement) {
         if (this.no_more_messages || this.requesting_more)
             return;
@@ -148,7 +150,11 @@ export class ChannelElement {
                 }
             }
             if (this.dm) {
-                throw "not yet implemented";
+                if (this.oldest_message) {
+                    messages = await Client.direct_messages_before(this.dm.id, this.oldest_message.model.id, QUERY_SIZE);
+                } else {
+                    messages = await Client.last_direct_messages(this.dm.id, QUERY_SIZE);
+                }
             }
 
             if (!messages)
@@ -183,7 +189,6 @@ export class ChannelElement {
         this.last_message = message;
         return elem;
     }
-
 
     /**
      * This constructor should basically never be called outside of the module.
@@ -230,6 +235,12 @@ export class ChannelElement {
         this.oldest_message = null;
         this.requesting_more = false;
         this.no_more_messages = false;
+
+        if (dm) {
+            this.unsub = Users.subscribe(dm.id, (usr) => {
+                this.tab.innerText = usr.name;
+            });
+        }
     }
 }
 
