@@ -19,9 +19,9 @@ async function main() {
 		await prisma.skin.create({
 			data: {
 				name: "default",
-				background: "resource/skin/background/pixelart.png",
-				ball: "resource/skin/ball/pixelart.png",
-				paddle: "resource/skin/paddle/pixelart.png",
+				background: "resource/skin/background/default.png",
+				ball: "resource/skin/ball/default.png",
+				paddle: "resource/skin/paddle/default.png",
 			},
 		})
 	).id;
