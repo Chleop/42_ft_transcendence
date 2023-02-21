@@ -1,6 +1,6 @@
-import {Channel, ChannelId, Message, Client, Users, UserId, User} from "../api";
+import { Channel, ChannelId, Message, Client, Users, UserId, User } from "../api";
 import GATEWAY from "../api/gateway";
-import {NOTIFICATIONS} from "../notification";
+import { NOTIFICATIONS } from "../notification";
 import CHANNEL_LIST from "./channel_list";
 import CHANNEL_SETTINGS from "./channel_settings";
 import USER_CARD from "./user_card";
@@ -80,7 +80,7 @@ class MessageElementInternal {
 /**
  * A message that has been instanciated.
  */
-export interface MessageElement {}
+export interface MessageElement { }
 
 /**
  * A channel that has been instanciated in the DOM.
@@ -261,7 +261,7 @@ export class ChannelElement {
 /**
  * A channel that has been instanciated.
  */
-export interface ChannelElement {}
+export interface ChannelElement { }
 
 /**
  * Stores the state of the chat.
