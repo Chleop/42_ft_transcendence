@@ -1,7 +1,7 @@
-import {Body, JsonBody, FileBody} from "./body";
-import {Channel, ChannelId, Message, MessageId} from "./channel";
-import {Skin, SkinId} from "./skin";
-import {PrivateUser, User, UserId} from "./user";
+import { Body, JsonBody, FileBody } from "./body";
+import { Channel, ChannelId, Message, MessageId } from "./channel";
+import { Skin, SkinId } from "./skin";
+import { PrivateUser, User, UserId } from "./user";
 
 /**
  * The server returned a status code which wasn't expected.
@@ -113,13 +113,13 @@ export class RawHTTPClient {
 					try {
 						await this.validate_2fa(code);
 						break;
-					} catch (e) {}
+					} catch (e) { }
 				}
 
 				return this.make_request(request);
 			} else {
 				document.location.pathname = "/api/auth/42/login";
-				return new Promise(() => {});
+				return new Promise(() => { });
 			}
 		}
 
@@ -298,7 +298,7 @@ export class RawHTTPClient {
 				success_status: 201,
 				accept: "application/json",
 				url: `/api/chat/channel/${channel}/message`,
-				body: new JsonBody({content}),
+				body: new JsonBody({ content }),
 			})
 		).json();
 	}
@@ -321,7 +321,7 @@ export class RawHTTPClient {
 			method: "POST",
 			url: "/api/auth/42/2FAActivate",
 			success_status: 201,
-			body: new JsonBody({email}),
+			body: new JsonBody({ email }),
 		});
 	}
 
@@ -340,7 +340,7 @@ export class RawHTTPClient {
 			method: "POST",
 			success_status: 201,
 			url: "/api/auth/42/2FAValidate",
-			body: new JsonBody({code}),
+			body: new JsonBody({ code }),
 		});
 	}
 
@@ -348,7 +348,7 @@ export class RawHTTPClient {
 		await this.make_request({
 			method: "PATCH",
 			url: "/api/friend_request/send",
-			body: new JsonBody({receiving_user_id: user}),
+			body: new JsonBody({ receiving_user_id: user }),
 		});
 	}
 
@@ -356,7 +356,7 @@ export class RawHTTPClient {
 		await this.make_request({
 			method: "PATCH",
 			url: "/api/friend_request/reject",
-			body: new JsonBody({rejected_user_id: user}),
+			body: new JsonBody({ rejected_user_id: user }),
 		});
 	}
 
@@ -364,7 +364,7 @@ export class RawHTTPClient {
 		await this.make_request({
 			method: "PATCH",
 			url: "/api/friend_request/accept",
-			body: new JsonBody({accepted_user_id: user}),
+			body: new JsonBody({ accepted_user_id: user }),
 		});
 	}
 
@@ -417,7 +417,7 @@ export class RawHTTPClient {
 		await this.make_request({
 			url: `/api/channel/${channel}/promote`,
 			method: "PATCH",
-			body: new JsonBody({user_id: user}),
+			body: new JsonBody({ user_id: user }),
 		});
 	}
 
@@ -425,7 +425,7 @@ export class RawHTTPClient {
 		await this.make_request({
 			url: `/api/channel/${channel}/demote`,
 			method: "PATCH",
-			body: new JsonBody({user_id: user}),
+			body: new JsonBody({ user_id: user }),
 		});
 	}
 
@@ -446,7 +446,7 @@ export class RawHTTPClient {
 			method: "POST",
 			url: `/api/chat/user/${user}/message`,
 			success_status: 201,
-			body: new JsonBody({content}),
+			body: new JsonBody({ content }),
 		});
 	}
 
@@ -469,7 +469,7 @@ export class RawHTTPClient {
 		await this.make_request({
 			method: "PATCH",
 			url: `/api/channel/${id}/ban`,
-			body: new JsonBody({user_id: user}),
+			body: new JsonBody({ user_id: user }),
 		});
 	}
 
@@ -477,7 +477,7 @@ export class RawHTTPClient {
 		await this.make_request({
 			method: "PATCH",
 			url: `/api/channel/${id}/unban`,
-			body: new JsonBody({user_id: user}),
+			body: new JsonBody({ user_id: user }),
 		});
 	}
 
@@ -488,4 +488,41 @@ export class RawHTTPClient {
 		});
 		return response.json();
 	}
+
+	/**
+	 * Gets the last messages of the given channel.
+	 */
+	public async last_direct_messages(user: UserId, limit?: number): Promise<Message[]> {
+		let url = `/api/user/${user}/messages`;
+		if (limit) url += `?limit=${limit}`;
+
+		return (
+			await this.make_request({
+				method: "GET",
+				url,
+				accept: "application/json",
+			})
+		).json();
+	}
+
+	/**
+	 * Gets the messages that were sent *before* another message.
+	 */
+	public async direct_messages_before(
+		user: UserId,
+		anchor: MessageId,
+		limit?: number,
+	): Promise<Message[]> {
+		let url = `/api/user/${user}/messages?before=${anchor}`;
+		if (limit) url += `&limit=${limit}`;
+
+		return (
+			await this.make_request({
+				method: "GET",
+				url,
+				accept: "application/json",
+			})
+		).json();
+	}
+
 }
