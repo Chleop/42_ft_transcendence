@@ -597,7 +597,7 @@ export class UserService {
 						name: name,
 						skin: {
 							connect: {
-								id: "default",
+								name: "default",
 							},
 						},
 					},
@@ -613,6 +613,7 @@ export class UserService {
 				}
 				this._logger.error(`PrismaClientKnownRequestError code was ${error.code}`);
 			}
+			this._logger.debug(error);
 			throw new UnknownError();
 		}
 
