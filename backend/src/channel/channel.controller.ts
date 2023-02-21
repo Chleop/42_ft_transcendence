@@ -1,6 +1,5 @@
 import {
 	ChannelBanMemberDto,
-	ChannelCreateDto,
 	ChannelDelegateOwnershipDto,
 	ChannelDemoteOperatorDto,
 	ChannelKickMemberDto,
@@ -22,7 +21,6 @@ import {
 	InternalServerErrorException,
 	Param,
 	Patch,
-	Post,
 	Query,
 	Req,
 	UseGuards,
@@ -95,38 +93,6 @@ export class ChannelController {
 			if (error instanceof ChannelMemberNotOperatorError) {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
-			}
-			this._logger.error("Unknown error type, this should not happen");
-			throw new InternalServerErrorException();
-		}
-	}
-	//#endregion
-
-	@Post()
-	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-	async create_one(
-		@Req()
-		request: {
-			user: t_user_auth;
-		},
-		@Body() dto: ChannelCreateDto,
-	): Promise<IChannel> {
-		//#region
-		try {
-			return await this._channel_service.create_one(
-				request.user.id,
-				dto.name,
-				dto.is_private,
-				dto.password,
-			);
-		} catch (error) {
-			if (error instanceof ChannelPasswordNotAllowedError) {
-				this._logger.error(error.message);
-				throw new BadRequestException(error.message);
-			}
-			if (error instanceof ChannelNameAlreadyTakenError) {
-				this._logger.error(error.message);
-				throw new ConflictException(error.message);
 			}
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();

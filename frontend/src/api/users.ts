@@ -1,13 +1,14 @@
-import { Client, PrivateUser, User, UserId, UserUpdate } from ".";
+import { Client, PrivateUser, User, UserId } from ".";
 import { Soon } from "../strawberry";
 
 /**
  * Stores and caches information about users.
  */
-export const Users = (function () {
+export const Users = (function() {
     class UsersClass {
         private users: Record<UserId, Soon<User>>;
         private avatars: Record<UserId, Soon<string>>;
+        private subs: Map<UserId, Set<(usr: User) => void>>;
 
         private me_: Soon<PrivateUser> | undefined;
 
@@ -15,6 +16,7 @@ export const Users = (function () {
             this.users = {};
             this.avatars = {};
             this.me_ = undefined;
+            this.subs = new Map();
         }
 
         /**
@@ -31,6 +33,22 @@ export const Users = (function () {
             const user = await Client.user(id);
             this.users[id].resolve(user);
             return user;
+        }
+
+        /**
+         * Requests a function to be called when a user changes.
+         */
+        public subscribe(id: UserId, sub: (usr: User) => void): () => void {
+            let subs = this.subs.get(id);
+            if (!subs) {
+                subs = new Set();
+                this.subs.set(id, subs);
+            }
+            subs.add(sub);
+            return () => {
+                if (subs)
+                    subs.delete(sub);
+            };
         }
 
         /** Invalidates the provided avatar, effectively removing it from the cache. */
@@ -78,19 +96,21 @@ export const Users = (function () {
             return me;
         }
 
-        public async on_user_update(user_update: UserUpdate) {
-            const usr = await this.get(user_update.id);
+        public async on_user_update(user_update: User | PrivateUser) {
+            const me = await this.me();
 
-            if (user_update.game_won)
-                usr.games_won_count = user_update.game_won;
-            if (user_update.game_played)
-                usr.games_played_count = user_update.game_played;
-            if (user_update.is_avatar_changed) this.invalidate_avatar(usr.id);
-            if (user_update.name) usr.name = user_update.name;
-            if (user_update.status) {
-                if (user_update.status === "spectating")
-                    usr.spectating = user_update.spectating;
-                usr.status = user_update.status;
+            const u = await this.get(user_update.id);
+            Object.assign(u, user_update);
+
+            const subs = this.subs.get(user_update.id);
+            if (subs) {
+                for (const sub of subs) {
+                    sub(u);
+                }
+            }
+
+            if (me.id === user_update.id) {
+                Object.assign(me, user_update);
             }
         }
     }
