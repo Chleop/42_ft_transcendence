@@ -26,16 +26,23 @@ import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
 import { IChannel } from "src/channel/interface";
 import * as jimp from "jimp";
+import { ChatService } from "src/chat/chat.service";
 
 @Injectable()
 export class UserService {
 	// REMIND: would it be better to make these properties static ?
+	private readonly _chat_service: ChatService;
 	private readonly _channel: ChannelService;
 	private readonly _prisma: PrismaService;
 	private readonly _logger: Logger;
 
-	constructor(channel_service: ChannelService, prisma_service: PrismaService) {
+	constructor(
+		chat_service: ChatService,
+		channel_service: ChannelService,
+		prisma_service: PrismaService,
+	) {
 		//#region
+		this._chat_service = chat_service;
 		this._channel = channel_service;
 		this._prisma = prisma_service;
 		this._logger = new Logger(UserService.name);
@@ -834,6 +841,7 @@ export class UserService {
 			blocked_ids: user_tmp.blocked.map((blocked): string => {
 				return blocked.id;
 			}),
+			status: this._chat_service.get_user(id)!.status,
 		};
 		//#endregion
 
@@ -982,6 +990,7 @@ export class UserService {
 			skin_id: requested_user_tmp.skinId,
 			games_played_count: requested_user_tmp.gamesPlayed.length,
 			games_won_count: requested_user_tmp.gamesWon.length,
+			status: this._chat_service.get_user(requested_user_id)!.status,
 		};
 		//#endregion
 
