@@ -4,12 +4,14 @@ precision highp float;
 uniform vec2 model_position;
 uniform mat2 model_transform;
 uniform mat2 view_transform;
+uniform vec2 uv_position;
+uniform mat2 uv_transform;
 
 out vec2 tex_coords;
 
 void main() {
     vec2 vertex = vec2(float(gl_VertexID % 2), float(gl_VertexID >> 1));
-    tex_coords = vec2(vertex.x, 1.0 - vertex.y);
+    tex_coords = uv_position + uv_transform * vec2(vertex.x, 1.0 - vertex.y);
 
     vertex = model_position + model_transform * vertex;
     vertex = view_transform * vertex;

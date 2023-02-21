@@ -161,6 +161,8 @@ export class Renderer {
      */
     private sprite_uniform_view_transform: WebGLUniformLocation;
 
+    private sprite_uniform_uv_position: WebGLUniformLocation;
+    private sprite_uniform_uv_transform: WebGLUniformLocation;
 
     /**
      * The shader program used to render hitboxes.
@@ -208,6 +210,8 @@ export class Renderer {
         this.sprite_uniform_model_position = get_uniform_location(this.gl, this.sprite_program, "model_position");
         this.sprite_uniform_model_transform = get_uniform_location(this.gl, this.sprite_program, "model_transform");
         this.sprite_uniform_view_transform = get_uniform_location(this.gl, this.sprite_program, "view_transform");
+        this.sprite_uniform_uv_position = get_uniform_location(this.gl, this.sprite_program, "uv_position");
+        this.sprite_uniform_uv_transform = get_uniform_location(this.gl, this.sprite_program, "uv_transform");
         this.hitbox_program = create_program(this.gl, hitbox_vertex_shader_source, hitbox_fragment_shader_source);
         this.hitbox_uniform_model_position = get_uniform_location(this.gl, this.hitbox_program, "model_position");
         this.hitbox_uniform_model_transform = get_uniform_location(this.gl, this.hitbox_program, "model_transform");
@@ -262,10 +266,16 @@ export class Renderer {
      * Draws a sprite.
      */
     public draw_sprite(sprite: WithTexture, x: number, y: number, w: number, h: number): void {
+        this.draw_sprite_part(sprite, 0, 0, 1, 1, x, y, w, h);
+    }
+
+    public draw_sprite_part(sprite: WithTexture, uvx: number, uvy: number, uvw: number, uvh: number, x: number, y: number, w: number, h: number) {
         this.gl.useProgram(this.sprite_program);
         this.gl.uniform2f(this.sprite_uniform_model_position, x, y);
         this.gl.uniformMatrix2fv(this.sprite_uniform_model_transform, false, [w, 0, 0, h]);
         this.gl.uniformMatrix2fv(this.sprite_uniform_view_transform, false, this.view_matrix);
+        this.gl.uniform2f(this.sprite_uniform_uv_position, uvx, uvy);
+        this.gl.uniformMatrix2fv(this.sprite_uniform_uv_transform, false, [uvw, 0, 0, uvh]);
         this.gl.activeTexture(this.gl.TEXTURE0);
         this.gl.bindTexture(this.gl.TEXTURE_2D, sprite.texture);
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
@@ -302,14 +312,12 @@ export class Renderer {
         return new Framebuffer(this.gl, width, height);
     }
 
-    public bind_framebuffer(framebuffer: Framebuffer|null) {
-        if (framebuffer)
-        {
+    public bind_framebuffer(framebuffer: Framebuffer | null) {
+        if (framebuffer) {
             this.gl.viewport(0, 0, framebuffer.width, framebuffer.height);
             this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer.framebuffer);
         }
-        else
-        {
+        else {
             this.gl.viewport(0, 0, this.canvas_width, this.canvas_height);
             this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
         }
