@@ -76,7 +76,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				let data: IUserPrivate | IUserPublic;
 				if (user_updated.id === user_to_notify.id)
 					data = await this._user_service.get_me(user_to_notify.id);
-				else data = await this._user_service.get_one(user_to_notify.id, user_to_notify.id);
+				else data = await this._user_service.get_one(user_to_notify.id, user_updated.id);
 				socket.emit("user_updated", data);
 			}
 		}

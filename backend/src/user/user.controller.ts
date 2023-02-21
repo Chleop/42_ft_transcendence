@@ -116,7 +116,7 @@ export class UserController {
 		request: {
 			user: t_user_auth;
 		},
-	): Promise<{ status: e_user_status; spectating?: string } & IUserPrivate> {
+	): Promise<{ spectating?: string } & IUserPrivate> {
 		//#region
 		try {
 			const user: IUserPrivate = await this._user_service.get_me(request.user.id);
@@ -130,7 +130,6 @@ export class UserController {
 			}
 
 			return {
-				status,
 				spectating: tmp_user?.spectated_user,
 				...user,
 			};
@@ -152,7 +151,7 @@ export class UserController {
 			user: t_user_auth;
 		},
 		@Param("id") id: string,
-	): Promise<{ status: e_user_status; spectating?: string } & IUserPublic> {
+	): Promise<{ spectating?: string } & IUserPublic> {
 		//#region
 		try {
 			const user: IUserPublic = await this._user_service.get_one(request.user.id, id);
@@ -164,7 +163,6 @@ export class UserController {
 			}
 
 			return {
-				status,
 				spectating: tmp_user?.spectated_user,
 				...user,
 			};

@@ -11,6 +11,7 @@ import { FtOauthGuard, Jwt2FAGuard, JwtPendingStateGuard } from "./guards";
 import { SessionSerializer } from "./utils/Serializer";
 import { HttpModule } from "@nestjs/axios";
 import { ChannelService } from "src/channel/channel.service";
+import { ChatService } from "src/chat/chat.service";
 
 @Module({
 	imports: [
@@ -22,6 +23,7 @@ import { ChannelService } from "src/channel/channel.service";
 	],
 	controllers: [AuthController],
 	providers: [
+		ChatService,
 		AuthService,
 		UserService,
 		ConfigService,

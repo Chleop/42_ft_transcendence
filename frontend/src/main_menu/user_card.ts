@@ -117,8 +117,10 @@ class UserCardElement {
         this.ban_button = ban_button;
     }
 
+    private unsub: (() => void) | undefined;
+
     public show(elem: HTMLElement | null, user: User, channel: Channel | null) {
-        Users.me().then((me) => {
+        const re_draw = (user: User) => {
             this.name.innerText = user.name;
 
             this.status.onclick = () => { };
@@ -160,6 +162,11 @@ class UserCardElement {
 
             this.rank.style.backgroundImage = `url('${url}')`;
             this.wins.innerText = `${wins} W / ${losses} L / ${percent_f}%`;
+
+        };
+
+        Users.me().then((me) => {
+
 
             // If the user we are inspecting is ourselves, there is nothing more to see.
             if (user.id === me.id) {
@@ -325,6 +332,14 @@ class UserCardElement {
             this.banner.style.backgroundImage = `url(\"${url}\")`;
         });
 
+        if (this.unsub) {
+            this.unsub();
+            delete this.unsub;
+        }
+
+        this.unsub = Users.subscribe(user.id, re_draw);
+        re_draw(user);
+
         if (elem) {
             const box = elem.getBoundingClientRect();
             const top = box.top;
@@ -338,12 +353,16 @@ class UserCardElement {
         setTimeout(() => {
             const box2 = this.card.getBoundingClientRect();
             if (box2.bottom >= window.innerHeight - 20)
-                this.card.style.top = `${window.innerHeight - 20 - box2.height
-                    }px`;
+                this.card.style.top = `${window.innerHeight - 20 - box2.height}px`;
         });
     }
 
     public hide() {
+        if (this.unsub) {
+            this.unsub();
+            delete this.unsub;
+        }
+
         this.screen.remove();
     }
 }
