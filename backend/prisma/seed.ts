@@ -41,6 +41,14 @@ async function main() {
 			paddle: "resource/skin/paddle/hamster.png",
 		},
 	});
+	await prisma.skin.create({
+		data: {
+			name: "space",
+			background: "resources/skin/background/space.png",
+			ball: "resources/skin/ball/space.png",
+			paddle: "resources/skin/paddle/space.png",
+		},
+	});
 
 	// Create default users
 	const jodufour: t_user_fields = await prisma.user.create({
