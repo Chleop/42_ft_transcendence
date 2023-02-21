@@ -1,5 +1,5 @@
 import { Constants, OngoingGame, Paddle, SkinUrls, } from ".";
-import { BallStateUpdate, Client, GameSocket, PlayerStateUpdate, ScoreStateUpdate, User, UserId } from "../api";
+import { BallStateUpdate, Client, GameSocket, PlayerStateUpdate, ScoreStateUpdate, set_global_game_socket, User, UserId } from "../api";
 import { History } from "../strawberry";
 
 /** An onging game that we are playing in. */
@@ -81,6 +81,7 @@ export class PlayingGame extends OngoingGame {
 
         this.flow = "break";
 
+        console.log(this.has_left);
         if (!this.has_left)
             History.go_back();
     }

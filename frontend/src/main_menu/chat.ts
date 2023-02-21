@@ -216,6 +216,12 @@ export class ChannelElement {
 				ev.stopPropagation();
 			}
 		};
+		this.tab.onmousedown = (ev) => {
+			if (ev.button === 1) {
+				ev.preventDefault();
+				ev.stopPropagation();
+			}
+		};
 		this.tab.onmouseup = (ev) => {
 			if (ev.button === 1) {
 				if (this.model) {
@@ -226,6 +232,9 @@ export class ChannelElement {
 				if (this.dm) {
 					chat.remove_channel(this);
 				}
+
+				ev.preventDefault();
+				ev.stopPropagation();
 			}
 		};
 
