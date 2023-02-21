@@ -13,6 +13,7 @@ import { UserService } from "src/user/user.service";
 import {
 	BadRequestException,
 	Body,
+	ConflictException,
 	Controller,
 	ForbiddenException,
 	InternalServerErrorException,
@@ -26,17 +27,19 @@ import {
 	ValidationPipe,
 } from "@nestjs/common";
 import { ChannelMessage, DirectMessage } from "@prisma/client";
-import { ChannelJoinDto, ChannelMessageSendDto } from "src/channel/dto";
+import { ChannelCreateDto, ChannelJoinDto, ChannelMessageSendDto } from "src/channel/dto";
 import { IChannel } from "src/channel/interface";
 import {
 	ChannelAlreadyJoinedError,
 	ChannelForbiddenToJoinError,
 	ChannelMemberMutedError,
 	ChannelMessageTooLongError,
+	ChannelNameAlreadyTakenError,
 	ChannelNotFoundError,
 	ChannelNotJoinedError,
 	ChannelPasswordIncorrectError,
 	ChannelPasswordMissingError,
+	ChannelPasswordNotAllowedError,
 	ChannelPasswordUnexpectedError,
 } from "src/channel/error";
 import { ChannelService } from "src/channel/channel.service";
@@ -61,6 +64,42 @@ export class ChatController {
 		this._logger = new Logger(ChatController.name);
 	}
 
+	@Post("channel")
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+	async create_one(
+		@Req()
+		request: {
+			user: t_user_auth;
+		},
+		@Body() dto: ChannelCreateDto,
+	): Promise<IChannel> {
+		//#region
+		try {
+			const channel: IChannel = await this._channel_service.create_one(
+				request.user.id,
+				dto.name,
+				dto.is_private,
+				dto.password,
+			);
+
+			this._chat_gateway.make_user_socket_join_room(request.user.id, channel.id);
+
+			return channel;
+		} catch (error) {
+			if (error instanceof ChannelPasswordNotAllowedError) {
+				this._logger.error(error.message);
+				throw new BadRequestException(error.message);
+			}
+			if (error instanceof ChannelNameAlreadyTakenError) {
+				this._logger.error(error.message);
+				throw new ConflictException(error.message);
+			}
+			this._logger.error("Unknown error type, this should not happen");
+			throw new InternalServerErrorException();
+		}
+	}
+	//#endregion
+
 	@Patch("channel/:id/join")
 	@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 	async join_channel(
@@ -72,11 +111,16 @@ export class ChatController {
 		@Body() dto: ChannelJoinDto,
 	): Promise<IChannel> {
 		//#region
-		let response: IChannel;
-
 		try {
-			response = await this._channel_service.join_one(request.user.id, id, dto.password);
+			const channel: IChannel = await this._channel_service.join_one(
+				request.user.id,
+				id,
+				dto.password,
+			);
+
 			this._chat_gateway.make_user_socket_join_room(request.user.id, id);
+
+			return channel;
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
@@ -95,8 +139,6 @@ export class ChatController {
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-
-		return response;
 	}
 	//#endregion
 
@@ -139,7 +181,9 @@ export class ChatController {
 				id,
 				dto.content,
 			);
+
 			this._chat_gateway.broadcast_to_room(message);
+
 			return message;
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
@@ -170,17 +214,25 @@ export class ChatController {
 		@Body() dto: UserMessageSendDto,
 	): Promise<DirectMessage> {
 		//#region
-		let object: {
+		type t_ret = {
+			//#region
 			receiver: t_receiving_user_fields;
 			message: DirectMessage;
 		};
+		//#endregion
 
 		try {
-			object = await this._user_service.send_message_to_one(request.user.id, id, dto.content);
+			const object: t_ret = await this._user_service.send_message_to_one(
+				request.user.id,
+				id,
+				dto.content,
+			);
 
 			if (!object.receiver.blocked.some((blocked) => blocked.id === request.user.id)) {
 				this._chat_gateway.forward_to_user_socket("direct_message", id, object.message);
 			}
+
+			return object.message;
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||
@@ -198,8 +250,6 @@ export class ChatController {
 			this._logger.error(error);
 			throw new InternalServerErrorException();
 		}
-
-		return object.message;
 	}
 	//#endregion
 }
