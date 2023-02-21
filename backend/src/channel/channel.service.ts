@@ -1158,7 +1158,6 @@ export class ChannelService {
 		});
 		//#endregion
 
-		// this._gateway.make_user_socket_join_room(joining_user_id, channel_id);
 		const channel: IChannel = {
 			//#region
 			id: channel_tmp.id,
