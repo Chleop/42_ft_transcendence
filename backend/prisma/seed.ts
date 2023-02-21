@@ -44,9 +44,9 @@ async function main() {
 	await prisma.skin.create({
 		data: {
 			name: "space",
-			background: "resources/skin/background/space.png",
-			ball: "resources/skin/ball/space.png",
-			paddle: "resources/skin/paddle/space.png",
+			background: "resource/skin/background/space.png",
+			ball: "resource/skin/ball/space.png",
+			paddle: "resource/skin/paddle/space.png",
 		},
 	});
 
