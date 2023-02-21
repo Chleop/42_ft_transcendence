@@ -23,7 +23,7 @@ export class GameRoom {
 		this.match = match;
 		this.players_ping_id = null;
 		this.game = new Gameplay();
-		this.is_ongoing = true;
+		this.is_ongoing = false;
 		this.has_updated_score = false;
 	}
 
@@ -35,6 +35,7 @@ export class GameRoom {
 	 * Returns the initial ball coordinates.
 	 */
 	public startGame(): Ball {
+		this.is_ongoing = true;
 		return this.game.initializeGame();
 	}
 

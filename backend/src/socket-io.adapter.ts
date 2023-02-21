@@ -46,7 +46,6 @@ export class SocketIOAdapter extends IoAdapter {
 		const cors: CorsOptions = {
 			origin: [new RegExp(`/^http:\/\/192\.168\.1\.([1-9]|[1-9]\d):${client_port}$/`)],
 		};
-		this.logger.log(`Cors options origin port is set to: ${client_port}`);
 
 		const jwt_service: JwtService = this.app.get(JwtService);
 		const config_service: ConfigService = this.app.get(ConfigService);
