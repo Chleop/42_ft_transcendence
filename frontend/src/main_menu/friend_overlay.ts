@@ -44,11 +44,10 @@ class FriendOverlay extends Overlay {
             this.container.firstChild.remove();
 
         (async () => {
-            Users.invalidate_me();
             const me = await Users.me();
 
             if (me.friends_ids.length === 0) {
-                this.container.innerText = "D:";
+                this.container.innerText = "You do not have any friends... :(";
             }
 
             for (const friend_id of me.friends_ids) {

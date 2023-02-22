@@ -1240,6 +1240,11 @@ body {
   flex-flow: column nowrap;
   gap: 10px;
 
+  color: white;
+  font-family: "Noto Sans", sans-serif;
+  text-align: center;
+  text-shadow: 0 0 3px black;
+
   padding: 20px 0;
 }
 
