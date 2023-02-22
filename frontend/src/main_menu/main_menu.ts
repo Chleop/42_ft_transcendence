@@ -104,8 +104,6 @@ class MainMenuScene extends Scene {
         this.container.appendChild(faithful_mode);
 
         Users.me().then((me) => {
-            console.log(me);
-
             console.info(`connected as '${me.name}'`);
             console.log(`user ID: '${me.id}'`);
 

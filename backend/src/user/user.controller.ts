@@ -11,7 +11,6 @@ import {
 	UserNotBlockedError,
 	UserNotFoundError,
 	UserNotFriendError,
-	UserNotLinkedError,
 	UserSelfBlockError,
 	UserSelfMessageError,
 	UserSelfUnblockError,
@@ -145,22 +144,17 @@ export class UserController {
 	//#endregion
 
 	@Get(":id")
-	async get_one(
-		@Req()
-		request: {
-			user: t_user_auth;
-		},
-		@Param("id") id: string,
-	): Promise<{ spectating?: string } & IUserPublic> {
+	async get_one(@Param("id") id: string): Promise<{ spectating?: string } & IUserPublic> {
 		//#region
 		try {
-			const user: IUserPublic = await this._user_service.get_one(request.user.id, id);
+			const user: IUserPublic = await this._user_service.get_one(id);
 
 			const tmp_user: t_user_status | undefined = this._chat_service.get_user(id);
-			let status: e_user_status | undefined = tmp_user?.status;
-			if (status === undefined) {
-				status = e_user_status.OFFLINE;
-			}
+			// REMIND: Is this still needed? Or could we just remove it?
+			// let status: e_user_status | undefined = tmp_user?.status;
+			// if (status === undefined) {
+			// 	status = e_user_status.OFFLINE;
+			// }
 
 			return {
 				spectating: tmp_user?.spectated_user,
@@ -171,10 +165,6 @@ export class UserController {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			if (error instanceof UserNotLinkedError) {
-				this._logger.error(error.message);
-				throw new ForbiddenException(error.message);
-			}
 			this._logger.error("Unknown error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
@@ -182,26 +172,16 @@ export class UserController {
 	//#endregion
 
 	@Get(":id/avatar")
-	async get_ones_avatar(
-		@Req()
-		request: {
-			user: t_user_auth;
-		},
-		@Param("id") id: string,
-	): Promise<StreamableFile> {
+	async get_ones_avatar(@Param("id") id: string): Promise<StreamableFile> {
 		//#region
 		let sfile: StreamableFile;
 
 		try {
-			sfile = await this._user_service.get_ones_avatar(request.user.id, id);
+			sfile = await this._user_service.get_ones_avatar(id);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
-			}
-			if (error instanceof UserNotLinkedError) {
-				this._logger.error(error.message);
-				throw new ForbiddenException(error.message);
 			}
 			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();

@@ -1,4 +1,4 @@
-import { Channel, Client, UnexpectedStatusCode, Users } from "../api";
+import { Channel, Client, UnexpectedStatusCode } from "../api";
 import { NOTIFICATIONS } from "../notification";
 import CHAT_ELEMENT from "./chat";
 
@@ -27,11 +27,6 @@ export class ChannelResultElement {
 			promise
 				.then((ch) => {
 					const elem = CHAT_ELEMENT.add_channel(channel);
-					Client.last_messages(channel.id, 50).then((messages) => {
-						for (const msg of messages) {
-							CHAT_ELEMENT.add_message(elem, msg);
-						}
-					});
 					CHAT_ELEMENT.set_selected_channel(elem);
 					CHANNEL_LIST.hide();
 
