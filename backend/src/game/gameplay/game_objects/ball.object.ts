@@ -27,7 +27,7 @@ export class Ball {
 
 	/* CONSTRUCTOR ============================================================= */
 
-	constructor(gravity: boolean, coords?: { x: number; y: number; vx: number; vy: number }) {
+	constructor(faithful: boolean, coords?: { x: number; y: number; vx: number; vy: number }) {
 		if (coords === undefined) {
 			const angle: number = this.generateSign() * Math.random() * Constants.pi_4;
 			this.x = 0;
@@ -40,7 +40,7 @@ export class Ball {
 			this.vx = coords.vx;
 			this.vy = coords.vy;
 		}
-		this.gravity = gravity;
+		this.gravity = !faithful;
 	}
 
 	/* PUBLIC ================================================================== */
@@ -118,7 +118,7 @@ export class Ball {
 			this.y = new_y;
 			return;
 		}
-		this.vy = -this.vy * Constants.friction;
+		this.vy = -this.vy * (this.gravity ? Constants.friction : 1);
 	}
 
 	/**
