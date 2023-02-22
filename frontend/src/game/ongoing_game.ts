@@ -103,4 +103,6 @@ export abstract class OngoingGame {
      * Returns the skins that the `GameBoard` should use to display each side.
      */
     abstract get_skins(): SkinUrls;
+
+    abstract get overlay(): HTMLElement;
 }
