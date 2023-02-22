@@ -1,12 +1,12 @@
 /**
  *  Ball speed.
  */
-export const initial_speed: number = 5;
+export const initial_speed: number = 6;
 
 /**
  * Acceleration factor.
  */
-export const acceleration: number = 1.05;
+export const acceleration: number = 1.1;
 
 /**
  * Ball radius.
@@ -76,5 +76,5 @@ export const limit_y: number = h_2 - ball_radius; // = 4.5 - 0.2 = 4.3
 export const pi_4: number = Math.PI * 0.25;
 export const pi_3: number = Math.PI * 0.33;
 
-export const gravity: number = 0.1;
-export const friction: number = 0.98;
+export const gravity: number = 0.2;
+export const friction: number = 0.97;
