@@ -19,7 +19,7 @@ export class GameRoom {
 
 	/* CONSTRUCTOR ============================================================= */
 
-	constructor(match: Match, faithful: boolean = true) {
+	constructor(match: Match, faithful: boolean) {
 		this.match = match;
 		this.players_ping_id = null;
 		this.game = new Gameplay(faithful);

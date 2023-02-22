@@ -77,3 +77,4 @@ export const pi_4: number = Math.PI * 0.25;
 export const pi_3: number = Math.PI * 0.33;
 
 export const gravity: number = 0.1;
+export const friction: number = 0.98;

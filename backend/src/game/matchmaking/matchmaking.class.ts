@@ -18,7 +18,7 @@ import { GameRoom } from "../rooms";
  */
 export class Matchmaking {
 	private awaiting_players: Set<Socket>;
-	// private queue_bouncy: Socket | null;
+	private queue_bouncy: Socket | null;
 	private queue: Socket | null;
 	private readonly logger: Logger;
 
@@ -27,7 +27,7 @@ export class Matchmaking {
 	constructor() {
 		this.awaiting_players = new Set<Socket>();
 		this.queue = null;
-		// this.queue_bouncy = null;
+		this.queue_bouncy = null;
 		this.logger = new Logger(Matchmaking.name);
 	}
 
@@ -42,7 +42,12 @@ export class Matchmaking {
 		if (this.queue?.data.user.id === client.data.user.id) {
 			throw new BadEvent(`${client.data.user.login} already in the queue`);
 		}
+
+		if (client.handshake.auth.faithful === undefined)
+			throw new WrongData("Missing faithful field");
+
 		if (client.handshake.auth.friend !== undefined) {
+			// Inviting friend
 			return this.awaitingFriend(client);
 			// if (typeof client.handshake.auth.friend !== "string")
 			// 	throw new WrongData("Bad friend data format");
@@ -64,18 +69,19 @@ export class Matchmaking {
 			// return { is_invite: true };
 		} else {
 			// Traditional matchmaking
-			if (this.queue === null) {
-				this.queue = client;
-				return { is_invite: false };
-			}
-			const match: Match = {
-				name: this.queue.id + client.id,
-				player1: this.queue,
-				player2: client,
-			};
-			const room: GameRoom = new GameRoom(match);
-			this.queue = null;
-			return room;
+			return this.regularQueuing(client);
+			// if (this.queue === null) {
+			// 	this.queue = client;
+			// 	return { is_invite: false };
+			// }
+			// const match: Match = {
+			// 	name: this.queue.id + client.id,
+			// 	player1: this.queue,
+			// 	player2: client,
+			// };
+			// const room: GameRoom = new GameRoom(match);
+			// this.queue = null;
+			// return room;
 		}
 	}
 
@@ -86,6 +92,9 @@ export class Matchmaking {
 		if (this.queue?.data.user.id === client.data.user.id) {
 			this.queue = null;
 			return true;
+		} else if (this.queue_bouncy?.data.user.id === client.data.user.id) {
+			this.queue_bouncy = null;
+			return true;
 		}
 		for (const waiting_sockets of this.awaiting_players) {
 			if (waiting_sockets.data.user.id === client.data.user.id) {
@@ -93,10 +102,37 @@ export class Matchmaking {
 				return true;
 			}
 		}
+
 		return false;
 	}
 
 	/* PRIVATE ================================================================= */
+
+	private regularQueuing(client: Socket): GameRoom | { is_invite: boolean } {
+		const faithful_mode: boolean = client.handshake.auth.faithful;
+		let expected_queue: Socket;
+		if (faithful_mode) {
+			if (this.queue === null) {
+				this.queue = client;
+				return { is_invite: false };
+			}
+			expected_queue = this.queue;
+			this.queue = null;
+		} else {
+			if (this.queue_bouncy === null) {
+				this.queue_bouncy = client;
+				return { is_invite: false };
+			}
+			expected_queue = this.queue_bouncy;
+			this.queue_bouncy = null;
+		}
+		const match: Match = {
+			name: expected_queue.id + client.id,
+			player1: expected_queue,
+			player2: client,
+		};
+		return new GameRoom(match, faithful_mode);
+	}
 
 	private awaitingFriend(client: Socket): GameRoom | { is_invite: boolean } {
 		if (typeof client.handshake.auth.friend !== "string")
@@ -126,7 +162,7 @@ export class Matchmaking {
 			player2: client,
 		};
 		this.logger.verbose(`Matching ${player.data.user.login} with ${client.data.user.login}`);
-		const new_game_room: GameRoom = new GameRoom(match);
+		const new_game_room: GameRoom = new GameRoom(match, player.handshake.auth.faithful);
 		this.awaiting_players.delete(player);
 		return new_game_room;
 	}

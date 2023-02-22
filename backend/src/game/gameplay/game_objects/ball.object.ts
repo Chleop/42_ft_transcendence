@@ -116,7 +116,7 @@ export class Ball {
 			this.y = new_y;
 			return;
 		}
-		this.vy = -this.vy;
+		this.vy = -this.vy * Constants.friction;
 	}
 
 	/**
