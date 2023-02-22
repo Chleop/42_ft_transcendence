@@ -8,6 +8,7 @@ import GAME_BOARD from "../game/game_board";
 
 import { ConnectError } from "../api";
 import USER_CARD from "./user_card";
+import FRIEND_OVERLAY from "./friend_overlay";
 
 /**
  * The scene that contains the main menu.
@@ -72,10 +73,22 @@ class MainMenuScene extends Scene {
         };
         this.container.appendChild(profile);
 
+        const friends_button = document.createElement("button");
+        friends_button.id = "main-menu-friends";
+        friends_button.classList.add("main-menu-button");
+        const friends_span = document.createElement("div");
+        friends_span.innerText = "Friends";
+        friends_button.appendChild(friends_span);
+        friends_button.onclick = () => History.push_state(FRIEND_OVERLAY);
+        this.container.appendChild(friends_button);
+
         this.container.appendChild(CHAT_ELEMENT.html);
         this.container.appendChild(PROFILE_OVERLAY.root_html_element);
+        this.container.appendChild(FRIEND_OVERLAY.root_html_element);
 
         Users.me().then((me) => {
+            console.log(me);
+
             console.info(`connected as '${me.name}'`);
             console.log(`user ID: '${me.id}'`);
 

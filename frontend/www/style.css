@@ -47,6 +47,7 @@ body {
   min-width: 200px;
   margin-left: auto;
   margin-right: auto;
+  margin-bottom: 20px;
   background-color: rgba(255, 255, 255, 0.4);
   border-radius: 15px;
   padding-top: 10px;
@@ -618,6 +619,7 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  z-index: 10000;
 }
 
 .profile-game-container {
@@ -1146,6 +1148,7 @@ body {
 
   display: flex;
   flex-flow: column nowrap;
+  align-items: start;
   gap: 20px;
   z-index: 10000;
 }
@@ -1159,9 +1162,143 @@ body {
   padding: 20px;
   border-radius: 10px;
 
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: start;
+  align-items: center;
+
   color: white;
+}
+
+.notification-invite {
+  cursor: pointer;
+}
+
+.notification-avatar {
+  margin-right: 20px;
+}
+
+.notification-avatar {
+  width: 3ch;
+  height: 3ch;
+
+  border-radius: 1000px;
 }
 
 .profile-current-skin {
   border-color: black;
+}
+
+#friend-list-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  display: grid;
+  place-items: center;
+
+  pointer-events: none;
+}
+
+#friend-list-container {
+  width: 50%;
+  min-width: 600px;
+
+  transform: translateY(20px) scale(80%);
+  opacity: 0%;
+
+  border-radius: 20px;
+
+  background-color: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(15px);
+
+  transition: ease-out 0.2s;
+
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 10px;
+
+  padding: 20px 0;
+}
+
+#friend-list-screen.active {
+  pointer-events: auto;
+}
+
+#friend-list-screen.active #friend-list-container {
+  transform: translateY(0px) scale(100%);
+  opacity: 100%;
+}
+
+.friend-entry {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+
+  font-family: "Noto Sans", sans-serif;
+  color: white;
+  font-size: 18px;
+  text-shadow: 0 0 3px black;
+
+  padding: 2px 20px;
+}
+
+.friend-entry:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.friend-entry-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 100000px;
+  background-size: cover;
+  background-position: center;
+
+  margin-right: 20px;
+}
+
+.friend-entry-name {
+  max-width: 100px;
+  white-space: nowrap;
+  overflow-x: hidden;
+}
+
+.friend-entry-separator {
+  width: 2px;
+  height: 20px;
+  background-color: rgba(255, 255, 255, 0.6);
+  margin: 0 10px;
+}
+
+.friend-entry-blank {
+  flex-grow: 1;
+
+  opacity: 50%;
+
+  text-align: center;
+}
+
+.friend-entry-menu {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+
+  gap: 5px;
+}
+
+.friend-entry-menu button {
+  border-radius: 1000px;
+  width: 30px;
+  height: 30px;
+
+  border: none;
+  background: white;
+
+  cursor: pointer;
+}
+
+.friend-entry-menu button:active {
+  transform: translateY(1px);
 }

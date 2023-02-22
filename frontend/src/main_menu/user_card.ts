@@ -205,7 +205,12 @@ class UserCardElement {
 			this.friend_button.style.display = "block";
 			this.blocked_button.style.display = "block";
 			this.send_message_button.style.display = "block";
-			this.play_button.style.display = "block";
+
+			if (user.status === "online") {
+				this.play_button.style.display = "block";
+			} else {
+				this.play_button.style.display = "none";
+			}
 
 			this.play_button.onclick = () => {
 				if (GLOBAL_GAME_SOCKET) {
@@ -233,7 +238,7 @@ class UserCardElement {
 							this.show(null, user, channel);
 							NOTIFICATIONS.spawn_notification(
 								"green",
-								"failed to remove this friend",
+								"You're not my friend anymore.",
 							);
 						})
 						.catch(() => {

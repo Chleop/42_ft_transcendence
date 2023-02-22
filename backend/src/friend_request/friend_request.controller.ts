@@ -64,7 +64,7 @@ export class FriendRequestController {
 			this._chat_gateway.forward_to_user_socket(
 				"user_updated",
 				dto.accepted_user_id,
-				this._user_service.get_me(dto.accepted_user_id),
+				await this._user_service.get_me(dto.accepted_user_id),
 			);
 		} catch (error) {
 			if (
@@ -120,7 +120,7 @@ export class FriendRequestController {
 			this._chat_gateway.forward_to_user_socket(
 				"user_updated",
 				dto.receiving_user_id,
-				this._user_service.get_me(dto.receiving_user_id),
+				await this._user_service.get_me(dto.receiving_user_id),
 			);
 		} catch (error) {
 			if (
