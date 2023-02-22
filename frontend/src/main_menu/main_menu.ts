@@ -87,6 +87,8 @@ class MainMenuScene extends Scene {
         this.container.appendChild(FRIEND_OVERLAY.root_html_element);
 
         Users.me().then((me) => {
+            console.log(me);
+
             console.info(`connected as '${me.name}'`);
             console.log(`user ID: '${me.id}'`);
 

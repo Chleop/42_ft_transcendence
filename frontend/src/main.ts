@@ -17,11 +17,15 @@ function entry_point() {
 	router.register_route("/", () => History.replace_state(MAIN_MENU));
 	router.register_route("/profile", () => {
 		History.replace_state(MAIN_MENU);
-		History.push_state(PROFILE_OVERLAY);
+		setTimeout(() => {
+			History.push_state(PROFILE_OVERLAY);
+		}, 1);
 	});
 	router.register_route("/friends", () => {
 		History.replace_state(MAIN_MENU);
-		History.push_state(FRIEND_OVERLAY);
+		setTimeout(() => {
+			History.push_state(FRIEND_OVERLAY);
+		}, 1);
 	});
 	router.register_route("/spectate/:room_id", data => {
 		GAME_BOARD.start_game(new SpectatingGame(data["room_id"]));
