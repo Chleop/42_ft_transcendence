@@ -1,6 +1,41 @@
 import { Constants, OngoingGame, Paddle, SkinUrls, } from ".";
-import { BallStateUpdate, Client, GameSocket, PlayerStateUpdate, ScoreStateUpdate, set_global_game_socket, User, UserId } from "../api";
+import { BallStateUpdate, Client, GameSocket, PlayerStateUpdate, ScoreStateUpdate, set_global_game_socket, User, UserId, Users } from "../api";
 import { History } from "../strawberry";
+import { rank_to_image, ratio_to_rank } from "../utility";
+
+function create_overlay(user: User): HTMLDivElement {
+    const result = document.createElement("div");
+    result.classList.add("playing-game-player-container");
+
+    const avatar_container = document.createElement("div");
+    avatar_container.classList.add("playing-game-overlay-avatar-container");
+    result.appendChild(avatar_container);
+
+    const avatar = document.createElement("div");
+    Users.get_avatar(user.id).then(url => {
+        avatar.style.backgroundImage = `url('${url}')`;
+    });
+    avatar.classList.add("playing-game-overlay-avatar");
+    avatar_container.appendChild(avatar);
+
+    const rank = document.createElement("div");
+    rank.style.backgroundImage = `url('${rank_to_image(ratio_to_rank(user.games_won_count, user.games_played_count - user.games_won_count))}')`;
+    rank.classList.add("playing-game-overlay-rank");
+    avatar_container.appendChild(rank);
+
+    const name = document.createElement("div");
+    name.innerText = user.name;
+    name.classList.add("playing-game-overlay-name");
+    result.appendChild(name);
+
+    const winrate = document.createElement("div");
+    winrate.classList.add("playing-game-overlay-rate");
+    const left_rate = Math.round(100.0 * user.games_won_count / user.games_played_count);
+    winrate.innerText = `${left_rate}%`;
+    result.appendChild(winrate);
+
+    return result;
+}
 
 /** An onging game that we are playing in. */
 export class PlayingGame extends OngoingGame {
@@ -14,6 +49,8 @@ export class PlayingGame extends OngoingGame {
 
     /** Wether the player is pressing a certain direction. */
     private buttons: { up: boolean, down: boolean };
+
+    public readonly overlay: HTMLDivElement;
 
     /**
      * The socket that's being used to play.
@@ -43,6 +80,16 @@ export class PlayingGame extends OngoingGame {
         this.has_left = false;
         this.left = me;
         this.right = other;
+
+        this.overlay = document.createElement("div");
+        this.overlay.id = "playing-game-overlay";
+
+        const left_player = create_overlay(me);
+        const right_player = create_overlay(other);
+        right_player.classList.add("is-right-player");
+
+        this.overlay.appendChild(left_player);
+        this.overlay.appendChild(right_player);
     }
 
     private on_ball_updated(state: BallStateUpdate) {
@@ -74,6 +121,8 @@ export class PlayingGame extends OngoingGame {
     private on_game_started() {
         console.log("game started!");
         this.game_started = true;
+
+        this.overlay.classList.add("started-game");
     }
 
     private on_disconnected() {

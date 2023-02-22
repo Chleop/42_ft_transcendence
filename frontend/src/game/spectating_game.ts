@@ -25,6 +25,8 @@ export class SpectatingGame extends OngoingGame {
      */
     private socket: SpecSocket;
 
+    public readonly overlay: HTMLDivElement;
+
     /**
      * The ID of the user that we are spectating.
      */
@@ -57,6 +59,8 @@ export class SpectatingGame extends OngoingGame {
         this.socket = socket;
         this.has_left = false;
         this.user_id = user_id;
+
+        this.overlay = document.createElement("div");
 
     }
 

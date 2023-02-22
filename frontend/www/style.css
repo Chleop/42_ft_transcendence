@@ -509,6 +509,110 @@ body {
   margin-top: 10px;
 }
 
+#game-overlay-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+
+  z-index: 10;
+}
+
+#playing-game-overlay {
+  display: grid;
+  grid-template-areas:
+    "left right";
+  grid-template-rows: auto;
+  grid-template-columns: 1fr 1fr;
+
+  backdrop-filter: blur(16px);
+  background-color: rgba(0, 0, 0, 0.5);
+
+  transition: 0.3s ease-out background-color backdrop-filter;
+}
+
+#playing-game-overlay.started-game {
+  background-color: rgba(0, 0, 0, 0.0);
+  backdrop-filter: blur(0px);
+}
+
+.playing-game-player-container:not(.is-right-player) {
+  grid-area: left;
+  grid-template-areas:
+    "avatar  name   "
+    "winrate winrate";
+  grid-template-rows: auto 1fr;
+  grid-template-columns: auto 1fr;
+  justify-items: start;
+
+  transform: translateX(0);
+
+  transition: 0.3s ease-out transform;
+}
+
+
+.started-game .playing-game-player-container:not(.is-right-player) {
+  transform: translateX(-100%);
+}
+
+.playing-game-player-container.is-right-player {
+  grid-area: right;
+  grid-template-areas:
+    "name    avatar   "
+    "winrate winrate";
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr auto;
+  justify-items: end;
+
+  transform: translateX(0);
+
+  transition: 0.3s ease-out transform;
+}
+
+.started-game .playing-game-player-container.is-right-player {
+  transform: translateX(100%);
+}
+
+.playing-game-player-container {
+  display: grid;
+  width: 100%;
+  height: 100vh;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.playing-game-overlay-avatar {
+  grid-area: avatar;
+
+  width: 25vmin;
+  aspect-ratio: 1;
+
+  border-radius: 100%;
+  background-position: center;
+  background-size: cover;
+
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
+
+  margin: 20px;
+}
+
+.playing-game-overlay-name {
+  grid-area: name;
+
+  color: white;
+  font-family: "Krona One", sans-serif;
+  font-size: 10vmin;
+}
+
+.playing-game-overlay-rate {
+  grid-area: winrate;
+  font-size: 30vmin;
+  color: white;
+  font-family: "Krona One", sans-serif;
+}
+
 #game-canvas {
   position: absolute;
   top: 50%;

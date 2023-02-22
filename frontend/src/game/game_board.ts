@@ -53,6 +53,10 @@ class GameBoardClass extends Scene {
      */
     private canvas: HTMLCanvasElement;
 
+    private container: HTMLDivElement;
+
+    private overlay_container: HTMLDivElement;
+
     /**
      * The renderer used to interface with the Graphics Card.
      */
@@ -84,10 +88,18 @@ class GameBoardClass extends Scene {
     public constructor() {
         super();
 
+        const container = document.createElement("div");
+        container.id = "game-container";
+
+        const overlay_container = document.createElement("div");
+        overlay_container.id = "game-overlay-container";
+        container.appendChild(overlay_container);
+
         const canvas = document.createElement("canvas");
         canvas.id = "game-canvas";
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+        container.appendChild(canvas);
 
         const gl = canvas.getContext("webgl2");
         if (!gl) throw new WebGL2NotSupported();
@@ -119,12 +131,20 @@ class GameBoardClass extends Scene {
         });
 
         this.current_ball = false;
+
+        this.container = container;
+        this.overlay_container = overlay_container;
     }
 
     /** Starts the game with a specific controller. */
     public start_game(ongoing_game: OngoingGame): void {
         this.ongoing_game = ongoing_game;
         let skins = ongoing_game.get_skins();
+
+        while (this.overlay_container.firstChild)
+            this.overlay_container.firstChild.remove();
+
+        this.overlay_container.appendChild(ongoing_game.overlay);
 
         skins.left_background.then(url => {
             this.left_background = this.renderer.create_sprite(url);
@@ -284,7 +304,7 @@ class GameBoardClass extends Scene {
 
     /** Returns the canvas. */
     public get root_html_element(): HTMLElement {
-        return this.canvas;
+        return this.container;
     }
 }
 
