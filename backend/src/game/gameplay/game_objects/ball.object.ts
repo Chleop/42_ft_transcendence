@@ -23,10 +23,11 @@ export class Ball {
 	private y: number;
 	private vx: number;
 	private vy: number;
+	private readonly gravity: boolean;
 
 	/* CONSTRUCTOR ============================================================= */
 
-	constructor(coords?: { x: number; y: number; vx: number; vy: number }) {
+	constructor(gravity: boolean, coords?: { x: number; y: number; vx: number; vy: number }) {
 		if (coords === undefined) {
 			const angle: number = this.generateSign() * Math.random() * Constants.pi_4;
 			this.x = 0;
@@ -39,6 +40,7 @@ export class Ball {
 			this.vx = coords.vx;
 			this.vy = coords.vy;
 		}
+		this.gravity = gravity;
 	}
 
 	/* PUBLIC ================================================================== */
@@ -81,7 +83,7 @@ export class Ball {
 	 * Allows visual adaptation for player2.
 	 */
 	public invert(): Ball {
-		return new Ball({ x: -this.x, y: this.y, vx: -this.vx, vy: this.vy });
+		return new Ball(this.gravity, { x: -this.x, y: this.y, vx: -this.vx, vy: this.vy });
 	}
 
 	/**
@@ -104,6 +106,7 @@ export class Ball {
 	 * Refreshes coordinates on Y axis.
 	 */
 	private refreshY(delta_time: number): void {
+		if (this.gravity) this.vy -= Constants.gravity;
 		const new_y: number = this.y + this.vy * delta_time;
 		if (new_y > Constants.limit_y) {
 			this.y = Constants.limit_y;

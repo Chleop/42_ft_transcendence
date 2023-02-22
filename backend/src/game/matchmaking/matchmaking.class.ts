@@ -5,6 +5,11 @@ import { BadEvent, WrongData } from "../exceptions";
 import { GameRoom } from "../rooms";
 
 /**
+ * TODO:
+ * 	toggle bouncing
+ */
+
+/**
  * Matchmaking handler.
  *
  * Single spot as a queue.
@@ -13,6 +18,7 @@ import { GameRoom } from "../rooms";
  */
 export class Matchmaking {
 	private awaiting_players: Set<Socket>;
+	// private queue_bouncy: Socket | null;
 	private queue: Socket | null;
 	private readonly logger: Logger;
 
@@ -21,6 +27,7 @@ export class Matchmaking {
 	constructor() {
 		this.awaiting_players = new Set<Socket>();
 		this.queue = null;
+		// this.queue_bouncy = null;
 		this.logger = new Logger(Matchmaking.name);
 	}
 
@@ -36,24 +43,25 @@ export class Matchmaking {
 			throw new BadEvent(`${client.data.user.login} already in the queue`);
 		}
 		if (client.handshake.auth.friend !== undefined) {
-			if (typeof client.handshake.auth.friend !== "string")
-				throw new WrongData("Bad friend data format");
+			return this.awaitingFriend(client);
+			// if (typeof client.handshake.auth.friend !== "string")
+			// 	throw new WrongData("Bad friend data format");
 
-			const friend: Socket | null = this.findPendingUser(client.handshake.auth.friend);
-			if (friend !== null) {
-				// Friend is in queue
-				return this.matchWithFriend(client, friend);
-			}
+			// const friend: Socket | null = this.findPendingUser(client.handshake.auth.friend);
+			// if (friend !== null) {
+			// 	// Friend is in queue
+			// 	return this.matchWithFriend(client, friend);
+			// }
 
-			const player: Socket | null = this.findPendingUser(client.data.user.id);
-			if (player !== null) {
-				// Already awaiting: remove prior invite
-				this.awaiting_players.delete(player);
-			}
-			// Awaiting for a friend
-			this.awaiting_players.add(client);
-			this.logger.verbose(`${client.data.user.login} is awaiting ${client.data.user.login}.`);
-			return { is_invite: true };
+			// const player: Socket | null = this.findPendingUser(client.data.user.id);
+			// if (player !== null) {
+			// 	// Already awaiting: remove prior invite
+			// 	this.awaiting_players.delete(player);
+			// }
+			// // Awaiting for a friend
+			// this.awaiting_players.add(client);
+			// this.logger.verbose(`${client.data.user.login} is awaiting ${client.data.user.login}.`);
+			// return { is_invite: true };
 		} else {
 			// Traditional matchmaking
 			if (this.queue === null) {
@@ -89,6 +97,27 @@ export class Matchmaking {
 	}
 
 	/* PRIVATE ================================================================= */
+
+	private awaitingFriend(client: Socket): GameRoom | { is_invite: boolean } {
+		if (typeof client.handshake.auth.friend !== "string")
+			throw new WrongData("Bad friend data format");
+
+		const friend: Socket | null = this.findPendingUser(client.handshake.auth.friend);
+		if (friend !== null) {
+			// Friend is in queue
+			return this.matchWithFriend(client, friend);
+		}
+
+		const player: Socket | null = this.findPendingUser(client.data.user.id);
+		if (player !== null) {
+			// Already awaiting: remove prior invite
+			this.awaiting_players.delete(player);
+		}
+		// Awaiting for a friend
+		this.awaiting_players.add(client);
+		this.logger.verbose(`${client.data.user.login} is awaiting ${client.data.user.login}.`);
+		return { is_invite: true };
+	}
 
 	private matchWithFriend(client: Socket, player: Socket): GameRoom {
 		const match: Match = {

@@ -50,7 +50,7 @@ export class GameService {
 							id: results.winner,
 						},
 					},
-					scores: [results.scores.player1_score, results.scores.player2_score],
+					scores: [results.scores.player2_score, results.scores.player1_score],
 					dateTime: new Date(results.date),
 				},
 			});

@@ -19,10 +19,10 @@ export class GameRoom {
 
 	/* CONSTRUCTOR ============================================================= */
 
-	constructor(match: Match) {
+	constructor(match: Match, faithful: boolean = true) {
 		this.match = match;
 		this.players_ping_id = null;
-		this.game = new Gameplay();
+		this.game = new Gameplay(faithful);
 		this.is_ongoing = true;
 		this.has_updated_score = false;
 	}
@@ -97,9 +97,9 @@ export class GameRoom {
 		return this.game.getSpectatorUpdate();
 	}
 
-	public getScoreUpdate(): ScoreUpdate {
-		return this.game.getScoreUpdate();
-	}
+	// public getScoreUpdate(): ScoreUpdate {
+	// 	return this.game.getScoreUpdate();
+	// }
 
 	/* Ping -------------------------------------------------------------------- */
 
