@@ -62,7 +62,6 @@ export class GatewayClass {
 		this.socket.on("user_banned", (state: any) => this.on_user_banned(state.channel_id));
 		this.socket.on("channel_updated", (channel: Channel) => this.on_channel_update(channel));
 		this.socket.on("invite", (friend_id: UserId) => {
-			console.log(friend_id);
 			NOTIFICATIONS.spawn_invite("purple", friend_id);
 		});
 	}
