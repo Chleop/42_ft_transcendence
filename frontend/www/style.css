@@ -514,6 +514,7 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  z-index: 10000;
 }
 
 .profile-game-container {
@@ -1055,7 +1056,27 @@ body {
   padding: 20px;
   border-radius: 10px;
 
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: start;
+  align-items: center;
+
   color: white;
+}
+
+.notification-invite {
+  cursor: pointer;
+}
+
+.notification-avatar {
+  margin-right: 20px;
+}
+
+.notification-avatar {
+  width: 3ch;
+  height: 3ch;
+
+  border-radius: 1000px;
 }
 
 .profile-current-skin {

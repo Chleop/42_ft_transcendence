@@ -1,11 +1,12 @@
-import {Socket, io} from "socket.io-client";
-import {Channel, ChannelId, Message} from "./channel";
-import {get_cookie} from "./client";
-import {PrivateUser, User, UserId} from "./user";
-import {Users} from "./users";
+import { Socket, io } from "socket.io-client";
+import { NOTIFICATIONS } from "../notification";
+import { Channel, ChannelId, Message } from "./channel";
+import { get_cookie } from "./client";
+import { PrivateUser, User, UserId } from "./user";
+import { Users } from "./users";
 
 /** Does nothing. */
-function noop(): void {}
+function noop(): void { }
 
 interface DirectMessage {
 	id: string;
@@ -35,7 +36,7 @@ export class GatewayClass {
 		console.log("initiating a connection with the chat gateway...");
 		this.socket = io("/chat", {
 			path: "/api/chat_socket/socket.io",
-			auth: {token: get_cookie("access_token")},
+			auth: { token: get_cookie("access_token") },
 		});
 
 		this.socket.on("connect", () => {
@@ -60,6 +61,10 @@ export class GatewayClass {
 		);
 		this.socket.on("user_banned", (state: any) => this.on_user_banned(state.channel_id));
 		this.socket.on("channel_updated", (channel: Channel) => this.on_channel_update(channel));
+		this.socket.on("invite", (friend_id: UserId) => {
+			console.log(friend_id);
+			NOTIFICATIONS.spawn_invite("purple", friend_id);
+		});
 	}
 
 	public connect() {

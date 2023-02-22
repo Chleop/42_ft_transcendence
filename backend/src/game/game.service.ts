@@ -87,7 +87,7 @@ export class GameService {
 		const queue_result: GameRoom | { is_invite: boolean } = this.matchmaking.queueUp(client);
 		if (!(queue_result instanceof GameRoom)) {
 			this.logger.verbose(`${client.data.user.login} was queued up.`);
-			return { is_invite: false };
+			return queue_result;
 		}
 
 		this.logger.verbose(`Room ${queue_result.match.name} created.`);

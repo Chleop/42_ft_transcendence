@@ -64,8 +64,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		try {
 			const queue_result: GameRoom | { is_invite: boolean } =
 				this.game_service.queueUp(client);
+			this.logger.debug("hello");
 			if (queue_result instanceof GameRoom) this.matchmake(queue_result);
 			else if (queue_result.is_invite === true) {
+				this.logger.debug("tried to invite someone");
 				this.chat_gateway.forward_to_user_socket(
 					"invite",
 					client.handshake.auth.friend,
