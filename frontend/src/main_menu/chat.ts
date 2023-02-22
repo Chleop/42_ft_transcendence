@@ -583,7 +583,9 @@ class ChatElement {
 				);
 			});
 		if (this.selected_channel.dm) {
-			await Client.send_dm(this.selected_channel.dm.id, content);
+			await Client.send_dm(this.selected_channel.dm.id, content).catch(() => {
+				NOTIFICATIONS.spawn_notification("red", "you can't message someone that you blocked. I ThOuGhT YoU DiDn'T LiKe ThAT PeRsOn??")
+			});
 		}
 	}
 
