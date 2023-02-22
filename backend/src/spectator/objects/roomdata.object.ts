@@ -16,10 +16,6 @@ export class RoomData {
 			this.spectated = this._downgrade_user_data(room.match.player2.data.user);
 			this.opponent = this._downgrade_user_data(room.match.player1.data.user);
 		}
-		console.log("spectated:");
-		console.log(this.spectated);
-		console.log(" opponent:");
-		console.log(this.opponent);
 	}
 
 	private _downgrade_user_data(user: IUserPrivate): IUserPublic {
