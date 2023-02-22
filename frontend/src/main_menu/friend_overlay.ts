@@ -44,11 +44,10 @@ class FriendOverlay extends Overlay {
             this.container.firstChild.remove();
 
         (async () => {
-            Users.invalidate_me();
             const me = await Users.me();
 
             if (me.friends_ids.length === 0) {
-                this.container.innerText = "D:";
+                this.container.innerText = "You do not have any friends... :(";
             }
 
             for (const friend_id of me.friends_ids) {
@@ -111,9 +110,7 @@ class FriendOverlay extends Overlay {
                 menu.appendChild(invite);
 
                 const update_data = (user: User) => {
-                    Users.get_avatar(user.id).then((url) => {
-                        avatar.style.backgroundImage = `url(${url})`;
-                    });
+                    avatar.style.backgroundImage = `url(${Users.get_avatar(user.id)})`;
 
                     if (user.status !== "online") {
                         invite.style.display = "none";

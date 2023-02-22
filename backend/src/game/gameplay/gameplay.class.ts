@@ -9,6 +9,7 @@ import { Constants } from "../constants";
  * Tracks the state of the game.
  */
 export class Gameplay {
+	private readonly faithful: boolean;
 	private scores: Score;
 	private paddle1: Paddle;
 	private paddle2: Paddle;
@@ -18,14 +19,15 @@ export class Gameplay {
 
 	/* CONSTRUCTOR ============================================================= */
 
-	constructor() {
+	constructor(faithful: boolean) {
+		this.faithful = faithful;
 		this.scores = {
 			player1_score: 0,
 			player2_score: 0,
 		};
 		this.paddle1 = new Paddle();
 		this.paddle2 = new Paddle();
-		this.ball = new Ball();
+		this.ball = new Ball(faithful);
 		this.last_update = -1;
 		this.winner = 0;
 	}
@@ -118,7 +120,7 @@ export class Gameplay {
 			this.winner = 1;
 			return new Results(this.scores);
 		}
-		this.ball = new Ball();
+		this.ball = new Ball(this.faithful);
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, true);
 	}
 
@@ -131,7 +133,7 @@ export class Gameplay {
 			this.winner = 2;
 			return new Results(this.scores);
 		}
-		this.ball = new Ball();
+		this.ball = new Ball(this.faithful);
 		return new ScoreUpdate(this.scores.player1_score, this.scores.player2_score, false);
 	}
 }

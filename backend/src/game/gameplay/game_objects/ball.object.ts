@@ -23,10 +23,11 @@ export class Ball {
 	private y: number;
 	private vx: number;
 	private vy: number;
+	private readonly gravity: boolean;
 
 	/* CONSTRUCTOR ============================================================= */
 
-	constructor(coords?: { x: number; y: number; vx: number; vy: number }) {
+	constructor(faithful: boolean, coords?: { x: number; y: number; vx: number; vy: number }) {
 		if (coords === undefined) {
 			const angle: number = this.generateSign() * Math.random() * Constants.pi_4;
 			this.x = 0;
@@ -39,6 +40,7 @@ export class Ball {
 			this.vx = coords.vx;
 			this.vy = coords.vy;
 		}
+		this.gravity = !faithful;
 	}
 
 	/* PUBLIC ================================================================== */
@@ -51,9 +53,11 @@ export class Ball {
 		this.refreshY(delta_time);
 
 		if (this.x > Constants.max_x) return BallRefreshResult.TWO_IS_OUTSIDE;
-		else if (this.x > Constants.limit_x) return BallRefreshResult.TWO_COLLIDES;
+		else if (this.x > Constants.limit_x && this.x < Constants.max_x_bis)
+			return BallRefreshResult.TWO_COLLIDES;
 		else if (this.x < -Constants.max_x) return BallRefreshResult.ONE_IS_OUTSIDE;
-		else if (this.x < -Constants.limit_x) return BallRefreshResult.ONE_COLLIDES;
+		else if (this.x < -Constants.limit_x && this.x > -Constants.max_x_bis)
+			return BallRefreshResult.ONE_COLLIDES;
 		return BallRefreshResult.NOTHING;
 	}
 
@@ -81,7 +85,7 @@ export class Ball {
 	 * Allows visual adaptation for player2.
 	 */
 	public invert(): Ball {
-		return new Ball({ x: -this.x, y: this.y, vx: -this.vx, vy: this.vy });
+		return new Ball(this.gravity, { x: -this.x, y: this.y, vx: -this.vx, vy: this.vy });
 	}
 
 	/**
@@ -104,6 +108,7 @@ export class Ball {
 	 * Refreshes coordinates on Y axis.
 	 */
 	private refreshY(delta_time: number): void {
+		if (this.gravity) this.vy -= Constants.gravity;
 		const new_y: number = this.y + this.vy * delta_time;
 		if (new_y > Constants.limit_y) {
 			this.y = Constants.limit_y;
@@ -113,7 +118,7 @@ export class Ball {
 			this.y = new_y;
 			return;
 		}
-		this.vy = -this.vy;
+		this.vy = -this.vy * (this.gravity ? Constants.friction : 1);
 	}
 
 	/**

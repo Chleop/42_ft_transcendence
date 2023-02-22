@@ -1,12 +1,16 @@
 import CHAT_ELEMENT from "./chat";
 import { Scene, History, State } from "../strawberry";
-import { GameSocket, GLOBAL_GAME_SOCKET, set_global_game_socket, Users } from "../api";
-import { PlayingGame } from "../game";
+import {
+    GameSocket,
+    GLOBAL_GAME_SOCKET,
+    IS_FAITHFUL,
+    set_faithful,
+    set_global_game_socket,
+    Users,
+} from "../api";
 import { rank_to_image, ratio_to_rank } from "../utility";
 import PROFILE_OVERLAY from "./profile_overlay";
-import GAME_BOARD from "../game/game_board";
 
-import { ConnectError } from "../api";
 import USER_CARD from "./user_card";
 import FRIEND_OVERLAY from "./friend_overlay";
 
@@ -20,6 +24,8 @@ class MainMenuScene extends Scene {
     private container: HTMLDivElement;
 
     private play_button: HTMLElement;
+
+    private rank_image: HTMLDivElement;
 
     /**
      * Creatse a new `MainMenuElement` instance.
@@ -37,6 +43,7 @@ class MainMenuScene extends Scene {
         const rank = document.createElement("div");
         rank.id = "main-menu-rank";
         this.container.appendChild(rank);
+        this.rank_image = rank;
 
         const find_game = document.createElement("button");
         find_game.id = "main-menu-find-game";
@@ -86,9 +93,20 @@ class MainMenuScene extends Scene {
         this.container.appendChild(PROFILE_OVERLAY.root_html_element);
         this.container.appendChild(FRIEND_OVERLAY.root_html_element);
 
-        Users.me().then((me) => {
-            console.log(me);
+        const faithful_mode = document.createElement("button");
+        faithful_mode.innerText = "Faithful Mode";
+        faithful_mode.id = "faithful-mode-button";
+        faithful_mode.onclick = () => {
+            set_faithful(!IS_FAITHFUL);
+            if (IS_FAITHFUL) {
+                faithful_mode.classList.add("active");
+            } else {
+                faithful_mode.classList.remove("active");
+            }
+        };
+        this.container.appendChild(faithful_mode);
 
+        Users.me().then((me) => {
             console.info(`connected as '${me.name}'`);
             console.log(`user ID: '${me.id}'`);
 
@@ -120,6 +138,26 @@ class MainMenuScene extends Scene {
                 }
             }
         });
+    }
+
+    public on_entered(state: State) {
+        Users.me().then(me => {
+            let wins = 0;
+            let losses = 0;
+
+            for (const game of me.games_played) {
+                if (game.winner_id === me.id) {
+                    wins += 1;
+                } else {
+                    losses += 1;
+                }
+            }
+
+            const rank_type = ratio_to_rank(wins, losses);
+            const rank_image = rank_to_image(rank_type);
+            this.rank_image.style.backgroundImage = `url('${rank_image}')`;
+        });
+        super.on_entered(state);
     }
 
     public set_game_span(text: string) {

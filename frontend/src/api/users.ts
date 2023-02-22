@@ -7,14 +7,12 @@ import { Soon } from "../strawberry";
 export const Users = (function() {
     class UsersClass {
         private users: Record<UserId, Soon<User>>;
-        private avatars: Record<UserId, Soon<string>>;
         private subs: Map<UserId, Set<(usr: User) => void>>;
 
         private me_: Soon<PrivateUser> | undefined;
 
         public constructor() {
             this.users = {};
-            this.avatars = {};
             this.me_ = undefined;
             this.subs = new Map();
         }
@@ -57,7 +55,6 @@ export const Users = (function() {
 
         /** Invalidates the provided avatar, effectively removing it from the cache. */
         public invalidate_avatar(id: UserId) {
-            delete this.avatars[id];
         }
 
         public async patch_name(id: UserId | null, name: string) {
@@ -68,24 +65,13 @@ export const Users = (function() {
             u.name = name;
         }
 
-        public set_avatar(id: UserId, avatar: string) {
-            this.avatars[id] = new Soon(avatar);
-        }
-
         /**
          * Returns the requested user's avatar.
          *
          * This function will first look in the cache.
          */
-        public async get_avatar(id: UserId): Promise<string> {
-            if (this.avatars[id]) {
-                return this.avatars[id].get();
-            }
-
-            this.avatars[id] = new Soon();
-            const url = await Client.user_avatar(id);
-            this.avatars[id].resolve(url);
-            return url;
+        public get_avatar(id: UserId): string {
+            return `/api/user/${id}/avatar?dummy=${Math.random() * 1e14}`;
         }
 
         /**
@@ -93,8 +79,6 @@ export const Users = (function() {
          */
         public async me(): Promise<PrivateUser> {
             if (this.me_) return this.me_.get();
-
-            console.log("getting me...");
 
             this.me_ = new Soon();
             const me = await Client.me();

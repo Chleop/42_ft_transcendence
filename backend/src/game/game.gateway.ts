@@ -66,7 +66,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				this.game_service.queueUp(client);
 			if (queue_result instanceof GameRoom) this.matchmake(queue_result);
 			else if (queue_result.is_invite === true) {
-				this.logger.debug("tried to invite someone");
 				this.chat_gateway.forward_to_user_socket(
 					"invite",
 					client.handshake.auth.friend,
@@ -199,9 +198,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				me.updateSocketScore(room.match.player1, is_winner_left);
 				me.updateSocketScore(room.match.player2, !is_winner_left);
 
-				const last_score: ScoreUpdate = room.getScoreUpdate();
-				room.match.player1.emit("updateScore", last_score);
-				room.match.player2.emit("updateScore", last_score.invert());
 				const match: Match = await me.game_service.registerGameHistory(room, update);
 				me.game_service.destroyRoom(room);
 				return me.disconnectRoom(match);

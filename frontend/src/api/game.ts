@@ -49,6 +49,12 @@ export interface MatchFound {
 
 function noop(): void { }
 
+export let IS_FAITHFUL: boolean = false;
+
+export function set_faithful(f: boolean) {
+    IS_FAITHFUL = f;
+}
+
 export class GameSocket {
     /** The inner socket. */
     private socket: Socket;
@@ -101,6 +107,7 @@ export class GameSocket {
             auth: {
                 token: Client.access_token,
                 friend,
+                faithful: IS_FAITHFUL,
             },
         });
 

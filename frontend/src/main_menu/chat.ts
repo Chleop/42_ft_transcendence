@@ -30,9 +30,7 @@ class MessageElementInternal {
 		this.model = message;
 		const avatar = document.createElement("avatar");
 		avatar.classList.add("message-avatar");
-		Users.get_avatar(message.senderId).then((url) => {
-			avatar.style.backgroundImage = `url(\"${url}\")`;
-		});
+		avatar.style.backgroundImage = `url(\"${Users.get_avatar(message.senderId)}\")`;
 		avatar.onclick = () =>
 			Users.get(message.senderId).then((user) => USER_CARD.show(avatar, user, channel));
 		const author = document.createElement("button");

@@ -1,4 +1,4 @@
-import { Client, Users } from "../api";
+import { Client, UnexpectedStatusCode, Users } from "../api";
 import { NOTIFICATIONS } from "../notification";
 import { History, Overlay, State } from "../strawberry";
 import { rank_to_image, ratio_to_rank } from "../utility";
@@ -202,9 +202,7 @@ class ProfileOverlay extends Overlay {
                 }
             });
 
-            Users.get_avatar(me.id).then(url => {
-                avatar.style.backgroundImage = `url(\"${url}\")`;
-            });
+            avatar.style.backgroundImage = `url(\"${Users.get_avatar(me.id)}\")`;
             name.innerText = me.name;
 
             let wins = 0;
@@ -230,10 +228,14 @@ class ProfileOverlay extends Overlay {
             avatar_input.onchange = () => {
                 if (avatar_input.files && avatar_input.files[0]) {
                     const file = avatar_input.files[0];
-                    Client.set_avatar(file);
-                    const new_url = URL.createObjectURL(file);
-                    Users.set_avatar(me.id, new_url);
-                    avatar.style.backgroundImage = `url(\"${new_url}\")`;
+                    Client.set_avatar(file).then(() => {
+                        const new_url = URL.createObjectURL(file);
+                        // Users.set_avatar(me.id, new_url);
+                        avatar.style.backgroundImage = `url(\"${new_url}\")`;
+                    }).catch((e) => {
+                        if (e instanceof UnexpectedStatusCode)
+                            NOTIFICATIONS.spawn_notification("red", e.message || "failed to set the avatar");
+                    });
                 }
             };
 
@@ -295,13 +297,9 @@ class ProfileOverlay extends Overlay {
                 game_container.appendChild(time);
 
                 my_score.innerText = "" + result.scores[my_idx];
-                Users.get_avatar(result.players_ids[my_idx]).then(url => {
-                    my_avatar.style.backgroundImage = `url(\"${url}\")`;
-                });
+                my_avatar.style.backgroundImage = `url(\"${Users.get_avatar(result.players_ids[my_idx])}\")`;
                 their_score.innerText = "" + result.scores[1 - my_idx];
-                Users.get_avatar(result.players_ids[1 - my_idx]).then(url => {
-                    their_avatar.style.backgroundImage = `url(\"${url}\")`;
-                });
+                their_avatar.style.backgroundImage = `url(\"${Users.get_avatar(result.players_ids[1 - my_idx])}\")`;
                 Users.get(result.players_ids[1 - my_idx]).then(u => {
                     their_name.innerText = u.name;
                 });
