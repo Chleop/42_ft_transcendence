@@ -527,15 +527,16 @@ body {
   grid-template-rows: auto;
   grid-template-columns: 1fr 1fr;
 
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(2px);
   background-color: rgba(0, 0, 0, 0.5);
+  opacity: 100%;
 
-  transition: 0.3s ease-out background-color backdrop-filter;
+  transition: 0.3s ease-out;
 }
 
 #playing-game-overlay.started-game {
-  background-color: rgba(0, 0, 0, 0.0);
   backdrop-filter: blur(0px);
+  opacity: 0%;
 }
 
 .playing-game-player-container:not(.is-right-player) {
@@ -551,7 +552,6 @@ body {
 
   transition: 0.3s ease-out transform;
 }
-
 
 .started-game .playing-game-player-container:not(.is-right-player) {
   transform: translateX(-100%);
@@ -584,6 +584,10 @@ body {
   align-items: center;
 }
 
+.playing-game-overlay-avatar-container {
+  position: relative;
+}
+
 .playing-game-overlay-avatar {
   grid-area: avatar;
 
@@ -599,19 +603,35 @@ body {
   margin: 20px;
 }
 
+.playing-game-overlay-rank {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 10vmin;
+  height: 10vmin;
+
+  background-position: center;
+  background-size: cover;
+}
+
 .playing-game-overlay-name {
   grid-area: name;
 
   color: white;
   font-family: "Krona One", sans-serif;
-  font-size: 10vmin;
+  font-size: 5vmin;
+
+  overflow-x: hidden;
+  white-space: nowrap;
 }
 
 .playing-game-overlay-rate {
   grid-area: winrate;
-  font-size: 30vmin;
+  font-size: 20vmin;
+  margin: 0px 30px;
   color: white;
   font-family: "Krona One", sans-serif;
+  opacity: 80%;
 }
 
 #game-canvas {
@@ -619,7 +639,7 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 10000;
+  z-index: 9;
 }
 
 .profile-game-container {

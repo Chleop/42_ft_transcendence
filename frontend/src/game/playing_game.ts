@@ -130,7 +130,6 @@ export class PlayingGame extends OngoingGame {
 
         this.flow = "break";
 
-        console.log(this.has_left);
         if (!this.has_left)
             History.go_back();
     }
