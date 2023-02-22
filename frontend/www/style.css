@@ -1302,3 +1302,39 @@ body {
 .friend-entry-menu button:active {
   transform: translateY(1px);
 }
+
+#faithful-mode-button {
+  font-family: "Krona One", sans-serif;
+
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  width: 100px;
+  height: 50px;
+
+  color: white;
+
+  border: none;
+
+  cursor: pointer;
+
+  border-radius: 4px;
+
+  background-color: rgba(255, 255, 255, 0.2);
+
+  transition: 0.2s ease-out;
+}
+
+#faithful-mode-button:hover {
+  transform: scale(1.02);
+}
+
+#faithful-mode-button:active {
+  transform: scale(0.98);
+}
+
+#faithful-mode-button.active {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: black;
+}
+
