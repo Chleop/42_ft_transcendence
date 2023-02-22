@@ -76,7 +76,7 @@ export class GameService {
 	/**
 	 * Trying to match client with another player.
 	 */
-	public queueUp(client: Socket): GameRoom | null {
+	public queueUp(client: Socket): GameRoom | { is_invite: boolean } {
 		try {
 			this.findUserGame(client.data.user.id);
 			throw new BadEvent("Player already in game");
@@ -84,16 +84,16 @@ export class GameService {
 			if (e instanceof BadEvent) throw e;
 		}
 		this.logger.verbose(`${client.data.user.login} entering matchmaking.`);
-		const new_game_room: GameRoom | null = this.matchmaking.queueUp(client);
-		if (new_game_room === null) {
+		const queue_result: GameRoom | { is_invite: boolean } = this.matchmaking.queueUp(client);
+		if (!(queue_result instanceof GameRoom)) {
 			this.logger.verbose(`${client.data.user.login} was queued up.`);
-			return null;
+			return { is_invite: false };
 		}
 
-		this.logger.verbose(`Room ${new_game_room.match.name} created.`);
+		this.logger.verbose(`Room ${queue_result.match.name} created.`);
 
-		this.game_rooms.add(new_game_room);
-		return new_game_room;
+		this.game_rooms.add(queue_result);
+		return queue_result;
 	}
 
 	/**

@@ -30,47 +30,44 @@ export class Matchmaking {
 	 * Puts client in the queue if it's empty.
 	 * Else, client is matched with queue and a new game room is returned.
 	 */
-	public queueUp(client: Socket): GameRoom | null {
+	public queueUp(client: Socket): GameRoom | { is_invite: boolean } {
 		// Client already in the queue
 		if (this.queue?.data.user.id === client.data.user.id) {
 			throw new BadEvent(`${client.data.user.login} already in the queue`);
 		}
 		if (client.handshake.auth.friend !== undefined) {
-			// Awaiting for a friend
 			if (typeof client.handshake.auth.friend !== "string")
 				throw new WrongData("Bad friend data format");
-			const player: Socket | null = this.findPendingUser(client.data.user.id);
-			if (player !== null) {
-				// Already awaiting: remove it
-				this.awaiting_players.delete(player);
-				this.awaiting_players.add(client);
-				this.logger.verbose(
-					`${client.data.user.login} is awaiting ${client.data.user.login}.`,
-				);
-				return null;
-			}
+
 			const friend: Socket | null = this.findPendingUser(client.handshake.auth.friend);
 			if (friend !== null) {
 				// Friend is in queue
 				return this.matchWithFriend(client, friend);
 			}
+
+			const player: Socket | null = this.findPendingUser(client.data.user.id);
+			if (player !== null) {
+				// Already awaiting: remove prior invite
+				this.awaiting_players.delete(player);
+			}
+			// Awaiting for a friend
 			this.awaiting_players.add(client);
 			this.logger.verbose(`${client.data.user.login} is awaiting ${client.data.user.login}.`);
-			return null;
+			return { is_invite: true };
 		} else {
 			// Traditional matchmaking
 			if (this.queue === null) {
 				this.queue = client;
-				return null;
+				return { is_invite: false };
 			}
 			const match: Match = {
 				name: this.queue.id + client.id,
 				player1: this.queue,
 				player2: client,
 			};
-			const new_game_room: GameRoom = new GameRoom(match);
+			const room: GameRoom = new GameRoom(match);
 			this.queue = null;
-			return new_game_room;
+			return room;
 		}
 	}
 
