@@ -30,7 +30,7 @@ function create_overlay(user: User): HTMLDivElement {
 
     const winrate = document.createElement("div");
     winrate.classList.add("playing-game-overlay-rate");
-    const left_rate = Math.round(100.0 * user.games_won_count / user.games_played_count);
+    const left_rate = user.games_played_count === 0 ? 0 : Math.round(100.0 * user.games_won_count / user.games_played_count);
     winrate.innerText = `${left_rate}%`;
     result.appendChild(winrate);
 
@@ -130,7 +130,6 @@ export class PlayingGame extends OngoingGame {
 
         this.flow = "break";
 
-        console.log(this.has_left);
         if (!this.has_left)
             History.go_back();
     }

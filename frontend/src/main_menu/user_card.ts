@@ -169,10 +169,8 @@ class UserCardElement {
 			const wins = user.games_won_count;
 			const losses = user.games_played_count - wins;
 			let percent_f = 0;
-			if (wins + losses !== 0) {
-				const percent = (wins / user.games_played_count) * 100.0;
-				percent_f = Math.floor(percent * 10) / 10;
-			}
+			if (wins + losses !== 0)
+				percent_f = Math.floor((wins / user.games_played_count) * 100.0);
 			const rank: Rank = ratio_to_rank(wins, losses);
 			const url = rank_to_image(rank);
 

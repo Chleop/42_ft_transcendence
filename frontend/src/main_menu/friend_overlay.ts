@@ -129,7 +129,7 @@ class FriendOverlay extends Overlay {
 
                     name.innerText = user.name;
 
-                    stats.innerText = `${user.games_won_count} W / ${user.games_played_count - user.games_won_count} L / ${Math.floor(100.0 * user.games_won_count / user.games_played_count)}%`;
+                    stats.innerText = `${user.games_won_count} W / ${user.games_played_count - user.games_won_count} L / ${user.games_played_count === 0 ? 0 : Math.floor(100.0 * user.games_won_count / user.games_played_count)}%`;
 
                     if (user.status === "online") {
                         blank.innerText = "ONLINE";
