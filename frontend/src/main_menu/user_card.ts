@@ -202,7 +202,6 @@ class UserCardElement {
 			// Otherwise, at least those three buttons will appear.
 			this.friend_button.style.display = "block";
 			this.blocked_button.style.display = "block";
-			this.send_message_button.style.display = "block";
 
 			if (user.status === "online") {
 				this.play_button.style.display = "block";
@@ -220,11 +219,19 @@ class UserCardElement {
 				NOTIFICATIONS.spawn_notification("green", "I hope they let me win...");
 				MAIN_MENU.set_game_span(`Waiting...`);
 			};
-			this.send_message_button.onclick = () => {
-				const ch = CHAT_ELEMENT.get_or_create_dm_channel(user);
-				CHAT_ELEMENT.set_selected_channel(ch);
-				this.hide();
-			};
+
+			if (blocked) {
+				this.send_message_button.style.display = "none";
+			} else {
+				this.send_message_button.style.display = "block";
+
+				this.send_message_button.onclick = () => {
+					const ch = CHAT_ELEMENT.get_or_create_dm_channel(user);
+					CHAT_ELEMENT.set_selected_channel(ch);
+					this.hide();
+				};
+			}
+
 
 			if (friend) {
 				this.friend_button.innerText = "Remove Friend";
