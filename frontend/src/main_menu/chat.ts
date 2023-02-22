@@ -179,6 +179,10 @@ export class ChannelElement {
 		const elem = new MessageElementInternal(cont, message, this.model);
 		this.messages.append(elem.container);
 		this.last_message = message;
+
+		if (!this.oldest_message)
+			this.oldest_message = elem;
+
 		return elem;
 	}
 
@@ -582,8 +586,6 @@ class ChatElement {
 			});
 		if (this.selected_channel.dm) {
 			await Client.send_dm(this.selected_channel.dm.id, content);
-			// TODO:
-			//  Put the message itself.
 		}
 	}
 
