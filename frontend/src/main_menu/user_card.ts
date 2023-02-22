@@ -8,10 +8,10 @@ import {
 	Users,
 } from "../api";
 import GAME_BOARD from "../game/game_board";
-import {SpectatingGame} from "../game/spectating_game";
-import {NOTIFICATIONS} from "../notification";
-import {History} from "../strawberry";
-import {Rank, rank_to_image, ratio_to_rank} from "../utility";
+import { SpectatingGame } from "../game/spectating_game";
+import { NOTIFICATIONS } from "../notification";
+import { History } from "../strawberry";
+import { Rank, rank_to_image, ratio_to_rank } from "../utility";
 import CHAT_ELEMENT from "./chat";
 import MAIN_MENU from "./main_menu";
 
@@ -139,7 +139,7 @@ class UserCardElement {
 		const re_draw = (user: User) => {
 			this.name.innerText = user.name;
 
-			this.status.onclick = () => {};
+			this.status.onclick = () => { };
 			this.status.style.cursor = "normal";
 
 			if (user.status === "online") {
@@ -205,7 +205,12 @@ class UserCardElement {
 			this.friend_button.style.display = "block";
 			this.blocked_button.style.display = "block";
 			this.send_message_button.style.display = "block";
-			this.play_button.style.display = "block";
+
+			if (user.status === "online") {
+				this.play_button.style.display = "block";
+			} else {
+				this.play_button.style.display = "none";
+			}
 
 			this.play_button.onclick = () => {
 				if (GLOBAL_GAME_SOCKET) {
