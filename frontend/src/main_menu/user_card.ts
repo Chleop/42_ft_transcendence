@@ -8,10 +8,10 @@ import {
 	Users,
 } from "../api";
 import GAME_BOARD from "../game/game_board";
-import {SpectatingGame} from "../game/spectating_game";
-import {NOTIFICATIONS} from "../notification";
-import {History} from "../strawberry";
-import {Rank, rank_to_image, ratio_to_rank} from "../utility";
+import { SpectatingGame } from "../game/spectating_game";
+import { NOTIFICATIONS } from "../notification";
+import { History } from "../strawberry";
+import { Rank, rank_to_image, ratio_to_rank } from "../utility";
 import CHAT_ELEMENT from "./chat";
 import MAIN_MENU from "./main_menu";
 
@@ -139,7 +139,7 @@ class UserCardElement {
 		const re_draw = (user: User) => {
 			this.name.innerText = user.name;
 
-			this.status.onclick = () => {};
+			this.status.onclick = () => { };
 			this.status.style.cursor = "normal";
 
 			if (user.status === "online") {
@@ -233,7 +233,7 @@ class UserCardElement {
 							this.show(null, user, channel);
 							NOTIFICATIONS.spawn_notification(
 								"green",
-								"failed to remove this friend",
+								"You're not my friend anymore.",
 							);
 						})
 						.catch(() => {
