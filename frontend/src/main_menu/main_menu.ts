@@ -18,6 +18,8 @@ class MainMenuScene extends Scene {
 
     private play_button: HTMLElement;
 
+    private rank_image: HTMLDivElement;
+
     /**
      * Creatse a new `MainMenuElement` instance.
      */
@@ -34,6 +36,7 @@ class MainMenuScene extends Scene {
         const rank = document.createElement("div");
         rank.id = "main-menu-rank";
         this.container.appendChild(rank);
+        this.rank_image = rank;
 
         const find_game = document.createElement("button");
         find_game.id = "main-menu-find-game";
@@ -115,6 +118,26 @@ class MainMenuScene extends Scene {
                 }
             }
         });
+    }
+
+    public on_entered(state: State) {
+        Users.me().then(me => {
+            let wins = 0;
+            let losses = 0;
+
+            for (const game of me.games_played) {
+                if (game.winner_id === me.id) {
+                    wins += 1;
+                } else {
+                    losses += 1;
+                }
+            }
+
+            const rank_type = ratio_to_rank(wins, losses);
+            const rank_image = rank_to_image(rank_type);
+            this.rank_image.style.backgroundImage = `url('${rank_image}')`;
+        });
+        super.on_entered(state);
     }
 
     public set_game_span(text: string) {
