@@ -1,6 +1,13 @@
 import CHAT_ELEMENT from "./chat";
 import { Scene, History, State } from "../strawberry";
-import { GameSocket, GLOBAL_GAME_SOCKET, IS_FAITHFUL, set_faithful, set_global_game_socket, Users } from "../api";
+import {
+    GameSocket,
+    GLOBAL_GAME_SOCKET,
+    IS_FAITHFUL,
+    set_faithful,
+    set_global_game_socket,
+    Users,
+} from "../api";
 import { rank_to_image, ratio_to_rank } from "../utility";
 import PROFILE_OVERLAY from "./profile_overlay";
 
@@ -84,7 +91,7 @@ class MainMenuScene extends Scene {
         this.container.appendChild(FRIEND_OVERLAY.root_html_element);
 
         const faithful_mode = document.createElement("button");
-        faithful_mode.innerText = "Failthful Mode";
+        faithful_mode.innerText = "Faithful Mode";
         faithful_mode.id = "faithful-mode-button";
         faithful_mode.onclick = () => {
             set_faithful(!IS_FAITHFUL);
@@ -93,7 +100,7 @@ class MainMenuScene extends Scene {
             } else {
                 faithful_mode.classList.remove("active");
             }
-        }
+        };
         this.container.appendChild(faithful_mode);
 
         Users.me().then((me) => {
