@@ -854,108 +854,18 @@ export class UserService {
 
 	/**
 	 * @brief	Get a user from the database.
-	 * 			Requested user must be active,
-	 * 			and either have at least 1 link with the requesting user, or be the requesting user.
-	 * 			It is assumed that the provided requesting user id is valid.
-	 * 			(user exists and is ACTIVE)
+	 * 			Requested user must be active.
 	 *
-	 * @param	requesting_user_id The id of the user requesting the user.
-	 * @param	requested_user_id The id of the user to get.
+	 * @param	id The id of the user to get.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserNotFoundError
-	 * 			- UserNotLinkedError
 	 *
 	 * @return	A promise containing the wanted user.
 	 */
-	public async get_one(
-		requesting_user_id: string,
-		requested_user_id: string,
-	): Promise<IUserPublic> {
+	public async get_one(id: string): Promise<IUserPublic> {
 		//#region
-		type t_requesting_user_fields = {
-			//#region
-			channels: {
-				members: {
-					id: string;
-				}[];
-			}[];
-			directMessagesReceived: {
-				sender: {
-					id: string;
-				};
-			}[];
-			directMessagesSent: {
-				receiver: {
-					id: string;
-				};
-			}[];
-			friends: {
-				id: string;
-			}[];
-			gamesPlayed: {
-				players: {
-					id: string;
-				}[];
-			}[];
-		};
-		//#endregion
-
-		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
-			//#region
-			select: {
-				channels: {
-					select: {
-						members: {
-							select: {
-								id: true,
-							},
-						},
-					},
-				},
-				directMessagesReceived: {
-					select: {
-						sender: {
-							select: {
-								id: true,
-							},
-						},
-					},
-				},
-				directMessagesSent: {
-					select: {
-						receiver: {
-							select: {
-								id: true,
-							},
-						},
-					},
-				},
-				friends: {
-					select: {
-						id: true,
-					},
-				},
-				gamesPlayed: {
-					select: {
-						players: {
-							select: {
-								id: true,
-							},
-						},
-					},
-				},
-			},
-			where: {
-				idAndState: {
-					id: requesting_user_id,
-					state: StateType.ACTIVE,
-				},
-			},
-		})) as t_requesting_user_fields;
-		//#endregion
-
-		const requested_user_tmp: IUserPublicTmp | null = await this._prisma.user.findUnique({
+		const user_tmp: IUserPublicTmp | null = await this._prisma.user.findUnique({
 			//#region
 			select: {
 				id: true,
@@ -974,161 +884,59 @@ export class UserService {
 			},
 			where: {
 				idAndState: {
-					id: requested_user_id,
+					id: id,
 					state: StateType.ACTIVE,
 				},
 			},
 		});
 		//#endregion
 
-		if (!requested_user_tmp) {
-			throw new UserNotFoundError(requested_user_id);
+		if (!user_tmp) {
+			throw new UserNotFoundError(id);
 		}
 
-		let status: e_user_status | undefined =
-			this._chat_service.get_user(requested_user_id)?.status;
+		let status: e_user_status | undefined = this._chat_service.get_user(id)?.status;
 		if (status === undefined) {
 			status = e_user_status.OFFLINE;
 		}
 
-		const requested_user: IUserPublic = {
+		const user: IUserPublic = {
 			//#region
-			id: requested_user_tmp.id,
-			name: requested_user_tmp.name,
-			skin_id: requested_user_tmp.skinId,
-			games_played_count: requested_user_tmp.gamesPlayed.length,
-			games_won_count: requested_user_tmp.gamesWon.length,
+			id: user_tmp.id,
+			name: user_tmp.name,
+			skin_id: user_tmp.skinId,
+			games_played_count: user_tmp.gamesPlayed.length,
+			games_won_count: user_tmp.gamesWon.length,
 			status,
 		};
 		//#endregion
 
-		if (
-			requesting_user_id !== requested_user_id &&
-			!(await this._are_linked(requesting_user_id, requested_user_id, requesting_user))
-		) {
-			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
-		}
+		this._logger.verbose(`User ${id} was successfully retrieved from the database.`);
 
-		this._logger.verbose(
-			`User ${requested_user_id} was successfully retrieved from the database.`,
-		);
-
-		return requested_user;
+		return user;
 	}
 	//#endregion
 
 	/**
 	 * @brief	Get a user's avatar from the database.
-	 * 			Requested user must be active,
-	 * 			and either have at least 1 link with the requesting user, or be the requesting user.
-	 * 			It is assumed that the provided requesting user id is valid.
-	 * 			(user exists and is ACTIVE)
+	 * 			Requested user must be active.
 	 *
-	 * @param	requesting_user_id The id of the user requesting the user's avatar.
-	 * @param	requested_user_id The id of the user to get the avatar from.
+	 * @param	id The id of the user to get the avatar from.
 	 *
 	 * @error	The following errors may be thrown :
 	 * 			- UserNotFoundError
-	 * 			- UserNotLinkedError
 	 *
 	 * @return	A promise containing the wanted avatar.
 	 */
-	public async get_ones_avatar(
-		requesting_user_id: string,
-		requested_user_id: string,
-	): Promise<StreamableFile> {
+	public async get_ones_avatar(id: string): Promise<StreamableFile> {
 		//#region
-		type t_requesting_user_fields = {
-			//#region
-			channels: {
-				members: {
-					id: string;
-				}[];
-			}[];
-			directMessagesReceived: {
-				sender: {
-					id: string;
-				};
-			}[];
-			directMessagesSent: {
-				receiver: {
-					id: string;
-				};
-			}[];
-			friends: {
-				id: string;
-			}[];
-			gamesPlayed: {
-				players: {
-					id: string;
-				}[];
-			}[];
-		};
-		//#endregion
-		type t_requested_user_fields = {
+		type t_fields = {
 			//#region
 			avatar: string;
-			channels: {
-				id: string;
-			}[];
 		};
 		//#endregion
 
-		const requesting_user: t_requesting_user_fields = (await this._prisma.user.findUnique({
-			//#region
-			select: {
-				channels: {
-					select: {
-						members: {
-							select: {
-								id: true,
-							},
-						},
-					},
-				},
-				directMessagesReceived: {
-					select: {
-						sender: {
-							select: {
-								id: true,
-							},
-						},
-					},
-				},
-				directMessagesSent: {
-					select: {
-						receiver: {
-							select: {
-								id: true,
-							},
-						},
-					},
-				},
-				friends: {
-					select: {
-						id: true,
-					},
-				},
-				gamesPlayed: {
-					select: {
-						players: {
-							select: {
-								id: true,
-							},
-						},
-					},
-				},
-			},
-			where: {
-				idAndState: {
-					id: requesting_user_id,
-					state: StateType.ACTIVE,
-				},
-			},
-		})) as t_requesting_user_fields;
-		//#endregion
-
-		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
+		const user: t_fields | null = await this._prisma.user.findUnique({
 			//#region
 			select: {
 				avatar: true,
@@ -1140,25 +948,18 @@ export class UserService {
 			},
 			where: {
 				idAndState: {
-					id: requested_user_id,
+					id: id,
 					state: StateType.ACTIVE,
 				},
 			},
 		});
 		//#endregion
 
-		if (!requested_user) {
-			throw new UserNotFoundError(requested_user_id);
+		if (!user) {
+			throw new UserNotFoundError(id);
 		}
 
-		if (
-			requesting_user_id !== requested_user_id &&
-			!(await this._are_linked(requesting_user_id, requested_user_id, requesting_user))
-		) {
-			throw new UserNotLinkedError(`${requesting_user_id} - ${requested_user_id}`);
-		}
-
-		return new StreamableFile(createReadStream(join(process.cwd(), requested_user.avatar)));
+		return new StreamableFile(createReadStream(join(process.cwd(), user.avatar)));
 	}
 	//#endregion
 
@@ -1221,53 +1022,6 @@ export class UserService {
 		} else {
 			return await this._get_ones_most_recent_messages(user0_id, user1_id, limit);
 		}
-	}
-	//#endregion
-
-	/**
-	 * @brief	Get a user's paddle skin from the database.
-	 * 			Requested user must be active.
-	 *
-	 * @param	requested_user_id The id of the user to get the skin from.
-	 *
-	 * @error	The following errors may be thrown :
-	 * 			- UserNotFoundError
-	 *
-	 * @return	A promise containing the wanted paddle skin.
-	 */
-	public async get_ones_paddle(requested_user_id: string): Promise<StreamableFile> {
-		//#region
-		type t_requested_user_fields = {
-			//#region
-			skin: {
-				paddle: string;
-			};
-		};
-		//#endregion
-
-		const requested_user: t_requested_user_fields | null = await this._prisma.user.findUnique({
-			//#region
-			select: {
-				skin: {
-					select: {
-						paddle: true,
-					},
-				},
-			},
-			where: {
-				idAndState: {
-					id: requested_user_id,
-					state: StateType.ACTIVE,
-				},
-			},
-		});
-		//#endregion
-
-		if (!requested_user) throw new UserNotFoundError(requested_user_id);
-
-		return new StreamableFile(
-			createReadStream(join(process.cwd(), requested_user.skin.paddle)),
-		);
 	}
 	//#endregion
 
