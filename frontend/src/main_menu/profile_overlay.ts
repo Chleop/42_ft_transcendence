@@ -1,4 +1,4 @@
-import { Client, Users } from "../api";
+import { Client, UnexpectedStatusCode, Users } from "../api";
 import { NOTIFICATIONS } from "../notification";
 import { History, Overlay, State } from "../strawberry";
 import { rank_to_image, ratio_to_rank } from "../utility";
@@ -230,10 +230,14 @@ class ProfileOverlay extends Overlay {
             avatar_input.onchange = () => {
                 if (avatar_input.files && avatar_input.files[0]) {
                     const file = avatar_input.files[0];
-                    Client.set_avatar(file);
-                    const new_url = URL.createObjectURL(file);
-                    Users.set_avatar(me.id, new_url);
-                    avatar.style.backgroundImage = `url(\"${new_url}\")`;
+                    Client.set_avatar(file).then(() => {
+                        const new_url = URL.createObjectURL(file);
+                        Users.set_avatar(me.id, new_url);
+                        avatar.style.backgroundImage = `url(\"${new_url}\")`;
+                    }).catch((e) => {
+                        if (e instanceof UnexpectedStatusCode)
+                            NOTIFICATIONS.spawn_notification("red", e.message || "failed to set the avatar");
+                    });
                 }
             };
 

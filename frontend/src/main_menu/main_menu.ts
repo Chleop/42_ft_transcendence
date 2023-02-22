@@ -1,12 +1,9 @@
 import CHAT_ELEMENT from "./chat";
 import { Scene, History, State } from "../strawberry";
 import { GameSocket, GLOBAL_GAME_SOCKET, set_global_game_socket, Users } from "../api";
-import { PlayingGame } from "../game";
 import { rank_to_image, ratio_to_rank } from "../utility";
 import PROFILE_OVERLAY from "./profile_overlay";
-import GAME_BOARD from "../game/game_board";
 
-import { ConnectError } from "../api";
 import USER_CARD from "./user_card";
 import FRIEND_OVERLAY from "./friend_overlay";
 
@@ -87,8 +84,6 @@ class MainMenuScene extends Scene {
         this.container.appendChild(FRIEND_OVERLAY.root_html_element);
 
         Users.me().then((me) => {
-            console.log(me);
-
             console.info(`connected as '${me.name}'`);
             console.log(`user ID: '${me.id}'`);
 

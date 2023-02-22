@@ -94,8 +94,6 @@ export const Users = (function() {
         public async me(): Promise<PrivateUser> {
             if (this.me_) return this.me_.get();
 
-            console.log("getting me...");
-
             this.me_ = new Soon();
             const me = await Client.me();
             this.me_.resolve(me);
