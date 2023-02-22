@@ -205,7 +205,12 @@ class UserCardElement {
 			this.friend_button.style.display = "block";
 			this.blocked_button.style.display = "block";
 			this.send_message_button.style.display = "block";
-			this.play_button.style.display = "block";
+
+			if (user.status === "online") {
+				this.play_button.style.display = "block";
+			} else {
+				this.play_button.style.display = "none";
+			}
 
 			this.play_button.onclick = () => {
 				if (GLOBAL_GAME_SOCKET) {
