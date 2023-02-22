@@ -1,5 +1,5 @@
 import { GameRoom } from "src/game/rooms";
-import { IUserPublic } from "../../user/interface";
+import { IUserPrivate, IUserPublic } from "../../user/interface";
 
 /**
  * Holds each players of a game room datas (login, avatar, etc).
@@ -9,16 +9,27 @@ export class RoomData {
 	public readonly opponent: IUserPublic;
 
 	constructor(spectated_id: string, room: GameRoom) {
-		/**
-		 * TODO:
-		 * 	FAIRE LE TRI (au lieu de juste faire x = y, faire x = {y.field1, etc bref})
-		 */
 		if (room.match.player1.data.user.id === spectated_id) {
-			this.spectated = room.match.player1.data.user;
-			this.opponent = room.match.player2.data.user;
+			this.spectated = this._downgrade_user_data(room.match.player1.data.user);
+			this.opponent = this._downgrade_user_data(room.match.player2.data.user);
 		} else {
-			this.spectated = room.match.player2.data.user;
-			this.opponent = room.match.player1.data.user;
+			this.spectated = this._downgrade_user_data(room.match.player2.data.user);
+			this.opponent = this._downgrade_user_data(room.match.player1.data.user);
 		}
+		console.log("spectated:");
+		console.log(this.spectated);
+		console.log(" opponent:");
+		console.log(this.opponent);
+	}
+
+	private _downgrade_user_data(user: IUserPrivate): IUserPublic {
+		return {
+			id: user.id,
+			name: user.name,
+			skin_id: user.skin_id,
+			games_played_count: user.games_played_count,
+			games_won_count: user.games_won_count,
+			status: user.status,
+		};
 	}
 }
