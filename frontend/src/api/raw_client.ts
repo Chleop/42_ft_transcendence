@@ -168,17 +168,6 @@ export class RawHTTPClient {
 	}
 
 	/**
-	 * Generates a local URL for a user's avatar.
-	 */
-	public async user_avatar(user: UserId): Promise<string> {
-		const img = await this.make_request({
-			method: "GET",
-			url: `/api/user/${user}/avatar`,
-		});
-		return URL.createObjectURL(await img.blob());
-	}
-
-	/**
 	 * Gets public information about a user.
 	 */
 	public async user(user: UserId): Promise<User> {

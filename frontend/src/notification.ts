@@ -21,9 +21,7 @@ class UserInvite {
         this.root.style.setProperty("--notif-color", color);
 
         const avatar = document.createElement("img");
-        Users.get_avatar(user_id).then(url => {
-            avatar.src = url;
-        });
+        avatar.src = Users.get_avatar(user_id);
         avatar.classList.add("notification-avatar");
         this.root.appendChild(avatar);
 

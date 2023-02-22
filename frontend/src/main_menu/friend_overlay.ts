@@ -111,9 +111,7 @@ class FriendOverlay extends Overlay {
                 menu.appendChild(invite);
 
                 const update_data = (user: User) => {
-                    Users.get_avatar(user.id).then((url) => {
-                        avatar.style.backgroundImage = `url(${url})`;
-                    });
+                    avatar.style.backgroundImage = `url(${Users.get_avatar(user.id)})`;
 
                     if (user.status !== "online") {
                         invite.style.display = "none";
