@@ -46,7 +46,6 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { DirectMessage } from "@prisma/client";
 
 @Controller("user")
-@UseGuards(Jwt2FAGuard)
 export class UserController {
 	private readonly _user_service: UserService;
 	private readonly _chat_service: ChatService;
@@ -63,6 +62,7 @@ export class UserController {
 	//#endregion
 
 	@Patch(":id/block")
+	@UseGuards(Jwt2FAGuard)
 	async block_one(
 		@Req()
 		request: {
@@ -89,6 +89,7 @@ export class UserController {
 	//#endregion
 
 	@Delete("@me")
+	@UseGuards(Jwt2FAGuard)
 	async disable_me(
 		@Req()
 		request: {
@@ -110,6 +111,7 @@ export class UserController {
 	//#endregion
 
 	@Get("@me")
+	@UseGuards(Jwt2FAGuard)
 	async get_me(
 		@Req()
 		request: {
@@ -144,6 +146,7 @@ export class UserController {
 	//#endregion
 
 	@Get(":id")
+	@UseGuards(Jwt2FAGuard)
 	async get_one(@Param("id") id: string): Promise<{ spectating?: string } & IUserPublic> {
 		//#region
 		try {
@@ -192,6 +195,7 @@ export class UserController {
 	//#endregion
 
 	@Get(":id/messages")
+	@UseGuards(Jwt2FAGuard)
 	async get_ones_messages(
 		@Req()
 		request: {
@@ -229,6 +233,7 @@ export class UserController {
 	//#endregion
 
 	@Patch(":id/unblock")
+	@UseGuards(Jwt2FAGuard)
 	async unblock_one(
 		@Req()
 		request: {
@@ -255,6 +260,7 @@ export class UserController {
 	//#endregion
 
 	@Patch(":id/unfriend")
+	@UseGuards(Jwt2FAGuard)
 	async unfriend_one(
 		@Req()
 		request: {
@@ -294,6 +300,7 @@ export class UserController {
 
 	@Patch("@me")
 	@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+	@UseGuards(Jwt2FAGuard)
 	async update_me(
 		@Req()
 		request: {
@@ -329,6 +336,7 @@ export class UserController {
 	//#endregion
 
 	@Put("@me/avatar")
+	@UseGuards(Jwt2FAGuard)
 	@UseInterceptors(FileInterceptor("file"))
 	async update_ones_avatar(
 		@Req()

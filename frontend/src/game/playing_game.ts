@@ -12,9 +12,7 @@ function create_overlay(user: User): HTMLDivElement {
     result.appendChild(avatar_container);
 
     const avatar = document.createElement("div");
-    Users.get_avatar(user.id).then(url => {
-        avatar.style.backgroundImage = `url('${url}')`;
-    });
+    avatar.style.backgroundImage = `url('${Users.get_avatar(user.id)}')`;
     avatar.classList.add("playing-game-overlay-avatar");
     avatar_container.appendChild(avatar);
 

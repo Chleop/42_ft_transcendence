@@ -397,9 +397,8 @@ class UserCardElement {
 				this.ban_button.style.display = "none";
 			}
 		});
-		Users.get_avatar(user.id).then((url) => {
-			this.avatar.style.backgroundImage = `url(\"${url}\")`;
-		});
+
+		this.avatar.style.backgroundImage = `url(\"${Users.get_avatar(user.id)}\")`;
 		Client.get_background(user.skin_id).then((url) => {
 			this.banner.style.backgroundImage = `url(\"${url}\")`;
 		});
