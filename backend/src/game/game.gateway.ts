@@ -198,9 +198,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				me.updateSocketScore(room.match.player1, is_winner_left);
 				me.updateSocketScore(room.match.player2, !is_winner_left);
 
-				// const last_score: ScoreUpdate = room.getScoreUpdate();
-				// room.match.player1.emit("updateScore", last_score);
-				// room.match.player2.emit("updateScore", last_score.invert());
 				const match: Match = await me.game_service.registerGameHistory(room, update);
 				me.game_service.destroyRoom(room);
 				return me.disconnectRoom(match);

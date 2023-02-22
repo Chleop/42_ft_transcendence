@@ -97,10 +97,6 @@ export class GameRoom {
 		return this.game.getSpectatorUpdate();
 	}
 
-	// public getScoreUpdate(): ScoreUpdate {
-	// 	return this.game.getScoreUpdate();
-	// }
-
 	/* Ping -------------------------------------------------------------------- */
 
 	/**

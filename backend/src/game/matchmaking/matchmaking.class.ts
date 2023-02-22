@@ -49,39 +49,9 @@ export class Matchmaking {
 		if (client.handshake.auth.friend !== undefined) {
 			// Inviting friend
 			return this.awaitingFriend(client);
-			// if (typeof client.handshake.auth.friend !== "string")
-			// 	throw new WrongData("Bad friend data format");
-
-			// const friend: Socket | null = this.findPendingUser(client.handshake.auth.friend);
-			// if (friend !== null) {
-			// 	// Friend is in queue
-			// 	return this.matchWithFriend(client, friend);
-			// }
-
-			// const player: Socket | null = this.findPendingUser(client.data.user.id);
-			// if (player !== null) {
-			// 	// Already awaiting: remove prior invite
-			// 	this.awaiting_players.delete(player);
-			// }
-			// // Awaiting for a friend
-			// this.awaiting_players.add(client);
-			// this.logger.verbose(`${client.data.user.login} is awaiting ${client.data.user.login}.`);
-			// return { is_invite: true };
 		} else {
 			// Traditional matchmaking
 			return this.regularQueuing(client);
-			// if (this.queue === null) {
-			// 	this.queue = client;
-			// 	return { is_invite: false };
-			// }
-			// const match: Match = {
-			// 	name: this.queue.id + client.id,
-			// 	player1: this.queue,
-			// 	player2: client,
-			// };
-			// const room: GameRoom = new GameRoom(match);
-			// this.queue = null;
-			// return room;
 		}
 	}
 
