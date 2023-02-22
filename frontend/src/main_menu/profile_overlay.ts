@@ -113,9 +113,8 @@ class ProfileOverlay extends Overlay {
             editor_email.disabled = true;
 
             if (new_mail === "") {
-                Client.deactivate_2fa().finally(() => {
-                    editor_email.disabled = false;
-                });
+                Client.deactivate_2fa();
+                editor_email.disabled = false;
             } else {
                 Client.activate_2fa(new_mail).then(() => {
                     while (true) {
@@ -136,9 +135,8 @@ class ProfileOverlay extends Overlay {
                                 else
                                     editor_email.value = "";
                             });
-                        }).finally(() => {
-                            editor_email.disabled = false;
                         });
+                        editor_email.disabled = false;
 
                         break;
                     }
@@ -247,6 +245,9 @@ class ProfileOverlay extends Overlay {
     }
 
     public on_entered(prev: State): void {
+        while (this.game_history.firstChild)
+            this.game_history.firstChild.remove();
+
         Users.me().then((me) => {
             for (const result of me.games_played) {
                 const my_idx = (me.id === result.players_ids[0]) ? 0 : 1;
