@@ -51,9 +51,11 @@ export class Ball {
 		this.refreshY(delta_time);
 
 		if (this.x > Constants.max_x) return BallRefreshResult.TWO_IS_OUTSIDE;
-		else if (this.x > Constants.limit_x) return BallRefreshResult.TWO_COLLIDES;
+		else if (this.x > Constants.limit_x && this.x < Constants.max_x_bis)
+			return BallRefreshResult.TWO_COLLIDES;
 		else if (this.x < -Constants.max_x) return BallRefreshResult.ONE_IS_OUTSIDE;
-		else if (this.x < -Constants.limit_x) return BallRefreshResult.ONE_COLLIDES;
+		else if (this.x < -Constants.limit_x && this.x > -Constants.max_x_bis)
+			return BallRefreshResult.ONE_COLLIDES;
 		return BallRefreshResult.NOTHING;
 	}
 
@@ -104,6 +106,7 @@ export class Ball {
 	 * Refreshes coordinates on Y axis.
 	 */
 	private refreshY(delta_time: number): void {
+		this.vy -= Constants.gravity;
 		const new_y: number = this.y + this.vy * delta_time;
 		if (new_y > Constants.limit_y) {
 			this.y = Constants.limit_y;
@@ -113,7 +116,7 @@ export class Ball {
 			this.y = new_y;
 			return;
 		}
-		this.vy = -this.vy;
+		this.vy = -this.vy * Constants.friction;
 	}
 
 	/**
