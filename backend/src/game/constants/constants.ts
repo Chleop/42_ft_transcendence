@@ -32,7 +32,7 @@ export const h_2: number = 4.5;
 /**
  * Score limit before end of game.
  */
-export const max_score: number = 5;
+export const max_score: number = 55555555;
 
 /**
  * Paddle width, divided by 2.
@@ -54,7 +54,8 @@ export const paddle_speed: number = 4;
  * Once the |value| of the x coordinate of the ball goes past max_x,
  * the paddle won't be able to interract with it.
  */
-export const max_x: number = w_2 - paddle_x; // = 8 - 1 = 7
+export const max_x: number = w_2 - paddle_x; // = 8 - 1                 = 7
+export const max_x_bis: number = max_x + ball_radius * 2; // = 7 + 0.4  = 7.4
 
 /**
  * |Limit| value for the x coordinate of the ball.
@@ -62,7 +63,7 @@ export const max_x: number = w_2 - paddle_x; // = 8 - 1 = 7
  *
  * Past this value, the ball is considered outside of the game scene.
  */
-export const limit_x: number = max_x - ball_radius; // = 6.8
+export const limit_x: number = max_x - ball_radius; //                  = 6.8
 
 /**
  * |Limit| value for the y coordinate of the ball.
