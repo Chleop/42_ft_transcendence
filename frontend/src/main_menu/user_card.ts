@@ -233,7 +233,7 @@ class UserCardElement {
 							this.show(null, user, channel);
 							NOTIFICATIONS.spawn_notification(
 								"green",
-								"failed to remove this friend",
+								"You're not my friend anymore.",
 							);
 						})
 						.catch(() => {
