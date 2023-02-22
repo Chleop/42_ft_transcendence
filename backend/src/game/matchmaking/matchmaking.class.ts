@@ -5,11 +5,6 @@ import { BadEvent, WrongData } from "../exceptions";
 import { GameRoom } from "../rooms";
 
 /**
- * TODO:
- * 	toggle bouncing
- */
-
-/**
  * Matchmaking handler.
  *
  * Single spot as a queue.
