@@ -125,6 +125,9 @@ export class Ball {
 	 * Increases ball velocity vector.
 	 */
 	private increaseSpeed(): void {
+		const norm: number = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+		if (norm >= Constants.max_speed)
+			return;
 		this.vx *= Constants.acceleration;
 		this.vy *= Constants.acceleration;
 	}

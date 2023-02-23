@@ -9,6 +9,11 @@ export const initial_speed: number = 6;
 export const acceleration: number = 1.1;
 
 /**
+ * Speed limit that the ball can reach.
+ */
+export const max_speed: number = 12.5;
+
+/**
  * Ball radius.
  */
 export const ball_radius: number = 0.2;

@@ -34,7 +34,8 @@ export class Matchmaking {
 	 */
 	public queueUp(client: Socket): GameRoom | { is_invite: boolean } {
 		// Client already in the queue
-		if (this.queue?.data.user.id === client.data.user.id) {
+		if (this.queue?.data.user.id === client.data.user.id ||
+			this.queue_bouncy?.data.user.id === client.data.user.id) {
 			throw new BadEvent(`${client.data.user.login} already in the queue`);
 		}
 
@@ -104,31 +105,31 @@ export class Matchmaking {
 			throw new WrongData("Bad friend data format");
 
 		const friend: Socket | null = this.findPendingUser(client.handshake.auth.friend);
-		if (friend !== null) {
+		if (friend) {
 			// Friend is in queue
 			return this.matchWithFriend(client, friend);
 		}
 
 		const player: Socket | null = this.findPendingUser(client.data.user.id);
-		if (player !== null) {
+		if (player) {
 			// Already awaiting: remove prior invite
 			this.awaiting_players.delete(player);
 		}
 		// Awaiting for a friend
 		this.awaiting_players.add(client);
-		this.logger.verbose(`${client.data.user.login} is awaiting ${client.data.user.login}.`);
+		this.logger.verbose(`${client.data.user.login} is awaiting ${client.handshake.auth.friend}.`);
 		return { is_invite: true };
 	}
 
-	private matchWithFriend(client: Socket, player: Socket): GameRoom {
+	private matchWithFriend(client: Socket, friend: Socket): GameRoom {
 		const match: Match = {
-			name: player.data.user.id + client.data.user.id,
-			player1: player,
+			name: friend.data.user.id + client.data.user.id,
+			player1: friend,
 			player2: client,
 		};
-		this.logger.verbose(`Matching ${player.data.user.login} with ${client.data.user.login}`);
-		const new_game_room: GameRoom = new GameRoom(match, player.handshake.auth.faithful);
-		this.awaiting_players.delete(player);
+		this.logger.verbose(`Matching ${friend.data.user.login} with ${client.data.user.login}`);
+		const new_game_room: GameRoom = new GameRoom(match, friend.handshake.auth.faithful);
+		this.awaiting_players.delete(friend);
 		return new_game_room;
 	}
 
