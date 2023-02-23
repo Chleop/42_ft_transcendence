@@ -17,6 +17,8 @@ export enum BallRefreshResult {
 
 /**
  * Pong ball coordinates.
+ * 
+ * Gravity toggleable.
  */
 export class Ball {
 	private x: number;

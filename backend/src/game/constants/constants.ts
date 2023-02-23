@@ -82,5 +82,12 @@ export const limit_y: number = h_2 - ball_radius; // = 4.5 - 0.2 = 4.3
 export const pi_4: number = Math.PI * 0.25;
 export const pi_3: number = Math.PI * 0.33;
 
+/**
+ * Gravity value.
+ */
 export const gravity: number = 0.2;
+
+/**
+ * Friction simulator.
+ */
 export const friction: number = 0.97;

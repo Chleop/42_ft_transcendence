@@ -7,7 +7,8 @@ import { GameRoom } from "../rooms";
 /**
  * Matchmaking handler.
  *
- * Single spot as a queue.
+ * Single spot as a queue for regular matchmaking,
+ * special queue if they're awaiting someone.
  * When it is taken, matches with incomming connection.
  * Otherwise, they take this spot.
  */
@@ -29,7 +30,8 @@ export class Matchmaking {
 	/* PUBLIC ================================================================== */
 
 	/**
-	 * Puts client in the queue if it's empty.
+	 * Puts client in the queue if it's empty, or in the awaiting list and then informs
+	 * the gateway that an invite was generated.
 	 * Else, client is matched with queue and a new game room is returned.
 	 */
 	public queueUp(client: Socket): GameRoom | { is_invite: boolean } {
@@ -74,6 +76,9 @@ export class Matchmaking {
 
 	/* PRIVATE ================================================================= */
 
+	/**
+	 * Puts client in wanted queue: faithful game or with a twist...
+	 */
 	private regularQueuing(client: Socket): GameRoom | { is_invite: boolean } {
 		const faithful_mode: boolean = client.handshake.auth.faithful;
 		let expected_queue: Socket;
@@ -100,6 +105,9 @@ export class Matchmaking {
 		return new GameRoom(match, faithful_mode);
 	}
 
+	/**
+	 * Client is put in a special queue, awaiting a friend.
+	 */
 	private awaitingFriend(client: Socket): GameRoom | { is_invite: boolean } {
 		if (typeof client.handshake.auth.friend !== "string")
 			throw new WrongData("Bad friend data format");
@@ -133,14 +141,15 @@ export class Matchmaking {
 		return new_game_room;
 	}
 
-	private findPendingUser(client: string): Socket | null {
-		if (typeof client === "string") {
-			for (const player of this.awaiting_players) {
-				if (player.data.user.id === client) {
-					return player;
-				}
+	/**
+	 * Explores the set and returns the wanted client.
+	 */
+	private findPendingUser(client_id: string): Socket | null {
+		for (const player of this.awaiting_players) {
+			if (player.data.user.id === client_id) {
+				return player;
 			}
-		}
+			}
 		return null;
 	}
 }
