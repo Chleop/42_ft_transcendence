@@ -19,7 +19,8 @@ export interface IUserPrivateTmp extends IUserPublicTmp {
 	twoFactAuth: boolean;
 	channels: IChannelTmp[];
 	channelsOwned: IChannelOwned[];
-	gamesPlayed: IGameTmp[];
+	games_played_as_player0: IGameTmp[];
+	games_played_as_player1: IGameTmp[];
 	friends: IFriend[];
 	pendingFriendRequests: IPendingFriendRequests[];
 	blocked: IBlocked[];

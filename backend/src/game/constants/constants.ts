@@ -60,7 +60,7 @@ export const paddle_speed: number = 4;
  * the paddle won't be able to interract with it.
  */
 export const max_x: number = w_2 - paddle_x; // = 8 - 1                 = 7
-export const max_x_bis: number = max_x + ball_radius * 2; // = 7 + 0.4  = 7.4
+export const max_x_bis: number = max_x + ball_radius * 4; // = 7 + 0.4  = 7.4
 
 /**
  * |Limit| value for the x coordinate of the ball.
@@ -85,7 +85,7 @@ export const pi_3: number = Math.PI * 0.33;
 /**
  * Gravity value.
  */
-export const gravity: number = 0.2;
+export const gravity: number = 0.15;
 
 /**
  * Friction simulator.

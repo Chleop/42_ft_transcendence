@@ -1,4 +1,4 @@
-import { Client, GameSocket, set_global_game_socket, UserId, Users } from "./api";
+import { Client, GameSocket, GLOBAL_GAME_SOCKET, set_global_game_socket, UserId, Users } from "./api";
 
 class Notification {
     public root: HTMLDivElement;
@@ -55,7 +55,13 @@ export class Notifications {
 
     public spawn_invite(color: string, user_id: string) {
         Users.get(user_id).then(user => {
-            const notif = new UserInvite(color, user_id, `${user.name} has invited you to play`, () => set_global_game_socket(new GameSocket(user_id)));
+            const notif = new UserInvite(color, user_id, `${user.name} has invited you to play`, () =>{
+                if (GLOBAL_GAME_SOCKET) {
+                    GLOBAL_GAME_SOCKET.disconnect();
+                }
+                
+                set_global_game_socket(new GameSocket(user_id)); 
+            });
             this.html.appendChild(notif.root);
 
             setTimeout(() => {
