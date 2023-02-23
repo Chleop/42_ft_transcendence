@@ -113,9 +113,8 @@ class ProfileOverlay extends Overlay {
             editor_email.disabled = true;
 
             if (new_mail === "") {
-                Client.deactivate_2fa().finally(() => {
-                    editor_email.disabled = false;
-                });
+                Client.deactivate_2fa();
+                editor_email.disabled = false;
             } else {
                 Client.activate_2fa(new_mail).then(() => {
                     while (true) {
@@ -136,9 +135,8 @@ class ProfileOverlay extends Overlay {
                                 else
                                     editor_email.value = "";
                             });
-                        }).finally(() => {
-                            editor_email.disabled = false;
                         });
+                        editor_email.disabled = false;
 
                         break;
                     }
@@ -202,9 +200,7 @@ class ProfileOverlay extends Overlay {
                 }
             });
 
-            Users.get_avatar(me.id).then(url => {
-                avatar.style.backgroundImage = `url(\"${url}\")`;
-            });
+            avatar.style.backgroundImage = `url(\"${Users.get_avatar(me.id)}\")`;
             name.innerText = me.name;
 
             let wins = 0;
@@ -232,7 +228,7 @@ class ProfileOverlay extends Overlay {
                     const file = avatar_input.files[0];
                     Client.set_avatar(file).then(() => {
                         const new_url = URL.createObjectURL(file);
-                        Users.set_avatar(me.id, new_url);
+                        // Users.set_avatar(me.id, new_url);
                         avatar.style.backgroundImage = `url(\"${new_url}\")`;
                     }).catch((e) => {
                         if (e instanceof UnexpectedStatusCode)
@@ -249,6 +245,9 @@ class ProfileOverlay extends Overlay {
     }
 
     public on_entered(prev: State): void {
+        while (this.game_history.firstChild)
+            this.game_history.firstChild.remove();
+
         Users.me().then((me) => {
             for (const result of me.games_played) {
                 const my_idx = (me.id === result.players_ids[0]) ? 0 : 1;
@@ -299,13 +298,9 @@ class ProfileOverlay extends Overlay {
                 game_container.appendChild(time);
 
                 my_score.innerText = "" + result.scores[my_idx];
-                Users.get_avatar(result.players_ids[my_idx]).then(url => {
-                    my_avatar.style.backgroundImage = `url(\"${url}\")`;
-                });
+                my_avatar.style.backgroundImage = `url(\"${Users.get_avatar(result.players_ids[my_idx])}\")`;
                 their_score.innerText = "" + result.scores[1 - my_idx];
-                Users.get_avatar(result.players_ids[1 - my_idx]).then(url => {
-                    their_avatar.style.backgroundImage = `url(\"${url}\")`;
-                });
+                their_avatar.style.backgroundImage = `url(\"${Users.get_avatar(result.players_ids[1 - my_idx])}\")`;
                 Users.get(result.players_ids[1 - my_idx]).then(u => {
                     their_name.innerText = u.name;
                 });

@@ -1555,12 +1555,10 @@ export class UserService {
 		};
 		//#endregion
 
-		try {
-			const mime: string = (await jimp.read(file.buffer)).getMIME();
+		let mime: string;
 
-			if (mime !== jimp.MIME_JPEG) {
-				throw new UserAvatarFileFormatError(mime);
-			}
+		try {
+			mime = (await jimp.read(file.buffer)).getMIME();
 		} catch (error) {
 			throw new UserAvatarFileFormatError();
 		}
@@ -1579,22 +1577,29 @@ export class UserService {
 		})) as t_fields;
 		//#endregion
 
-		if (user.avatar === "resource/avatar/default.jpg") {
-			user.avatar = `resource/avatar/${id}.jpg`;
-			await this._prisma.user.update({
-				//#region
-				data: {
-					avatar: user.avatar,
-				},
-				where: {
-					idAndState: {
-						id: id,
-						state: StateType.ACTIVE,
-					},
-				},
-			});
-			//#endregion
+		switch (mime) {
+			case jimp.MIME_JPEG:
+				user.avatar = `resource/avatar/${id}.jpg`;
+				break;
+
+			case jimp.MIME_PNG:
+				user.avatar = `resource/avatar/${id}.png`;
+				break;
+
+			default:
+				throw new UserAvatarFileFormatError(mime);
 		}
+
+		await this._prisma.user.update({
+			//#region
+			data: {
+				avatar: user.avatar,
+			},
+			where: {
+				id: id,
+			},
+		});
+		//#endregion
 
 		try {
 			createWriteStream(join(process.cwd(), user.avatar)).write(file.buffer);

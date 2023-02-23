@@ -30,9 +30,7 @@ class MessageElementInternal {
 		this.model = message;
 		const avatar = document.createElement("avatar");
 		avatar.classList.add("message-avatar");
-		Users.get_avatar(message.senderId).then((url) => {
-			avatar.style.backgroundImage = `url(\"${url}\")`;
-		});
+		avatar.style.backgroundImage = `url(\"${Users.get_avatar(message.senderId)}\")`;
 		avatar.onclick = () =>
 			Users.get(message.senderId).then((user) => USER_CARD.show(avatar, user, channel));
 		const author = document.createElement("button");
@@ -585,7 +583,9 @@ class ChatElement {
 				);
 			});
 		if (this.selected_channel.dm) {
-			await Client.send_dm(this.selected_channel.dm.id, content);
+			await Client.send_dm(this.selected_channel.dm.id, content).catch(() => {
+				NOTIFICATIONS.spawn_notification("red", "you can't message someone that you blocked. I ThOuGhT YoU DiDn'T LiKe ThAT PeRsOn??")
+			});
 		}
 	}
 
