@@ -142,16 +142,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 *
 	 * After 3s, the game will start.
 	 */
-	private matchmake(game_room: GameRoom): void {
+	private async matchmake(game_room: GameRoom): Promise<void> {
 		game_room.match.player1.emit("matchFound", game_room.match.player2.data.user);
 		game_room.match.player2.emit("matchFound", game_room.match.player1.data.user);
 		game_room.match.player1.data.user.status = e_user_status.INGAME;
 		game_room.match.player2.data.user.status = e_user_status.INGAME;
-		this.chat_gateway.broadcast_to_online_related_users({
+		await this.chat_gateway.broadcast_to_online_related_users({
 			id: game_room.match.player1.data.user.id,
 			status: e_user_status.INGAME,
 		});
-		this.chat_gateway.broadcast_to_online_related_users({
+		await this.chat_gateway.broadcast_to_online_related_users({
 			id: game_room.match.player2.data.user.id,
 			status: e_user_status.INGAME,
 		});

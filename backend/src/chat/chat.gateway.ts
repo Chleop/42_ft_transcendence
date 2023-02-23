@@ -15,6 +15,7 @@ import { IUserPrivate, IUserPublic } from "src/user/interface";
 import { UserService } from "src/user/user.service";
 import { IChannel } from "src/channel/interface";
 import { ChannelService } from "src/channel/channel.service";
+import { BadEvent } from "src/game/exceptions";
 
 @WebSocketGateway({
 	namespace: "chat",
@@ -56,23 +57,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	public async broadcast_to_online_related_users(
 		user_updated: t_user_update_event,
 	): Promise<void> {
-		if (user_updated.status !== undefined)
-			this._chat_service.update_user(
+		try {
+			if (user_updated.status !== undefined)
+				this._chat_service.update_user(
+					user_updated.id,
+					user_updated.status,
+					user_updated.spectating,
+				);
+			const users: t_user_id[] = await this._chat_service.get_online_related_users(
 				user_updated.id,
-				user_updated.status,
-				user_updated.spectating,
 			);
-		const users: t_user_id[] = await this._chat_service.get_online_related_users(
-			user_updated.id,
-		);
-		for (const user_to_notify of users) {
-			if (this._chat_service.is_user_in_map(user_to_notify.id)) {
-				let data: IUserPrivate | IUserPublic;
-				if (user_updated.id === user_to_notify.id)
-					data = await this._user_service.get_me(user_to_notify.id);
-				else data = await this._user_service.get_one(user_updated.id);
-				this._server.to(user_to_notify.login).emit("user_updated", data);
+			for (const user_to_notify of users) {
+				if (this._chat_service.is_user_in_map(user_to_notify.id)) {
+					let data: IUserPrivate | IUserPublic;
+					if (user_updated.id === user_to_notify.id)
+						data = await this._user_service.get_me(user_to_notify.id);
+					else data = await this._user_service.get_one(user_updated.id);
+					this._server.to(user_to_notify.login).emit("user_updated", data);
+				}
 			}
+		} catch (e) {
+			throw new BadEvent("Broadcast error");
 		}
 	}
 
@@ -102,7 +107,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 *
 	 * @param	client The socket that just connected.
 	 */
-	public handleConnection(client: Socket): void {
+	public async handleConnection(client: Socket): Promise<void> {
 		this._logger.log(
 			`Client ${client.id} (${client.data.user.login}) connected to chat gateway`,
 		);
@@ -110,10 +115,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		for (const channel of client.data.user.channels) {
 			client.join(channel.id);
 		}
-
-		this.broadcast_to_online_related_users({
-			id: client.data.user.id,
-		});
+		try {
+			this.broadcast_to_online_related_users({
+				id: client.data.user.id,
+			});
+		} catch (e) {
+			if (e instanceof BadEvent) {
+				this.sendError(client, e.message);
+				await this.handleDisconnect(client);
+				client.disconnect();
+			}
+		}
 	}
 
 	/**
@@ -121,13 +133,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 *
 	 * @param	client The socket that just disconnected.
 	 */
-	public handleDisconnect(client: Socket): void {
+	public async handleDisconnect(client: Socket): Promise<void> {
 		this._chat_service.remove_user(client);
 
-		this.broadcast_to_online_related_users({
-			id: client.data.user.id,
-		});
-
+		try {
+			await this.broadcast_to_online_related_users({
+				id: client.data.user.id,
+			});
+		} catch (e) {
+			if (!(e instanceof BadEvent)) throw e;
+		}
 		this._logger.log(
 			`Client ${client.id} (${client.data.user.login}) disconnected from chat gateway`,
 		);
@@ -162,5 +177,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		const user: t_user_status | undefined = this._chat_service.get_user(user_id);
 
 		if (user !== undefined) this._server.in(user.login).socketsLeave(room_id);
+	}
+
+	public sendError(client: Socket, error: string): void {
+		client.emit("exception", error);
 	}
 }
