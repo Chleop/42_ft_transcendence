@@ -37,6 +37,10 @@ export class GameService {
 	public async registerGameHistory(room: GameRoom, results: Results): Promise<Match> {
 		const match: Match = room.match;
 		try {
+			// Avoid prisma's own way of ordering datas...
+			// let scores: number[] = [results.scores.player1_score, results.scores.player2_score];
+			// if (match.player2.data.user.id < match.player1.data.user.id) scores.reverse();
+
 			await this.prisma_service.game.create({
 				data: {
 					player0: {

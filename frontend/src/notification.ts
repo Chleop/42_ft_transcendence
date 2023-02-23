@@ -1,4 +1,4 @@
-import { GameSocket, set_global_game_socket, Users } from "./api";
+import { Client, GameSocket, GLOBAL_GAME_SOCKET, set_global_game_socket, UserId, Users } from "./api";
 
 class Notification {
     public root: HTMLDivElement;
@@ -14,7 +14,7 @@ class Notification {
 class UserInvite {
     public root: HTMLDivElement;
 
-    public constructor(color: string, user_id: string) {
+    public constructor(color: string, user_id: UserId, message: string, onclick: () => void) {
         this.root = document.createElement("div");
         this.root.classList.add("notification-block");
         this.root.classList.add("notification-invite");
@@ -26,16 +26,13 @@ class UserInvite {
         this.root.appendChild(avatar);
 
         const text = document.createElement("span");
+        text.innerText = message;
         this.root.appendChild(text)
 
-        Users.get(user_id).then(user => {
-            text.innerText = `${user.name} has invited you to play`;
-
-            this.root.onclick = () => {
-                set_global_game_socket(new GameSocket(user.id));
-                this.root.remove();
-            };
-        });
+        this.root.onclick = () => {
+            onclick();
+            this.root.remove();
+        };
     }
 }
 
@@ -57,13 +54,35 @@ export class Notifications {
     }
 
     public spawn_invite(color: string, user_id: string) {
-        const notif = new UserInvite(color, user_id);
-        this.html.appendChild(notif.root);
+        Users.get(user_id).then(user => {
+            const notif = new UserInvite(color, user_id, `${user.name} has invited you to play`, () =>{
+                if (GLOBAL_GAME_SOCKET) {
+                    GLOBAL_GAME_SOCKET.disconnect();
+                }
+                
+                set_global_game_socket(new GameSocket(user_id)); 
+            });
+            this.html.appendChild(notif.root);
 
-        setTimeout(() => {
-            notif.root.remove();
-        }, 20000);
+            setTimeout(() => {
+                notif.root.remove();
+            }, 20000);
+        });
 
+
+    }
+
+    public spawn_friend_invite(color: string, user_id: string) {
+        Users.get(user_id).then(user => {
+            const notif = new UserInvite(color, user_id, `seems like ${user.name} is into you... ;)`, () => {
+                Client.accept_friend(user.id);
+            });
+            this.html.appendChild(notif.root);
+
+            setTimeout(() => {
+                notif.root.remove();
+            }, 20000);
+        });
     }
 }
 

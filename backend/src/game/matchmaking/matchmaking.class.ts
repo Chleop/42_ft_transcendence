@@ -7,7 +7,8 @@ import { GameRoom } from "../rooms";
 /**
  * Matchmaking handler.
  *
- * Single spot as a queue.
+ * Single spot as a queue for regular matchmaking,
+ * special queue if they're awaiting someone.
  * When it is taken, matches with incomming connection.
  * Otherwise, they take this spot.
  */
@@ -29,12 +30,14 @@ export class Matchmaking {
 	/* PUBLIC ================================================================== */
 
 	/**
-	 * Puts client in the queue if it's empty.
+	 * Puts client in the queue if it's empty, or in the awaiting list and then informs
+	 * the gateway that an invite was generated.
 	 * Else, client is matched with queue and a new game room is returned.
 	 */
 	public queueUp(client: Socket): GameRoom | { is_invite: boolean } {
 		// Client already in the queue
-		if (this.queue?.data.user.id === client.data.user.id) {
+		if (this.queue?.data.user.id === client.data.user.id ||
+			this.queue_bouncy?.data.user.id === client.data.user.id) {
 			throw new BadEvent(`${client.data.user.login} already in the queue`);
 		}
 
@@ -73,6 +76,9 @@ export class Matchmaking {
 
 	/* PRIVATE ================================================================= */
 
+	/**
+	 * Puts client in wanted queue: faithful game or with a twist...
+	 */
 	private regularQueuing(client: Socket): GameRoom | { is_invite: boolean } {
 		const faithful_mode: boolean = client.handshake.auth.faithful;
 		let expected_queue: Socket;
@@ -99,47 +105,51 @@ export class Matchmaking {
 		return new GameRoom(match, faithful_mode);
 	}
 
+	/**
+	 * Client is put in a special queue, awaiting a friend.
+	 */
 	private awaitingFriend(client: Socket): GameRoom | { is_invite: boolean } {
 		if (typeof client.handshake.auth.friend !== "string")
 			throw new WrongData("Bad friend data format");
 
 		const friend: Socket | null = this.findPendingUser(client.handshake.auth.friend);
-		if (friend !== null) {
+		if (friend) {
 			// Friend is in queue
 			return this.matchWithFriend(client, friend);
 		}
 
 		const player: Socket | null = this.findPendingUser(client.data.user.id);
-		if (player !== null) {
+		if (player) {
 			// Already awaiting: remove prior invite
 			this.awaiting_players.delete(player);
 		}
 		// Awaiting for a friend
 		this.awaiting_players.add(client);
-		this.logger.verbose(`${client.data.user.login} is awaiting ${client.data.user.login}.`);
+		this.logger.verbose(`${client.data.user.login} is awaiting ${client.handshake.auth.friend}.`);
 		return { is_invite: true };
 	}
 
-	private matchWithFriend(client: Socket, player: Socket): GameRoom {
+	private matchWithFriend(client: Socket, friend: Socket): GameRoom {
 		const match: Match = {
-			name: player.data.user.id + client.data.user.id,
-			player1: player,
+			name: friend.data.user.id + client.data.user.id,
+			player1: friend,
 			player2: client,
 		};
-		this.logger.verbose(`Matching ${player.data.user.login} with ${client.data.user.login}`);
-		const new_game_room: GameRoom = new GameRoom(match, player.handshake.auth.faithful);
-		this.awaiting_players.delete(player);
+		this.logger.verbose(`Matching ${friend.data.user.login} with ${client.data.user.login}`);
+		const new_game_room: GameRoom = new GameRoom(match, friend.handshake.auth.faithful);
+		this.awaiting_players.delete(friend);
 		return new_game_room;
 	}
 
-	private findPendingUser(client: string): Socket | null {
-		if (typeof client === "string") {
-			for (const player of this.awaiting_players) {
-				if (player.data.user.id === client) {
-					return player;
-				}
+	/**
+	 * Explores the set and returns the wanted client.
+	 */
+	private findPendingUser(client_id: string): Socket | null {
+		for (const player of this.awaiting_players) {
+			if (player.data.user.id === client_id) {
+				return player;
 			}
-		}
+			}
 		return null;
 	}
 }

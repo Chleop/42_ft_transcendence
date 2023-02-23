@@ -238,8 +238,6 @@ class UserCardElement {
 				this.friend_button.onclick = () =>
 					Client.unfriend(user.id)
 						.then(() => {
-							const index = me.friends_ids.indexOf(user.id);
-							if (index !== -1) me.friends_ids.splice(index, 1);
 							this.show(null, user, channel);
 							NOTIFICATIONS.spawn_notification(
 								"green",
@@ -254,7 +252,6 @@ class UserCardElement {
 				this.friend_button.onclick = () =>
 					Client.accept_friend(user.id)
 						.then(() => {
-							me.friends_ids.push(user.id);
 							this.show(null, user, channel);
 							NOTIFICATIONS.spawn_notification("green", "Friend request accepted.");
 						})
