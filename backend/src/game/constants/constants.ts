@@ -9,6 +9,11 @@ export const initial_speed: number = 6;
 export const acceleration: number = 1.1;
 
 /**
+ * Speed limit that the ball can reach.
+ */
+export const max_speed: number = 12.5;
+
+/**
  * Ball radius.
  */
 export const ball_radius: number = 0.2;
@@ -77,5 +82,12 @@ export const limit_y: number = h_2 - ball_radius; // = 4.5 - 0.2 = 4.3
 export const pi_4: number = Math.PI * 0.25;
 export const pi_3: number = Math.PI * 0.33;
 
+/**
+ * Gravity value.
+ */
 export const gravity: number = 0.2;
+
+/**
+ * Friction simulator.
+ */
 export const friction: number = 0.97;

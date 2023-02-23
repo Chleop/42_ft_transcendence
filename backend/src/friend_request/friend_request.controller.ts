@@ -66,6 +66,11 @@ export class FriendRequestController {
 				dto.accepted_user_id,
 				await this._user_service.get_me(dto.accepted_user_id),
 			);
+			this._chat_gateway.forward_to_user_socket(
+				"user_updated",
+				request.user.id,
+				await this._user_service.get_me(request.user.id),
+			);
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||
@@ -92,6 +97,7 @@ export class FriendRequestController {
 	): Promise<void> {
 		try {
 			await this._friend_request_service.reject_one(request.user.id, dto.rejected_user_id);
+			
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||
