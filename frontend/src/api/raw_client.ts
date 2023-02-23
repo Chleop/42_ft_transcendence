@@ -121,7 +121,7 @@ export class RawHTTPClient {
 
 				return this.make_request(request);
 			} else {
-				document.location.pathname = "/api/auth/42/login";
+				document.location.href = "/api/auth/42/login";
 				return new Promise(() => { });
 			}
 		}

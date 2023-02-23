@@ -1,7 +1,7 @@
 import { Socket, io } from "socket.io-client";
 import { NOTIFICATIONS } from "../notification";
 import { Channel, ChannelId, Message } from "./channel";
-import { get_cookie } from "./client";
+import { Client, get_cookie } from "./client";
 import { PrivateUser, User, UserId } from "./user";
 import { Users } from "./users";
 
@@ -39,6 +39,36 @@ export class GatewayClass {
 			auth: { token: get_cookie("access_token") },
 		});
 
+		this.socket.on("connect_error", (err) => {
+			const message: string | undefined = err?.message;
+			if (message === "2FA enabled and pending") {
+				(async () => {
+					while (true) {
+						const code = prompt("please give me the code.........");
+						if (!code)
+							continue;
+						try {
+							await Client.validate_2fa(code);
+							break;
+						}
+						catch (e) {
+						}
+					}
+
+					// Now the user is properly authenticated, the socket will try to reconnect
+					// automatically.
+				})();
+			}
+			else (message === "Invalid token" || message === "No token provided")
+			{
+				document.location.href = "/api/auth/42/login";
+
+				// Once the javascript context ends, the page will unload.
+			}
+		});
+		this.socket.on("exception", (err) => {
+			console.error(err);
+		});
 		this.socket.on("connect", () => {
 			console.info("connected to the chat gateway.");
 		});
