@@ -73,7 +73,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 			if (typeof user_id !== "string") throw new WrongData("Room not properly specified");
 			const game_room: GameRoom = this.game_service.findUserGame(user_id);
 			client.data.valid_uid = true;
-			return this.startStreaming(client, game_room);
+			await this.startStreaming(client, game_room);
 		} catch (e) {
 			if (e instanceof WrongData) {
 				this.logger.error(e.message);
@@ -94,7 +94,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 * On disconnection, clients are removed from the spectating room
 	 * if they sent a valid uid.
 	 */
-	public handleDisconnect(client: Socket): void {
+	public async handleDisconnect(client: Socket): Promise<void> {
 		const user_id: string = client.handshake.auth.user_id;
 		try {
 			const game_room: GameRoom = this.game_service.findUserGame(user_id);
@@ -104,7 +104,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 			if (spectated_room instanceof SpectatedRoom) {
 				spectated_room.removeSpectator(client);
 				if (spectated_room.isEmpty())
-					this.stopStreaming(this, spectated_room.game_room.match.name);
+					await this.stopStreaming(this, spectated_room.game_room.match.name);
 			}
 		} catch (e) {
 			if (e instanceof WrongData && client.data.valid_uid === true) {
