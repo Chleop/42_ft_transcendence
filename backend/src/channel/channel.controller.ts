@@ -80,7 +80,7 @@ export class ChannelController {
 			this._chat_gateway.forward_to_user_socket("user_banned", dto.user_id, {
 				channel_id: id,
 			});
-			this._chat_gateway.broadcast_to_online_channel_members(id);
+			await this._chat_gateway.broadcast_to_online_channel_members(id);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
@@ -113,7 +113,7 @@ export class ChannelController {
 		//#region
 		try {
 			await this._channel_service.delegate_ones_ownership(request.user.id, id, dto.user_id);
-			this._chat_gateway.broadcast_to_online_channel_members(id);
+			await this._chat_gateway.broadcast_to_online_channel_members(id);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
@@ -171,7 +171,7 @@ export class ChannelController {
 		//#region
 		try {
 			await this._channel_service.demote_ones_operator(request.user.id, id, dto.user_id);
-			this._chat_gateway.broadcast_to_online_channel_members(id);
+			await this._chat_gateway.broadcast_to_online_channel_members(id);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
@@ -292,7 +292,7 @@ export class ChannelController {
 				dto.user_id,
 				dto.duration,
 			);
-			this._chat_gateway.broadcast_to_online_channel_members(id);
+			await this._chat_gateway.broadcast_to_online_channel_members(id);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
@@ -327,7 +327,7 @@ export class ChannelController {
 		//#region
 		try {
 			await this._channel_service.kick_ones_member(request.user.id, id, dto.user_id);
-			this._chat_gateway.broadcast_to_online_channel_members(id);
+			await this._chat_gateway.broadcast_to_online_channel_members(id);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
@@ -361,7 +361,7 @@ export class ChannelController {
 		//#region
 		try {
 			await this._channel_service.promote_ones_member(request.user.id, id, dto.user_id);
-			this._chat_gateway.broadcast_to_online_channel_members(id);
+			await this._chat_gateway.broadcast_to_online_channel_members(id);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
@@ -396,7 +396,7 @@ export class ChannelController {
 		//#region
 		try {
 			await this._channel_service.unban_ones_member(request.user.id, id, dto.user_id);
-			this._chat_gateway.broadcast_to_online_channel_members(id);
+			await this._chat_gateway.broadcast_to_online_channel_members(id);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||
@@ -436,7 +436,7 @@ export class ChannelController {
 				dto.type,
 				dto.password,
 			);
-			this._chat_gateway.broadcast_to_online_channel_members(id);
+			await this._chat_gateway.broadcast_to_online_channel_members(id);
 		} catch (error) {
 			if (
 				error instanceof ChannelNotFoundError ||

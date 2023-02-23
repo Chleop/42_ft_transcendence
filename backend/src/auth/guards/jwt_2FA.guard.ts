@@ -5,7 +5,7 @@ import { t_user_auth } from "../alias";
 
 @Injectable()
 export class Jwt2FAGuard extends AuthGuard("jwt") {
-	override async canActivate(context: ExecutionContext) {
+	override async canActivate(context: ExecutionContext): Promise<boolean> {
 		await super.canActivate(context);
 		const request = context.switchToHttp().getRequest();
 		return this.validateRequest(request.user);

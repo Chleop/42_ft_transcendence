@@ -70,9 +70,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			for (const user_to_notify of users) {
 				if (this._chat_service.is_user_in_map(user_to_notify.id)) {
 					let data: IUserPrivate | IUserPublic;
-					if (user_updated.id === user_to_notify.id)
+					if (user_updated.id === user_to_notify.id) {
 						data = await this._user_service.get_me(user_to_notify.id);
-					else data = await this._user_service.get_one(user_updated.id);
+					} else {
+						data = await this._user_service.get_one(user_updated.id);
+					}
 					this._server.to(user_to_notify.login).emit("user_updated", data);
 				}
 			}
@@ -82,6 +84,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	}
 
 	public async broadcast_to_online_channel_members(channel_id: string): Promise<void> {
+		// TODO: Add checks
 		const users: t_user_id[] = await this._chat_service.get_online_users_in_channel(channel_id);
 		const data: IChannel = await this._channel_service.get_one(users[0]?.id, channel_id);
 		for (const user_to_notify of users) {
@@ -116,7 +119,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			client.join(channel.id);
 		}
 		try {
-			this.broadcast_to_online_related_users({
+			await this.broadcast_to_online_related_users({
 				id: client.data.user.id,
 			});
 		} catch (e) {

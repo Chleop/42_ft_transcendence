@@ -32,7 +32,7 @@ export class AuthController {
 	@Get("42/login")
 	@UseGuards(FtOauthGuard)
 	login() {
-		//
+		// REMIND: What is this for?
 	}
 
 	@Get("42/callback")
