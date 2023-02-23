@@ -39,18 +39,23 @@ export class GameService {
 		try {
 			await this.prisma_service.game.create({
 				data: {
-					players: {
-						connect: [
-							{ id: match.player1.data.user.id },
-							{ id: match.player2.data.user.id },
-						],
+					player0: {
+						connect: {
+							id: match.player1.data.user.id,
+						},
+					},
+					player1: {
+						connect: {
+							id: match.player2.data.user.id,
+						},
 					},
 					winner: {
 						connect: {
 							id: results.winner,
 						},
 					},
-					scores: [results.scores.player1_score, results.scores.player2_score],
+					score0: results.scores.player1_score,
+					score1: results.scores.player2_score,
 					dateTime: new Date(results.date),
 				},
 			});

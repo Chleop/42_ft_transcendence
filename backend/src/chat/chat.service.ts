@@ -102,13 +102,16 @@ export class ChatService {
 						},
 					},
 					{
-						gamesPlayed: {
+						games_played_as_player0: {
 							some: {
-								players: {
-									some: {
-										id,
-									},
-								},
+								player1_id: id,
+							},
+						},
+					},
+					{
+						games_played_as_player1: {
+							some: {
+								player0_id: id,
 							},
 						},
 					},
