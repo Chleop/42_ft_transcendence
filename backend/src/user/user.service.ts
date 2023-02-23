@@ -886,7 +886,7 @@ export class UserService {
 
 		// Sort games by date
 		user.games_played.sort((a: IGame, b: IGame): number => {
-			return b.date_time.getTime() - a.date_time.getTime();
+			return a.date_time.getTime() - b.date_time.getTime();
 		});
 
 		this._logger.verbose(`User ${id} was successfully retrieved from the database.`);
