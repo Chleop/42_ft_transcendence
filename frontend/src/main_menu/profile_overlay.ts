@@ -113,7 +113,9 @@ class ProfileOverlay extends Overlay {
             editor_email.disabled = true;
 
             if (new_mail === "") {
-                Client.deactivate_2fa();
+                Client.deactivate_2fa().catch(() => {
+                    NOTIFICATIONS.spawn_notification("red", "failed to deactivate 2FA");
+                });
                 editor_email.disabled = false;
             } else {
                 Client.activate_2fa(new_mail).then(() => {
@@ -135,6 +137,8 @@ class ProfileOverlay extends Overlay {
                                 else
                                     editor_email.value = "";
                             });
+
+                            NOTIFICATIONS.spawn_notification("red", "invalid 2FA code");
                         });
                         editor_email.disabled = false;
 
