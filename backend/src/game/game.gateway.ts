@@ -59,12 +59,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 *
 	 * Moves client to the queue if not already in game.
 	 */
-	public handleConnection(client: Socket): void {
+	public async handleConnection(client: Socket): Promise<void> {
 		this.logger.log(`[${client.data.user.login} connected]`);
 		try {
 			const queue_result: GameRoom | { is_invite: boolean } =
 				this.game_service.queueUp(client);
-			if (queue_result instanceof GameRoom) this.matchmake(queue_result);
+			if (queue_result instanceof GameRoom) await this.matchmake(queue_result);
 			else if (queue_result.is_invite === true) {
 				this.chat_gateway.forward_to_user_socket(
 					"invite",
@@ -75,7 +75,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		} catch (e) {
 			if (e instanceof BadEvent || e instanceof WrongData) {
 				this.sendError(client, e);
-				this.handleDisconnect(client);
+				await this.handleDisconnect(client);
 				client.disconnect();
 				return;
 			}
@@ -102,7 +102,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			await this.endGameEarly(client, room);
 			this.game_service.destroyRoom(room);
 		}
-		this.chat_gateway.broadcast_to_online_related_users({
+		await this.chat_gateway.broadcast_to_online_related_users({
 			id: client.data.user.id,
 			status: e_user_status.ONLINE,
 		});
@@ -118,7 +118,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 * Refreshes room paddle position and send it to opponent.
 	 */
 	@SubscribeMessage("update")
-	public updateEnemy(client: Socket, dto: PaddleDto): void {
+	public async updateEnemy(client: Socket, dto: PaddleDto): Promise<void> {
 		try {
 			client.data.paddle_dto = dto;
 			const update: OpponentUpdate = this.game_service.updateOpponent(client);
@@ -127,7 +127,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			if (e instanceof BadEvent) {
 				this.logger.error(e.message);
 				this.sendError(client, e);
-				this.handleDisconnect(client);
+				await this.handleDisconnect(client);
 				client.disconnect();
 				return;
 			}
