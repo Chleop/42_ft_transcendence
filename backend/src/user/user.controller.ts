@@ -73,6 +73,17 @@ export class UserController {
 		//#region
 		try {
 			await this._user_service.block_one(request.user.id, id);
+
+			this._chat_gateway.forward_to_user_socket(
+				"user_updated",
+				request.user.id,
+				await this._user_service.get_me(request.user.id),
+			);
+			this._chat_gateway.forward_to_user_socket(
+				"user_updated",
+				id,
+				await this._user_service.get_me(id),
+			);
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||
