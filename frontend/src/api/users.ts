@@ -9,6 +9,7 @@ export const Users = (function() {
     class UsersClass {
         private users: Record<UserId, Soon<User>>;
         private subs: Map<UserId, Set<(usr: User) => void>>;
+        private avatars: Map<UserId, number>;
 
         private me_: Soon<PrivateUser> | undefined;
 
@@ -16,6 +17,7 @@ export const Users = (function() {
             this.users = {};
             this.me_ = undefined;
             this.subs = new Map();
+            this.avatars = new Map();
         }
 
         public invalidate_me() {
@@ -56,6 +58,7 @@ export const Users = (function() {
 
         /** Invalidates the provided avatar, effectively removing it from the cache. */
         public invalidate_avatar(id: UserId) {
+            this.avatars.set(id, Math.random() * 1e14);
         }
 
         public async patch_name(id: UserId | null, name: string) {
@@ -72,7 +75,7 @@ export const Users = (function() {
          * This function will first look in the cache.
          */
         public get_avatar(id: UserId): string {
-            return `/api/user/${id}/avatar?dummy=${Math.random() * 1e14}`;
+            return `/api/user/${id}/avatar?dummy=${this.avatars.get(id) || 0}`;
         }
 
         /**
@@ -92,6 +95,7 @@ export const Users = (function() {
 
             const u = await this.get(user_update.id);
             Object.assign(u, user_update);
+            this.invalidate_avatar(u.id);
 
             const subs = this.subs.get(user_update.id);
             if (subs) {
