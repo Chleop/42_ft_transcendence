@@ -8,12 +8,10 @@ export interface IGame {
 
 export interface IGameTmp {
 	id: string;
-	players: IPlayer[];
-	scores: number[];
+	player0_id: string;
+	player1_id: string;
+	score0: number;
+	score1: number;
 	dateTime: Date;
 	winnerId: string;
-}
-
-interface IPlayer {
-	id: string;
 }

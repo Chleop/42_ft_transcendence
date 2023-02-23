@@ -47,7 +47,6 @@ import { ChannelService } from "src/channel/channel.service";
 @Controller("chat")
 @UseGuards(Jwt2FAGuard)
 export class ChatController {
-	// REMIND: Check if passing `_user_service` in readonly keep it working well
 	private readonly _channel_service: ChannelService;
 	private readonly _user_service: UserService;
 	private readonly _chat_gateway: ChatGateway;

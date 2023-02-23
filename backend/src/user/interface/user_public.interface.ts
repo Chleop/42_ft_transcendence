@@ -13,7 +13,8 @@ export interface IUserPublicTmp {
 	id: string;
 	name: string;
 	skinId: string;
-	gamesPlayed: IGamesPlayed[];
+	games_played_as_player0: IGamesPlayed[];
+	games_played_as_player1: IGamesPlayed[];
 	gamesWon: IGamesWon[];
 }
 

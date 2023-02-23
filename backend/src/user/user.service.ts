@@ -89,10 +89,15 @@ export class UserService {
 			friends: {
 				id: string;
 			}[];
-			gamesPlayed: {
-				players: {
+			games_played_as_player0: {
+				player1: {
 					id: string;
-				}[];
+				};
+			}[];
+			games_played_as_player1: {
+				player0: {
+					id: string;
+				};
 			}[];
 		} | null,
 	): Promise<boolean> {
@@ -133,9 +138,18 @@ export class UserService {
 							id: true,
 						},
 					},
-					gamesPlayed: {
+					games_played_as_player0: {
 						select: {
-							players: {
+							player1: {
+								select: {
+									id: true,
+								},
+							},
+						},
+					},
+					games_played_as_player1: {
+						select: {
+							player0: {
 								select: {
 									id: true,
 								},
@@ -168,8 +182,11 @@ export class UserService {
 				(direct_message): boolean => direct_message.receiver.id === user1_id,
 			) ||
 			user0.friends.some((friend): boolean => friend.id === user1_id) ||
-			user0.gamesPlayed.some((game_played): boolean =>
-				game_played.players.some((player): boolean => player.id === user1_id),
+			user0.games_played_as_player0.some(
+				(game_played): boolean => game_played.player1.id === user1_id,
+			) ||
+			user0.games_played_as_player1.some(
+				(game_played): boolean => game_played.player0.id === user1_id,
 			)
 		);
 	}
@@ -753,15 +770,24 @@ export class UserService {
 						id: true,
 					},
 				},
-				gamesPlayed: {
+				games_played_as_player0: {
 					select: {
 						id: true,
-						players: {
-							select: {
-								id: true,
-							},
-						},
-						scores: true,
+						player0_id: true,
+						player1_id: true,
+						score0: true,
+						score1: true,
+						dateTime: true,
+						winnerId: true,
+					},
+				},
+				games_played_as_player1: {
+					select: {
+						id: true,
+						player0_id: true,
+						player1_id: true,
+						score0: true,
+						score1: true,
 						dateTime: true,
 						winnerId: true,
 					},
@@ -821,18 +847,29 @@ export class UserService {
 					}),
 				};
 			}),
-			games_played: user_tmp.gamesPlayed.map((game): IGame => {
-				return {
-					id: game.id,
-					players_ids: game.players.map((player): string => {
-						return player.id;
-					}) as [string, string],
-					scores: game.scores as [number, number],
-					date_time: game.dateTime,
-					winner_id: game.winnerId,
-				};
-			}),
-			games_played_count: user_tmp.gamesPlayed.length,
+			games_played: user_tmp.games_played_as_player0
+				.map((game): IGame => {
+					return {
+						id: game.id,
+						players_ids: [game.player0_id, game.player1_id],
+						scores: [game.score0, game.score1],
+						date_time: game.dateTime,
+						winner_id: game.winnerId,
+					};
+				})
+				.concat(
+					user_tmp.games_played_as_player1.map((game): IGame => {
+						return {
+							id: game.id,
+							players_ids: [game.player0_id, game.player1_id],
+							scores: [game.score0, game.score1],
+							date_time: game.dateTime,
+							winner_id: game.winnerId,
+						};
+					}),
+				),
+			games_played_count:
+				user_tmp.games_played_as_player0.length + user_tmp.games_played_as_player1.length,
 			games_won_count: user_tmp.gamesWon.length,
 			friends_ids: user_tmp.friends.map((friend): string => {
 				return friend.id;
@@ -846,6 +883,11 @@ export class UserService {
 			status,
 		};
 		//#endregion
+
+		// Sort games by date
+		user.games_played.sort((a: IGame, b: IGame): number => {
+			return a.date_time.getTime() - b.date_time.getTime();
+		});
 
 		this._logger.verbose(`User ${id} was successfully retrieved from the database.`);
 		return user;
@@ -871,7 +913,12 @@ export class UserService {
 				id: true,
 				name: true,
 				skinId: true,
-				gamesPlayed: {
+				games_played_as_player0: {
+					select: {
+						id: true,
+					},
+				},
+				games_played_as_player1: {
 					select: {
 						id: true,
 					},
@@ -905,7 +952,8 @@ export class UserService {
 			id: user_tmp.id,
 			name: user_tmp.name,
 			skin_id: user_tmp.skinId,
-			games_played_count: user_tmp.gamesPlayed.length,
+			games_played_count:
+				user_tmp.games_played_as_player0.length + user_tmp.games_played_as_player1.length,
 			games_won_count: user_tmp.gamesWon.length,
 			status,
 		};
@@ -1079,10 +1127,15 @@ export class UserService {
 			friends: {
 				id: string;
 			}[];
-			gamesPlayed: {
-				players: {
+			games_played_as_player0: {
+				player1: {
 					id: string;
-				}[];
+				};
+			}[];
+			games_played_as_player1: {
+				player0: {
+					id: string;
+				};
 			}[];
 		};
 		//#endregion
@@ -1127,9 +1180,18 @@ export class UserService {
 						id: true,
 					},
 				},
-				gamesPlayed: {
+				games_played_as_player0: {
 					select: {
-						players: {
+						player1: {
+							select: {
+								id: true,
+							},
+						},
+					},
+				},
+				games_played_as_player1: {
+					select: {
+						player0: {
 							select: {
 								id: true,
 							},

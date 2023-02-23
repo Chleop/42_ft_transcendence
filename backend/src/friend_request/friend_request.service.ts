@@ -13,12 +13,11 @@ import { UserAlreadyFriendError, UserBlockedError, UserNotFoundError } from "src
 @Injectable()
 export class FriendRequestService {
 	// REMIND: would it be better to make these properties static ?
-	// REMIND: check if passing `_prisma` in readonly keep it working well
-	private _prisma: PrismaService;
+	private readonly _prisma_service: PrismaService;
 	private readonly _logger: Logger;
 
 	constructor(prisma_service: PrismaService) {
-		this._prisma = prisma_service;
+		this._prisma_service = prisma_service;
 		this._logger = new Logger(FriendRequestService.name);
 	}
 
@@ -67,7 +66,7 @@ export class FriendRequestService {
 		} | null,
 	): Promise<void> {
 		if (!accepting_user) {
-			accepting_user = (await this._prisma.user.findUnique({
+			accepting_user = (await this._prisma_service.user.findUnique({
 				select: {
 					friends: {
 						select: {
@@ -97,7 +96,7 @@ export class FriendRequestService {
 		}
 
 		if (!accepted_user) {
-			accepted_user = await this._prisma.user.findUnique({
+			accepted_user = await this._prisma_service.user.findUnique({
 				select: {
 					pendingFriendRequests: {
 						select: {
@@ -133,7 +132,7 @@ export class FriendRequestService {
 		) {
 			throw new FriendRequestNotFoundError();
 		}
-		await this._prisma.user.update({
+		await this._prisma_service.user.update({
 			data: {
 				friends: {
 					connect: {
@@ -153,7 +152,7 @@ export class FriendRequestService {
 				},
 			},
 		});
-		await this._prisma.user.update({
+		await this._prisma_service.user.update({
 			data: {
 				friends: {
 					connect: {
@@ -211,7 +210,7 @@ export class FriendRequestService {
 		} | null,
 	): Promise<void> {
 		if (!rejecting_user) {
-			rejecting_user = (await this._prisma.user.findUnique({
+			rejecting_user = (await this._prisma_service.user.findUnique({
 				select: {
 					pendingFriendRequests: {
 						select: {
@@ -233,7 +232,7 @@ export class FriendRequestService {
 		}
 
 		if (!rejected_user) {
-			rejected_user = await this._prisma.user.findUnique({
+			rejected_user = await this._prisma_service.user.findUnique({
 				select: {
 					pendingFriendRequests: {
 						select: {
@@ -266,7 +265,7 @@ export class FriendRequestService {
 			throw new FriendRequestNotFoundError();
 		}
 
-		await this._prisma.user.update({
+		await this._prisma_service.user.update({
 			data: {
 				pendingFriendRequests: {
 					disconnect: {
@@ -335,7 +334,7 @@ export class FriendRequestService {
 		} | null,
 	): Promise<void> {
 		if (!sending_user) {
-			sending_user = (await this._prisma.user.findUnique({
+			sending_user = (await this._prisma_service.user.findUnique({
 				select: {
 					blocked: {
 						select: {
@@ -373,7 +372,7 @@ export class FriendRequestService {
 		}
 
 		if (!receiving_user) {
-			receiving_user = await this._prisma.user.findUnique({
+			receiving_user = await this._prisma_service.user.findUnique({
 				select: {
 					blocked: {
 						select: {
@@ -434,7 +433,7 @@ export class FriendRequestService {
 				receiving_user,
 			);
 		} else {
-			await this._prisma.user.update({
+			await this._prisma_service.user.update({
 				data: {
 					pendingFriendRequests: {
 						connect: {

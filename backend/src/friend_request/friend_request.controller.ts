@@ -33,9 +33,8 @@ import { UserService } from "src/user/user.service";
 @Controller("friend_request")
 @UseGuards(Jwt2FAGuard)
 export class FriendRequestController {
-	// REMIND: check if passing `_friend_request_service` in readonly keep it working well
 	private readonly _chat_gateway: ChatGateway;
-	private _friend_request_service: FriendRequestService;
+	private readonly _friend_request_service: FriendRequestService;
 	private readonly _user_service: UserService;
 	private readonly _logger: Logger;
 
@@ -97,7 +96,6 @@ export class FriendRequestController {
 	): Promise<void> {
 		try {
 			await this._friend_request_service.reject_one(request.user.id, dto.rejected_user_id);
-			
 		} catch (error) {
 			if (
 				error instanceof UserNotFoundError ||

@@ -2,124 +2,129 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
 model User {
-  id                      String           @id @unique @default(cuid())
-  login                   String           @unique
-  name                    String           @unique
-  avatar                  String           @default("resource/avatar/default.jpg") // !le choix de l'avatar
-  email                   String?          @unique
-  state                   StateType        @default(ACTIVE)
-  stateDate               DateTime         @default(now())
-  // par defaut se fait au niveau du signup
-  skin                    Skin             @relation(fields: [skinId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  elo                     Int              @default(0)
-  twoFactAuth             Boolean          @default(false)
-  twoFACode               String?
-  twoFACreationDate       DateTime?
-  channels                Channel[]        @relation("userchannels")
-  channelsOwned           Channel[]        @relation("chanowner")
-  gamesPlayed             Game[]           @relation("gamesplayed")
-  gamesWon                Game[]           @relation("gameswon")
-  friends                 User[]           @relation("friendship")
-  pendingFriendRequests   User[]           @relation("pending friendship")
-  blocked                 User[]           @relation("blocked")
-  directMessagesSent      DirectMessage[]  @relation("direct_message_sending")
-  directMessagesReceived  DirectMessage[]  @relation("direct_message_receiving")
-  // les champs ci-dessous sont neccessaires pour les relations mais
-  // ne sont pas accessibles par le client Prisma grace a l'attribut 
-  // @ignore.
-  // REMIND: Pour utiliser Prisma Studio, commenter les @ignore
-  mirrorBanned                Channel[]        @relation("banned_channel_members") //@ignore
-  mirrorMuted                 Channel[]        @relation("muted_channel_members") //@ignore
-  mirrorOperators             Channel[]        @relation("chanops") //@ignore
-  mirrorFriends               User[]           @relation("friendship") //@ignore
-  mirrorpendingFriendRequests User[]           @relation("pending friendship") //@ignore
-  mirrorBlocked               User[]           @relation("blocked") //@ignore
-  mirrorSender                ChannelMessage[] @relation("usermessage") //@ignore
-  // les champs ci-dessous sont neccessaires pour les relations
-  // mais n'existent pas reellement dans la bdd (foreign keys)
-  skinId                  String
+    id                          String           @id @unique @default(cuid())
+    login                       String           @unique
+    name                        String           @unique
+    avatar                      String           @default("resource/avatar/default.jpg") // !le choix de l'avatar
+    email                       String?          @unique
+    state                       StateType        @default(ACTIVE)
+    stateDate                   DateTime         @default(now())
+    // par defaut se fait au niveau du signup
+    skin                        Skin             @relation(fields: [skinId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    elo                         Int              @default(0)
+    twoFactAuth                 Boolean          @default(false)
+    twoFACode                   String?
+    twoFACreationDate           DateTime?
+    channels                    Channel[]        @relation("userchannels")
+    channelsOwned               Channel[]        @relation("chanowner")
+    games_played_as_player0     Game[]           @relation("games_played0")
+    games_played_as_player1     Game[]           @relation("games_played1")
+    gamesWon                    Game[]           @relation("gameswon")
+    friends                     User[]           @relation("friendship")
+    pendingFriendRequests       User[]           @relation("pending friendship")
+    blocked                     User[]           @relation("blocked")
+    directMessagesSent          DirectMessage[]  @relation("direct_message_sending")
+    directMessagesReceived      DirectMessage[]  @relation("direct_message_receiving")
+    // les champs ci-dessous sont neccessaires pour les relations mais
+    // ne sont pas accessibles par le client Prisma grace a l'attribut 
+    // @ignore.
+    // REMIND: Pour utiliser Prisma Studio, commenter les @ignore
+    mirrorBanned                Channel[]        @relation("banned_channel_members") //@ignore
+    mirrorMuted                 Channel[]        @relation("muted_channel_members") //@ignore
+    mirrorOperators             Channel[]        @relation("chanops") //@ignore
+    mirrorFriends               User[]           @relation("friendship") //@ignore
+    mirrorpendingFriendRequests User[]           @relation("pending friendship") //@ignore
+    mirrorBlocked               User[]           @relation("blocked") //@ignore
+    mirrorSender                ChannelMessage[] @relation("usermessage") //@ignore
+    // les champs ci-dessous sont neccessaires pour les relations
+    // mais n'existent pas reellement dans la bdd (foreign keys)
+    skinId                      String
 
-  @@unique(fields: [id, state], name: "idAndState")
-  @@unique(fields: [login, state], name: "loginAndState")
+    @@unique(fields: [id, state], name: "idAndState")
+    @@unique(fields: [login, state], name: "loginAndState")
 }
 
 model Channel {
-  id        String    @id @unique @default(cuid())
-  name      String    @unique
-  chanType  ChanType  @default(PUBLIC)
-  hash      String?
-  owner     User?            @relation("chanowner", fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  members   User[]           @relation("userchannels")
-  operators User[]           @relation("chanops")
-  banned	User[]           @relation("banned_channel_members")
-  muted     User[]           @relation("muted_channel_members")
-  messages  ChannelMessage[] @relation("channelmessage")
-  // les champs ci-dessous sont neccessaires pour les relations
-  // mais n'existent pas reellement dans la bdd (foreign keys)
-  ownerId   String?
+    id        String           @id @unique @default(cuid())
+    name      String           @unique
+    chanType  ChanType         @default(PUBLIC)
+    hash      String?
+    owner     User?            @relation("chanowner", fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    members   User[]           @relation("userchannels")
+    operators User[]           @relation("chanops")
+    banned    User[]           @relation("banned_channel_members")
+    muted     User[]           @relation("muted_channel_members")
+    messages  ChannelMessage[] @relation("channelmessage")
+    // les champs ci-dessous sont neccessaires pour les relations
+    // mais n'existent pas reellement dans la bdd (foreign keys)
+    ownerId   String?
 }
 
 model ChannelMessage {
-  id        String   @id @unique @default(cuid())
-  sender    User     @relation("usermessage", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  channel   Channel  @relation("channelmessage", fields: [channelId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  dateTime  DateTime @default(now())
-  content   String
-  // les champs ci-dessous sont neccessaires pour les relations
-  // mais n'existent pas reellement dans la bdd (foreign keys)
-  senderId  String
-  channelId String
+    id        String   @id @unique @default(cuid())
+    sender    User     @relation("usermessage", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    channel   Channel  @relation("channelmessage", fields: [channelId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    dateTime  DateTime @default(now())
+    content   String
+    // les champs ci-dessous sont neccessaires pour les relations
+    // mais n'existent pas reellement dans la bdd (foreign keys)
+    senderId  String
+    channelId String
 }
 
 model DirectMessage {
-  id         String   @id @unique @default(cuid())
-  sender     User     @relation("direct_message_sending", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  receiver   User     @relation("direct_message_receiving", fields: [receiverId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  dateTime   DateTime @default(now())
-  content    String
-  // les champs ci-dessous sont neccessaires pour les relations
-  // mais n'existent pas reellement dans la bdd (foreign keys)
-  senderId   String
-  receiverId String
+    id         String   @id @unique @default(cuid())
+    sender     User     @relation("direct_message_sending", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    receiver   User     @relation("direct_message_receiving", fields: [receiverId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    dateTime   DateTime @default(now())
+    content    String
+    // les champs ci-dessous sont neccessaires pour les relations
+    // mais n'existent pas reellement dans la bdd (foreign keys)
+    senderId   String
+    receiverId String
 }
 
 model Game {
-  id       String   @id @unique @default(cuid())
-  players  User[]   @relation("gamesplayed")
-  winner   User     @relation("gameswon", fields: [winnerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  scores   Int[]
-  dateTime DateTime @default(now())
-  // les champs ci-dessous sont neccessaires pour les relations
-  // mais n'existent pas reellement dans la bdd (foreign keys)
-  winnerId String
+    id         String   @id @unique @default(cuid())
+    player0    User     @relation("games_played0", fields: [player0_id], references: [id])
+    player1    User     @relation("games_played1", fields: [player1_id], references: [id])
+    winner     User     @relation("gameswon", fields: [winnerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    score0     Int
+    score1     Int
+    dateTime   DateTime @default(now())
+    // les champs ci-dessous sont neccessaires pour les relations
+    // mais n'existent pas reellement dans la bdd (foreign keys)
+    player0_id String
+    player1_id String
+    winnerId   String
 }
 
 model Skin {
-  id          String @id @unique @default(cuid())
-  name        String @unique
-  background  String
-  ball        String
-  paddle      String
-  users       User[]
+    id         String @id @unique @default(cuid())
+    name       String @unique
+    background String
+    ball       String
+    paddle     String
+    users      User[]
 }
 
 enum ChanType {
-  PUBLIC
-  PRIVATE
-  PROTECTED
+    PUBLIC
+    PRIVATE
+    PROTECTED
 }
 
 enum StateType {
-  ACTIVE
-  PENDING
-  DISABLED
+    ACTIVE
+    PENDING
+    DISABLED
 }
