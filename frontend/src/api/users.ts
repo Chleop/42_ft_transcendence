@@ -1,4 +1,5 @@
 import { Client, PrivateUser, User, UserId } from ".";
+import { NOTIFICATIONS } from "../notification";
 import { Soon } from "../strawberry";
 
 /**
@@ -100,6 +101,18 @@ export const Users = (function() {
             }
 
             if (me.id === user_update.id) {
+                const new_me: PrivateUser = user_update as PrivateUser;
+                let friend_found: UserId | undefined;
+                for (const new_pending of new_me.pending_friends_ids) {
+                    if (me.pending_friends_ids.indexOf(new_pending) === -1) {
+                        friend_found = new_pending;
+                        break;
+                    }
+                }
+
+                if (friend_found)
+                    NOTIFICATIONS.spawn_friend_invite("aquamarine", friend_found);
+
                 Object.assign(me, user_update);
             }
         }
