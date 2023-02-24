@@ -31,7 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
 			return await this._authService.get_user_auth(payload.sub);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
-				this._logger.error(error.message);
+				this._logger.log(error.message);
 				throw new UnauthorizedException(error.message);
 			}
 			this._logger.error("Unknown error type, this should not happen");
