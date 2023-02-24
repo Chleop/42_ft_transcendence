@@ -80,14 +80,13 @@ export class SpectatingGame extends OngoingGame {
                 right_player_container.classList.add("spectating-overlay-container");
                 this.overlay.appendChild(right_player_container);
 
-
                 const right_player_name = document.createElement("div");
                 right_player_name.innerText = data.opponent.name;
                 right_player_container.appendChild(right_player_name);
 
                 const right_player_avatar = document.createElement("img");
                 Users.invalidate_avatar(data.opponent.id);
-                right_player_avatar.src = Users.get_avatar(data.spectated.id);
+                right_player_avatar.src = Users.get_avatar(data.opponent.id);
                 right_player_container.appendChild(right_player_avatar);
             };
         });

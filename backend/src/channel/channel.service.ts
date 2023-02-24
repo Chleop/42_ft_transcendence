@@ -1316,7 +1316,7 @@ export class ChannelService {
 	 * 			- ChannelNotFoundError
 	 * 			- ChannelNotJoinedError
 	 *
-	 * @return	An empty promise.
+	 * @return	Whether the ownership of the channel changed.
 	 */
 	public async leave_one(
 		user_id: string,
@@ -1332,7 +1332,7 @@ export class ChannelService {
 				id: string;
 			}[];
 		} | null,
-	): Promise<void> {
+	): Promise<boolean> {
 		//#region
 		if (!channel) {
 			channel = await this._prisma_service.channel.findUnique({
@@ -1398,6 +1398,8 @@ export class ChannelService {
 		//#endregion
 
 		this._logger.log(`User ${user_id} left the channel ${channel_id}`);
+
+		return channel.owner!.id === user_id;
 	}
 	//#endregion
 
