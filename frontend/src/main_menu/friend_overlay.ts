@@ -1,4 +1,6 @@
 import { Client, GameSocket, GLOBAL_GAME_SOCKET, set_global_game_socket, User, Users } from "../api";
+import GAME_BOARD from "../game/game_board";
+import { SpectatingGame } from "../game/spectating_game";
 import { NOTIFICATIONS } from "../notification";
 import { History, State } from "../strawberry";
 import CHAT_ELEMENT from "./chat";
@@ -93,6 +95,14 @@ class FriendOverlay {
                 message.innerText = "M";
                 menu.appendChild(message);
 
+                const spectate = document.createElement("button");
+                spectate.innerText = "S";
+                spectate.onclick = () => {
+                    GAME_BOARD.start_game(new SpectatingGame(friend_id));
+                    History.push_state(GAME_BOARD);
+                };
+                menu.appendChild(spectate);
+
                 const invite = document.createElement("button");
                 invite.innerText = "I";
                 invite.onclick = () => {
@@ -108,6 +118,12 @@ class FriendOverlay {
                 menu.appendChild(invite);
 
                 const update_data = (user: User) => {
+                    if (user.status === "ingame") {
+                        spectate.style.display = "block";
+                    } else {
+                        spectate.style.display = "none";
+                    }
+
                     avatar.style.backgroundImage = `url(${Users.get_avatar(user.id)})`;
 
                     if (user.status !== "online") {

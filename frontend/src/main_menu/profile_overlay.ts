@@ -124,6 +124,8 @@ class ProfileOverlay {
                         }
 
                         Client.validate_2fa(code).then(() => {
+                            NOTIFICATIONS.spawn_notification("green", "2FA e-mail changed!");
+
                             Users.me().then(me => {
                                 if (me.email)
                                     me.email = editor_email.value;
@@ -143,7 +145,12 @@ class ProfileOverlay {
                         break;
                     }
                 }).catch(() => {
-                    editor_email.value = "";
+                    Users.me().then(me => {
+                        if (me.two_fact_auth && me.email)
+                            editor_email.value = me.email;
+                        else
+                            editor_email.value = "";
+                    });
                     editor_email.disabled = false;
 
                     NOTIFICATIONS.spawn_notification("red", "invalid EMAIL");

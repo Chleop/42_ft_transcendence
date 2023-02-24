@@ -7,6 +7,7 @@ import {
     SpectatorStateUpdate,
     User,
     UserId,
+    Users,
 } from "../api";
 import { History } from "../strawberry";
 
@@ -49,11 +50,6 @@ export class SpectatingGame extends OngoingGame {
         socket.on_update = (st) => this.on_spec_update(st);
         socket.on_score_update = (st) => this.on_score_updated(st);
 
-        this.future_game = new Promise(resolve => {
-            socket.on_room_data = resolve;
-        });
-
-        new Promise(() => { });
 
         this.game_started = false;
         this.socket = socket;
@@ -61,7 +57,40 @@ export class SpectatingGame extends OngoingGame {
         this.user_id = user_id;
 
         this.overlay = document.createElement("div");
+        this.overlay.id = "spectating-overlay";
 
+        this.future_game = new Promise(resolve => {
+            socket.on_room_data = data => {
+                resolve(data);
+
+                const left_player_container = document.createElement("div");
+                left_player_container.classList.add("spectating-overlay-container");
+                this.overlay.appendChild(left_player_container);
+
+                const left_player_avatar = document.createElement("img");
+                Users.invalidate_avatar(data.spectated.id);
+                left_player_avatar.src = Users.get_avatar(data.spectated.id);
+                left_player_container.appendChild(left_player_avatar);
+
+                const left_player_name = document.createElement("div");
+                left_player_name.innerText = data.spectated.name;
+                left_player_container.appendChild(left_player_name);
+
+                const right_player_container = document.createElement("div");
+                right_player_container.classList.add("spectating-overlay-container");
+                this.overlay.appendChild(right_player_container);
+
+
+                const right_player_name = document.createElement("div");
+                right_player_name.innerText = data.opponent.name;
+                right_player_container.appendChild(right_player_name);
+
+                const right_player_avatar = document.createElement("img");
+                Users.invalidate_avatar(data.opponent.id);
+                right_player_avatar.src = Users.get_avatar(data.spectated.id);
+                right_player_container.appendChild(right_player_avatar);
+            };
+        });
     }
 
     private on_score_updated(state: ScoreStateUpdate) {
@@ -124,7 +153,6 @@ export class SpectatingGame extends OngoingGame {
     }
 
     public get_skins(): SkinUrls {
-        // TODO: sync variable names with back
         return {
             left_background: this.future_game.then(d => Client.get_background(d.spectated.skin_id)),
             right_background: this.future_game.then(d => Client.get_background(d.opponent.skin_id)),
