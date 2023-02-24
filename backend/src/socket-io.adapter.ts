@@ -150,8 +150,9 @@ const websocketMiddleware =
 				} else if (e instanceof Error) {
 					logger.log(e.message);
 					next(new ForbiddenException(e.message));
+				} else {
+					logger.error(e.message || "non standard error");
+					next(new InternalServerErrorException("Unknown error in SocketIOAdapter"));
 				}
-				logger.error(e.message || "non standard error");
-				next(new InternalServerErrorException("Unknown error in SocketIOAdapter"));
 			}
 		};

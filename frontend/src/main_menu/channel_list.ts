@@ -191,7 +191,10 @@ export class ChannelListElement {
 			const priv = channel_private.classList.contains("active");
 			let password: string | undefined = undefined;
 			if (!priv && channel_password.value !== "") password = channel_password.value;
-			Client.create_channel(channel_name.value, priv, password)
+			let value = channel_name.value.trim();
+			if (value === "")
+				return;
+			Client.create_channel(value, priv, password)
 				.then((channel) => {
 					const ch = CHAT_ELEMENT.add_channel(channel);
 					CHAT_ELEMENT.set_selected_channel(ch);
