@@ -1,10 +1,10 @@
-export class ChannelNameAlreadyTakenError implements Error {
+export class UserEmailAlreadyTakenError implements Error {
 	private readonly _name: string;
 	private readonly _message: string;
 
 	constructor(details?: string) {
-		this._name = "ChannelNameAlreadyTakenError";
-		this._message = "Channel name is already taken";
+		this._name = "UserEmailAlreadyTakenError";
+		this._message = "User email is already taken";
 		if (details) {
 			this._message += ` (${details})`;
 		}

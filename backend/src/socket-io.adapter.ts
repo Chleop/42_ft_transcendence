@@ -1,6 +1,12 @@
 import { IUserPrivate } from "src/user/interface";
 import { UserService } from "src/user/user.service";
-import { BadRequestException, ForbiddenException, INestApplicationContext, InternalServerErrorException, Logger } from "@nestjs/common";
+import {
+	BadRequestException,
+	ForbiddenException,
+	INestApplicationContext,
+	InternalServerErrorException,
+	Logger,
+} from "@nestjs/common";
 import { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.interface";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
@@ -25,7 +31,7 @@ export class SocketIOAdapter extends IoAdapter {
 		this.app = app;
 		this.config_service = configService;
 		this.logger = new Logger(SocketIOAdapter.name);
-		this.logger.log("SocketIOAdapter instanciated.")
+		this.logger.log("SocketIOAdapter instanciated.");
 	}
 
 	/* PUBLIC ================================================================== */
@@ -61,13 +67,37 @@ export class SocketIOAdapter extends IoAdapter {
 
 		server
 			.of("chat")
-			.use(websocketMiddleware(this.logger, jwt_service, config_service, user_service, auth_service));
+			.use(
+				websocketMiddleware(
+					this.logger,
+					jwt_service,
+					config_service,
+					user_service,
+					auth_service,
+				),
+			);
 		server
 			.of("game")
-			.use(websocketMiddleware(this.logger, jwt_service, config_service, user_service, auth_service));
+			.use(
+				websocketMiddleware(
+					this.logger,
+					jwt_service,
+					config_service,
+					user_service,
+					auth_service,
+				),
+			);
 		server
 			.of("spectate")
-			.use(websocketMiddleware(this.logger, jwt_service, config_service, user_service, auth_service));
+			.use(
+				websocketMiddleware(
+					this.logger,
+					jwt_service,
+					config_service,
+					user_service,
+					auth_service,
+				),
+			);
 
 		return server;
 	}
@@ -124,5 +154,4 @@ const websocketMiddleware =
 					next(new ForbiddenException(e.message));
 				}
 				next(new InternalServerErrorException("Unknown error in SocketIOAdapter"));
-			}
-		};
+			};

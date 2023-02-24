@@ -6,18 +6,19 @@ import { GameRoom } from "./rooms";
 import { Match } from "./aliases";
 import { Results, OpponentUpdate } from "./objects";
 import { Matchmaking } from "./matchmaking";
-import { BadEvent, WrongData } from "./exceptions";
+import { BadEvent, FailedMatchmaking } from "./exceptions";
 
 /**
  * Game rooms manager.
  *
+ * Observes rooms.
  * Holds the matchmaking unit.
  */
 @Injectable()
 export class GameService {
 	private readonly prisma_service: PrismaService;
-	private game_rooms: Set<GameRoom>;
 	private readonly matchmaking: Matchmaking;
+	private game_rooms: Set<GameRoom>;
 	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
@@ -37,13 +38,7 @@ export class GameService {
 	public async registerGameHistory(room: GameRoom, results: Results): Promise<Match> {
 		const match: Match = room.match;
 		try {
-			// REMIND: Check if the following is still needed
-			// Avoid prisma's own way of ordering datas...
-			// let scores: number[] = [results.scores.player1_score, results.scores.player2_score];
-			// if (match.player2.data.user.id < match.player1.data.user.id) scores.reverse();
-
 			await this.prisma_service.game.create({
-				//#region
 				data: {
 					player0: {
 						connect: {
@@ -65,8 +60,6 @@ export class GameService {
 					dateTime: new Date(results.date),
 				},
 			});
-			//#endregion
-
 			this.logger.log(`Saved game '${room.match.name}' to database`);
 		} catch (error) {
 			if (error instanceof PrismaClientKnownRequestError) {
@@ -90,12 +83,8 @@ export class GameService {
 	 * Trying to match client with another player.
 	 */
 	public queueUp(client: Socket): GameRoom | { is_invite: boolean } {
-		try {
-			this.findUserGame(client.data.user.id);
-			throw new BadEvent("Player already in game");
-		} catch (e) {
-			if (e instanceof BadEvent) throw e;
-		}
+		if (this.findUserGame(client.data.user.id) !== null)
+			throw new FailedMatchmaking("Player already in game");
 		this.logger.verbose(`${client.data.user.login} entering matchmaking.`);
 		const queue_result: GameRoom | { is_invite: boolean } = this.matchmaking.queueUp(client);
 		if (!(queue_result instanceof GameRoom)) {
@@ -150,9 +139,9 @@ export class GameService {
 	}
 
 	/**
-	 * Returns game room with associated user_id.
+	 * Returns game room with associated user_id or null.
 	 */
-	public findUserGame(user_id: string): GameRoom {
+	public findUserGame(user_id: string): GameRoom | null {
 		for (const obj of this.game_rooms) {
 			if (
 				obj.match.player1.data.user.id === user_id ||
@@ -160,7 +149,7 @@ export class GameService {
 			)
 				return obj;
 		}
-		throw new WrongData("Room does not exist");
+		return null;
 	}
 
 	/* PRIVATE ================================================================= */
