@@ -1,4 +1,4 @@
-import { Client, UnexpectedStatusCode, Users } from "../api";
+import { Client, PrivateUser, UnexpectedStatusCode, Users } from "../api";
 import { NOTIFICATIONS } from "../notification";
 import { State } from "../strawberry";
 import { rank_to_image, ratio_to_rank } from "../utility";
@@ -175,8 +175,7 @@ class ProfileOverlay {
         card.appendChild(game_history);
 
         Users.me().then((me) => {
-            const update_elements = (me) => {
-
+            const update_elements = (me: PrivateUser) => {
                 Client.get_all_skins().then(skins => {
                     for (const skin of skins) {
                         const skin_button = document.createElement("button");
@@ -310,7 +309,7 @@ class ProfileOverlay {
                 }
             };
 
-            Users.subscribe(me.id, update_elements);
+            Users.subscribe(me.id, (user) => update_elements(<PrivateUser>user));
 
             update_elements(me);
         });

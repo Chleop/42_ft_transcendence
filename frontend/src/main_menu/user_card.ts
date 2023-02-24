@@ -199,6 +199,7 @@ class UserCardElement {
 			const is_admin =
 				channel?.owner_id === user.id || channel?.operators_ids?.indexOf(user.id) !== -1;
 			const is_banned: boolean = !!channel && channel.banned_ids.indexOf(user.id) !== -1;
+			console.debug(channel?.banned_ids, is_banned, user.id);
 
 			// Otherwise, at least those three buttons will appear.
 			this.friend_button.style.display = "block";
@@ -388,7 +389,6 @@ class UserCardElement {
 				};
 
 				if (is_banned) {
-
 					this.ban_button.innerText = "Unban";
 
 					this.ban_button.onclick = () => {
