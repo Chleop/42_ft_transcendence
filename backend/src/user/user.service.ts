@@ -1707,6 +1707,10 @@ export class UserService {
 				user.avatar = `resource/avatar/${id}.png`;
 				break;
 
+			case jimp.MIME_GIF:
+				user.avatar = `resource/avatar/${id}.gif`;
+				break;
+
 			default:
 				throw new UserAvatarFileFormatError(mime);
 		}
