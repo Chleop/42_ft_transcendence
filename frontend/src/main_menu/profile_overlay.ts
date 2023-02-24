@@ -175,78 +175,144 @@ class ProfileOverlay {
         card.appendChild(game_history);
 
         Users.me().then((me) => {
-            Client.get_all_skins().then(skins => {
-                for (const skin of skins) {
-                    const skin_button = document.createElement("button");
-                    skin_button.classList.add("profile-skin-button");
+            const update_elements = (me) => {
 
-                    if (skin.id === me.skin_id) {
-                        skin_button.classList.add("profile-current-skin");
-                        this.current_skin = skin_button;
-                    }
+                Client.get_all_skins().then(skins => {
+                    for (const skin of skins) {
+                        const skin_button = document.createElement("button");
+                        skin_button.classList.add("profile-skin-button");
 
-                    const content = document.createElement("div");
-                    content.classList.add("profile-skin-content");
-                    content.innerText = skin.name;
-                    skin_button.appendChild(content);
-
-                    Client.get_background(skin.id).then(url => {
-                        skin_button.style.backgroundImage = `url('${url}')`;
-                    });
-
-                    skin_picker.appendChild(skin_button);
-
-                    skin_button.onclick = () => {
-                        Client.patch_user({
-                            skin_id: skin.id,
-                        }).then(() => {
-                            this.current_skin.classList.remove("profile-current-skin");
+                        if (skin.id === me.skin_id) {
+                            skin_button.classList.add("profile-current-skin");
                             this.current_skin = skin_button;
-                            this.current_skin.classList.add("profile-current-skin");
+                        }
 
-                            me.skin_id = skin.id;
+                        const content = document.createElement("div");
+                        content.classList.add("profile-skin-content");
+                        content.innerText = skin.name;
+                        skin_button.appendChild(content);
+
+                        Client.get_background(skin.id).then(url => {
+                            skin_button.style.backgroundImage = `url('${url}')`;
                         });
-                    };
+
+                        skin_picker.appendChild(skin_button);
+
+                        skin_button.onclick = () => {
+                            Client.patch_user({
+                                skin_id: skin.id,
+                            }).then(() => {
+                                this.current_skin.classList.remove("profile-current-skin");
+                                this.current_skin = skin_button;
+                                this.current_skin.classList.add("profile-current-skin");
+
+                                me.skin_id = skin.id;
+                            });
+                        };
+                    }
+                });
+
+                avatar.src = Users.get_avatar(me.id);
+                name.innerText = me.name;
+
+                let wins = 0;
+                let losses = 0;
+                for (const game of me.games_played) {
+                    if (game.winner_id === me.id) {
+                        wins += 1;
+                    } else {
+                        losses += 1;
+                    }
                 }
-            });
 
-            avatar.src = Users.get_avatar(me.id);
-            name.innerText = me.name;
+                rank.src = rank_to_image(ratio_to_rank(wins, losses));
+                scores.innerText = `${wins} W / ${losses} L`;
 
-            let wins = 0;
-            let losses = 0;
-            for (const game of me.games_played) {
-                if (game.winner_id === me.id) {
-                    wins += 1;
+                editor_name.value = me.name;
+                if (me.two_fact_auth && me.email) {
+                    editor_email.value = me.email;
                 } else {
-                    losses += 1;
+                    editor_email.value = "";
                 }
-            }
 
-            rank.src = rank_to_image(ratio_to_rank(wins, losses));
-            scores.innerText = `${wins} W / ${losses} L`;
+                avatar_input.onchange = () => {
+                    if (avatar_input.files && avatar_input.files[0]) {
+                        const file = avatar_input.files[0];
+                        Client.set_avatar(file).then(() => {
+                            const new_url = URL.createObjectURL(file);
+                            // Users.set_avatar(me.id, new_url);
+                            avatar.src = new_url;
+                        }).catch((e) => {
+                            if (e instanceof UnexpectedStatusCode)
+                                NOTIFICATIONS.spawn_notification("red", e.message || "failed to set the avatar");
+                        });
+                    }
+                };
 
-            editor_name.value = me.name;
-            if (me.two_fact_auth && me.email) {
-                editor_email.value = me.email;
-            } else {
-                editor_email.value = "";
-            }
+                while (this.game_history.firstChild)
+                    this.game_history.firstChild.remove();
 
-            avatar_input.onchange = () => {
-                if (avatar_input.files && avatar_input.files[0]) {
-                    const file = avatar_input.files[0];
-                    Client.set_avatar(file).then(() => {
-                        const new_url = URL.createObjectURL(file);
-                        // Users.set_avatar(me.id, new_url);
-                        avatar.src = new_url;
-                    }).catch((e) => {
-                        if (e instanceof UnexpectedStatusCode)
-                            NOTIFICATIONS.spawn_notification("red", e.message || "failed to set the avatar");
+                for (const result of me.games_played) {
+                    const my_idx = (me.id === result.players_ids[0]) ? 0 : 1;
+
+                    const game_container = document.createElement("li");
+                    game_container.classList.add("profile-game-container");
+                    this.game_history.prepend(game_container);
+
+                    const my_avatar = document.createElement("img");
+                    my_avatar.classList.add("profile-game-avatar");
+                    game_container.appendChild(my_avatar);
+
+                    const my_score = document.createElement("div");
+                    my_score.classList.add("profile-game-score");
+                    game_container.appendChild(my_score);
+
+                    const separator = document.createElement("div");
+                    separator.classList.add("profile-game-separator");
+                    separator.innerText = "-";
+                    game_container.appendChild(separator);
+
+                    const their_score = document.createElement("div");
+                    their_score.classList.add("profile-game-score");
+                    game_container.appendChild(their_score);
+
+                    const their_avatar = document.createElement("img");
+                    their_avatar.classList.add("profile-game-avatar");
+                    game_container.appendChild(their_avatar);
+
+                    const their_name = document.createElement("div");
+                    their_name.classList.add("profile-game-their-name");
+                    game_container.appendChild(their_name);
+
+                    const box_color = document.createElement("div");
+                    box_color.classList.add("profile-game-box-color");
+                    if (result.winner_id === me.id)
+                        box_color.style.backgroundColor = "#44FF66";
+                    else
+                        box_color.style.backgroundColor = "#FF4444";
+
+                    box_color.style.backgroundColor
+                    game_container.appendChild(box_color);
+
+                    const time = document.createElement("div");
+                    time.classList.add("profile-game-time");
+                    const date = new Date(result.date_time);
+                    time.innerText = `${date.toLocaleTimeString()} ${date.toLocaleDateString()}`;
+                    game_container.appendChild(time);
+
+                    my_score.innerText = "" + result.scores[my_idx];
+                    my_avatar.src = Users.get_avatar(result.players_ids[my_idx]);
+                    their_score.innerText = "" + result.scores[1 - my_idx];
+                    their_avatar.src = Users.get_avatar(result.players_ids[1 - my_idx]);
+                    Users.get(result.players_ids[1 - my_idx]).then(u => {
+                        their_name.innerText = u.name;
                     });
                 }
             };
 
+            Users.subscribe(me.id, update_elements);
+
+            update_elements(me);
         });
 
         this.html.appendChild(container);
@@ -255,68 +321,6 @@ class ProfileOverlay {
     }
 
     public on_entered(): void {
-        while (this.game_history.firstChild)
-            this.game_history.firstChild.remove();
-
-        Users.me().then((me) => {
-            for (const result of me.games_played) {
-                const my_idx = (me.id === result.players_ids[0]) ? 0 : 1;
-
-                const game_container = document.createElement("li");
-                game_container.classList.add("profile-game-container");
-                this.game_history.prepend(game_container);
-
-                const my_avatar = document.createElement("img");
-                my_avatar.classList.add("profile-game-avatar");
-                game_container.appendChild(my_avatar);
-
-                const my_score = document.createElement("div");
-                my_score.classList.add("profile-game-score");
-                game_container.appendChild(my_score);
-
-                const separator = document.createElement("div");
-                separator.classList.add("profile-game-separator");
-                separator.innerText = "-";
-                game_container.appendChild(separator);
-
-                const their_score = document.createElement("div");
-                their_score.classList.add("profile-game-score");
-                game_container.appendChild(their_score);
-
-                const their_avatar = document.createElement("img");
-                their_avatar.classList.add("profile-game-avatar");
-                game_container.appendChild(their_avatar);
-
-                const their_name = document.createElement("div");
-                their_name.classList.add("profile-game-their-name");
-                game_container.appendChild(their_name);
-
-                const box_color = document.createElement("div");
-                box_color.classList.add("profile-game-box-color");
-                if (result.winner_id === me.id)
-                    box_color.style.backgroundColor = "#44FF66";
-                else
-                    box_color.style.backgroundColor = "#FF4444";
-
-                box_color.style.backgroundColor
-                game_container.appendChild(box_color);
-
-                const time = document.createElement("div");
-                time.classList.add("profile-game-time");
-                const date = new Date(result.date_time);
-                time.innerText = `${date.toLocaleTimeString()} ${date.toLocaleDateString()}`;
-                game_container.appendChild(time);
-
-                my_score.innerText = "" + result.scores[my_idx];
-                my_avatar.src = Users.get_avatar(result.players_ids[my_idx]);
-                their_score.innerText = "" + result.scores[1 - my_idx];
-                their_avatar.src = Users.get_avatar(result.players_ids[1 - my_idx]);
-                Users.get(result.players_ids[1 - my_idx]).then(u => {
-                    their_name.innerText = u.name;
-                });
-            }
-        });
-
         this.html.classList.add("active");
     }
 
