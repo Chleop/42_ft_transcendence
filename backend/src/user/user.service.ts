@@ -612,7 +612,7 @@ export class UserService {
 		}
 
 		if (
-			await this._prisma_service.skin.findUnique({
+			!(await this._prisma_service.skin.findUnique({
 				//#region
 				select: {
 					id: true,
@@ -620,7 +620,7 @@ export class UserService {
 				where: {
 					name: "default",
 				},
-			})
+			}))
 			//#endregion
 		) {
 			throw new SkinNotFoundError("default");
