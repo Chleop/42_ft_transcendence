@@ -11,7 +11,7 @@ import { Server, Socket } from "socket.io";
 import { GameService } from "../game/game.service";
 import { GameRoom } from "../game/rooms";
 import { ScoreUpdate } from "../game/objects";
-import { WrongData } from "../game/exceptions";
+import { BadEvent, WrongData } from "../game/exceptions";
 import { Constants } from "../game/constants";
 
 import { SpectatorService } from "./spectator.service";
@@ -82,7 +82,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 				client.disconnect();
 				return;
 			}
-			this.logger.verbose("here");
+			this.sendError(client, "Broadcast error: unknown error");
 			throw e;
 		}
 	}
@@ -109,7 +109,13 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		} catch (e) {
 			if (e instanceof WrongData && client.data.valid_uid === true) {
 				return;
+			} else if (e instanceof BadEvent) {
+				this.sendError(client, e.message);
+				await this.handleDisconnect(client);
+				client.disconnect();
+				return;
 			}
+			this.sendError(client, "Broadcast error: unknown error");
 			throw e;
 		}
 		this.logger.log(`[${client.data.user.login} disconnected]`);
@@ -133,19 +139,9 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		const spectated_room: SpectatedRoom | null = this.spectator_service.getRoom(
 			game_room.match.name,
 		);
-
-		try {
-			const user_id: string = client.handshake.auth.user_id;
-			const room_data: RoomData = await this.spectator_service.retrieveRoomData(
-				user_id,
-				game_room,
-			);
-			client.emit("roomData", room_data);
-		} catch (e) {
-			this.logger.error(e.message);
-			this.sendError(client, e);
-			client.disconnect();
-		}
+		const user_id: string = client.handshake.auth.user_id;
+		const room_data: RoomData = this.spectator_service.retrieveRoomData(user_id, game_room);
+		client.emit("roomData", room_data);
 
 		if (spectated_room === null) {
 			this.logger.log(`Creating spectatedRoom: ${game_room.match.name}`);

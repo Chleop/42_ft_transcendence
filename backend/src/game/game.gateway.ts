@@ -79,6 +79,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				client.disconnect();
 				return;
 			}
+			this.sendError(client, "Broadcast error: unknown error");
 			throw e;
 		}
 	}
@@ -102,10 +103,21 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			await this.endGameEarly(client, room);
 			this.game_service.destroyRoom(room);
 		}
-		await this.chat_gateway.broadcast_to_online_related_users({
-			id: client.data.user.id,
-			status: e_user_status.ONLINE,
-		});
+		try {
+			await this.chat_gateway.broadcast_to_online_related_users({
+				id: client.data.user.id,
+				status: e_user_status.ONLINE,
+			});
+		} catch (e) {
+			if (e instanceof BadEvent) {
+				this.sendError(client, e.message);
+				await this.handleDisconnect(client);
+				client.disconnect();
+				return;
+			}
+			this.sendError(client, "Broadcast error: unknown error");
+			throw e;
+		}
 		this.logger.log(`[${client.data.user.login} disconnected]`);
 	}
 
@@ -131,6 +143,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				client.disconnect();
 				return;
 			}
+			this.sendError(client, "Broadcast error: unknown error");
 			throw e;
 		}
 	}
@@ -210,6 +223,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				me.disconnectRoom(room.match);
 				return;
 			}
+			me.sendError(room.match.player1, "Broadcast error: unknown error");
+			me.sendError(room.match.player2, "Broadcast error: unknown error");
 			throw e;
 		}
 	}
@@ -236,6 +251,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 					this.sendError(room.match.player1, e);
 					this.sendError(room.match.player2, e);
 				} else {
+					this.sendError(room.match.player1, "Broadcast error: unknown error");
+					this.sendError(room.match.player2, "Broadcast error: unknown error");
 					throw e;
 				}
 			}
