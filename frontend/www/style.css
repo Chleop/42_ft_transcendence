@@ -11,6 +11,10 @@ body {
   );
 }
 
+img {
+  object-fit: cover;
+}
+
 #main-menu-container {
   display: flex;
   flex-flow: column nowrap;
@@ -30,13 +34,15 @@ body {
 
 #main-menu-rank {
   flex-grow: 1;
+  aspect-ratio: 1;
 
   margin-top: 20px;
   margin-bottom: 20px;
 
-  background-position: center;
-  background-size: contain;
-  background-repeat: no-repeat;
+  object-fit: contain;
+
+  height: 100%;
+  min-height: 0;
 }
 
 .main-menu-button {
@@ -263,14 +269,13 @@ body {
 
 .message-avatar {
   position: relative;
+  object-fit: cover;
   height: 44px;
   width: 44px;
   min-width: 44px;
   min-height: 44px;
   flex-basis: 44px;
   border-radius: 1000px;
-  background-size: cover;
-  background-position: center;
   margin-right: 13px;
   margin-left: 3px;
   margin-top: 3px;
@@ -436,8 +441,6 @@ body {
   width: 100px;
   height: 100px;
   border-radius: 1000px;
-  background-size: cover;
-  background-position: center;
   margin-right: 20px;
   cursor: pointer;
   box-shadow: 0px 3px 20px 0px rgba(255, 255, 255, 0.6);
@@ -604,14 +607,12 @@ body {
 }
 
 .playing-game-overlay-rank {
+  object-fit: cover;
   position: absolute;
   bottom: 20px;
   right: 20px;
   width: 10vmin;
   height: 10vmin;
-
-  background-position: center;
-  background-size: cover;
 }
 
 .playing-game-overlay-name {

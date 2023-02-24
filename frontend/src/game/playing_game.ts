@@ -12,13 +12,13 @@ function create_overlay(user: User): HTMLDivElement {
     avatar_container.classList.add("playing-game-overlay-avatar-container");
     result.appendChild(avatar_container);
 
-    const avatar = document.createElement("div");
-    avatar.style.backgroundImage = `url('${Users.get_avatar(user.id)}')`;
+    const avatar = document.createElement("img");
+    avatar.src = Users.get_avatar(user.id);
     avatar.classList.add("playing-game-overlay-avatar");
     avatar_container.appendChild(avatar);
 
-    const rank = document.createElement("div");
-    rank.style.backgroundImage = `url('${rank_to_image(ratio_to_rank(user.games_won_count, user.games_played_count - user.games_won_count))}')`;
+    const rank = document.createElement("img");
+    rank.src = rank_to_image(ratio_to_rank(user.games_won_count, user.games_played_count - user.games_won_count));
     rank.classList.add("playing-game-overlay-rank");
     avatar_container.appendChild(rank);
 

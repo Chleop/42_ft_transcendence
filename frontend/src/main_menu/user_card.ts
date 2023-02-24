@@ -19,10 +19,10 @@ class UserCardElement {
 	private screen: HTMLDivElement;
 	private card: HTMLDivElement;
 	private banner: HTMLDivElement;
-	private avatar: HTMLDivElement;
+	private avatar: HTMLImageElement;
 	private name: HTMLDivElement;
 	private wins: HTMLDivElement;
-	private rank: HTMLDivElement;
+	private rank: HTMLImageElement;
 	private status: HTMLDivElement;
 	private friend_button: HTMLButtonElement;
 	private blocked_button: HTMLButtonElement;
@@ -55,7 +55,7 @@ class UserCardElement {
 		header.id = "user-card-header";
 		content_container.appendChild(header);
 
-		const avatar = document.createElement("div");
+		const avatar = document.createElement("img");
 		avatar.id = "user-card-avatar";
 		header.appendChild(avatar);
 
@@ -75,7 +75,7 @@ class UserCardElement {
 		wins.id = "user-card-wins";
 		stats.appendChild(wins);
 
-		const rank = document.createElement("div");
+		const rank = document.createElement("img");
 		rank.id = "user-card-stats-rank";
 		stats.appendChild(rank);
 
@@ -174,7 +174,7 @@ class UserCardElement {
 			const rank: Rank = ratio_to_rank(wins, losses);
 			const url = rank_to_image(rank);
 
-			this.rank.style.backgroundImage = `url('${url}')`;
+			this.rank.src = url;
 			this.wins.innerText = `${wins} W / ${losses} L / ${percent_f}%`;
 		};
 
@@ -402,7 +402,7 @@ class UserCardElement {
 			}
 		});
 
-		this.avatar.style.backgroundImage = `url(\"${Users.get_avatar(user.id)}\")`;
+		this.avatar.src = Users.get_avatar(user.id);
 		Client.get_background(user.skin_id).then((url) => {
 			this.banner.style.backgroundImage = `url(\"${url}\")`;
 		});

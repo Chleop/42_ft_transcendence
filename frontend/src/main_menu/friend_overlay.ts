@@ -55,7 +55,7 @@ class FriendOverlay {
                 friend_entry.classList.add("friend-entry");
                 this.container.appendChild(friend_entry);
 
-                const avatar = document.createElement("div");
+                const avatar = document.createElement("img");
                 avatar.classList.add('friend-entry-avatar');
                 friend_entry.appendChild(avatar);
 
@@ -124,7 +124,7 @@ class FriendOverlay {
                         spectate.style.display = "none";
                     }
 
-                    avatar.style.backgroundImage = `url(${Users.get_avatar(user.id)})`;
+                    avatar.src = Users.get_avatar(user.id);
 
                     if (user.status !== "online") {
                         invite.style.display = "none";
