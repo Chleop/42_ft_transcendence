@@ -228,17 +228,20 @@ export class ChannelElement {
 		};
 		this.tab.onmouseup = (ev) => {
 			if (ev.button === 1) {
-				if (this.model) {
-					Client.leave_channel(this.model.id).then(() => {
+				(async () => {
+					if (this.model) {
+						try {
+							await Client.leave_channel(this.model.id);
+							chat.remove_channel(this);
+						} catch {
+							NOTIFICATIONS.spawn_notification("red", "failed to leave the channel...");
+						}
+					}
+
+					if (this.dm) {
 						chat.remove_channel(this);
-					}).catch(() => {
-						// WTF: why is this called again????
-						// (this todo, but it will never be resolved).
-					});
-				}
-				if (this.dm) {
-					chat.remove_channel(this);
-				}
+					}
+				})();
 
 				ev.preventDefault();
 				ev.stopPropagation();
@@ -411,7 +414,7 @@ class ChatElement {
 			if (msg.channelId) {
 				this.get_or_create_channel(msg.channelId).then(elem => {
 					this.add_message(elem, msg);
-				});
+				}).catch(() => { });
 			}
 			if (msg.receiverId) {
 				let ch;
