@@ -233,7 +233,9 @@ export class ChannelElement {
 						try {
 							await Client.leave_channel(this.model.id);
 							chat.remove_channel(this);
-						} catch { }
+						} catch {
+							NOTIFICATIONS.spawn_notification("red", "failed to leave the channel...");
+						}
 					}
 
 					if (this.dm) {
@@ -412,7 +414,7 @@ class ChatElement {
 			if (msg.channelId) {
 				this.get_or_create_channel(msg.channelId).then(elem => {
 					this.add_message(elem, msg);
-				});
+				}).catch(() => { });
 			}
 			if (msg.receiverId) {
 				let ch;
