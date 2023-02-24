@@ -228,17 +228,18 @@ export class ChannelElement {
 		};
 		this.tab.onmouseup = (ev) => {
 			if (ev.button === 1) {
-				if (this.model) {
-					Client.leave_channel(this.model.id).then(() => {
+				(async () => {
+					if (this.model) {
+						try {
+							await Client.leave_channel(this.model.id);
+							chat.remove_channel(this);
+						} catch { }
+					}
+
+					if (this.dm) {
 						chat.remove_channel(this);
-					}).catch(() => {
-						// WTF: why is this called again????
-						// (this todo, but it will never be resolved).
-					});
-				}
-				if (this.dm) {
-					chat.remove_channel(this);
-				}
+					}
+				})();
 
 				ev.preventDefault();
 				ev.stopPropagation();
