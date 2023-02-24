@@ -121,8 +121,6 @@ export class GameSocket {
             set_global_game_socket(null);
         });
         this.socket.on("matchFound", (found: MatchFound) => {
-            // History.go_back();
-            // setTimeout(() => {
             Users.me().then((me) => {
                 Users.get(found.id).then(user => {
                     GAME_BOARD.start_game(
@@ -133,8 +131,6 @@ export class GameSocket {
             });
 
             MAIN_MENU.set_game_span("Find Game");
-
-            // }, 1);
         });
 
         this.socket.on("gameStart", () => this.on_game_start());
@@ -149,11 +145,6 @@ export class GameSocket {
             this.on_score_updated(state)
         );
     }
-
-    /** Initiates the connection with the server. */
-    // public connect() {
-    //     this.socket.connect();
-    // }
 
     /** Dropes the connection with the server. */
     public disconnect() {
