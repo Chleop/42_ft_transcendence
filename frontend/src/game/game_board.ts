@@ -284,8 +284,10 @@ class GameBoardClass extends Scene {
     }
 
     public on_entered(prev: State): void {
-        if (!this.ongoing_game)
+        if (!this.ongoing_game) {
+            console.log("no ongoing game. Going back.");
             History.go_back();
+        }
         super.on_entered(prev);
     }
 
