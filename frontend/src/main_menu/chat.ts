@@ -189,6 +189,7 @@ export class ChannelElement {
 	public update_model(model: Channel) {
 		if (!this.model) throw "unreachable code";
 
+		console.log(model.banned_ids);
 		this.model = model;
 		this.tab.innerText = model.name;
 	}

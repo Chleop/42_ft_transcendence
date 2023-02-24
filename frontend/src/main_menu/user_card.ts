@@ -199,7 +199,6 @@ class UserCardElement {
 			const is_admin =
 				channel?.owner_id === user.id || channel?.operators_ids?.indexOf(user.id) !== -1;
 			const is_banned: boolean = !!channel && channel.banned_ids.indexOf(user.id) !== -1;
-			console.debug(channel?.banned_ids, is_banned, user.id);
 
 			// Otherwise, at least those three buttons will appear.
 			this.friend_button.style.display = "block";
@@ -395,6 +394,7 @@ class UserCardElement {
 						Client.unban(channel.id, user.id)
 							.then(() => {
 								NOTIFICATIONS.spawn_notification("green", "user unbanned. They are free to spam here again.");
+								this.show(null, user, channel);
 							})
 							.catch(() => {
 								NOTIFICATIONS.spawn_notification(
@@ -409,6 +409,7 @@ class UserCardElement {
 						Client.ban(channel.id, user.id)
 							.then(() => {
 								NOTIFICATIONS.spawn_notification("green", "user banned.");
+								this.show(null, user, channel);
 							})
 							.catch(() => {
 								NOTIFICATIONS.spawn_notification(
