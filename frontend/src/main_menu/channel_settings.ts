@@ -1,5 +1,6 @@
-import {Channel, Client, PrivateUser} from "../api";
-import {ChannelElement} from "./chat";
+import { Channel, Client, PrivateUser } from "../api";
+import { NOTIFICATIONS } from "../notification";
+import { ChannelElement } from "./chat";
 
 class ChannelSettings {
 	private screen: HTMLDivElement;
@@ -95,13 +96,15 @@ class ChannelSettings {
 				this.name.value = model.name;
 				this.name.onchange = () => {
 					if (this.name.value === "") return;
-					// TODO: check for errors.
 					Client.patch_channel(model.id, {
 						name: this.name.value,
 						password: undefined,
+					}).catch(() => {
+						NOTIFICATIONS.spawn_notification("red", "Failed to change channel's name.");
 					}).then(() => {
 						model.name = this.name.value;
 						channel.tab.innerText = this.name.value;
+						NOTIFICATIONS.spawn_notification("green", "Name changed!");
 					});
 				};
 
@@ -113,6 +116,9 @@ class ChannelSettings {
 							password: null,
 						}).then(() => {
 							model.type = "PUBLIC";
+							NOTIFICATIONS.spawn_notification("green", "Password removed!")
+						}).catch(() => {
+							NOTIFICATIONS.spawn_notification("red", "Failed remove the channel's password.");
 						});
 					else {
 						Client.patch_channel(model.id, {
@@ -120,6 +126,9 @@ class ChannelSettings {
 							password: this.password.value,
 						}).then(() => {
 							model.type = "PROTECTED";
+							NOTIFICATIONS.spawn_notification("green", "Password changed!");
+						}).catch(() => {
+							NOTIFICATIONS.spawn_notification("red", "Failed to change the passwod.");
 						});
 					}
 				};
