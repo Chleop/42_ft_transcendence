@@ -37,7 +37,7 @@ class ProfileOverlay {
         header.id = "profile-header";
         card.appendChild(header);
 
-        const avatar = document.createElement("div");
+        const avatar = document.createElement("img");
         avatar.id = "profile-avatar";
         const avatar_input = document.createElement("input");
         avatar_input.type = "file";
@@ -57,7 +57,7 @@ class ProfileOverlay {
         stats.id = "profile-stats";
         header_info.appendChild(stats);
 
-        const rank = document.createElement("div");
+        const rank = document.createElement("img");
         rank.id = "profile-stats-rank";
         stats.appendChild(rank);
 
@@ -124,6 +124,8 @@ class ProfileOverlay {
                         }
 
                         Client.validate_2fa(code).then(() => {
+                            NOTIFICATIONS.spawn_notification("green", "2FA e-mail changed!");
+
                             Users.me().then(me => {
                                 if (me.email)
                                     me.email = editor_email.value;
@@ -143,7 +145,12 @@ class ProfileOverlay {
                         break;
                     }
                 }).catch(() => {
-                    editor_email.value = "";
+                    Users.me().then(me => {
+                        if (me.two_fact_auth && me.email)
+                            editor_email.value = me.email;
+                        else
+                            editor_email.value = "";
+                    });
                     editor_email.disabled = false;
 
                     NOTIFICATIONS.spawn_notification("red", "invalid EMAIL");
@@ -202,7 +209,7 @@ class ProfileOverlay {
                 }
             });
 
-            avatar.style.backgroundImage = `url(\"${Users.get_avatar(me.id)}\")`;
+            avatar.src = Users.get_avatar(me.id);
             name.innerText = me.name;
 
             let wins = 0;
@@ -215,7 +222,7 @@ class ProfileOverlay {
                 }
             }
 
-            rank.style.backgroundImage = `url('${rank_to_image(ratio_to_rank(wins, losses))}')`;
+            rank.src = rank_to_image(ratio_to_rank(wins, losses));
             scores.innerText = `${wins} W / ${losses} L`;
 
             editor_name.value = me.name;
@@ -231,7 +238,7 @@ class ProfileOverlay {
                     Client.set_avatar(file).then(() => {
                         const new_url = URL.createObjectURL(file);
                         // Users.set_avatar(me.id, new_url);
-                        avatar.style.backgroundImage = `url(\"${new_url}\")`;
+                        avatar.src = new_url;
                     }).catch((e) => {
                         if (e instanceof UnexpectedStatusCode)
                             NOTIFICATIONS.spawn_notification("red", e.message || "failed to set the avatar");
@@ -258,7 +265,7 @@ class ProfileOverlay {
                 game_container.classList.add("profile-game-container");
                 this.game_history.prepend(game_container);
 
-                const my_avatar = document.createElement("div");
+                const my_avatar = document.createElement("img");
                 my_avatar.classList.add("profile-game-avatar");
                 game_container.appendChild(my_avatar);
 
@@ -275,7 +282,7 @@ class ProfileOverlay {
                 their_score.classList.add("profile-game-score");
                 game_container.appendChild(their_score);
 
-                const their_avatar = document.createElement("div");
+                const their_avatar = document.createElement("img");
                 their_avatar.classList.add("profile-game-avatar");
                 game_container.appendChild(their_avatar);
 
@@ -300,9 +307,9 @@ class ProfileOverlay {
                 game_container.appendChild(time);
 
                 my_score.innerText = "" + result.scores[my_idx];
-                my_avatar.style.backgroundImage = `url(\"${Users.get_avatar(result.players_ids[my_idx])}\")`;
+                my_avatar.src = Users.get_avatar(result.players_ids[my_idx]);
                 their_score.innerText = "" + result.scores[1 - my_idx];
-                their_avatar.style.backgroundImage = `url(\"${Users.get_avatar(result.players_ids[1 - my_idx])}\")`;
+                their_avatar.src = Users.get_avatar(result.players_ids[1 - my_idx]);
                 Users.get(result.players_ids[1 - my_idx]).then(u => {
                     their_name.innerText = u.name;
                 });
