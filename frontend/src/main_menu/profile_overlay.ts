@@ -1,10 +1,10 @@
 import { Client, UnexpectedStatusCode, Users } from "../api";
 import { NOTIFICATIONS } from "../notification";
-import { History, Overlay, State } from "../strawberry";
+import { State } from "../strawberry";
 import { rank_to_image, ratio_to_rank } from "../utility";
 import MAIN_MENU from "./main_menu";
 
-class ProfileOverlay extends Overlay {
+class ProfileOverlay {
     private html: HTMLDivElement;
 
     private current_skin: HTMLButtonElement;
@@ -16,15 +16,13 @@ class ProfileOverlay extends Overlay {
     }
 
     public constructor() {
-        super();
-
         this.current_skin = document.createElement("button");
 
         this.html = document.createElement("div");
         this.html.id = "profile";
         this.html.onclick = e => {
             if (e.target === this.html) {
-                History.go_back();
+                this.html.classList.remove("active");
             }
         };
 
@@ -248,7 +246,7 @@ class ProfileOverlay extends Overlay {
         this.game_history = game_history;
     }
 
-    public on_entered(prev: State): void {
+    public on_entered(): void {
         while (this.game_history.firstChild)
             this.game_history.firstChild.remove();
 
@@ -311,7 +309,7 @@ class ProfileOverlay extends Overlay {
             }
         });
 
-        super.on_entered(prev);
+        this.html.classList.add("active");
     }
 
     public get root_html_element(): HTMLElement {

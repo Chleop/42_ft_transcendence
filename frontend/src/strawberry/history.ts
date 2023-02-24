@@ -62,6 +62,8 @@ export const History = (function() {
                     old_state.on_left(this.current_state);
                     this.current_state.on_entered(old_state);
                 }
+
+                console.log("going to state: ", this.current_state.location);
             };
 
             this.state_stack = [new EmptyState()];
@@ -72,6 +74,8 @@ export const History = (function() {
          * Go to a specific state, trying to burry the current one.
          */
         public push_state(new_state: State) {
+            console.log("pushing state: " + new_state.location);
+
             const new_state_index = this.state_stack_index + 1;
 
             const old_state = this.current_state;
@@ -89,6 +93,8 @@ export const History = (function() {
          * Replaces the current state by another.
          */
         public replace_state(new_state: State) {
+            console.log("replacing state: " + new_state.location);
+
             const old_state = this.current_state;
 
             window.history.replaceState(this.state_stack_index, "", new_state.location);
@@ -101,6 +107,8 @@ export const History = (function() {
          * Pops the current state.
          */
         public go_back() {
+            console.log("going back");
+
             if (this.state_stack_index == 0) {
                 if (this.default_state)
                     this.replace_state(this.default_state);

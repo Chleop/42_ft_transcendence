@@ -76,7 +76,7 @@ class MainMenuScene extends Scene {
         profile_span.innerText = "Profile";
         profile.appendChild(profile_span);
         profile.onclick = () => {
-            History.push_state(PROFILE_OVERLAY);
+            PROFILE_OVERLAY.on_entered();
         };
         this.container.appendChild(profile);
 
@@ -86,7 +86,9 @@ class MainMenuScene extends Scene {
         const friends_span = document.createElement("div");
         friends_span.innerText = "Friends";
         friends_button.appendChild(friends_span);
-        friends_button.onclick = () => History.push_state(FRIEND_OVERLAY);
+        friends_button.onclick = () => {
+            FRIEND_OVERLAY.on_entered();
+        }
         this.container.appendChild(friends_button);
 
         this.container.appendChild(CHAT_ELEMENT.html);
