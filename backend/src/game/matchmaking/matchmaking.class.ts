@@ -116,7 +116,10 @@ export class Matchmaking {
 		const friend: Socket | null = this.findPendingUser(client.handshake.auth.friend);
 		if (friend) {
 			// Friend is in queue
-			return this.matchWithFriend(client, friend);
+			if (friend.handshake.auth.friend === client.data.user.id) {
+				// Friend is also awaiting client
+				return this.matchWithFriend(client, friend);
+			}
 		}
 
 		const player: Socket | null = this.findPendingUser(client.data.user.id);
