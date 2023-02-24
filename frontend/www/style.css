@@ -455,6 +455,9 @@ img {
   font-size: 30px;
   font-weight: 600;
   white-space: nowrap;
+
+  max-width: 400px;
+  overflow-x: hidden;
 }
 
 #profile-edit-button {
