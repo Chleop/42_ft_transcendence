@@ -65,17 +65,17 @@ export class SocketIOAdapter extends IoAdapter {
 
 		const server: Server = super.createIOServer(port, { ...options, cors });
 
+			.use(
+			websocketMiddleware(
+				this.logger,
+				jwt_service,
+				config_service,
+				user_service,
+				auth_service,
+			),
+		);
 		server
 			.of("chat")
-			.use(
-				websocketMiddleware(
-					this.logger,
-					jwt_service,
-					config_service,
-					user_service,
-					auth_service,
-				),
-			);
 		server
 			.of("game")
 			.use(
@@ -153,5 +153,7 @@ const websocketMiddleware =
 					logger.log(e.message);
 					next(new ForbiddenException(e.message));
 				}
+				logger.error(e.message || "non standard error");
 				next(new InternalServerErrorException("Unknown error in SocketIOAdapter"));
-			};
+			}
+		};
