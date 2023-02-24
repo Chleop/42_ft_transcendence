@@ -1,14 +1,13 @@
 import { Logger } from "@nestjs/common";
 import { Socket } from "socket.io";
 import { Match } from "../aliases";
-import { BadEvent, WrongData } from "../exceptions";
+import { FailedMatchmaking, WrongData } from "../exceptions";
 import { GameRoom } from "../rooms";
 
 /**
  * Matchmaking handler.
  *
- * Single spot as a queue for regular matchmaking,
- * special queue if they're awaiting someone.
+ * Single spot as a queue for regular matchmaking, special queue if they're awaiting someone.
  * When it is taken, matches with incomming connection.
  * Otherwise, they take this spot.
  */
@@ -40,7 +39,7 @@ export class Matchmaking {
 			this.queue?.data.user.id === client.data.user.id ||
 			this.queue_bouncy?.data.user.id === client.data.user.id
 		) {
-			throw new BadEvent(`${client.data.user.login} already in the queue`);
+			throw new FailedMatchmaking(`${client.data.user.login} already in the queue`);
 		}
 
 		if (client.handshake.auth.faithful === undefined)
@@ -133,6 +132,10 @@ export class Matchmaking {
 		return { is_invite: true };
 	}
 
+	/**
+	 * A friend was already in the queue waiting for a client.
+	 * Matches them together.
+	 */
 	private matchWithFriend(client: Socket, friend: Socket): GameRoom {
 		const match: Match = {
 			name: friend.data.user.id + client.data.user.id,

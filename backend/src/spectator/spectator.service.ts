@@ -1,20 +1,24 @@
 import { Injectable } from "@nestjs/common";
 import { GameRoom } from "../game/rooms";
 import { SpectatedRoom } from "./rooms";
-import { RoomData } from "./objects";
-// import { Socket } from "socket.io";
-// import { IUserPrivate } from "src/user/interface";
+import { RoomData } from "./aliases";
+import { UserService } from "src/user/user.service";
+import { IUserPublic } from "src/user/interface";
+import { BadEvent } from "src/game/exceptions";
+import { UserNotFoundError } from "src/user/error";
 
 /**
  * Spectated rooms handler.
  */
 @Injectable()
 export class SpectatorService {
+	private readonly user_service: UserService;
 	private rooms: Set<SpectatedRoom>;
 
 	/* CONSTRUCTOR ============================================================= */
 
-	constructor() {
+	constructor(user_service: UserService) {
+		this.user_service = user_service;
 		this.rooms = new Set<SpectatedRoom>();
 	}
 
@@ -23,21 +27,25 @@ export class SpectatorService {
 	/**
 	 * Retrieves each players infos, to be sent to the spectator.
 	 */
-	public retrieveRoomData(spectated_id: string, game_room: GameRoom): RoomData {
-		// try {
-		// const player1: Socket = game_room.match.player1;
-		// const player2: Socket = game_room.match.player2;
-		// if (player1.data.user.id === spectated_id)
-		return new RoomData(spectated_id, game_room);
-		// return { player1: player_infos1, player2: player_infos2 };
-		// } catch (e) {
-		// 	if (e instanceof UserNotFoundError) {
-		// 		throw new BadRequestException(e.message);
-		// 	} else if (e instanceof UserNotLinkedError) {
-		// 		throw new ForbiddenException(e.message);
-		// 	}
-		// 	throw new InternalServerErrorException();
-		// }
+	public async retrieveRoomData(spectated_id: string, game_room: GameRoom): Promise<RoomData> {
+		try {
+			const player1: IUserPublic = await this.user_service.get_one(
+				game_room.match.player1.data.user.id,
+			);
+			const player2: IUserPublic = await this.user_service.get_one(
+				game_room.match.player2.data.user.id,
+			);
+
+			const spectated: IUserPublic = player1.id === spectated_id ? player1 : player2;
+			const opponent: IUserPublic = player1.id === spectated_id ? player2 : player1;
+			return {
+				spectated,
+				opponent,
+			};
+		} catch (e) {
+			if (e instanceof UserNotFoundError) throw new BadEvent(e.message);
+			throw e;
+		}
 	}
 
 	/**

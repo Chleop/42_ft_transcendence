@@ -8,35 +8,42 @@ import { GameRoom } from "../../game/rooms";
  */
 export class SpectatedRoom {
 	public readonly game_room: GameRoom;
-	public spectators: Socket[];
+	public spectators: Set<Socket>;
 	public ping_id: NodeJS.Timer;
 
 	constructor(room: GameRoom, id: NodeJS.Timer) {
 		this.game_room = room;
 		this.ping_id = id;
-		this.spectators = [];
+		this.spectators = new Set<Socket>();
 	}
 
 	/* PUBLIC ================================================================== */
 
 	public addSpectator(client: Socket): void {
-		this.spectators.push(client);
+		this.spectators.add(client);
 	}
 
 	public removeSpectator(client: Socket): void {
-		const index: number = this.spectators.findIndex((obj) => {
-			return obj.data.user.id === client.data.user.id;
-		});
-		if (index < 0) return;
-		this.spectators.splice(index, 1);
+		const spectator: Socket | null = this.findSpectator(client);
+		if (spectator === null) return;
+		this.spectators.delete(spectator);
 	}
 
 	public isEmpty(): boolean {
-		if (this.spectators.length === 0) return true;
+		if (this.spectators.size === 0) return true;
 		return false;
 	}
 
 	public getName(): string {
 		return this.game_room.match.name;
+	}
+
+	/* PRIVATE ================================================================= */
+
+	private findSpectator(client: Socket): Socket | null {
+		for (const obj of this.spectators) {
+			if (obj.id === client.id) return obj;
+		}
+		return null;
 	}
 }

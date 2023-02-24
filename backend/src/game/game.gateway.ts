@@ -15,7 +15,7 @@ import { Ball } from "./gameplay";
 import { Match } from "./aliases";
 import { BadRequestException, ConflictException, Logger } from "@nestjs/common";
 import { Constants } from "./constants";
-import { BadEvent, WrongData } from "./exceptions";
+import { BadEvent, FailedMatchmaking, WrongData } from "./exceptions";
 import { ChatGateway } from "src/chat/chat.gateway";
 import { e_user_status } from "src/user/enum";
 
@@ -64,6 +64,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		try {
 			const queue_result: GameRoom | { is_invite: boolean } =
 				this.game_service.queueUp(client);
+
 			if (queue_result instanceof GameRoom) await this.matchmake(queue_result);
 			else if (queue_result.is_invite === true) {
 				this.chat_gateway.forward_to_user_socket(
@@ -74,12 +75,20 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			}
 		} catch (e) {
 			if (e instanceof BadEvent || e instanceof WrongData) {
+				this.logger.error(e.message);
 				this.sendError(client, e);
-				await this.handleDisconnect(client);
+				this.handleDisconnect(client);
 				client.disconnect();
-				return;
+			} else if (e instanceof FailedMatchmaking) {
+				this.logger.error(e.message);
+				this.sendError(client, e.message);
+				client.disconnect();
+				this.logger.log(`[${client.data.user.login} disconnected]`);
+			} else {
+				this.logger.error(e);
+				this.sendError(client, "Broadcast error: unknown error");
+				throw e;
 			}
-			throw e;
 		}
 	}
 
@@ -93,19 +102,31 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 	 */
 	public async handleDisconnect(client: Socket): Promise<void> {
 		const room: GameRoom | null = this.game_service.unQueue(client);
-		if (room !== null) {
-			const timer: NodeJS.Timer | undefined = this.timeouts.get(room.match.name);
-			if (timer !== undefined) {
-				clearTimeout(timer);
-				this.timeouts.delete(room.match.name);
+		try {
+			if (room !== null) {
+				const timer: NodeJS.Timer | undefined = this.timeouts.get(room.match.name);
+				if (timer !== undefined) {
+					clearTimeout(timer);
+					this.timeouts.delete(room.match.name);
+				}
+				await this.endGameEarly(client, room);
+				this.game_service.destroyRoom(room);
 			}
-			await this.endGameEarly(client, room);
-			this.game_service.destroyRoom(room);
+			await this.chat_gateway.broadcast_to_online_related_users({
+				id: client.data.user.id,
+				status: e_user_status.ONLINE,
+			});
+		} catch (e) {
+			if (e instanceof BadEvent) {
+				this.logger.error(e.message);
+				this.sendError(client, e.message);
+				client.disconnect();
+				return;
+			}
+			this.logger.error(e);
+			this.sendError(client, "Broadcast error: unknown error");
+			throw e;
 		}
-		await this.chat_gateway.broadcast_to_online_related_users({
-			id: client.data.user.id,
-			status: e_user_status.ONLINE,
-		});
 		this.logger.log(`[${client.data.user.login} disconnected]`);
 	}
 
@@ -131,6 +152,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				client.disconnect();
 				return;
 			}
+			this.logger.error(e);
+			this.sendError(client, "Broadcast error: unknown error");
 			throw e;
 		}
 	}
@@ -210,6 +233,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				me.disconnectRoom(room.match);
 				return;
 			}
+			this.logger.error(e);
+			me.sendError(room.match.player1, "Broadcast error: unknown error");
+			me.sendError(room.match.player2, "Broadcast error: unknown error");
 			throw e;
 		}
 	}
@@ -236,6 +262,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 					this.sendError(room.match.player1, e);
 					this.sendError(room.match.player2, e);
 				} else {
+					this.logger.error(e);
+					this.sendError(room.match.player1, "Broadcast error: unknown error");
+					this.sendError(room.match.player2, "Broadcast error: unknown error");
 					throw e;
 				}
 			}
