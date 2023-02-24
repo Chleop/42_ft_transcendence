@@ -119,7 +119,7 @@ export class RawHTTPClient {
 						await this.validate_2fa(code);
 						break;
 					} catch (e: any) {
-						console.error(e.message);
+						console.warn("error message: " + e?.message);
 					}
 				}
 

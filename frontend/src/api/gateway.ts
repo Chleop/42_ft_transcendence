@@ -39,38 +39,12 @@ export class GatewayClass {
 			auth: { token: get_cookie("access_token") },
 		});
 
-		this.socket.on("connect_error", (err) => {
-			// CONST MESSAGE: STRING | UNDEFINED = ERR?.MESSAGE;
-			// IF (MESSAGE === "2FA ENABLED AND PENDING") {
-			// 	// WE WERE PREVIOUSLY TRYING TO GET THE USER TO ENTER THE CODE HERE, BUT THIS CODE
-			// 	// RUNS ALONG SIDE ANOTHER ONE WHICH TRIES THE SAME THING.
-			// 	// LET'S JUST LET THE GATEWAY ATTEMPT TO RECONNECT AND DO NOTHING ABOUT IT UNTIL
-			// 	// THE USER ACTUALLY ENTER THEIR CODE.
-
-			// 	// (ASYNC () => {
-			// 	// 	WHILE (TRUE) {
-			// 	// 		CONST CODE = PROMPT("PLEASE GIVE ME THE CODE.........");
-			// 	// 		IF (!CODE)
-			// 	// 			CONTINUE;
-			// 	// 		TRY {
-			// 	// 			AWAIT CLIENT.VALIDATE_2FA(CODE);
-			// 	// 			BREAK;
-			// 	// 		}
-			// 	// 		CATCH (E) {
-			// 	// 		}
-			// 	// 	}
-
-			// 	// 	// NOW THE USER IS PROPERLY AUTHENTICATED, THE SOCKET WILL TRY TO RECONNECT
-			// 	// 	// AUTOMATICALLY.
-			// 	// })();
-			// }
-			// ELSE (MESSAGE === "INVALID TOKEN" || MESSAGE === "NO TOKEN PROVIDED")
-			// {
-			// 	// ONCE THE JAVASCRIPT CONTEXT ENDS, THE PAGE WILL UNLOAD.
-			// }
+		this.socket.on("connect_error", (err: any) => {
+			console.warn("gateway error: " + err?.message);
+			this.socket.connect();
 		});
-		this.socket.on("exception", (err) => {
-			console.error(err);
+		this.socket.on("exception", (err: any) => {
+			console.warn("gateway error: " + err?.message);
 		});
 		this.socket.on("connect", () => {
 			console.info("connected to the chat gateway.");
