@@ -148,8 +148,7 @@ const websocketMiddleware =
 				if (e instanceof UserNotFoundError) {
 					logger.log(e.message);
 					next(new BadRequestException("invalid user ID"));
-				}
-				if (e instanceof Error) {
+				} else if (e instanceof Error) {
 					logger.log(e.message);
 					next(new ForbiddenException(e.message));
 				}
