@@ -40,31 +40,34 @@ export class GatewayClass {
 		});
 
 		this.socket.on("connect_error", (err) => {
-			const message: string | undefined = err?.message;
-			if (message === "2FA enabled and pending") {
-				(async () => {
-					while (true) {
-						const code = prompt("please give me the code.........");
-						if (!code)
-							continue;
-						try {
-							await Client.validate_2fa(code);
-							break;
-						}
-						catch (e) {
-						}
-					}
+			// CONST MESSAGE: STRING | UNDEFINED = ERR?.MESSAGE;
+			// IF (MESSAGE === "2FA ENABLED AND PENDING") {
+			// 	// WE WERE PREVIOUSLY TRYING TO GET THE USER TO ENTER THE CODE HERE, BUT THIS CODE
+			// 	// RUNS ALONG SIDE ANOTHER ONE WHICH TRIES THE SAME THING.
+			// 	// LET'S JUST LET THE GATEWAY ATTEMPT TO RECONNECT AND DO NOTHING ABOUT IT UNTIL
+			// 	// THE USER ACTUALLY ENTER THEIR CODE.
 
-					// Now the user is properly authenticated, the socket will try to reconnect
-					// automatically.
-				})();
-			}
-			else (message === "Invalid token" || message === "No token provided")
-			{
-				document.location.href = "/api/auth/42/login";
+			// 	// (ASYNC () => {
+			// 	// 	WHILE (TRUE) {
+			// 	// 		CONST CODE = PROMPT("PLEASE GIVE ME THE CODE.........");
+			// 	// 		IF (!CODE)
+			// 	// 			CONTINUE;
+			// 	// 		TRY {
+			// 	// 			AWAIT CLIENT.VALIDATE_2FA(CODE);
+			// 	// 			BREAK;
+			// 	// 		}
+			// 	// 		CATCH (E) {
+			// 	// 		}
+			// 	// 	}
 
-				// Once the javascript context ends, the page will unload.
-			}
+			// 	// 	// NOW THE USER IS PROPERLY AUTHENTICATED, THE SOCKET WILL TRY TO RECONNECT
+			// 	// 	// AUTOMATICALLY.
+			// 	// })();
+			// }
+			// ELSE (MESSAGE === "INVALID TOKEN" || MESSAGE === "NO TOKEN PROVIDED")
+			// {
+			// 	// ONCE THE JAVASCRIPT CONTEXT ENDS, THE PAGE WILL UNLOAD.
+			// }
 		});
 		this.socket.on("exception", (err) => {
 			console.error(err);
