@@ -104,15 +104,8 @@ const websocketMiddleware =
 					throw new Error("Invalid token");
 				}
 
-				let user: IUserPrivate;
-				try {
-					user = await user_service.get_me(payload.sub);
-				}
-				catch (e) {
-					if (e instanceof UserNotFoundError)
-						throw new BadRequestException("invalid user ID");
-					throw e;
-				}
+				const user: IUserPrivate = await user_service.get_me(payload.sub);
+
 				client.data.user = user;
 				const user_auth: t_user_auth = await auth_service.get_user_auth(user.id);
 				if (user_auth.state === StateType.DISABLED) {
@@ -122,8 +115,12 @@ const websocketMiddleware =
 				}
 				next();
 			} catch (e) {
+				if (e instanceof UserNotFoundError) {
+					logger.log(e.message);
+					next(new BadRequestException("invalid user ID"));
+				}
 				if (e instanceof Error) {
-					logger.error(e.message);
+					logger.log(e.message);
 					next(new ForbiddenException(e.message));
 				}
 				next(new InternalServerErrorException("Unknown error in SocketIOAdapter"));
