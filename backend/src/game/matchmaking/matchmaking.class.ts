@@ -36,8 +36,10 @@ export class Matchmaking {
 	 */
 	public queueUp(client: Socket): GameRoom | { is_invite: boolean } {
 		// Client already in the queue
-		if (this.queue?.data.user.id === client.data.user.id ||
-			this.queue_bouncy?.data.user.id === client.data.user.id) {
+		if (
+			this.queue?.data.user.id === client.data.user.id ||
+			this.queue_bouncy?.data.user.id === client.data.user.id
+		) {
 			throw new BadEvent(`${client.data.user.login} already in the queue`);
 		}
 
@@ -125,7 +127,9 @@ export class Matchmaking {
 		}
 		// Awaiting for a friend
 		this.awaiting_players.add(client);
-		this.logger.verbose(`${client.data.user.login} is awaiting ${client.handshake.auth.friend}.`);
+		this.logger.verbose(
+			`${client.data.user.login} is awaiting ${client.handshake.auth.friend}.`,
+		);
 		return { is_invite: true };
 	}
 
@@ -149,7 +153,7 @@ export class Matchmaking {
 			if (player.data.user.id === client_id) {
 				return player;
 			}
-			}
+		}
 		return null;
 	}
 }

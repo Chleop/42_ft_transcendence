@@ -43,6 +43,7 @@ export class GameService {
 			// if (match.player2.data.user.id < match.player1.data.user.id) scores.reverse();
 
 			await this.prisma_service.game.create({
+				//#region
 				data: {
 					player0: {
 						connect: {
@@ -64,6 +65,8 @@ export class GameService {
 					dateTime: new Date(results.date),
 				},
 			});
+			//#endregion
+
 			this.logger.log(`Saved game '${room.match.name}' to database`);
 		} catch (error) {
 			if (error instanceof PrismaClientKnownRequestError) {

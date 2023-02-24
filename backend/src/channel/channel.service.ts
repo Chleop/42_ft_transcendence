@@ -1397,9 +1397,6 @@ export class ChannelService {
 		});
 		//#endregion
 
-		// DONE
-		// this._gateway.make_user_socket_leave_room(user_id, channel_id);
-
 		this._logger.log(`User ${user_id} left the channel ${channel_id}`);
 	}
 	//#endregion
