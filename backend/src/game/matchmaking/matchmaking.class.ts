@@ -1,7 +1,7 @@
 import { Logger } from "@nestjs/common";
 import { Socket } from "socket.io";
 import { Match } from "../aliases";
-import { BadEvent, WrongData } from "../exceptions";
+import { FailedMatchmaking, WrongData } from "../exceptions";
 import { GameRoom } from "../rooms";
 
 /**
@@ -39,7 +39,7 @@ export class Matchmaking {
 			this.queue?.data.user.id === client.data.user.id ||
 			this.queue_bouncy?.data.user.id === client.data.user.id
 		) {
-			throw new BadEvent(`${client.data.user.login} already in the queue`);
+			throw new FailedMatchmaking(`${client.data.user.login} already in the queue`);
 		}
 
 		if (client.handshake.auth.faithful === undefined)

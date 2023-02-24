@@ -6,7 +6,7 @@ import { GameRoom } from "./rooms";
 import { Match } from "./aliases";
 import { Results, OpponentUpdate } from "./objects";
 import { Matchmaking } from "./matchmaking";
-import { BadEvent } from "./exceptions";
+import { BadEvent, FailedMatchmaking } from "./exceptions";
 
 /**
  * Game rooms manager.
@@ -84,7 +84,7 @@ export class GameService {
 	 */
 	public queueUp(client: Socket): GameRoom | { is_invite: boolean } {
 		if (this.findUserGame(client.data.user.id) !== null)
-			throw new BadEvent("Player already in game");
+			throw new FailedMatchmaking("Player already in game");
 		this.logger.verbose(`${client.data.user.login} entering matchmaking.`);
 		const queue_result: GameRoom | { is_invite: boolean } = this.matchmaking.queueUp(client);
 		if (!(queue_result instanceof GameRoom)) {
