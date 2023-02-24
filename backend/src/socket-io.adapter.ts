@@ -64,18 +64,17 @@ export class SocketIOAdapter extends IoAdapter {
 		const auth_service: AuthService = this.app.get(AuthService);
 
 		const server: Server = super.createIOServer(port, { ...options, cors });
-
-			.use(
-			websocketMiddleware(
-				this.logger,
-				jwt_service,
-				config_service,
-				user_service,
-				auth_service,
-			),
-		);
 		server
 			.of("chat")
+			.use(
+				websocketMiddleware(
+					this.logger,
+					jwt_service,
+					config_service,
+					user_service,
+					auth_service,
+				),
+			);
 		server
 			.of("game")
 			.use(
