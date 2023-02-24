@@ -80,13 +80,14 @@ class ProfileOverlay {
             const new_name = editor_name.value;
 
             if (new_name !== "") {
-                editor_name.disabled = true;
                 Client.patch_user({
                     name: new_name,
                 }).then(() => {
-                    editor_name.disabled = false;
                     name.innerText = new_name;
                     Users.patch_name(null, new_name);
+                    NOTIFICATIONS.spawn_notification("green", "Name successfully changed!");
+                }).catch(() => {
+                    NOTIFICATIONS.spawn_notification("red", "Name already taken.");
                 });
             }
         }
