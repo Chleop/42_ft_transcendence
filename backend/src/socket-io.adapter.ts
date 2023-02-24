@@ -1,6 +1,6 @@
 import { IUserPrivate } from "src/user/interface";
 import { UserService } from "src/user/user.service";
-import { ForbiddenException, INestApplicationContext, InternalServerErrorException, Logger } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, INestApplicationContext, InternalServerErrorException, Logger } from "@nestjs/common";
 import { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.interface";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
@@ -9,6 +9,7 @@ import { Server, ServerOptions, Socket } from "socket.io";
 import { AuthService } from "./auth/auth.service";
 import { StateType } from "@prisma/client";
 import { t_user_auth } from "./auth/alias";
+import { UserNotFoundError } from "./user/error";
 
 /**
  * Allows gateway to have dynamic ports (imported from env)
@@ -102,7 +103,16 @@ const websocketMiddleware =
 				if (!payload.sub) {
 					throw new Error("Invalid token");
 				}
-				const user: IUserPrivate = await user_service.get_me(payload.sub);
+
+				let user: IUserPrivate;
+				try {
+					user = await user_service.get_me(payload.sub);
+				}
+				catch (e) {
+					if (e instanceof UserNotFoundError)
+						throw new BadRequestException("invalid user ID");
+					throw e;
+				}
 				client.data.user = user;
 				const user_auth: t_user_auth = await auth_service.get_user_auth(user.id);
 				if (user_auth.state === StateType.DISABLED) {
