@@ -98,7 +98,7 @@ class ChannelSettings {
 					if (this.name.value === "") return;
 					(async () => {
 						try {
-							Client.patch_channel(model.id, {
+							await Client.patch_channel(model.id, {
 								name: this.name.value,
 								password: undefined,
 							});

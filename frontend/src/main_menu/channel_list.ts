@@ -13,29 +13,30 @@ export class ChannelResultElement {
 		const header = document.createElement("div");
 		header.classList.add("create-channel-result-header");
 		header.onclick = () => {
-			let promise;
-			if (channel.type === "PUBLIC") {
-				promise = Client.join_channel(channel.id);
-			} else if (channel.type === "PROTECTED") {
-				const password = prompt("c koi le mdp??");
-				if (!password) return;
-				promise = Client.join_channel(channel.id, password);
-			} else {
-				throw new Error("invalid channel type (this should never happen)");
-			}
+			(async () => {
+				let ch: undefined | Channel;
 
-			promise
-				.then((ch) => {
+				try {
+					if (channel.type === "PUBLIC") {
+						ch = await Client.join_channel(channel.id);
+					} else if (channel.type === "PROTECTED") {
+						const password = prompt("c koi le mdp??");
+						if (!password) return;
+						ch = await Client.join_channel(channel.id, password);
+					} else {
+						throw new Error("invalid channel type (this should never happen)");
+					}
+
 					const elem = CHAT_ELEMENT.add_channel(channel);
 					CHAT_ELEMENT.set_selected_channel(elem);
 					CHANNEL_LIST.hide();
 
 					CHAT_ELEMENT.update_channel(ch);
-				})
-				.catch((err) => {
+				} catch (err) {
 					if (err instanceof UnexpectedStatusCode)
 						NOTIFICATIONS.spawn_notification("red", err.message || "Unknown error");
-				});
+				}
+			})();
 		};
 		root.appendChild(header);
 

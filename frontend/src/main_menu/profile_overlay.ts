@@ -177,6 +177,9 @@ class ProfileOverlay {
         Users.me().then((me) => {
             const update_elements = (me: PrivateUser) => {
                 Client.get_all_skins().then(skins => {
+                    while (skin_picker.firstChild)
+                        skin_picker.firstChild.remove();
+
                     for (const skin of skins) {
                         const skin_button = document.createElement("button");
                         skin_button.classList.add("profile-skin-button");

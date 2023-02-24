@@ -270,10 +270,10 @@ class UserCardElement {
 							this.show(null, user, channel);
 							NOTIFICATIONS.spawn_notification("green", "I hope they respond...");
 						})
-						.catch(() => {
+						.catch((err) => {
 							NOTIFICATIONS.spawn_notification(
 								"orange",
-								"I already asked them out...",
+								err?.message || "unknown error"
 							);
 						});
 			}

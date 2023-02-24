@@ -523,7 +523,7 @@ img {
   width: 100vw;
   height: 100vh;
 
-  z-index: 10;
+  z-index: 10000;
 }
 
 #playing-game-overlay {
@@ -643,7 +643,7 @@ img {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 9;
+  z-index: 9999;
 }
 
 .profile-game-container {
@@ -1174,7 +1174,7 @@ img {
   flex-flow: column nowrap;
   align-items: start;
   gap: 20px;
-  z-index: 10000;
+  z-index: 1000;
 }
 
 .notification-block {

@@ -189,8 +189,7 @@ export class ChannelElement {
 	public update_model(model: Channel) {
 		if (!this.model) throw "unreachable code";
 
-		console.log(model.banned_ids);
-		this.model = model;
+		Object.assign(this.model, model);
 		this.tab.innerText = model.name;
 	}
 
@@ -232,6 +231,9 @@ export class ChannelElement {
 				if (this.model) {
 					Client.leave_channel(this.model.id).then(() => {
 						chat.remove_channel(this);
+					}).catch(() => {
+						// WTF: why is this called again????
+						// (this todo, but it will never be resolved).
 					});
 				}
 				if (this.dm) {
