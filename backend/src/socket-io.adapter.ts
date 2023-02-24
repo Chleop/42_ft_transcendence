@@ -1,6 +1,12 @@
 import { IUserPrivate } from "src/user/interface";
 import { UserService } from "src/user/user.service";
-import { BadRequestException, ForbiddenException, INestApplicationContext, InternalServerErrorException, Logger } from "@nestjs/common";
+import {
+	BadRequestException,
+	ForbiddenException,
+	INestApplicationContext,
+	InternalServerErrorException,
+	Logger,
+} from "@nestjs/common";
 import { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.interface";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
@@ -25,7 +31,7 @@ export class SocketIOAdapter extends IoAdapter {
 		this.app = app;
 		this.config_service = configService;
 		this.logger = new Logger(SocketIOAdapter.name);
-		this.logger.log("SocketIOAdapter instanciated.")
+		this.logger.log("SocketIOAdapter instanciated.");
 	}
 
 	/* PUBLIC ================================================================== */
@@ -61,13 +67,37 @@ export class SocketIOAdapter extends IoAdapter {
 
 		server
 			.of("chat")
-			.use(websocketMiddleware(this.logger, jwt_service, config_service, user_service, auth_service));
+			.use(
+				websocketMiddleware(
+					this.logger,
+					jwt_service,
+					config_service,
+					user_service,
+					auth_service,
+				),
+			);
 		server
 			.of("game")
-			.use(websocketMiddleware(this.logger, jwt_service, config_service, user_service, auth_service));
+			.use(
+				websocketMiddleware(
+					this.logger,
+					jwt_service,
+					config_service,
+					user_service,
+					auth_service,
+				),
+			);
 		server
 			.of("spectate")
-			.use(websocketMiddleware(this.logger, jwt_service, config_service, user_service, auth_service));
+			.use(
+				websocketMiddleware(
+					this.logger,
+					jwt_service,
+					config_service,
+					user_service,
+					auth_service,
+				),
+			);
 
 		return server;
 	}
@@ -86,46 +116,46 @@ const websocketMiddleware =
 		user_service: UserService,
 		auth_service: AuthService,
 	) =>
-		async (client: Socket, next: (error?: any) => void) => {
-			const token: string | undefined = client.handshake.auth.token;
-			const secret: string | undefined = config_service.get<string>("JWT_SECRET");
+	async (client: Socket, next: (error?: any) => void) => {
+		const token: string | undefined = client.handshake.auth.token;
+		const secret: string | undefined = config_service.get<string>("JWT_SECRET");
 
-			if (secret === undefined) {
-				logger.error("JwtSecret undefined");
-				throw new InternalServerErrorException(); // should NOT happen
+		if (secret === undefined) {
+			logger.error("JwtSecret undefined");
+			throw new InternalServerErrorException(); // should NOT happen
+		}
+
+		try {
+			if (!token) {
+				throw new Error("No token provided");
+			}
+			const payload: { sub?: string } = jwt_service.verify(token, { secret });
+			if (!payload.sub) {
+				throw new Error("Invalid token");
 			}
 
+			let user: IUserPrivate;
 			try {
-				if (!token) {
-					throw new Error("No token provided");
-				}
-				const payload: { sub?: string } = jwt_service.verify(token, { secret });
-				if (!payload.sub) {
-					throw new Error("Invalid token");
-				}
-
-				let user: IUserPrivate;
-				try {
-					user = await user_service.get_me(payload.sub);
-				}
-				catch (e) {
-					if (e instanceof UserNotFoundError)
-						throw new BadRequestException("invalid user ID");
-					throw e;
-				}
-				client.data.user = user;
-				const user_auth: t_user_auth = await auth_service.get_user_auth(user.id);
-				if (user_auth.state === StateType.DISABLED) {
-					throw new Error("Account disabled");
-				} else if (user_auth.state === StateType.PENDING) {
-					throw new Error("2FA enabled and pending");
-				}
-				next();
+				user = await user_service.get_me(payload.sub);
 			} catch (e) {
-				if (e instanceof Error) {
-					logger.error(e.message);
-					next(new ForbiddenException(e.message));
-				}
-				next(new InternalServerErrorException("Unknown error in SocketIOAdapter"));
+				if (e instanceof UserNotFoundError)
+					throw new BadRequestException("invalid user ID");
+				throw e;
 			}
-		};
+			client.data.user = user;
+			const user_auth: t_user_auth = await auth_service.get_user_auth(user.id);
+			if (user_auth.state === StateType.DISABLED) {
+				throw new Error("Account disabled");
+			} else if (user_auth.state === StateType.PENDING) {
+				throw new Error("2FA enabled and pending");
+			}
+			next();
+		} catch (e) {
+			if (e instanceof Error) {
+				logger.error(e.message);
+				next(new ForbiddenException(e.message));
+			}
+			logger.error(e.message || "non standard error");
+			next(new InternalServerErrorException("Unknown error in SocketIOAdapter"));
+		}
+	};

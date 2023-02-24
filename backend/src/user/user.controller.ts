@@ -93,7 +93,7 @@ export class UserController {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -115,7 +115,7 @@ export class UserController {
 				this._logger.error(error.message);
 				throw new InternalServerErrorException(error.message);
 			}
-			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -145,7 +145,7 @@ export class UserController {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -168,7 +168,7 @@ export class UserController {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -184,7 +184,7 @@ export class UserController {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -222,7 +222,7 @@ export class UserController {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -255,7 +255,7 @@ export class UserController {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -293,7 +293,7 @@ export class UserController {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -330,7 +330,7 @@ export class UserController {
 				this._logger.error(error.message);
 				throw new ConflictException(error.message);
 			}
-			this._logger.error("Unknow error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -366,7 +366,7 @@ export class UserController {
 				this._logger.error(error.message);
 				throw new InternalServerErrorException(error.message);
 			}
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}

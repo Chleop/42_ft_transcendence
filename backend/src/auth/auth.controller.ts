@@ -40,21 +40,23 @@ export class AuthController {
 		try {
 			await this._authService.signin(request.user.login, response);
 		} catch (error) {
-			this._logger.error(`signin: ${(<Error>error).message}`);
+			this._logger.error(`signin`);
 			if (error instanceof PendingUser) {
 				return;
 			}
-			else if (error instanceof PrismaClientKnownRequestError) {
+			if (error instanceof PrismaClientKnownRequestError) {
 				if (error.code == "P2002")
 					throw new ForbiddenException(
 						"One of the provided fields is already taken (unique constraint)",
 					);
-			} else throw new InternalServerErrorException();
+			}
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
+			throw new InternalServerErrorException();
 		}
 	}
 
 	@Get("42/2FARedirect")
-	async two_factor_authentication_redirect(): Promise<void> { }
+	async two_factor_authentication_redirect(): Promise<void> {}
 
 	@UseGuards(JwtPendingStateGuard)
 	@Post("42/2FAActivate")
@@ -62,7 +64,8 @@ export class AuthController {
 		try {
 			await this._authService.activate_2FA(req.user.id, dto.email);
 		} catch (error) {
-			this._logger.error(`activate thingy: ${(<Error>error).message}`);
+			this._logger.error(`activate thingy`);
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -73,7 +76,8 @@ export class AuthController {
 		try {
 			await this._authService.deactivate_2FA(req.user.id);
 		} catch (error) {
-			this._logger.error(`desac thingy: ${(<Error>error).message}`);
+			this._logger.error(`desac thingy`);
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -84,11 +88,15 @@ export class AuthController {
 		try {
 			await this._authService.validate_2FA(req.user.id, dto.code);
 		} catch (error) {
-			this._logger.error(`validate thingy: ${(<Error>error).message}`);
-			if (error instanceof CodeIsNotSet) throw new ForbiddenException(error.message);
-			if (error instanceof InvalidCode || error instanceof ExpiredCode)
+			this._logger.error(`validate thingy`);
+			if (error instanceof CodeIsNotSet) {
+				throw new ForbiddenException(error.message);
+			}
+			if (error instanceof InvalidCode || error instanceof ExpiredCode) {
 				throw new BadRequestException(error.message);
-			else throw new InternalServerErrorException();
+			}
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
+			throw new InternalServerErrorException();
 		}
 	}
 }
