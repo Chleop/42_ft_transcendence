@@ -5,8 +5,9 @@ import {
 	UnknownError,
 	UserAlreadyBlockedError,
 	UserAvatarFileFormatError,
-	UserFieldUnaivalableError,
+	UserEmailAlreadyTakenError,
 	UserMessageNotFoundError,
+	UserNameAlreadyTakenError,
 	UserNotBlockedError,
 	UserNotFoundError,
 	UserNotFriendError,
@@ -23,9 +24,9 @@ import { UserService } from "src/user/user.service";
 import {
 	BadRequestException,
 	Body,
+	ConflictException,
 	Controller,
 	Delete,
-	ForbiddenException,
 	Get,
 	InternalServerErrorException,
 	Logger,
@@ -108,7 +109,7 @@ export class UserController {
 	): Promise<void> {
 		//#region
 		try {
-			await this._user_service.disable_one(request.user.id);
+			await this._user_service.disable_me(request.user.id);
 		} catch (error) {
 			if (error instanceof UnknownError) {
 				this._logger.error(error.message);
@@ -310,7 +311,7 @@ export class UserController {
 	): Promise<void> {
 		//#region
 		try {
-			await this._user_service.update_one(
+			await this._user_service.update_me(
 				request.user.id,
 				dto.name,
 				dto.email,
@@ -322,13 +323,12 @@ export class UserController {
 				id: request.user.id,
 			});
 		} catch (error) {
-			if (error instanceof UserFieldUnaivalableError) {
+			if (
+				error instanceof UserNameAlreadyTakenError ||
+				error instanceof UserEmailAlreadyTakenError
+			) {
 				this._logger.error(error.message);
-				throw new ForbiddenException(error.message);
-			}
-			if (error instanceof UnknownError) {
-				this._logger.error(error.message);
-				throw new InternalServerErrorException(error.message);
+				throw new ConflictException(error.message);
 			}
 			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
@@ -339,7 +339,7 @@ export class UserController {
 	@Put("@me/avatar")
 	@UseGuards(Jwt2FAGuard)
 	@UseInterceptors(FileInterceptor("file"))
-	async update_ones_avatar(
+	async update_my_avatar(
 		@Req()
 		request: {
 			user: t_user_auth;
@@ -352,7 +352,7 @@ export class UserController {
 			throw new BadRequestException("No file provided");
 		}
 		try {
-			await this._user_service.update_ones_avatar(request.user.id, file);
+			await this._user_service.update_my_avatar(request.user.id, file);
 
 			await this._chat_gateway.broadcast_to_online_related_users({
 				id: request.user.id,
