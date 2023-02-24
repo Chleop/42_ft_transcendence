@@ -1,7 +1,7 @@
 import { Socket, io } from "socket.io-client";
 import { NOTIFICATIONS } from "../notification";
 import { Channel, ChannelId, Message } from "./channel";
-import { get_cookie } from "./client";
+import { Client, get_cookie } from "./client";
 import { PrivateUser, User, UserId } from "./user";
 import { Users } from "./users";
 
@@ -39,6 +39,13 @@ export class GatewayClass {
 			auth: { token: get_cookie("access_token") },
 		});
 
+		this.socket.on("connect_error", (err: any) => {
+			console.warn("gateway error: " + err?.message);
+			this.socket.connect();
+		});
+		this.socket.on("exception", (err: any) => {
+			console.warn("gateway error: " + err?.message);
+		});
 		this.socket.on("connect", () => {
 			console.info("connected to the chat gateway.");
 		});

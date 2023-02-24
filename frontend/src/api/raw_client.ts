@@ -110,18 +110,22 @@ export class RawHTTPClient {
 		if (response.status == 401) {
 			const err = await response.json();
 			if (err.message === "User is pending 2FA validation") {
+				console.info("user is pending 2FA validation");
 				while (true) {
+					console.log("requesting code...");
 					const code = prompt("gimme the code") || "";
 
 					try {
 						await this.validate_2fa(code);
 						break;
-					} catch (e) { }
+					} catch (e: any) {
+						console.warn("error message: " + e?.message);
+					}
 				}
 
 				return this.make_request(request);
 			} else {
-				document.location.pathname = "/api/auth/42/login";
+				document.location.href = "/api/auth/42/login";
 				return new Promise(() => { });
 			}
 		}

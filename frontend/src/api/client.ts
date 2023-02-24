@@ -1,4 +1,4 @@
-import {RawHTTPClient} from "./raw_client";
+import { RawHTTPClient } from "./raw_client";
 
 /**
  * Tries to get the value of a specific cookie.
@@ -19,15 +19,4 @@ export function get_cookie(name: string): string | undefined {
 /**
  * The global client.
  */
-export const Client = (function () {
-	// Verify that the user is connected and if so, create a client to start interacting with the
-	// backend.
-	let token = get_cookie("access_token");
-	if (!token) {
-		// The user is not connected.
-		document.location.pathname = "/api/auth/42/login";
-		throw "used not connected";
-	}
-
-	return new RawHTTPClient(token);
-})();
+export const Client = new RawHTTPClient(get_cookie("access_token") || "");

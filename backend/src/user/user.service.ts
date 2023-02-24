@@ -820,6 +820,9 @@ export class UserService {
 		})) as IUserPrivateTmp;
 		//#endregion
 
+		if (!user_tmp)
+			throw new UserNotFoundError();
+
 		let status: e_user_status | undefined = this._chat_service.get_user(id)?.status;
 		if (status === undefined) {
 			status = e_user_status.OFFLINE;
