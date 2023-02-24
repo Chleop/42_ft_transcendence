@@ -11,12 +11,13 @@ import { Server, Socket } from "socket.io";
 import { GameService } from "../game/game.service";
 import { GameRoom } from "../game/rooms";
 import { ScoreUpdate } from "../game/objects";
-import { WrongData } from "../game/exceptions";
+import { BadEvent, WrongData } from "../game/exceptions";
 import { Constants } from "../game/constants";
 
 import { SpectatorService } from "./spectator.service";
 import { SpectatedRoom } from "./rooms";
-import { SpectatorUpdate, RoomData } from "./objects";
+import { SpectatorUpdate } from "./objects";
+import { RoomData } from "./aliases";
 import { ChatGateway } from "src/chat/chat.gateway";
 import { e_user_status } from "src/user/enum";
 
@@ -62,27 +63,27 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 * (from OnGatewayConnection)
 	 * Handler for gateway connection.
 	 *
-	 * On connection, clients are immediately moved to the spectating room.
+	 * On connection, clients are immediately moved
+	 * to the spectating room if it exists.
 	 * Else, they're disconnected.
 	 */
 	public async handleConnection(client: Socket): Promise<void> {
 		this.logger.log(`[${client.data.user.login} connected]`);
-		client.data.valid_uid = false;
 		try {
 			const user_id: string | string[] | undefined = client.handshake.auth.user_id;
 			if (typeof user_id !== "string") throw new WrongData("Room not properly specified");
-			const game_room: GameRoom = this.game_service.findUserGame(user_id);
-			client.data.valid_uid = true;
+			const game_room: GameRoom | null = this.game_service.findUserGame(user_id);
+			if (game_room === null) throw new WrongData("Room does not exist");
 			await this.startStreaming(client, game_room);
 		} catch (e) {
-			if (e instanceof WrongData) {
+			if (e instanceof WrongData || e instanceof BadEvent) {
 				this.logger.error(e.message);
 				this.sendError(client, e);
 				this.handleDisconnect(client);
 				client.disconnect();
 				return;
 			}
-			this.logger.verbose("here");
+			this.sendError(client, "Broadcast error: unknown error");
 			throw e;
 		}
 	}
@@ -97,7 +98,8 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	public async handleDisconnect(client: Socket): Promise<void> {
 		const user_id: string = client.handshake.auth.user_id;
 		try {
-			const game_room: GameRoom = this.game_service.findUserGame(user_id);
+			const game_room: GameRoom | null = this.game_service.findUserGame(user_id);
+			if (game_room === null) return;
 			const spectated_room: SpectatedRoom | null = this.spectator_service.getRoom(
 				game_room.match.name,
 			);
@@ -107,9 +109,13 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 					await this.stopStreaming(this, spectated_room.game_room.match.name);
 			}
 		} catch (e) {
-			if (e instanceof WrongData && client.data.valid_uid === true) {
+			if (e instanceof BadEvent) {
+				this.sendError(client, e.message);
+				await this.handleDisconnect(client);
+				client.disconnect();
 				return;
 			}
+			this.sendError(client, "Broadcast error: unknown error");
 			throw e;
 		}
 		this.logger.log(`[${client.data.user.login} disconnected]`);
@@ -133,19 +139,12 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 		const spectated_room: SpectatedRoom | null = this.spectator_service.getRoom(
 			game_room.match.name,
 		);
-
-		try {
-			const user_id: string = client.handshake.auth.user_id;
-			const room_data: RoomData = await this.spectator_service.retrieveRoomData(
-				user_id,
-				game_room,
-			);
-			client.emit("roomData", room_data);
-		} catch (e) {
-			this.logger.error(e.message);
-			this.sendError(client, e);
-			client.disconnect();
-		}
+		const user_id: string = client.handshake.auth.user_id;
+		const room_data: RoomData = await this.spectator_service.retrieveRoomData(
+			user_id,
+			game_room,
+		);
+		client.emit("roomData", room_data);
 
 		if (spectated_room === null) {
 			this.logger.log(`Creating spectatedRoom: ${game_room.match.name}`);
