@@ -198,6 +198,7 @@ class UserCardElement {
 			const i_am_admin = i_am_owner || channel?.operators_ids?.indexOf(me.id) !== -1;
 			const is_admin =
 				channel?.owner_id === user.id || channel?.operators_ids?.indexOf(user.id) !== -1;
+			const is_banned: boolean = !!channel && channel.banned_ids.indexOf(user.id) !== -1;
 
 			// Otherwise, at least those three buttons will appear.
 			this.friend_button.style.display = "block";
@@ -269,10 +270,10 @@ class UserCardElement {
 							this.show(null, user, channel);
 							NOTIFICATIONS.spawn_notification("green", "I hope they respond...");
 						})
-						.catch(() => {
+						.catch((err) => {
 							NOTIFICATIONS.spawn_notification(
 								"orange",
-								"I already asked them out...",
+								err?.message || "unknown error"
 							);
 						});
 			}
@@ -365,6 +366,7 @@ class UserCardElement {
 			if (i_am_admin && !is_admin) {
 				this.mute_button.style.display = "block";
 				this.ban_button.style.display = "block";
+
 				this.mute_button.onclick = () => {
 					let time = 0;
 					while (true) {
@@ -384,18 +386,39 @@ class UserCardElement {
 							);
 						});
 				};
-				this.ban_button.onclick = () => {
-					Client.ban(channel.id, user.id)
-						.then(() => {
-							NOTIFICATIONS.spawn_notification("green", "user banned.");
-						})
-						.catch(() => {
-							NOTIFICATIONS.spawn_notification(
-								"orange",
-								"this user is no longer present in this channel",
-							);
-						});
-				};
+
+				if (is_banned) {
+					this.ban_button.innerText = "Unban";
+
+					this.ban_button.onclick = () => {
+						Client.unban(channel.id, user.id)
+							.then(() => {
+								NOTIFICATIONS.spawn_notification("green", "user unbanned. They are free to spam here again.");
+								this.show(null, user, channel);
+							})
+							.catch(() => {
+								NOTIFICATIONS.spawn_notification(
+									"orange",
+									"Don't want to unban because they are not very cool.",
+								);
+							});
+					};
+				} else {
+					this.ban_button.innerText = "Ban";
+					this.ban_button.onclick = () => {
+						Client.ban(channel.id, user.id)
+							.then(() => {
+								NOTIFICATIONS.spawn_notification("green", "user banned.");
+								this.show(null, user, channel);
+							})
+							.catch(() => {
+								NOTIFICATIONS.spawn_notification(
+									"orange",
+									"this user is no longer present in this channel",
+								);
+							});
+					};
+				}
 			} else {
 				this.mute_button.style.display = "none";
 				this.ban_button.style.display = "none";

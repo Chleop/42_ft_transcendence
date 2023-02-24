@@ -96,16 +96,20 @@ class ChannelSettings {
 				this.name.value = model.name;
 				this.name.onchange = () => {
 					if (this.name.value === "") return;
-					Client.patch_channel(model.id, {
-						name: this.name.value,
-						password: undefined,
-					}).catch(() => {
-						NOTIFICATIONS.spawn_notification("red", "Failed to change channel's name.");
-					}).then(() => {
-						model.name = this.name.value;
-						channel.tab.innerText = this.name.value;
-						NOTIFICATIONS.spawn_notification("green", "Name changed!");
-					});
+					(async () => {
+						try {
+							await Client.patch_channel(model.id, {
+								name: this.name.value,
+								password: undefined,
+							});
+
+							model.name = this.name.value;
+							channel.tab.innerText = this.name.value;
+							NOTIFICATIONS.spawn_notification("green", "Name changed!");
+						} catch {
+							NOTIFICATIONS.spawn_notification("red", "Failed to change channel's name.");
+						}
+					})();
 				};
 
 				this.password.placeholder = "...........";

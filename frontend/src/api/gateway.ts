@@ -41,7 +41,10 @@ export class GatewayClass {
 
 		this.socket.on("connect_error", (err: any) => {
 			console.warn("gateway error: " + err?.message);
-			this.socket.connect();
+
+			setTimeout(() => {
+				this.socket.connect();
+			}, 1000);
 		});
 		this.socket.on("exception", (err: any) => {
 			console.warn("gateway error: " + err?.message);
