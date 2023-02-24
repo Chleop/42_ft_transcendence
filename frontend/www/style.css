@@ -1384,10 +1384,12 @@ body {
 }
 
 .spectating-overlay-container>img {
-  content-fit: cover;
+  object-fit: cover;
   width: 40px;
   height: 40px;
   margin: 20px;
+
+  border-radius: 100000px;
 }
 
 .spectating-overlay-container>div {

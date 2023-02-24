@@ -50,9 +50,6 @@ export class SpectatingGame extends OngoingGame {
         socket.on_update = (st) => this.on_spec_update(st);
         socket.on_score_update = (st) => this.on_score_updated(st);
 
-        this.future_game = new Promise(resolve => {
-            socket.on_room_data = resolve;
-        });
 
         this.game_started = false;
         this.socket = socket;
@@ -62,34 +59,38 @@ export class SpectatingGame extends OngoingGame {
         this.overlay = document.createElement("div");
         this.overlay.id = "spectating-overlay";
 
-        socket.on_room_data = data => {
-            const left_player_container = document.createElement("div");
-            left_player_container.classList.add("spectating-overlay-container");
-            this.overlay.appendChild(left_player_container);
+        this.future_game = new Promise(resolve => {
+            socket.on_room_data = data => {
+                resolve(data);
 
-            const left_player_avatar = document.createElement("img");
-            Users.invalidate_avatar(data.spectated.id);
-            left_player_avatar.src = Users.get_avatar(data.spectated.id);
-            left_player_container.appendChild(left_player_avatar);
+                const left_player_container = document.createElement("div");
+                left_player_container.classList.add("spectating-overlay-container");
+                this.overlay.appendChild(left_player_container);
 
-            const left_player_name = document.createElement("div");
-            left_player_name.innerText = data.spectated.name;
-            left_player_container.appendChild(left_player_name);
+                const left_player_avatar = document.createElement("img");
+                Users.invalidate_avatar(data.spectated.id);
+                left_player_avatar.src = Users.get_avatar(data.spectated.id);
+                left_player_container.appendChild(left_player_avatar);
 
-            const right_player_container = document.createElement("div");
-            right_player_container.classList.add("spectating-overlay-container");
-            this.overlay.appendChild(right_player_container);
+                const left_player_name = document.createElement("div");
+                left_player_name.innerText = data.spectated.name;
+                left_player_container.appendChild(left_player_name);
+
+                const right_player_container = document.createElement("div");
+                right_player_container.classList.add("spectating-overlay-container");
+                this.overlay.appendChild(right_player_container);
 
 
-            const right_player_name = document.createElement("div");
-            right_player_name.innerText = data.opponent.name;
-            right_player_container.appendChild(right_player_name);
+                const right_player_name = document.createElement("div");
+                right_player_name.innerText = data.opponent.name;
+                right_player_container.appendChild(right_player_name);
 
-            const right_player_avatar = document.createElement("img");
-            Users.invalidate_avatar(data.opponent.id);
-            right_player_avatar.src = Users.get_avatar(data.spectated.id);
-            right_player_container.appendChild(right_player_avatar);
-        };
+                const right_player_avatar = document.createElement("img");
+                Users.invalidate_avatar(data.opponent.id);
+                right_player_avatar.src = Users.get_avatar(data.spectated.id);
+                right_player_container.appendChild(right_player_avatar);
+            };
+        });
     }
 
     private on_score_updated(state: ScoreStateUpdate) {

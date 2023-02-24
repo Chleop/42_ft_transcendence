@@ -72,11 +72,7 @@ class GameBoardClass extends Scene {
     private left_paddle: Sprite | undefined;
     private right_paddle: Sprite | undefined;
     private left_ball: Sprite | undefined;
-    private right_ball: Sprite | undefined;
 
-    private current_ball: boolean;
-
-    private separator: Sprite;
     private heart: Sprite;
 
     private tmp_canvas: Framebuffer;
@@ -118,7 +114,6 @@ class GameBoardClass extends Scene {
         this.warped_canvas = this.renderer.create_framebuffer(w, h);
 
         this.heart = this.renderer.create_sprite("/heart.png");
-        this.separator = this.renderer.create_sprite("/separator.png");
 
         window.addEventListener("keydown", e => {
             if (e.key === "D") {
@@ -129,8 +124,6 @@ class GameBoardClass extends Scene {
                 console.info("toggled WTF shader: " + this.render_state.wtf);
             }
         });
-
-        this.current_ball = false;
 
         this.container = container;
         this.overlay_container = overlay_container;
@@ -147,22 +140,24 @@ class GameBoardClass extends Scene {
         this.overlay_container.appendChild(ongoing_game.overlay);
 
         skins.left_background.then(url => {
+            console.log("loaded left background skin");
             this.left_background = this.renderer.create_sprite(url);
         });
         skins.right_background.then(url => {
+            console.log("loaded right background skin");
             this.right_background = this.renderer.create_sprite(url);
         });
         skins.left_paddle.then(url => {
+            console.log("loaded left paddle skin");
             this.left_paddle = this.renderer.create_sprite(url);
         });
         skins.right_paddle.then(url => {
+            console.log("loaded right paddle skin");
             this.right_paddle = this.renderer.create_sprite(url);
         });
         skins.left_ball.then(url => {
+            console.log("loaded ball skin");
             this.left_ball = this.renderer.create_sprite(url);
-        });
-        skins.right_ball.then(url => {
-            this.right_ball = this.renderer.create_sprite(url);
         });
     }
 
