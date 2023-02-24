@@ -11,7 +11,6 @@ import {
 	Logger,
 	BadRequestException,
 } from "@nestjs/common";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { Response } from "express";
 import { AuthService } from "./auth.service";
 import { FtOauthGuard, Jwt2FAGuard, JwtPendingStateGuard } from "./guards";
@@ -44,12 +43,10 @@ export class AuthController {
 			if (error instanceof PendingUser) {
 				return;
 			}
-			if (error instanceof PrismaClientKnownRequestError) {
-				if (error.code == "P2002")
-					throw new ForbiddenException(
-						"One of the provided fields is already taken (unique constraint)",
-					);
-			}
+			if (error.code == "P2002")
+				throw new ForbiddenException(
+					"One of the provided fields is already taken (unique constraint)",
+				);
 			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
@@ -64,9 +61,15 @@ export class AuthController {
 		try {
 			await this._authService.activate_2FA(req.user.id, dto.email);
 		} catch (error) {
-			this._logger.error(`activate thingy`);
-			this._logger.error("Unexpected error: " + error.message || "non standard error");
-			throw new InternalServerErrorException();
+			if (error.code == "P2002")
+				throw new ForbiddenException(
+					"One of the provided fields is already taken (unique constraint)",
+				);
+			else {
+				this._logger.error(`activate thingy`);
+				this._logger.error("Unexpected error: " + error.message || "non standard error");
+				throw new InternalServerErrorException();
+			}
 		}
 	}
 
@@ -76,9 +79,15 @@ export class AuthController {
 		try {
 			await this._authService.deactivate_2FA(req.user.id);
 		} catch (error) {
-			this._logger.error(`desac thingy`);
-			this._logger.error("Unexpected error: " + error.message || "non standard error");
-			throw new InternalServerErrorException();
+			if (error.code == "P2002")
+				throw new ForbiddenException(
+					"One of the provided fields is already taken (unique constraint)",
+				);
+			else {
+				this._logger.error(`activate thingy`);
+				this._logger.error("Unexpected error: " + error.message || "non standard error");
+				throw new InternalServerErrorException();
+			}
 		}
 	}
 
@@ -89,6 +98,10 @@ export class AuthController {
 			await this._authService.validate_2FA(req.user.id, dto.code);
 		} catch (error) {
 			this._logger.error(`validate thingy`);
+			if (error.code == "P2002")
+				throw new ForbiddenException(
+					"One of the provided fields is already taken (unique constraint)",
+				);
 			if (error instanceof CodeIsNotSet) {
 				throw new ForbiddenException(error.message);
 			}
