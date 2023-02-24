@@ -2,11 +2,11 @@ import { Client, GameSocket, GLOBAL_GAME_SOCKET, set_global_game_socket, User, U
 import GAME_BOARD from "../game/game_board";
 import { SpectatingGame } from "../game/spectating_game";
 import { NOTIFICATIONS } from "../notification";
-import { History, Overlay, State } from "../strawberry";
+import { History, State } from "../strawberry";
 import CHAT_ELEMENT from "./chat";
 import MAIN_MENU from "./main_menu";
 
-class FriendOverlay extends Overlay {
+class FriendOverlay {
     private html: HTMLDivElement;
 
     private container: HTMLDivElement;
@@ -16,13 +16,11 @@ class FriendOverlay extends Overlay {
     }
 
     public constructor() {
-        super();
-
         const screen = document.createElement("div");
         screen.id = "friend-list-screen";
         screen.onclick = e => {
             if (e.target === this.html) {
-                History.go_back();
+                this.html.classList.remove("active");
             }
         };
 
@@ -36,7 +34,7 @@ class FriendOverlay extends Overlay {
 
     private unsub: Set<() => void> = new Set();
 
-    public on_entered(st: State): void {
+    public on_entered(): void {
         for (const f of this.unsub) {
             f();
         }
@@ -161,7 +159,7 @@ class FriendOverlay extends Overlay {
             }
         })();
 
-        super.on_entered(st);
+        this.html.classList.add("active");
     }
 
     public get root_html_element(): HTMLElement {
