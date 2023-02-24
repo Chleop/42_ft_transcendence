@@ -83,12 +83,8 @@ export class GameService {
 	 * Trying to match client with another player.
 	 */
 	public queueUp(client: Socket): GameRoom | { is_invite: boolean } {
-		try {
-			if (this.findUserGame(client.data.user.id) !== null)
-				throw new BadEvent("Player already in game");
-		} catch (e) {
-			if (e instanceof BadEvent) throw e;
-		}
+		if (this.findUserGame(client.data.user.id) !== null)
+			throw new BadEvent("Player already in game");
 		this.logger.verbose(`${client.data.user.login} entering matchmaking.`);
 		const queue_result: GameRoom | { is_invite: boolean } = this.matchmaking.queueUp(client);
 		if (!(queue_result instanceof GameRoom)) {
