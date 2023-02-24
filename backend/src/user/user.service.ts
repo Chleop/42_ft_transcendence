@@ -1,11 +1,14 @@
 import { t_receiving_user_fields } from "src/user/alias";
+import { SkinNotFoundError } from "src/skin/error";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
 	UserAvatarFileFormatError,
 	UserBlockedError,
-	UserFieldUnaivalableError,
+	UserEmailAlreadyTakenError,
+	UserLoginAlreadyTakenError,
 	UserMessageNotFoundError,
+	UserNameAlreadyTakenError,
 	UserNotBlockedError,
 	UserNotFoundError,
 	UserNotFriendError,
@@ -20,7 +23,6 @@ import { IGame } from "src/game/interface";
 import { ChannelService } from "src/channel/channel.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Injectable, Logger, StreamableFile } from "@nestjs/common";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { DirectMessage, StateType } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
 import { join } from "path";
@@ -587,61 +589,77 @@ export class UserService {
 	 * @param	login The login of the user to create.
 	 *
 	 * @error	The following errors may be thrown :
-	 * 			- UserRelationNotFoundError
-	 * 			- UserFieldUnaivalableError
-	 * 			- UnknownError
+	 * 			- UserLoginAlreadyTakenError
+	 * 			- SkinNotFoundError
 	 *
 	 * @return	A promise containing the id of the created user.
 	 */
 	public async create_one(login: string): Promise<string> {
 		//#region
-		let user_id: string;
-
-		try {
-			let name: string = login;
-			let suffix: number = 0;
-			while (
-				await this._prisma_service.user.findUnique({
-					//#region
-					select: {
-						id: true,
-					},
-					where: {
-						name: name,
-					},
-				})
-				//#endregion
-			) {
-				name = `${login}#${suffix++}`;
-			}
-
-			user_id = (
-				await this._prisma_service.user.create({
-					//#region
-					data: {
-						login: login,
-						name: name,
-						skin: {
-							connect: {
-								name: "default",
-							},
-						},
-					},
-				})
-			).id;
+		if (
+			await this._prisma_service.user.findUnique({
+				//#region
+				select: {
+					id: true,
+				},
+				where: {
+					login: login,
+				},
+			})
 			//#endregion
-			this._logger.log(`User ${user_id} created`);
-		} catch (error) {
-			if (error instanceof PrismaClientKnownRequestError) {
-				switch (error.code) {
-					case "P2002":
-						throw new UserFieldUnaivalableError();
-				}
-				this._logger.error(`PrismaClientKnownRequestError code was ${error.code}`);
-			}
-			throw new UnknownError();
+		) {
+			throw new UserLoginAlreadyTakenError(login);
 		}
 
+		if (
+			await this._prisma_service.skin.findUnique({
+				//#region
+				select: {
+					id: true,
+				},
+				where: {
+					name: "default",
+				},
+			})
+			//#endregion
+		) {
+			throw new SkinNotFoundError("default");
+		}
+
+		let name: string = login;
+		let suffix: number = 0;
+		while (
+			await this._prisma_service.user.findUnique({
+				//#region
+				select: {
+					id: true,
+				},
+				where: {
+					name: name,
+				},
+			})
+			//#endregion
+		) {
+			name = `${login}#${suffix++}`;
+		}
+
+		const user_id: string = (
+			await this._prisma_service.user.create({
+				//#region
+				data: {
+					login: login,
+					name: name,
+					skin: {
+						connect: {
+							name: "default",
+						},
+					},
+				},
+			})
+		).id;
+		//#endregion
+
+		this._logger.log(`User ${user_id} created`);
 		return user_id;
 	}
 	//#endregion
@@ -656,8 +674,7 @@ export class UserService {
 	 *
 	 * @return	An empty promise.
 	 */
-	// REMIND: rename into disable_me (?)
-	public async disable_one(id: string): Promise<void> {
+	public async disable_me(id: string): Promise<void> {
 		//#region
 		type t_fields = {
 			//#region
@@ -820,8 +837,7 @@ export class UserService {
 		})) as IUserPrivateTmp;
 		//#endregion
 
-		if (!user_tmp)
-			throw new UserNotFoundError();
+		if (!user_tmp) throw new UserNotFoundError();
 
 		let status: e_user_status | undefined = this._chat_service.get_user(id)?.status;
 		if (status === undefined) {
@@ -1528,13 +1544,12 @@ export class UserService {
 	 * @param	skin_id The new skin id of the user.
 	 *
 	 * @error	The following errors may be thrown :
-	 * 			- UserFieldUnaivalableError
-	 * 			- UnknownError
+	 * 			- UserNameAlreadyTakenError
+	 * 			- UserEmailAlreadyTakenError
 	 *
 	 * @return	An empty promise.
 	 */
-	// REMIND: rename into update_me (?)
-	public async update_one(
+	public async update_me(
 		id: string,
 		name?: string,
 		email?: string,
@@ -1568,35 +1583,72 @@ export class UserService {
 		})) as t_fields;
 		//#endregion
 
-		if (name !== undefined) user.name = name;
-		if (email !== undefined) user.email = email;
-		if (two_fact_auth !== undefined) user.twoFactAuth = two_fact_auth;
-		if (skin_id !== undefined) user.skinId = skin_id;
-
-		try {
-			await this._prisma_service.user.update({
-				//#region
-				data: user,
-				where: {
-					idAndState: {
-						id: id,
-						state: StateType.ACTIVE,
+		if (name !== undefined) {
+			if (
+				await this._prisma_service.user.findFirst({
+					//#region
+					where: {
+						AND: [
+							{
+								name: name,
+							},
+							{
+								NOT: {
+									id: id,
+								},
+							},
+						],
 					},
-				},
-			});
-			//#endregion
-		} catch (error) {
-			this._logger.error(`Error occured while updating user ${id}`);
-			if (error instanceof PrismaClientKnownRequestError) {
-				switch (error.code) {
-					case "P2002":
-						throw new UserFieldUnaivalableError();
-				}
-				this._logger.error(`PrismaClientKnownRequestError code was ${error.code}`);
+				})
+				//#endregion
+			) {
+				throw new UserNameAlreadyTakenError(name);
 			}
 
-			throw new UnknownError();
+			user.name = name;
 		}
+		if (email !== undefined) {
+			if (
+				await this._prisma_service.user.findFirst({
+					//#region
+					where: {
+						AND: [
+							{
+								email: email,
+							},
+							{
+								NOT: {
+									id: id,
+								},
+							},
+						],
+					},
+				})
+				//#endregion
+			) {
+				throw new UserEmailAlreadyTakenError(email);
+			}
+
+			user.email = email;
+		}
+		if (two_fact_auth !== undefined) {
+			user.twoFactAuth = two_fact_auth;
+		}
+		if (skin_id !== undefined) {
+			user.skinId = skin_id;
+		}
+
+		await this._prisma_service.user.update({
+			//#region
+			data: user,
+			where: {
+				idAndState: {
+					id: id,
+					state: StateType.ACTIVE,
+				},
+			},
+		});
+		//#endregion
 
 		this._logger.log(`User ${id} has been updated`);
 	}
@@ -1616,7 +1668,7 @@ export class UserService {
 	 *
 	 * @return	An empty promise.
 	 */
-	public async update_ones_avatar(id: string, file: Express.Multer.File): Promise<void> {
+	public async update_my_avatar(id: string, file: Express.Multer.File): Promise<void> {
 		//#region
 		type t_fields = {
 			//#region

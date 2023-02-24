@@ -14,7 +14,7 @@ export class Paddle {
 		this.last_update = -1;
 	}
 
-	/* ------------------------------------------------------------------------- */
+	/* PUBLIC ================================================================== */
 
 	public update(dto: PaddleDto, time: number): void {
 		this.position = dto.position;

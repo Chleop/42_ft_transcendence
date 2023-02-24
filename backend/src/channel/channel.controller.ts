@@ -94,7 +94,7 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -127,7 +127,7 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -153,7 +153,7 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -186,8 +186,7 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -204,7 +203,7 @@ export class ChannelController {
 		try {
 			return await this._channel_service.get_all(request.user.id);
 		} catch (error) {
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -230,7 +229,7 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -268,7 +267,7 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -307,8 +306,7 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -341,8 +339,7 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -376,8 +373,7 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -410,8 +406,7 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -455,7 +450,7 @@ export class ChannelController {
 				this._logger.error(error.message);
 				throw new ConflictException(error.message);
 			}
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}

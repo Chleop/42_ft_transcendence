@@ -1,6 +1,9 @@
 import { Socket } from "socket.io";
 import { PaddleDto } from "../dto";
 
+/**
+ * Updates opponent's paddle position.
+ */
 export class OpponentUpdate {
 	public readonly player: Socket;
 	public readonly updated_paddle: PaddleDto;

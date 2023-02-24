@@ -79,18 +79,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				}
 			}
 		} catch (e) {
-			throw new BadEvent("Broadcast error");
+			// TODO: catch all kind of errors, and pass it to bad event
+			throw new BadEvent("Broadcast error: " + e.message || "unknown error");
 		}
 	}
 
 	public async broadcast_to_online_channel_members(channel_id: string): Promise<void> {
 		// TODO: Add checks
-		const users: t_user_id[] = await this._chat_service.get_online_users_in_channel(channel_id);
-		const data: IChannel = await this._channel_service.get_one(users[0]?.id, channel_id);
-		for (const user_to_notify of users) {
-			if (this._chat_service.is_user_in_map(user_to_notify.id)) {
-				this._server.to(user_to_notify.login).emit("channel_updated", data);
+		try {
+			const users: t_user_id[] = await this._chat_service.get_online_users_in_channel(
+				channel_id,
+			);
+			const data: IChannel = await this._channel_service.get_one(users[0]?.id, channel_id);
+			for (const user_to_notify of users) {
+				if (this._chat_service.is_user_in_map(user_to_notify.id)) {
+					this._server.to(user_to_notify.login).emit("channel_updated", data);
+				}
 			}
+		} catch (e) {
+			// TODO: catch all kind of errors, and pass it to bad event
+			throw new BadEvent("Broadcast error: " + e.message || "unknown error");
 		}
 	}
 
@@ -144,7 +152,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				id: client.data.user.id,
 			});
 		} catch (e) {
-			if (!(e instanceof BadEvent)) throw e;
+			this._logger.error(e.message || "unknown error");
 		}
 		this._logger.log(
 			`Client ${client.id} (${client.data.user.login}) disconnected from chat gateway`,
