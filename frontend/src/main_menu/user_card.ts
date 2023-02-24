@@ -245,8 +245,8 @@ class UserCardElement {
 								"You're not my friend anymore.",
 							);
 						})
-						.catch(() => {
-							NOTIFICATIONS.spawn_notification("red", "failed to remove this friend");
+						.catch((err) => {
+							NOTIFICATIONS.spawn_notification("red", err?.message || "failed to revoke friendship");
 						});
 			} else if (pending) {
 				this.friend_button.innerText = "Accept Friend";
@@ -273,7 +273,7 @@ class UserCardElement {
 						.catch((err) => {
 							NOTIFICATIONS.spawn_notification(
 								"orange",
-								err?.message || "unknown error"
+								err?.message || "failed to add friend"
 							);
 						});
 			}
@@ -288,8 +288,8 @@ class UserCardElement {
 							this.show(null, user, channel);
 							NOTIFICATIONS.spawn_notification("green", "are you guys cool now?");
 						})
-						.catch(() => {
-							NOTIFICATIONS.spawn_notification("red", "failed to block this user");
+						.catch((err) => {
+							NOTIFICATIONS.spawn_notification("red", err?.message || "failed to unblock this user");
 						});
 				this.friend_button.style.display = "none";
 			} else {
@@ -304,8 +304,8 @@ class UserCardElement {
 								"this user won't bother you no more",
 							);
 						})
-						.catch(() => {
-							NOTIFICATIONS.spawn_notification("red", "failed to block the user");
+						.catch((err) => {
+							NOTIFICATIONS.spawn_notification("red", err?.message || "failed to block the user");
 						});
 				this.friend_button.style.display = "block";
 			}
@@ -327,10 +327,10 @@ class UserCardElement {
 									"User promoted to channel operator.",
 								);
 							})
-							.catch(() => {
+							.catch((err) => {
 								NOTIFICATIONS.spawn_notification(
 									"orange",
-									"this user is no longer present in this channel",
+									err?.message || "failed to promote this user"
 								);
 							});
 					};
@@ -341,20 +341,16 @@ class UserCardElement {
 							.then(() => {
 								const idx = channel.operators_ids.indexOf(user.id);
 								if (idx !== -1) channel.operators_ids.splice(idx, 1);
-								else
-									console.error(
-										"tried to demote a user that wasn't an operator - and it worked?",
-									);
 								this.show(null, user, channel);
 								NOTIFICATIONS.spawn_notification(
 									"green",
 									"User demoted from channel operators.",
 								);
 							})
-							.catch(() => {
+							.catch((err) => {
 								NOTIFICATIONS.spawn_notification(
 									"orange",
-									"this user is no longer present in this channel",
+									err?.message || "failed to demote this user",
 								);
 							});
 					};
@@ -379,10 +375,10 @@ class UserCardElement {
 						.then(() => {
 							NOTIFICATIONS.spawn_notification("green", "user muted.");
 						})
-						.catch(() => {
+						.catch((err) => {
 							NOTIFICATIONS.spawn_notification(
 								"orange",
-								"this user is no longer present in this channel",
+								err?.message || "failed to mute this user"
 							);
 						});
 				};
@@ -396,10 +392,10 @@ class UserCardElement {
 								NOTIFICATIONS.spawn_notification("green", "user unbanned. They are free to spam here again.");
 								this.show(null, user, channel);
 							})
-							.catch(() => {
+							.catch((err) => {
 								NOTIFICATIONS.spawn_notification(
 									"orange",
-									"Don't want to unban because they are not very cool.",
+									err?.message || "failed to unban this user"
 								);
 							});
 					};
@@ -411,10 +407,10 @@ class UserCardElement {
 								NOTIFICATIONS.spawn_notification("green", "user banned.");
 								this.show(null, user, channel);
 							})
-							.catch(() => {
+							.catch((err) => {
 								NOTIFICATIONS.spawn_notification(
 									"orange",
-									"this user is no longer present in this channel",
+									err?.message || "failed to ban this user",
 								);
 							});
 					};
