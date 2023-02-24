@@ -1,5 +1,5 @@
 import CHAT_ELEMENT from "./chat";
-import { Scene, History, State } from "../strawberry";
+import { Scene, State } from "../strawberry";
 import {
     GameSocket,
     GLOBAL_GAME_SOCKET,
@@ -25,7 +25,7 @@ class MainMenuScene extends Scene {
 
     private play_button: HTMLElement;
 
-    private rank_image: HTMLDivElement;
+    private rank_image: HTMLImageElement;
 
     /**
      * Creatse a new `MainMenuElement` instance.
@@ -40,7 +40,7 @@ class MainMenuScene extends Scene {
         title.innerText = "Pong";
         this.container.appendChild(title);
 
-        const rank = document.createElement("div");
+        const rank = document.createElement("img");
         rank.id = "main-menu-rank";
         this.container.appendChild(rank);
         this.rank_image = rank;
@@ -125,7 +125,7 @@ class MainMenuScene extends Scene {
 
             const rank_type = ratio_to_rank(wins, losses);
             const rank_image = rank_to_image(rank_type);
-            rank.style.backgroundImage = `url('${rank_image}')`;
+            rank.src = rank_image;
 
             // Initialize the stuff that's related to the user.
             let first: boolean = true;
@@ -157,7 +157,7 @@ class MainMenuScene extends Scene {
 
             const rank_type = ratio_to_rank(wins, losses);
             const rank_image = rank_to_image(rank_type);
-            this.rank_image.style.backgroundImage = `url('${rank_image}')`;
+            this.rank_image.src = rank_image;
         });
         super.on_entered(state);
     }
