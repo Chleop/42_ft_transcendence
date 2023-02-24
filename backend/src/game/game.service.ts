@@ -6,18 +6,19 @@ import { GameRoom } from "./rooms";
 import { Match } from "./aliases";
 import { Results, OpponentUpdate } from "./objects";
 import { Matchmaking } from "./matchmaking";
-import { BadEvent, WrongData } from "./exceptions";
+import { BadEvent } from "./exceptions";
 
 /**
  * Game rooms manager.
  *
+ * Observes rooms.
  * Holds the matchmaking unit.
  */
 @Injectable()
 export class GameService {
 	private readonly prisma_service: PrismaService;
-	private game_rooms: Set<GameRoom>;
 	private readonly matchmaking: Matchmaking;
+	private game_rooms: Set<GameRoom>;
 	private readonly logger: Logger;
 
 	/* CONSTRUCTOR ============================================================= */
@@ -59,7 +60,6 @@ export class GameService {
 					dateTime: new Date(results.date),
 				},
 			});
-
 			this.logger.log(`Saved game '${room.match.name}' to database`);
 		} catch (error) {
 			if (error instanceof PrismaClientKnownRequestError) {
@@ -145,7 +145,7 @@ export class GameService {
 	/**
 	 * Returns game room with associated user_id.
 	 */
-	public findUserGame(user_id: string): GameRoom {
+	public findUserGame(user_id: string): GameRoom | null {
 		for (const obj of this.game_rooms) {
 			if (
 				obj.match.player1.data.user.id === user_id ||
@@ -153,7 +153,7 @@ export class GameService {
 			)
 				return obj;
 		}
-		throw new WrongData("Room does not exist");
+		return null;
 	}
 
 	/* PRIVATE ================================================================= */

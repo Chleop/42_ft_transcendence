@@ -7,8 +7,7 @@ import { GameRoom } from "../rooms";
 /**
  * Matchmaking handler.
  *
- * Single spot as a queue for regular matchmaking,
- * special queue if they're awaiting someone.
+ * Single spot as a queue for regular matchmaking, special queue if they're awaiting someone.
  * When it is taken, matches with incomming connection.
  * Otherwise, they take this spot.
  */
@@ -133,6 +132,10 @@ export class Matchmaking {
 		return { is_invite: true };
 	}
 
+	/**
+	 * A friend was already in the queue waiting for a client.
+	 * Matches them together.
+	 */
 	private matchWithFriend(client: Socket, friend: Socket): GameRoom {
 		const match: Match = {
 			name: friend.data.user.id + client.data.user.id,

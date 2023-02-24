@@ -88,6 +88,6 @@ export const pi_3: number = Math.PI * 0.33;
 export const gravity: number = 0.15;
 
 /**
- * Friction simulator.
+ * Friction coefficient simulator.
  */
 export const friction: number = 0.97;
