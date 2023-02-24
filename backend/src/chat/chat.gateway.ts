@@ -80,7 +80,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			}
 		} catch (e) {
 			// TODO: catch all kind of errors, and pass it to bad event
-			throw new BadEvent("Broadcast error: " /* + e.message*/);
+			throw new BadEvent("Broadcast error: " + e.message || "unknown error");
 		}
 	}
 
@@ -98,7 +98,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 			}
 		} catch (e) {
 			// TODO: catch all kind of errors, and pass it to bad event
-			throw new BadEvent("Broadcast error: " /* + e.message*/);
+			throw new BadEvent("Broadcast error: " + e.message || "unknown error");
 		}
 	}
 
@@ -152,7 +152,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 				id: client.data.user.id,
 			});
 		} catch (e) {
-			if (!(e instanceof BadEvent)) throw e;
+			this._logger.error(e.message || "unknown error");
 		}
 		this._logger.log(
 			`Client ${client.id} (${client.data.user.login}) disconnected from chat gateway`,

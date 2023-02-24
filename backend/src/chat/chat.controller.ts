@@ -93,7 +93,7 @@ export class ChatController {
 				this._logger.error(error.message);
 				throw new ConflictException(error.message);
 			}
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -135,7 +135,7 @@ export class ChatController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -159,6 +159,8 @@ export class ChatController {
 				this._logger.error(error.message);
 				throw new BadRequestException(error.message);
 			}
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
+			throw new InternalServerErrorException();
 		}
 	}
 	//#endregion
@@ -196,7 +198,7 @@ export class ChatController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			this._logger.error("Unknown error type, this should not happen");
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
@@ -250,8 +252,7 @@ export class ChatController {
 				this._logger.error(error.message);
 				throw new ForbiddenException(error.message);
 			}
-			this._logger.error("Unknow error type, this should not happen");
-			this._logger.error(error);
+			this._logger.error("Unexpected error: " + error.message || "non standard error");
 			throw new InternalServerErrorException();
 		}
 	}
