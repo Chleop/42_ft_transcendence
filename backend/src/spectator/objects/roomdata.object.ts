@@ -8,6 +8,8 @@ export class RoomData {
 	public readonly spectated: IUserPublic;
 	public readonly opponent: IUserPublic;
 
+	/* CONSTRUCTOR ============================================================= */
+
 	constructor(spectated_id: string, room: GameRoom) {
 		if (room.match.player1.data.user.id === spectated_id) {
 			this.spectated = this._downgrade_user_data(room.match.player1.data.user);
@@ -18,6 +20,11 @@ export class RoomData {
 		}
 	}
 
+	/* PRIVATE ================================================================= */
+
+	/**
+	 * Downgrade to IUserPublic
+	 */
 	private _downgrade_user_data(user: IUserPrivate): IUserPublic {
 		return {
 			id: user.id,
