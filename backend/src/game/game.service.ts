@@ -84,8 +84,8 @@ export class GameService {
 	 */
 	public queueUp(client: Socket): GameRoom | { is_invite: boolean } {
 		try {
-			this.findUserGame(client.data.user.id);
-			throw new BadEvent("Player already in game");
+			if (this.findUserGame(client.data.user.id) !== null)
+				throw new BadEvent("Player already in game");
 		} catch (e) {
 			if (e instanceof BadEvent) throw e;
 		}
@@ -143,7 +143,7 @@ export class GameService {
 	}
 
 	/**
-	 * Returns game room with associated user_id.
+	 * Returns game room with associated user_id or null.
 	 */
 	public findUserGame(user_id: string): GameRoom | null {
 		for (const obj of this.game_rooms) {

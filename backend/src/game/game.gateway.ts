@@ -64,6 +64,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 		try {
 			const queue_result: GameRoom | { is_invite: boolean } =
 				this.game_service.queueUp(client);
+
 			if (queue_result instanceof GameRoom) await this.matchmake(queue_result);
 			else if (queue_result.is_invite === true) {
 				this.chat_gateway.forward_to_user_socket(
