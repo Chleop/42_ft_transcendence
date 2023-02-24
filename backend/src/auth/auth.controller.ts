@@ -10,7 +10,6 @@ import {
 	Res,
 	Logger,
 	BadRequestException,
-	UnauthorizedException,
 } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { Response } from "express";
@@ -43,9 +42,9 @@ export class AuthController {
 		} catch (error) {
 			this._logger.error(`signin: ${(<Error>error).message}`);
 			if (error instanceof PendingUser) {
-				throw new UnauthorizedException(error.message);
+				return;
 			}
-			if (error instanceof PrismaClientKnownRequestError) {
+			else if (error instanceof PrismaClientKnownRequestError) {
 				if (error.code == "P2002")
 					throw new ForbiddenException(
 						"One of the provided fields is already taken (unique constraint)",
@@ -55,7 +54,7 @@ export class AuthController {
 	}
 
 	@Get("42/2FARedirect")
-	async two_factor_authentication_redirect(): Promise<void> {}
+	async two_factor_authentication_redirect(): Promise<void> { }
 
 	@UseGuards(JwtPendingStateGuard)
 	@Post("42/2FAActivate")

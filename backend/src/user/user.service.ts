@@ -19,7 +19,7 @@ import { IUserPrivate, IUserPrivateTmp, IUserPublic, IUserPublicTmp } from "src/
 import { IGame } from "src/game/interface";
 import { ChannelService } from "src/channel/channel.service";
 import { PrismaService } from "src/prisma/prisma.service";
-import { Injectable, Logger, StreamableFile } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, StreamableFile } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { DirectMessage, StateType } from "@prisma/client";
 import { createReadStream, createWriteStream } from "fs";
@@ -818,6 +818,12 @@ export class UserService {
 			},
 		})) as IUserPrivateTmp;
 		//#endregion
+
+		// NOTE(nils): I don't know why (because it seemed to work well previously), but sometimes
+		// user_tmp is null.
+		if (!user_tmp) {
+			throw new BadRequestException("no such user");
+		}
 
 		let status: e_user_status | undefined = this._chat_service.get_user(id)?.status;
 		if (status === undefined) {

@@ -60,13 +60,13 @@ export class SocketIOAdapter extends IoAdapter {
 
 		server
 			.of("chat")
-			.use(websocketMiddleware(jwt_service, config_service, user_service, auth_service));
+			.use(websocketMiddleware(this.logger, jwt_service, config_service, user_service, auth_service));
 		server
 			.of("game")
-			.use(websocketMiddleware(jwt_service, config_service, user_service, auth_service));
+			.use(websocketMiddleware(this.logger, jwt_service, config_service, user_service, auth_service));
 		server
 			.of("spectate")
-			.use(websocketMiddleware(jwt_service, config_service, user_service, auth_service));
+			.use(websocketMiddleware(this.logger, jwt_service, config_service, user_service, auth_service));
 
 		return server;
 	}
@@ -79,6 +79,7 @@ export class SocketIOAdapter extends IoAdapter {
  */
 const websocketMiddleware =
 	(
+		logger: Logger,
 		jwt_service: JwtService,
 		config_service: ConfigService,
 		user_service: UserService,
@@ -88,15 +89,16 @@ const websocketMiddleware =
 			const token: string | undefined = client.handshake.auth.token;
 			const secret: string | undefined = config_service.get<string>("JWT_SECRET");
 
-			if (secret === undefined) throw new Error("JwtSecret undefined"); // should NOT happen
+			if (secret === undefined) {
+				logger.error("JwtSecret undefined");
+				throw new InternalServerErrorException(); // should NOT happen
+			}
 
 			try {
 				if (!token) {
 					throw new Error("No token provided");
 				}
-				console.log("Token ", token)
 				const payload: { sub?: string } = jwt_service.verify(token, { secret });
-				console.log("PAYLOAD :", payload);
 				if (!payload.sub) {
 					throw new Error("Invalid token");
 				}
@@ -111,10 +113,9 @@ const websocketMiddleware =
 				next();
 			} catch (e) {
 				if (e instanceof Error) {
-					console.error(e.message);
+					logger.error(e.message);
 					next(new ForbiddenException(e.message));
 				}
-				console.error(e);
 				next(new InternalServerErrorException("Unknown error in SocketIOAdapter"));
 			}
 		};

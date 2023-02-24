@@ -9,7 +9,10 @@ import { PrismaService } from "src/prisma/prisma.service";
 import { StateType } from "@prisma/client";
 import { t_access_token, t_email, t_payload, t_secret, t_user_auth } from "src/auth/alias";
 import * as argon2 from "argon2";
-import { CodeIsNotSet, ExpiredCode, InvalidCode, PendingUser } from "./error";
+import {
+	CodeIsNotSet, ExpiredCode, InvalidCode,/*, PendingUser */
+	PendingUser
+} from "./error";
 
 ("use strict");
 
