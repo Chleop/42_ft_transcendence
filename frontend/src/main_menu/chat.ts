@@ -127,15 +127,17 @@ export class ChannelElement {
 
 			let messages;
 			if (this.model) {
-				if (this.oldest_message) {
-					messages = await Client.messages_before(
-						this.model.id,
-						this.oldest_message.model.id,
-						QUERY_SIZE,
-					);
-				} else {
-					messages = await Client.last_messages(this.model.id, QUERY_SIZE);
-				}
+				try {
+					if (this.oldest_message) {
+						messages = await Client.messages_before(
+							this.model.id,
+							this.oldest_message.model.id,
+							QUERY_SIZE,
+						);
+					} else {
+						messages = await Client.last_messages(this.model.id, QUERY_SIZE);
+					}
+				} catch (e) { }
 			}
 			if (this.dm) {
 				if (this.oldest_message) {
@@ -473,13 +475,6 @@ class ChatElement {
 		let element = new ChannelElement(this, channel, null, this);
 
 		this.channel_tabs.appendChild(element.tab);
-
-		// Try to get the twenty last messages of the channel.
-		// Client.last_messages(channel.id, 50).then((messages) => {
-		//     for (const m of messages) {
-		//         this.add_message(element, m);
-		//     }
-		// });
 
 		this.channel_elements.push(element);
 		return element;
