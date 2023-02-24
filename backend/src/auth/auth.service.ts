@@ -11,6 +11,7 @@ import { t_access_token, t_email, t_payload, t_secret, t_user_auth } from "src/a
 import * as argon2 from "argon2";
 import { CodeIsNotSet, ExpiredCode, InvalidCode, PendingUser } from "./error";
 
+// REMIND: What is this for?
 ("use strict");
 
 @Injectable()

@@ -73,7 +73,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 			if (typeof user_id !== "string") throw new WrongData("Room not properly specified");
 			const game_room: GameRoom = this.game_service.findUserGame(user_id);
 			client.data.valid_uid = true;
-			return this.startStreaming(client, game_room);
+			await this.startStreaming(client, game_room);
 		} catch (e) {
 			if (e instanceof WrongData) {
 				this.logger.error(e.message);
@@ -94,7 +94,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	 * On disconnection, clients are removed from the spectating room
 	 * if they sent a valid uid.
 	 */
-	public handleDisconnect(client: Socket): void {
+	public async handleDisconnect(client: Socket): Promise<void> {
 		const user_id: string = client.handshake.auth.user_id;
 		try {
 			const game_room: GameRoom = this.game_service.findUserGame(user_id);
@@ -104,7 +104,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 			if (spectated_room instanceof SpectatedRoom) {
 				spectated_room.removeSpectator(client);
 				if (spectated_room.isEmpty())
-					this.stopStreaming(this, spectated_room.game_room.match.name);
+					await this.stopStreaming(this, spectated_room.game_room.match.name);
 			}
 		} catch (e) {
 			if (e instanceof WrongData && client.data.valid_uid === true) {
@@ -124,7 +124,7 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	private async startStreaming(client: Socket, game_room: GameRoom): Promise<void> {
 		client.join(game_room.match.name);
 
-		this.chat_gateway.broadcast_to_online_related_users({
+		await this.chat_gateway.broadcast_to_online_related_users({
 			id: client.data.user.id,
 			status: e_user_status.SPECTATING,
 			spectating: client.handshake.auth.user_id,
@@ -163,11 +163,11 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	/**
 	 * Sends game updates to spectators.
 	 */
-	private updateGame(me: SpectatorGateway, room: GameRoom): void {
+	private async updateGame(me: SpectatorGateway, room: GameRoom): Promise<void> {
 		const update: SpectatorUpdate | ScoreUpdate | null = room.getSpectatorUpdate();
 		if (update === null) {
 			me.server.to(room.match.name).emit("endOfGame");
-			me.stopStreaming(me, room.match.name);
+			await me.stopStreaming(me, room.match.name);
 		} else if (update instanceof SpectatorUpdate) {
 			me.server.to(room.match.name).emit("updateGame", update);
 		} else {
@@ -178,12 +178,12 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	/**
 	 * Removes the spectated room.
 	 */
-	private stopStreaming(me: SpectatorGateway, room_name: string): void {
+	private async stopStreaming(me: SpectatorGateway, room_name: string): Promise<void> {
 		const room: SpectatedRoom | null = me.spectator_service.getRoom(room_name);
 
 		if (room === null) return;
 
-		me.kickEveryone(room, me);
+		await me.kickEveryone(room, me);
 		me.spectator_service.destroyRoom(room_name);
 		me.logger.log(`Removing streaming room: ${room_name}`);
 	}
@@ -191,9 +191,9 @@ export class SpectatorGateway implements OnGatewayInit, OnGatewayConnection, OnG
 	/**
 	 * Kick clients of a room.
 	 */
-	private kickEveryone(room: SpectatedRoom, me?: SpectatorGateway): void {
+	private async kickEveryone(room: SpectatedRoom, me?: SpectatorGateway): Promise<void> {
 		for (const client of room.spectators) {
-			me?.chat_gateway.broadcast_to_online_related_users({
+			await me?.chat_gateway.broadcast_to_online_related_users({
 				id: client.data.user.id,
 				status: e_user_status.ONLINE,
 			});

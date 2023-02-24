@@ -28,8 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
 
 	public async validate(payload: t_payload): Promise<t_user_auth> {
 		try {
-			const user: t_user_auth = await this._authService.get_user_auth(payload.sub);
-			return user;
+			return await this._authService.get_user_auth(payload.sub);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				this._logger.error(error.message);

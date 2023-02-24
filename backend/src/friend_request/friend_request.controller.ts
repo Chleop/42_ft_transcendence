@@ -43,11 +43,13 @@ export class FriendRequestController {
 		friend_request_service: FriendRequestService,
 		user_service: UserService,
 	) {
+		//#region
 		this._chat_gateway = chat_gateway;
 		this._friend_request_service = friend_request_service;
 		this._user_service = user_service;
 		this._logger = new Logger(FriendRequestController.name);
 	}
+	//#endregion
 
 	@Patch("accept")
 	@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
@@ -58,6 +60,7 @@ export class FriendRequestController {
 		},
 		@Body() dto: FriendRequestAcceptDto,
 	): Promise<void> {
+		//#region
 		try {
 			await this._friend_request_service.accept_one(request.user.id, dto.accepted_user_id);
 			this._chat_gateway.forward_to_user_socket(
@@ -84,6 +87,7 @@ export class FriendRequestController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Patch("reject")
 	@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
@@ -94,6 +98,7 @@ export class FriendRequestController {
 		},
 		@Body() dto: FriendRequestRejectDto,
 	): Promise<void> {
+		//#region
 		try {
 			await this._friend_request_service.reject_one(request.user.id, dto.rejected_user_id);
 		} catch (error) {
@@ -109,6 +114,7 @@ export class FriendRequestController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 
 	@Patch("send")
 	@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
@@ -119,6 +125,7 @@ export class FriendRequestController {
 		},
 		@Body() dto: FriendRequestSendDto,
 	): Promise<void> {
+		//#region
 		try {
 			await this._friend_request_service.send_one(request.user.id, dto.receiving_user_id);
 			this._chat_gateway.forward_to_user_socket(
@@ -144,4 +151,5 @@ export class FriendRequestController {
 			throw new InternalServerErrorException();
 		}
 	}
+	//#endregion
 }

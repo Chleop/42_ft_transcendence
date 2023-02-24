@@ -17,9 +17,11 @@ export class FriendRequestService {
 	private readonly _logger: Logger;
 
 	constructor(prisma_service: PrismaService) {
+		//#region
 		this._prisma_service = prisma_service;
 		this._logger = new Logger(FriendRequestService.name);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user accept a pending friend request from another user.
@@ -65,8 +67,10 @@ export class FriendRequestService {
 			}[];
 		} | null,
 	): Promise<void> {
+		//#region
 		if (!accepting_user) {
 			accepting_user = (await this._prisma_service.user.findUnique({
+				//#region
 				select: {
 					friends: {
 						select: {
@@ -93,10 +97,12 @@ export class FriendRequestService {
 					id: string;
 				}[];
 			};
+			//#endregion
 		}
 
 		if (!accepted_user) {
 			accepted_user = await this._prisma_service.user.findUnique({
+				//#region
 				select: {
 					pendingFriendRequests: {
 						select: {
@@ -111,6 +117,7 @@ export class FriendRequestService {
 					},
 				},
 			});
+			//#endregion
 
 			if (!accepted_user) {
 				throw new UserNotFoundError(accepted_user_id);
@@ -133,6 +140,7 @@ export class FriendRequestService {
 			throw new FriendRequestNotFoundError();
 		}
 		await this._prisma_service.user.update({
+			//#region
 			data: {
 				friends: {
 					connect: {
@@ -152,7 +160,10 @@ export class FriendRequestService {
 				},
 			},
 		});
+		//#endregion
+
 		await this._prisma_service.user.update({
+			//#region
 			data: {
 				friends: {
 					connect: {
@@ -172,10 +183,13 @@ export class FriendRequestService {
 				},
 			},
 		});
+		//#endregion
+
 		this._logger.log(
 			`User ${accepting_user_id} accepted friend request from user ${accepted_user_id}.`,
 		);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user reject a pending friend request from another user.
@@ -209,8 +223,10 @@ export class FriendRequestService {
 			}[];
 		} | null,
 	): Promise<void> {
+		//#region
 		if (!rejecting_user) {
 			rejecting_user = (await this._prisma_service.user.findUnique({
+				//#region
 				select: {
 					pendingFriendRequests: {
 						select: {
@@ -229,10 +245,12 @@ export class FriendRequestService {
 					id: string;
 				}[];
 			};
+			//#endregion
 		}
 
 		if (!rejected_user) {
 			rejected_user = await this._prisma_service.user.findUnique({
+				//#region
 				select: {
 					pendingFriendRequests: {
 						select: {
@@ -247,6 +265,7 @@ export class FriendRequestService {
 					},
 				},
 			});
+			//#endregion
 
 			if (!rejected_user) {
 				throw new UserNotFoundError(rejected_user_id);
@@ -266,6 +285,7 @@ export class FriendRequestService {
 		}
 
 		await this._prisma_service.user.update({
+			//#region
 			data: {
 				pendingFriendRequests: {
 					disconnect: {
@@ -283,10 +303,13 @@ export class FriendRequestService {
 				},
 			},
 		});
+		//#endregion
+
 		this._logger.log(
 			`User ${rejecting_user_id} rejected friend request from user ${rejected_user_id}.`,
 		);
 	}
+	//#endregion
 
 	/**
 	 * @brief	Make a user send a friend request to an other user.
@@ -333,8 +356,10 @@ export class FriendRequestService {
 			}[];
 		} | null,
 	): Promise<void> {
+		//#region
 		if (!sending_user) {
 			sending_user = (await this._prisma_service.user.findUnique({
+				//#region
 				select: {
 					blocked: {
 						select: {
@@ -369,10 +394,12 @@ export class FriendRequestService {
 					id: string;
 				}[];
 			};
+			//#endregion
 		}
 
 		if (!receiving_user) {
 			receiving_user = await this._prisma_service.user.findUnique({
+				//#region
 				select: {
 					blocked: {
 						select: {
@@ -392,6 +419,7 @@ export class FriendRequestService {
 					},
 				},
 			});
+			//#endregion
 
 			if (!receiving_user) {
 				throw new UserNotFoundError(receiving_user_id);
@@ -434,6 +462,7 @@ export class FriendRequestService {
 			);
 		} else {
 			await this._prisma_service.user.update({
+				//#region
 				data: {
 					pendingFriendRequests: {
 						connect: {
@@ -448,9 +477,12 @@ export class FriendRequestService {
 					},
 				},
 			});
+			//#endregion
+
 			this._logger.log(
 				`Sent friend request from ${sending_user_id} to ${receiving_user_id}.`,
 			);
 		}
 	}
+	//#endregion
 }

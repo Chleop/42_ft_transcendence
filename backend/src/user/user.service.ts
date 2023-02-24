@@ -33,8 +33,8 @@ import { e_user_status } from "./enum";
 export class UserService {
 	// REMIND: would it be better to make these properties static ?
 	private readonly _chat_service: ChatService;
-	private readonly _channel: ChannelService;
-	private readonly _prisma: PrismaService;
+	private readonly _channel_service: ChannelService;
+	private readonly _prisma_service: PrismaService;
 	private readonly _logger: Logger;
 
 	constructor(
@@ -44,8 +44,8 @@ export class UserService {
 	) {
 		//#region
 		this._chat_service = chat_service;
-		this._channel = channel_service;
-		this._prisma = prisma_service;
+		this._channel_service = channel_service;
+		this._prisma_service = prisma_service;
 		this._logger = new Logger(UserService.name);
 	}
 	//#endregion
@@ -103,7 +103,7 @@ export class UserService {
 	): Promise<boolean> {
 		//#region
 		if (!user0) {
-			user0 = await this._prisma.user.findUnique({
+			user0 = await this._prisma_service.user.findUnique({
 				//#region
 				select: {
 					channels: {
@@ -221,7 +221,7 @@ export class UserService {
 		};
 		//#endregion
 
-		const message: t_fields | null = await this._prisma.directMessage.findUnique({
+		const message: t_fields | null = await this._prisma_service.directMessage.findUnique({
 			//#region
 			select: {
 				dateTime: true,
@@ -242,7 +242,7 @@ export class UserService {
 			throw new UserMessageNotFoundError(message_id);
 		}
 
-		const messages: DirectMessage[] = await this._prisma.directMessage.findMany({
+		const messages: DirectMessage[] = await this._prisma_service.directMessage.findMany({
 			//#region
 			where: {
 				AND: [
@@ -305,7 +305,7 @@ export class UserService {
 		};
 		//#endregion
 
-		const message: t_fields | null = await this._prisma.directMessage.findUnique({
+		const message: t_fields | null = await this._prisma_service.directMessage.findUnique({
 			//#region
 			select: {
 				dateTime: true,
@@ -326,7 +326,7 @@ export class UserService {
 			throw new UserMessageNotFoundError(message_id);
 		}
 
-		const messages: DirectMessage[] = await this._prisma.directMessage.findMany({
+		const messages: DirectMessage[] = await this._prisma_service.directMessage.findMany({
 			//#region
 			where: {
 				AND: [
@@ -377,7 +377,7 @@ export class UserService {
 		limit: number,
 	): Promise<DirectMessage[]> {
 		//#region
-		const messages: DirectMessage[] = await this._prisma.directMessage.findMany({
+		const messages: DirectMessage[] = await this._prisma_service.directMessage.findMany({
 			//#region
 			where: {
 				OR: [
@@ -446,7 +446,7 @@ export class UserService {
 		};
 		//#endregion
 
-		const blocking_user: t_blocking_user_fields = (await this._prisma.user.findUnique({
+		const blocking_user: t_blocking_user_fields = (await this._prisma_service.user.findUnique({
 			//#region
 			select: {
 				blocked: {
@@ -474,23 +474,24 @@ export class UserService {
 		})) as t_blocking_user_fields;
 		//#endregion
 
-		const blocked_user: t_blocked_user_fields | null = await this._prisma.user.findUnique({
-			//#region
-			select: {
-				id: true,
-				pendingFriendRequests: {
-					select: {
-						id: true,
+		const blocked_user: t_blocked_user_fields | null =
+			await this._prisma_service.user.findUnique({
+				//#region
+				select: {
+					id: true,
+					pendingFriendRequests: {
+						select: {
+							id: true,
+						},
 					},
 				},
-			},
-			where: {
-				idAndState: {
-					id: blocked_user_id,
-					state: StateType.ACTIVE,
+				where: {
+					idAndState: {
+						id: blocked_user_id,
+						state: StateType.ACTIVE,
+					},
 				},
-			},
-		});
+			});
 		//#endregion
 
 		if (!blocked_user) {
@@ -516,7 +517,7 @@ export class UserService {
 				(friend_request) => friend_request.id === blocked_user_id,
 			)
 		) {
-			await this._prisma.user.update({
+			await this._prisma_service.user.update({
 				//#region
 				data: {
 					pendingFriendRequests: {
@@ -539,7 +540,7 @@ export class UserService {
 				(friend_request) => friend_request.id === blocking_user_id,
 			)
 		) {
-			await this._prisma.user.update({
+			await this._prisma_service.user.update({
 				//#region
 				data: {
 					pendingFriendRequests: {
@@ -558,7 +559,7 @@ export class UserService {
 			//#endregion
 		}
 
-		await this._prisma.user.update({
+		await this._prisma_service.user.update({
 			//#region
 			data: {
 				blocked: {
@@ -600,7 +601,7 @@ export class UserService {
 			let name: string = login;
 			let suffix: number = 0;
 			while (
-				await this._prisma.user.findUnique({
+				await this._prisma_service.user.findUnique({
 					//#region
 					select: {
 						id: true,
@@ -615,7 +616,7 @@ export class UserService {
 			}
 
 			user_id = (
-				await this._prisma.user.create({
+				await this._prisma_service.user.create({
 					//#region
 					data: {
 						login: login,
@@ -673,7 +674,7 @@ export class UserService {
 		};
 		//#endregion
 
-		const channels: t_fields[] = await this._prisma.channel.findMany({
+		const channels: t_fields[] = await this._prisma_service.channel.findMany({
 			//#region
 			select: {
 				id: true,
@@ -700,10 +701,10 @@ export class UserService {
 		//#endregion
 
 		for (const channel of channels) {
-			await this._channel.leave_one(channel.id, id, channel);
+			await this._channel_service.leave_one(channel.id, id, channel);
 		}
 
-		await this._prisma.user.update({
+		await this._prisma_service.user.update({
 			//#region
 			where: {
 				idAndState: {
@@ -732,7 +733,7 @@ export class UserService {
 	 */
 	public async get_me(id: string): Promise<IUserPrivate> {
 		//#region
-		const user_tmp: IUserPrivateTmp = (await this._prisma.user.findUnique({
+		const user_tmp: IUserPrivateTmp = (await this._prisma_service.user.findUnique({
 			//#region
 			select: {
 				id: true,
@@ -907,7 +908,7 @@ export class UserService {
 	 */
 	public async get_one(id: string): Promise<IUserPublic> {
 		//#region
-		const user_tmp: IUserPublicTmp | null = await this._prisma.user.findUnique({
+		const user_tmp: IUserPublicTmp | null = await this._prisma_service.user.findUnique({
 			//#region
 			select: {
 				id: true,
@@ -984,7 +985,7 @@ export class UserService {
 		};
 		//#endregion
 
-		const user: t_fields | null = await this._prisma.user.findUnique({
+		const user: t_fields | null = await this._prisma_service.user.findUnique({
 			//#region
 			select: {
 				avatar: true,
@@ -1042,7 +1043,7 @@ export class UserService {
 		}
 
 		if (
-			!(await this._prisma.user.findUnique({
+			!(await this._prisma_service.user.findUnique({
 				//#region
 				where: {
 					id: user1_id,
@@ -1140,7 +1141,7 @@ export class UserService {
 		};
 		//#endregion
 
-		const sending_user: t_sending_user_fields = (await this._prisma.user.findUnique({
+		const sending_user: t_sending_user_fields = (await this._prisma_service.user.findUnique({
 			//#region
 			select: {
 				blocked: {
@@ -1208,22 +1209,23 @@ export class UserService {
 		})) as t_sending_user_fields;
 		//#endregion
 
-		const receiving_user: t_receiving_user_fields | null = await this._prisma.user.findUnique({
-			//#region
-			select: {
-				blocked: {
-					select: {
-						id: true,
+		const receiving_user: t_receiving_user_fields | null =
+			await this._prisma_service.user.findUnique({
+				//#region
+				select: {
+					blocked: {
+						select: {
+							id: true,
+						},
 					},
 				},
-			},
-			where: {
-				idAndState: {
-					id: receiving_user_id,
-					state: StateType.ACTIVE,
+				where: {
+					idAndState: {
+						id: receiving_user_id,
+						state: StateType.ACTIVE,
+					},
 				},
-			},
-		});
+			});
 		//#endregion
 
 		if (!receiving_user) {
@@ -1242,7 +1244,7 @@ export class UserService {
 			throw new UserBlockedError(`${receiving_user_id}`);
 		}
 
-		const message: DirectMessage = await this._prisma.directMessage.create({
+		const message: DirectMessage = await this._prisma_service.directMessage.create({
 			//#region
 			data: {
 				sender: {
@@ -1303,36 +1305,38 @@ export class UserService {
 		};
 		//#endregion
 
-		const unblocking_user: t_unblocking_user_fields = (await this._prisma.user.findUnique({
-			//#region
-			select: {
-				blocked: {
-					select: {
-						id: true,
+		const unblocking_user: t_unblocking_user_fields =
+			(await this._prisma_service.user.findUnique({
+				//#region
+				select: {
+					blocked: {
+						select: {
+							id: true,
+						},
 					},
 				},
-			},
-			where: {
-				idAndState: {
-					id: unblocking_user_id,
-					state: StateType.ACTIVE,
+				where: {
+					idAndState: {
+						id: unblocking_user_id,
+						state: StateType.ACTIVE,
+					},
 				},
-			},
-		})) as t_unblocking_user_fields;
+			})) as t_unblocking_user_fields;
 		//#endregion
 
-		const unblocked_user: t_unblocked_user_fields | null = await this._prisma.user.findUnique({
-			//#region
-			select: {
-				id: true,
-			},
-			where: {
-				idAndState: {
-					id: unblocked_user_id,
-					state: StateType.ACTIVE,
+		const unblocked_user: t_unblocked_user_fields | null =
+			await this._prisma_service.user.findUnique({
+				//#region
+				select: {
+					id: true,
 				},
-			},
-		});
+				where: {
+					idAndState: {
+						id: unblocked_user_id,
+						state: StateType.ACTIVE,
+					},
+				},
+			});
 		//#endregion
 
 		if (!unblocked_user) {
@@ -1354,7 +1358,7 @@ export class UserService {
 			throw new UserNotBlockedError();
 		}
 
-		await this._prisma.user.update({
+		await this._prisma_service.user.update({
 			//#region
 			data: {
 				blocked: {
@@ -1411,7 +1415,7 @@ export class UserService {
 	): Promise<void> {
 		//#region
 		if (!unfriending_user) {
-			unfriending_user = (await this._prisma.user.findUnique({
+			unfriending_user = (await this._prisma_service.user.findUnique({
 				//#region
 				select: {
 					friends: {
@@ -1435,7 +1439,7 @@ export class UserService {
 		}
 
 		if (!unfriended_user) {
-			unfriended_user = await this._prisma.user.findUnique({
+			unfriended_user = await this._prisma_service.user.findUnique({
 				//#region
 				select: {
 					id: true,
@@ -1462,7 +1466,7 @@ export class UserService {
 			throw new UserNotFriendError();
 		}
 
-		await this._prisma.user.update({
+		await this._prisma_service.user.update({
 			//#region
 			data: {
 				friends: {
@@ -1482,7 +1486,7 @@ export class UserService {
 			},
 		});
 		//#endregion
-		await this._prisma.user.update({
+		await this._prisma_service.user.update({
 			//#region
 			data: {
 				friends: {
@@ -1544,7 +1548,7 @@ export class UserService {
 		};
 		//#endregion
 
-		const user: t_fields = (await this._prisma.user.findUnique({
+		const user: t_fields = (await this._prisma_service.user.findUnique({
 			//#region
 			select: {
 				name: true,
@@ -1567,7 +1571,7 @@ export class UserService {
 		if (skin_id !== undefined) user.skinId = skin_id;
 
 		try {
-			await this._prisma.user.update({
+			await this._prisma_service.user.update({
 				//#region
 				data: user,
 				where: {
@@ -1625,7 +1629,7 @@ export class UserService {
 			throw new UserAvatarFileFormatError();
 		}
 
-		const user: t_fields = (await this._prisma.user.findUnique({
+		const user: t_fields = (await this._prisma_service.user.findUnique({
 			//#region
 			select: {
 				avatar: true,
@@ -1652,7 +1656,7 @@ export class UserService {
 				throw new UserAvatarFileFormatError(mime);
 		}
 
-		await this._prisma.user.update({
+		await this._prisma_service.user.update({
 			//#region
 			data: {
 				avatar: user.avatar,

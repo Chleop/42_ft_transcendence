@@ -1,7 +1,6 @@
 import { t_user_auth } from "src/auth/alias";
 import { t_user_status } from "src/chat/alias";
 import { UserMessagesGetDto, UserUpdateDto } from "src/user/dto";
-import { e_user_status } from "src/user/enum";
 import {
 	UnknownError,
 	UserAlreadyBlockedError,
@@ -132,14 +131,9 @@ export class UserController {
 		//#region
 		try {
 			const user: IUserPrivate = await this._user_service.get_me(request.user.id);
-
 			const tmp_user: t_user_status | undefined = this._chat_service.get_user(
 				request.user.id,
 			);
-			let status: e_user_status | undefined = tmp_user?.status;
-			if (status === undefined) {
-				status = e_user_status.OFFLINE;
-			}
 
 			return {
 				spectating: tmp_user?.spectated_user,
@@ -162,13 +156,7 @@ export class UserController {
 		//#region
 		try {
 			const user: IUserPublic = await this._user_service.get_one(id);
-
 			const tmp_user: t_user_status | undefined = this._chat_service.get_user(id);
-			// REMIND: Is this still needed? Or could we just remove it?
-			// let status: e_user_status | undefined = tmp_user?.status;
-			// if (status === undefined) {
-			// 	status = e_user_status.OFFLINE;
-			// }
 
 			return {
 				spectating: tmp_user?.spectated_user,
@@ -188,10 +176,8 @@ export class UserController {
 	@Get(":id/avatar")
 	async get_ones_avatar(@Param("id") id: string): Promise<StreamableFile> {
 		//#region
-		let sfile: StreamableFile;
-
 		try {
-			sfile = await this._user_service.get_ones_avatar(id);
+			return await this._user_service.get_ones_avatar(id);
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
 				this._logger.error(error.message);
@@ -200,8 +186,6 @@ export class UserController {
 			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-
-		return sfile;
 	}
 	//#endregion
 
@@ -272,7 +256,7 @@ export class UserController {
 
 	@Patch(":id/unfriend")
 	@UseGuards(Jwt2FAGuard)
-	async unfriend_one(
+	async unfriend_two(
 		@Req()
 		request: {
 			user: t_user_auth;
@@ -288,7 +272,6 @@ export class UserController {
 				request.user.id,
 				await this._user_service.get_me(request.user.id),
 			);
-
 			this._chat_gateway.forward_to_user_socket(
 				"user_updated",
 				id,
@@ -328,6 +311,7 @@ export class UserController {
 				dto.two_fact_auth,
 				dto.skin_id,
 			);
+
 			await this._chat_gateway.broadcast_to_online_related_users({
 				id: request.user.id,
 			});
@@ -363,6 +347,7 @@ export class UserController {
 		}
 		try {
 			await this._user_service.update_ones_avatar(request.user.id, file);
+
 			await this._chat_gateway.broadcast_to_online_related_users({
 				id: request.user.id,
 			});

@@ -18,7 +18,7 @@ export class FtOauthStrategy extends PassportStrategy(Strategy, "42") {
 		});
 	}
 
-	async validate(accessToken: string) {
+	async validate(accessToken: string): Promise<{ login: string }> {
 		const { data } = await firstValueFrom(
 			this.httpService.get("https://api.intra.42.fr/v2/me", {
 				headers: {

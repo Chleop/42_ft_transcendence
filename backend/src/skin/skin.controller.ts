@@ -36,9 +36,8 @@ export class SkinController {
 	@Get(":id/background")
 	async get_background(@Param("id") id: string): Promise<StreamableFile> {
 		//#region
-		let sfile: StreamableFile;
 		try {
-			sfile = await this._skin_service.get_background(id);
+			return await this._skin_service.get_background(id);
 		} catch (error) {
 			if (error instanceof SkinNotFoundError) {
 				this._logger.error(error.message);
@@ -47,17 +46,14 @@ export class SkinController {
 			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-
-		return sfile;
 	}
 	//#endregion
 
 	@Get(":id/ball")
 	async get_ball(@Param("id") id: string): Promise<StreamableFile> {
 		//#region
-		let sfile: StreamableFile;
 		try {
-			sfile = await this._skin_service.get_ball(id);
+			return await this._skin_service.get_ball(id);
 		} catch (error) {
 			if (error instanceof SkinNotFoundError) {
 				this._logger.error(error.message);
@@ -66,17 +62,14 @@ export class SkinController {
 			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-
-		return sfile;
 	}
 	//#endregion
 
 	@Get(":id/paddle")
 	async get_paddle(@Param("id") id: string): Promise<StreamableFile> {
 		//#region
-		let sfile: StreamableFile;
 		try {
-			sfile = await this._skin_service.get_paddle(id);
+			return await this._skin_service.get_paddle(id);
 		} catch (error) {
 			if (error instanceof SkinNotFoundError) {
 				this._logger.error(error.message);
@@ -85,8 +78,6 @@ export class SkinController {
 			this._logger.error("Unknow error type, this should not happen");
 			throw new InternalServerErrorException();
 		}
-
-		return sfile;
 	}
 	//#endregion
 }

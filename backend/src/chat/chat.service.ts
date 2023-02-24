@@ -56,13 +56,17 @@ export class ChatService {
 
 		if (user) {
 			user.status = status;
-			if (spectated_user !== undefined) user.spectated_user = spectated_user;
+			if (spectated_user !== undefined) {
+				user.spectated_user = spectated_user;
+			}
+			ChatService._user_map.set(id, user);
 		}
 	}
 
 	// get all users are related to a user and connected
 	public async get_online_related_users(id: string): Promise<t_user_id[]> {
 		const users: t_user_id[] = await this._prisma_service.user.findMany({
+			//#region
 			select: {
 				id: true,
 				login: true,
@@ -118,6 +122,7 @@ export class ChatService {
 				],
 			},
 		});
+		//#endregion
 
 		return users.filter((user: t_user_id) => {
 			return ChatService._user_map.has(user.id);
