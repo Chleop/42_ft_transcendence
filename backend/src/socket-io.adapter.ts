@@ -64,7 +64,6 @@ export class SocketIOAdapter extends IoAdapter {
 		const auth_service: AuthService = this.app.get(AuthService);
 
 		const server: Server = super.createIOServer(port, { ...options, cors });
-
 		server
 			.of("chat")
 			.use(
@@ -116,46 +115,43 @@ const websocketMiddleware =
 		user_service: UserService,
 		auth_service: AuthService,
 	) =>
-	async (client: Socket, next: (error?: any) => void) => {
-		const token: string | undefined = client.handshake.auth.token;
-		const secret: string | undefined = config_service.get<string>("JWT_SECRET");
+		async (client: Socket, next: (error?: any) => void) => {
+			const token: string | undefined = client.handshake.auth.token;
+			const secret: string | undefined = config_service.get<string>("JWT_SECRET");
 
-		if (secret === undefined) {
-			logger.error("JwtSecret undefined");
-			throw new InternalServerErrorException(); // should NOT happen
-		}
-
-		try {
-			if (!token) {
-				throw new Error("No token provided");
-			}
-			const payload: { sub?: string } = jwt_service.verify(token, { secret });
-			if (!payload.sub) {
-				throw new Error("Invalid token");
+			if (secret === undefined) {
+				logger.error("JwtSecret undefined");
+				throw new InternalServerErrorException(); // should NOT happen
 			}
 
-			let user: IUserPrivate;
 			try {
-				user = await user_service.get_me(payload.sub);
+				if (!token) {
+					throw new Error("No token provided");
+				}
+				const payload: { sub?: string } = jwt_service.verify(token, { secret });
+				if (!payload.sub) {
+					throw new Error("Invalid token");
+				}
+
+				const user: IUserPrivate = await user_service.get_me(payload.sub);
+
+				client.data.user = user;
+				const user_auth: t_user_auth = await auth_service.get_user_auth(user.id);
+				if (user_auth.state === StateType.DISABLED) {
+					throw new Error("Account disabled");
+				} else if (user_auth.state === StateType.PENDING) {
+					throw new Error("2FA enabled and pending");
+				}
+				next();
 			} catch (e) {
-				if (e instanceof UserNotFoundError)
-					throw new BadRequestException("invalid user ID");
-				throw e;
+				if (e instanceof UserNotFoundError) {
+					logger.log(e.message);
+					next(new BadRequestException("invalid user ID"));
+				} else if (e instanceof Error) {
+					logger.log(e.message);
+					next(new ForbiddenException(e.message));
+				}
+				logger.error(e.message || "non standard error");
+				next(new InternalServerErrorException("Unknown error in SocketIOAdapter"));
 			}
-			client.data.user = user;
-			const user_auth: t_user_auth = await auth_service.get_user_auth(user.id);
-			if (user_auth.state === StateType.DISABLED) {
-				throw new Error("Account disabled");
-			} else if (user_auth.state === StateType.PENDING) {
-				throw new Error("2FA enabled and pending");
-			}
-			next();
-		} catch (e) {
-			if (e instanceof Error) {
-				logger.error(e.message);
-				next(new ForbiddenException(e.message));
-			}
-			logger.error(e.message || "non standard error");
-			next(new InternalServerErrorException("Unknown error in SocketIOAdapter"));
-		}
-	};
+		};

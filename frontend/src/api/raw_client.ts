@@ -105,8 +105,6 @@ export class RawHTTPClient {
 
 		let response = await fetch(request.url, request_init);
 
-		// console.log(request.method + " " + request.url + " -> " + response.status + " " + response.statusText);
-
 		if (response.status == 401) {
 			const err = await response.json();
 			if (err.message === "User is pending 2FA validation") {
@@ -188,7 +186,6 @@ export class RawHTTPClient {
 	 * Requests the creation of a new channel.
 	 */
 	public async create_channel(name: string, priv: boolean, password?: string): Promise<Channel> {
-		console.log(name, priv, password);
 		return (
 			await this.make_request({
 				accept: "application/json",

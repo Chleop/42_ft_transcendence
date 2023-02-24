@@ -152,7 +152,9 @@ export class ChatController {
 	): Promise<void> {
 		//#region
 		try {
-			await this._channel_service.leave_one(request.user.id, id);
+			if (await this._channel_service.leave_one(request.user.id, id)) {
+				await this._chat_gateway.broadcast_to_online_channel_members(id);
+			}
 			this._chat_gateway.make_user_socket_leave_room(request.user.id, id);
 		} catch (error) {
 			if (error instanceof ChannelNotFoundError || error instanceof ChannelNotJoinedError) {
